@@ -56,10 +56,10 @@ public final class ChordState {
             }
         }
         
-        // make finger table consistent... clearAfter ensures vals in
-        // finger table don't exceed predecessor
+        // make finger table consistent... clearAfter ensures vals in finger
+        // table don't exceed predecessor
         fingerTable.clearAfter(predeccesor.getId());
-        fingerTable.put(predeccesor); ONLY SET THIS IF VALUES WERE CLEARED
+        fingerTable.put(predeccesor, true);
     }
     
     public void removePredecessor() {
@@ -119,12 +119,12 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
-        WE NEED TO CHECK THAT THIS DOESNT OVERSHOOT THE PREDECESSOR OR
-                OVERWRITE THE SUCCESSOR. FINGERTABLE[0] NEEDS TO BE INSYNC WITH
-                        SUCCESSORTABLE;
-                
-                IF > PREDECESSOR. UPDATE PREDECESSOR.;
-                IF PLACED IN INDEX 0. UPDATE SUCCESSORTABLE;
+//        WE NEED TO CHECK THAT THIS DOESNT OVERSHOOT THE PREDECESSOR OR
+//                OVERWRITE THE SUCCESSOR. FINGERTABLE[0] NEEDS TO BE INSYNC WITH
+//                        SUCCESSORTABLE;
+//                
+//                IF > PREDECESSOR. UPDATE PREDECESSOR.;
+//                IF PLACED IN INDEX 0. UPDATE SUCCESSORTABLE;
         fingerTable.put(pointer);
     }
 

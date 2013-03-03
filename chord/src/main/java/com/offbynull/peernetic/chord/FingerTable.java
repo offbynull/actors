@@ -106,6 +106,10 @@ public final class FingerTable {
     }
     
     public void put(Pointer ptr) {
+        put(ptr, false);
+    }
+    
+    public void put(Pointer ptr, boolean replaceOnlyIfBase) {
         if (ptr == null) {
             throw new NullPointerException();
         }
@@ -113,10 +117,9 @@ public final class FingerTable {
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        Id selfId = basePtr.getId();
-        Address selfAddress = basePtr.getAddress();
+        Id baseId = basePtr.getId();
         
-        if (id.getBitCount() != bitCount || id.equals(selfId)) {
+        if (id.getBitCount() != bitCount || id.equals(baseId)) {
             throw new IllegalArgumentException();
         }
         
@@ -125,7 +128,7 @@ public final class FingerTable {
         for (int i = 0; i < table.size(); i++) {
             InternalEntry ie = table.get(i);
             Id goalId = ie.expectedId;
-            int compVal = goalId.comparePosition(selfId, id);
+            int compVal = goalId.comparePosition(baseId, id);
             if (compVal < 0) {
                 replacePos = i;
             } else if (compVal == 0) {
@@ -138,8 +141,12 @@ public final class FingerTable {
             return;
         }
         
-        // replace in table
         InternalEntry entry = table.get(replacePos);
+        if (replaceOnlyIfBase && !entry.actualId.equals(baseId)) {
+            return;
+        }
+        
+        // replace in table
         entry.actualId = id;
         entry.address = address;
         
@@ -148,8 +155,8 @@ public final class FingerTable {
         for (int i = replacePos - 1; i >= 0; i--) {
             InternalEntry priorEntry = table.get(i);
             
-            if (priorEntry.actualId.comparePosition(selfId, id) > 0
-                    || priorEntry.actualId.equals(selfId)) {
+            if (priorEntry.actualId.comparePosition(baseId, id) > 0
+                    || priorEntry.actualId.equals(baseId)) {
                 priorEntry.actualId = id;
                 priorEntry.address = address;
             } else {

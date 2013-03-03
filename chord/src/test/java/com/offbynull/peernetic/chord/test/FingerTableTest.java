@@ -24,11 +24,72 @@ public class FingerTableTest {
     }
 
     @Test(expected=IllegalArgumentException.class)
-    public void testPutBaseId() { 
+    public void testPut1() { 
         Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
         ft.put(basePtr);
+    }
+    
+    @Test
+    public void testPut2() { 
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        FingerTable ft = new FingerTable(basePtr);
+        
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        
+        ft.put(ptr4);
+        
+        Pointer entry;
+        
+        entry = ft.get(0);
+        assertEquals(ptr4, entry);
+        entry = ft.get(1);
+        assertEquals(ptr4, entry);
+        entry = ft.get(2);
+        assertEquals(ptr4, entry);
+    }
+
+    @Test
+    public void testPut3() { 
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        FingerTable ft = new FingerTable(basePtr);
+        
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        
+        ft.put(ptr4);
+        ft.put(ptr5);
+        
+        Pointer entry;
+        
+        entry = ft.get(0);
+        assertEquals(ptr4, entry);
+        entry = ft.get(1);
+        assertEquals(ptr4, entry);
+        entry = ft.get(2);
+        assertEquals(ptr5, entry);
+    }
+    
+    @Test
+    public void testPut4() { 
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        FingerTable ft = new FingerTable(basePtr);
+        
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        
+        ft.put(ptr4);
+        ft.put(ptr5, true);
+        
+        Pointer entry;
+        
+        entry = ft.get(0);
+        assertEquals(ptr4, entry);
+        entry = ft.get(1);
+        assertEquals(ptr4, entry);
+        entry = ft.get(2);
+        assertEquals(ptr4, entry);
     }
     
     @Test

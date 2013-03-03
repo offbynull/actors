@@ -9,7 +9,7 @@ import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 
-public final class CheckPredeccesorProcessor implements Processor {
+public final class CheckPredecessorProcessor implements Processor {
     private TrackedIdGenerator tidGen;
     private ChordState chordState;
     private State state;
@@ -17,7 +17,7 @@ public final class CheckPredeccesorProcessor implements Processor {
     private Pointer testPtr;
     private QueryProcessor queryProc;
 
-    public CheckPredeccesorProcessor(ChordState chordState, int index,
+    public CheckPredecessorProcessor(ChordState chordState, int index,
             TrackedIdGenerator tidGen) {
         if (tidGen == null || chordState == null) {
             throw new NullPointerException();
@@ -63,7 +63,7 @@ public final class CheckPredeccesorProcessor implements Processor {
         try {
             return queryProc.process(timestamp, event);
         } catch (QueryFailedProcessorException qfe) {
-            chordState.setPredeccesor(null);
+            chordState.setPredecessor(null);
             return new FinishedProcessResult();
         }
     }

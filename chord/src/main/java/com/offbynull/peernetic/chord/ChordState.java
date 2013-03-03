@@ -6,7 +6,7 @@ public final class ChordState {
     private Pointer basePtr;
     private FingerTable fingerTable;
     private SuccessorTable successorTable;
-    private Pointer predeccesor;
+    private Pointer predecessor;
 
     public ChordState(Pointer basePtr) {
         if (basePtr == null) {
@@ -15,7 +15,7 @@ public final class ChordState {
         this.basePtr = basePtr;
         fingerTable = new FingerTable(basePtr);
         successorTable = new SuccessorTable(basePtr);
-        predeccesor = null;
+        predecessor = null;
     }
 
     public int getBitCount() {
@@ -34,22 +34,22 @@ public final class ChordState {
         return basePtr.getAddress();
     }
 
-    public Pointer getPredeccesor() {
-        return predeccesor;
+    public Pointer getPredecessor() {
+        return predecessor;
     }
 
-    public void setPredeccesor(Pointer predeccesor) {
-        if (predeccesor == null) {
+    public void setPredecessor(Pointer predecessor) {
+        if (predecessor == null) {
             throw new NullPointerException();
         }
         
         Id id = basePtr.getId();
         
-        if (this.predeccesor == null) {
-            this.predeccesor = predeccesor;
+        if (this.predecessor == null) {
+            this.predecessor = predecessor;
         } else {
-            Id oldId = this.predeccesor.getId();
-            Id newId = predeccesor.getId();
+            Id oldId = this.predecessor.getId();
+            Id newId = predecessor.getId();
 
             if (!newId.isWithin(oldId, false, id, false)) {
                 throw new IllegalArgumentException();
@@ -58,12 +58,12 @@ public final class ChordState {
         
         // make finger table consistent... clearAfter ensures vals in finger
         // table don't exceed predecessor
-        fingerTable.clearAfter(predeccesor.getId());
-        fingerTable.put(predeccesor, true);
+        fingerTable.clearAfter(predecessor.getId());
+        fingerTable.put(predecessor, true);
     }
     
     public void removePredecessor() {
-        predeccesor = null;
+        predecessor = null;
     } 
 
     public Pointer getSuccessor() {
@@ -132,15 +132,15 @@ public final class ChordState {
         Pointer maxFinger = fingerTable.getMaximumNonBase(); // put above
                                                              // ensures this is
                                                              // never null
-        if (predeccesor == null) {
-            predeccesor = maxFinger;
+        if (predecessor == null) {
+            predecessor = maxFinger;
         } else {
-            Id predeccesorId = predeccesor.getId();
+            Id predecessorId = predecessor.getId();
             Id maxFingerId = maxFinger.getId();
             Id baseId = basePtr.getId();
             
-            if (maxFingerId.comparePosition(baseId, predeccesorId) > 0) {
-                predeccesor = maxFinger;
+            if (maxFingerId.comparePosition(baseId, predecessorId) > 0) {
+                predecessor = maxFinger;
             }
         }
     }

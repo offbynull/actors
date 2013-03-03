@@ -391,6 +391,16 @@ public final class FingerTable {
         }
     }
 
+    public boolean isPointingToBase() {
+        if (table.isEmpty()) {
+            return false;
+        }
+        
+        InternalEntry ie = table.get(0);
+        Pointer ptr = new Pointer(ie.actualId, ie.address);
+        return ptr.equals(basePtr);
+    }
+    
     public List<Pointer> dump() {
         List<Pointer> ret = new ArrayList<>(table.size());
         

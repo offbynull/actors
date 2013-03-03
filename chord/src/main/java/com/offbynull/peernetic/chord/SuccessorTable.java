@@ -132,8 +132,17 @@ public final class SuccessorTable {
         table.removeFirst();
     }
     
-    public boolean isDead() {
+    public boolean isEmpty() {
         return table.isEmpty();
+    }
+    
+    public boolean isPointingToBase() {
+        if (table.isEmpty()) {
+            return false;
+        }
+        
+        Pointer ptr = table.getFirst();
+        return ptr.equals(basePtr);
     }
     
     public List<Pointer> dump() {

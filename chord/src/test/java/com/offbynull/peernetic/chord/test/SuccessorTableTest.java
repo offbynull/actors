@@ -29,7 +29,7 @@ public class SuccessorTableTest {
         Pointer successorPtr = st.getSuccessor();
         
         assertEquals(basePtr, successorPtr);
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
     }
 
     @Test(expected = IllegalStateException.class)
@@ -59,18 +59,18 @@ public class SuccessorTableTest {
                 basePtr));
         
         assertEquals(ptr1, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr2, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr3, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr4, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
-        assertTrue(st.isDead());
+        assertTrue(st.isEmpty());
     }
 
     @Test
@@ -86,15 +86,15 @@ public class SuccessorTableTest {
                 ptr2));
         
         assertEquals(ptr1, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr2, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(basePtr, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
-        assertTrue(st.isDead());
+        assertTrue(st.isEmpty());
     }
     
     @Test
@@ -116,15 +116,15 @@ public class SuccessorTableTest {
         st.updateTrim(ptr3);
         
         assertEquals(ptr3, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr4, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr5, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
-        assertTrue(st.isDead());
+        assertTrue(st.isEmpty());
     }
 
     @Test
@@ -146,12 +146,12 @@ public class SuccessorTableTest {
         st.updateTrim(ptr3);
         
         assertEquals(ptr3, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr4, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
-        assertTrue(st.isDead());
+        assertTrue(st.isEmpty());
     }
 
     @Test
@@ -173,8 +173,8 @@ public class SuccessorTableTest {
         st.updateTrim(ptr7);
         
         assertEquals(ptr7, st.getSuccessor());
-        assertFalse(st.isDead());
+        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
-        assertTrue(st.isDead());
+        assertTrue(st.isEmpty());
     }
 }

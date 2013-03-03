@@ -190,6 +190,19 @@ public final class FingerTable {
         return null;
     }
     
+    public Pointer getMinimumNonBase() {
+        Id baseId = basePtr.getId();
+        InternalEntry ie = table.get(0);
+        
+        Pointer ret = null;
+        
+        if (!ie.actualId.equals(baseId)) {
+            ret = new Pointer(ie.actualId, ie.address);
+        }
+        
+        return ret;
+    }
+    
     public Pointer get(int idx) {
         if (idx < 0 || idx >= table.size()) {
             throw new IllegalArgumentException();
@@ -213,10 +226,12 @@ public final class FingerTable {
             throw new NullPointerException();
         }
         
+        Id baseId = basePtr.getId();
+        
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        if (id.getBitCount() != bitCount) {
+        if (id.getBitCount() != bitCount || id.equals(baseId)) {
             throw new IllegalArgumentException();
         }
         
@@ -285,11 +300,11 @@ public final class FingerTable {
             throw new NullPointerException();
         }
         
-        if (id.getBitCount() != bitCount) {
+        Id baseId = basePtr.getId();
+        
+        if (id.getBitCount() != bitCount || id.equals(baseId)) {
             throw new IllegalArgumentException();
         }
-        
-        Id baseId = basePtr.getId();
         
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
         while (lit.hasPrevious()) {
@@ -341,11 +356,11 @@ public final class FingerTable {
             throw new NullPointerException();
         }
         
-        if (id.getBitCount() != bitCount) {
+        Id baseId = basePtr.getId();
+        
+        if (id.getBitCount() != bitCount || id.equals(baseId)) {
             throw new IllegalArgumentException();
         }
-        
-        Id baseId = basePtr.getId();
         
         ListIterator<InternalEntry> lit = table.listIterator();
         while (lit.hasNext()) {

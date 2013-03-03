@@ -59,6 +59,10 @@ public final class SuccessorTable {
         }
         
         table.addFirst(successor);
+        
+        if (table.size() > limit) {
+            table.removeLast();
+        }
     }
     
     public void update(Pointer successor, List<Pointer> table) {
@@ -117,11 +121,7 @@ public final class SuccessorTable {
     }
     
     public Pointer getSuccessor() {
-        if (table.isEmpty()) {
-            throw new IllegalStateException();
-        }
-        
-        return table.getFirst();
+        return table.peekFirst();
     }
     
     public void moveToNextSucessor() {

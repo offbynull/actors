@@ -40,6 +40,27 @@ public final class SuccessorTable {
         return basePtr.getAddress();
     }
     
+    public void updateTrim(Pointer successor) {
+        if (successor == null) {
+            throw new NullPointerException();
+        }
+        
+        Id baseId = basePtr.getId();
+        Id successorId = successor.getId();
+        
+        while (!table.isEmpty()) {
+            Pointer ptr = table.removeFirst();
+            
+            Id ptrId = ptr.getId();
+            if (ptrId.comparePosition(baseId, successorId) > 0) {
+                table.addFirst(ptr);
+                break;
+            }
+        }
+        
+        table.addFirst(successor);
+    }
+    
     public void update(Pointer successor, List<Pointer> table) {
         if (successor == null || table == null) {
             throw new NullPointerException();

@@ -177,6 +177,19 @@ public final class FingerTable {
         return basePtr.getAddress();
     }
     
+    public Pointer getMaximumNonBase() {
+        Id baseId = basePtr.getId();
+        
+        for (int i = bitCount - 1; i >= 0; i--) {
+            InternalEntry ie = table.get(i);
+            if (!ie.actualId.equals(baseId)) {
+                return new Pointer(ie.actualId, ie.address);
+            }
+        }
+        
+        return null;
+    }
+    
     public Pointer get(int idx) {
         if (idx < 0 || idx >= table.size()) {
             throw new IllegalArgumentException();

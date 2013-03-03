@@ -119,13 +119,30 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
-//        WE NEED TO CHECK THAT THIS DOESNT OVERSHOOT THE PREDECESSOR OR
-//                OVERWRITE THE SUCCESSOR. FINGERTABLE[0] NEEDS TO BE INSYNC WITH
-//                        SUCCESSORTABLE;
-//                
-//                IF > PREDECESSOR. UPDATE PREDECESSOR.;
-//                IF PLACED IN INDEX 0. UPDATE SUCCESSORTABLE;
+        Pointer oldSuccessor = fingerTable.get(0);
         fingerTable.put(pointer);
+        Pointer newSuccessor = fingerTable.get(0);
+        
+        // update succesor in successor table if updated in finger table
+        if (!oldSuccessor.equals(newSuccessor)) {
+            successorTable.updateTrim(pointer);
+        }
+        
+        // update predecessor if last non-base finger entry exceeds predecessor
+        Pointer maxFinger = fingerTable.getMaximumNonBase(); // put above
+                                                             // ensures this is
+                                                             // never null
+        if (predeccesor == null) {
+            predeccesor = maxFinger;
+        } else {
+            Id predeccesorId = predeccesor.getId();
+            Id maxFingerId = maxFinger.getId();
+            Id baseId = basePtr.getId();
+            
+            if (maxFingerId.comparePosition(baseId, predeccesorId) > 0) {
+                predeccesor = maxFinger;
+            }
+        }
     }
 
     public void removeFinger(Pointer pointer) {

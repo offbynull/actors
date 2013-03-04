@@ -6,7 +6,7 @@ public final class ChordState {
     private Pointer basePtr;
     private FingerTable fingerTable;
     private SuccessorTable successorTable;
-    private Pointer predecessor;
+    private Pointer predecessorPtr;
 
     public ChordState(Pointer basePtr) {
         if (basePtr == null) {
@@ -15,7 +15,7 @@ public final class ChordState {
         this.basePtr = basePtr;
         fingerTable = new FingerTable(basePtr);
         successorTable = new SuccessorTable(basePtr);
-        predecessor = null;
+        predecessorPtr = null;
     }
 
     public int getBitCount() {
@@ -35,7 +35,7 @@ public final class ChordState {
     }
 
     public Pointer getPredecessor() {
-        return predecessor;
+        return predecessorPtr;
     }
 
     public void setPredecessor(Pointer predecessor) {
@@ -45,10 +45,10 @@ public final class ChordState {
         
         Id id = basePtr.getId();
         
-        if (this.predecessor == null) {
-            this.predecessor = predecessor;
+        if (this.predecessorPtr == null) {
+            this.predecessorPtr = predecessor;
         } else {
-            Id oldId = this.predecessor.getId();
+            Id oldId = this.predecessorPtr.getId();
             Id newId = predecessor.getId();
 
             if (!newId.isWithin(oldId, false, id, false)) {
@@ -56,25 +56,20 @@ public final class ChordState {
             }
         }
         
-        // make finger table consistent... clearAfter ensures vals in finger
-        // table don't exceed predecessor
-        fingerTable.clearAfter(predecessor.getId());
-        fingerTable.put(predecessor, true);
+        fixFingerTable();
     }
     
     public void removePredecessor() {
-        predecessor = null;
+        predecessorPtr = null;
     } 
 
     public Pointer getSuccessor() {
-        return fingerTable.get(0);
+        return successorTable.getSuccessor();
     }
     
     public void shiftSuccessor() {
         successorTable.moveToNextSucessor();
-        Pointer successorPtr = successorTable.getSuccessor();
-        
-        fingerTable.clearBefore(successorPtr.getId());
+        fixFingerTable();
     }
 
     public void setSuccessor(Pointer successor, List<Pointer> table) {
@@ -83,11 +78,29 @@ public final class ChordState {
         }
         
         successorTable.update(successor, table);
+        fixFingerTable();
+    }
+    
+    private void fixFingerTable() {
+        // Trust in the successor table... adjust finger table so that anything
+        // before the new successor gets removed and the new successor is set as
+        // fingerTable[0].
+        Pointer successorPtr = successorTable.getSuccessor();
+        Id successorId = successorPtr.getId();
         
-        // make fingertable consistent... clearBefore ensures value will be set
-        // as successor
-        fingerTable.clearBefore(successor.getId());
-        fingerTable.put(successor);
+        fingerTable.clearBefore(successorId);
+        fingerTable.put(successorPtr);
+        
+        // Trust in the predecessor... adjust finger table so that anything
+        // after the predecessor is cleared. If anything was cleared, the
+        // predecessor should be inserted in to the finger table to take its
+        // place
+        if (predecessorPtr != null) {
+            Id predecessorId = predecessorPtr.getId();
+
+            fingerTable.clearAfter(predecessorId);
+            fingerTable.put(predecessorPtr);
+        }
     }
     
     public RouteResult route(Id id) {
@@ -119,30 +132,8 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
-        Pointer oldSuccessor = fingerTable.get(0);
         fingerTable.put(pointer);
-        Pointer newSuccessor = fingerTable.get(0);
-        
-        // update succesor in successor table if updated in finger table
-        if (!oldSuccessor.equals(newSuccessor)) {
-            successorTable.updateTrim(pointer);
-        }
-        
-        // update predecessor if last non-base finger entry exceeds predecessor
-        Pointer maxFinger = fingerTable.getMaximumNonBase(); // put above
-                                                             // ensures this is
-                                                             // never null
-        if (predecessor == null) {
-            predecessor = maxFinger;
-        } else {
-            Id predecessorId = predecessor.getId();
-            Id maxFingerId = maxFinger.getId();
-            Id baseId = basePtr.getId();
-            
-            if (maxFingerId.comparePosition(baseId, predecessorId) > 0) {
-                predecessor = maxFinger;
-            }
-        }
+        fixSuccessorTableAndPredecessor();
     }
 
     public void removeFinger(Pointer pointer) {
@@ -151,6 +142,37 @@ public final class ChordState {
         }
         
         fingerTable.remove(pointer);
+        fixSuccessorTableAndPredecessor();
+    }
+    
+    private void fixSuccessorTableAndPredecessor() {
+        // Force successorTable to use the value from fingerTable[0]
+        Pointer successorPtr = fingerTable.get(0);
+        successorTable.updateTrim(successorPtr);
+        
+        // If predecessor is < last non-self finger id, update predecessor to be
+        // last non-self finger id
+        Pointer lastFingerPtr = fingerTable.getMaximumNonBase();
+        if (lastFingerPtr == null) {
+            // Nothing exists in the finger table, so trash the predecessor
+            predecessorPtr = null;
+        } else if (predecessorPtr == null) {
+            // There is no predecessor, so set the last finger as the
+            // predecessor
+            predecessorPtr = lastFingerPtr;
+        } else if (predecessorPtr != null) {
+            // There is a predecessor, so make sure it's < last finger. If it
+            // isn't, then set predecessor to last finger because it doesn't
+            // sense for there to be a node after the node that's suppose to
+            // be our predecessor (that isn't us).
+            Id lastFingerId = lastFingerPtr.getId();
+            Id predecessorId = predecessorPtr.getId();
+            Id baseId = basePtr.getId();
+            
+            if (lastFingerId.comparePosition(baseId, predecessorId) > 0) {
+                predecessorPtr = lastFingerPtr;
+            }
+        }
     }
 
     public boolean isDead() {

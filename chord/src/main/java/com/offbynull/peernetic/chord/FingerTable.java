@@ -295,14 +295,14 @@ public final class FingerTable {
         }
     }
 
-    public void clearBefore(Id id) {
+    public int clearBefore(Id id) {
         if (id == null) {
             throw new NullPointerException();
         }
         
         Id baseId = basePtr.getId();
         
-        if (id.getBitCount() != bitCount || id.equals(baseId)) {
+        if (id.getBitCount() != bitCount) {
             throw new IllegalArgumentException();
         }
         
@@ -312,10 +312,13 @@ public final class FingerTable {
             Id testId = ie.actualId;
             
             if (id.comparePosition(baseId, testId) > 0) {
-                clearBefore(lit.previousIndex() + 1);
-                break;
+                int position = lit.previousIndex() + 1;
+                clearBefore(position);
+                return position;
             }
         }
+        
+        return 0;
     }
     
     private void clearBefore(int position) {
@@ -351,14 +354,14 @@ public final class FingerTable {
         }
     }
 
-    public void clearAfter(Id id) {
+    public int clearAfter(Id id) {
         if (id == null) {
             throw new NullPointerException();
         }
         
         Id baseId = basePtr.getId();
         
-        if (id.getBitCount() != bitCount || id.equals(baseId)) {
+        if (id.getBitCount() != bitCount) {
             throw new IllegalArgumentException();
         }
         
@@ -368,10 +371,13 @@ public final class FingerTable {
             Id testId = ie.actualId;
             
             if (id.comparePosition(baseId, testId) < 0) {
-                clearAfter(lit.nextIndex() - 1);
-                break;
+                int position = lit.nextIndex() - 1;
+                clearAfter(position);
+                return bitCount - position;
             }
         }
+        
+        return 0;
     }
 
     private void clearAfter(int position) {

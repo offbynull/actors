@@ -252,8 +252,9 @@ public class FingerTableTest {
         
         ft.put(ptr2);
         ft.put(ptr4);
-        ft.clearBefore(ptr4.getId());
+        int cleared = ft.clearBefore(ptr4.getId());
 
+        assertEquals(1, cleared);
         // should be a clear finger table
         Pointer entry;
         
@@ -275,8 +276,10 @@ public class FingerTableTest {
         
         ft.put(ptr2);
         ft.put(ptr4);
-        ft.clearBefore(ptr3.getId());
+        int cleared = ft.clearBefore(ptr3.getId());
 
+        assertEquals(1, cleared);
+        
         // should be a clear finger table
         Pointer entry;
         
@@ -298,7 +301,9 @@ public class FingerTableTest {
         
         ft.put(ptr2);
         ft.put(ptr4);
-        ft.clearBefore(ptr1.getId());
+        int cleared = ft.clearBefore(ptr1.getId());
+        
+        assertEquals(0, cleared);
 
         // should be a clear finger table
         Pointer entry;
@@ -320,7 +325,9 @@ public class FingerTableTest {
         
         ft.put(ptr2);
         ft.put(ptr4);
-        ft.clearAfter(basePtr.getId());
+        int cleared = ft.clearAfter(basePtr.getId());
+        
+        assertEquals(3, cleared);
 
         // should be a clear finger table
         Pointer entry;
@@ -343,7 +350,9 @@ public class FingerTableTest {
         
         ft.put(ptr2);
         ft.put(ptr4);
-        ft.clearAfter(ptr3.getId());
+        int cleared = ft.clearAfter(ptr3.getId());
+        
+        assertEquals(1, cleared);
 
         // should be a clear finger table
         Pointer entry;
@@ -366,7 +375,9 @@ public class FingerTableTest {
         
         ft.put(ptr2);
         ft.put(ptr4);
-        ft.clearAfter(ptr5.getId());
+        int cleared = ft.clearAfter(ptr5.getId());
+        
+        assertEquals(0, cleared);
 
         // should be a clear finger table
         Pointer entry;

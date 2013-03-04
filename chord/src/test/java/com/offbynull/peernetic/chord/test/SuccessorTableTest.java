@@ -32,13 +32,12 @@ public class SuccessorTableTest {
         assertFalse(st.isEmpty());
     }
 
-    @Test(expected = IllegalStateException.class)
     public void testInitialEmpty1() {
         Pointer basePtr = TestUtils.generatePointer(2, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
         st.moveToNextSucessor();
-        st.getSuccessor();
+        assertNull(st.getSuccessor());
     }
 
     @Test

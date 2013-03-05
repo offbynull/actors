@@ -56,7 +56,7 @@ public final class ChordState {
             }
         }
         
-        fixFingerTable();
+        syncToFingerTable();
     }
     
     public void removePredecessor() {
@@ -69,7 +69,7 @@ public final class ChordState {
     
     public void shiftSuccessor() {
         successorTable.moveToNextSucessor();
-        fixFingerTable();
+        syncToFingerTable();
     }
 
     public void setSuccessor(Pointer successor, List<Pointer> table) {
@@ -78,10 +78,14 @@ public final class ChordState {
         }
         
         successorTable.update(successor, table);
-        fixFingerTable();
+        syncToFingerTable();
     }
     
-    private void fixFingerTable() {
+    private void syncToFingerTable() {
+        if (successorTable.isEmpty()) {
+            return;
+        }
+        
         // Trust in the successor table... adjust finger table so that anything
         // before the new successor gets removed and the new successor is set as
         // fingerTable[0].
@@ -133,7 +137,7 @@ public final class ChordState {
         }
         
         fingerTable.put(pointer);
-        fixSuccessorTableAndPredecessor();
+        syncToSuccessorTableAndPredecessor();
     }
 
     public void removeFinger(Pointer pointer) {
@@ -142,10 +146,10 @@ public final class ChordState {
         }
         
         fingerTable.remove(pointer);
-        fixSuccessorTableAndPredecessor();
+        syncToSuccessorTableAndPredecessor();
     }
     
-    private void fixSuccessorTableAndPredecessor() {
+    private void syncToSuccessorTableAndPredecessor() {
         // Force successorTable to use the value from fingerTable[0]
         Pointer successorPtr = fingerTable.get(0);
         successorTable.updateTrim(successorPtr);
@@ -160,7 +164,7 @@ public final class ChordState {
             // There is no predecessor, so set the last finger as the
             // predecessor
             predecessorPtr = lastFingerPtr;
-        } else if (predecessorPtr != null) {
+        } else {
             // There is a predecessor, so make sure it's < last finger. If it
             // isn't, then set predecessor to last finger because it doesn't
             // sense for there to be a node after the node that's suppose to
@@ -176,14 +180,6 @@ public final class ChordState {
     }
 
     public boolean isDead() {
-        Id id = basePtr.getId();
-        
-        for (Pointer pointer : fingerTable.dump()) {
-            if (!pointer.getId().equals(id)) {
-                return false;
-            }
-        }
-        
-        return true;
+        return successorTable.isEmpty();
     }
 }

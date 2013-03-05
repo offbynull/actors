@@ -36,4 +36,22 @@ public class ChordStateTest {
         assertEquals(cs.getPredecessor(), null);
         assertEquals(cs.getSuccessor(), basePtr);
     }
+    
+    @Test
+    public void testIsDead1() {
+        Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        assertFalse(cs.isDead());
+    }
+
+    @Test
+    public void testIsDead2() {
+        Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        cs.shiftSuccessor();
+        
+        assertTrue(cs.isDead());
+    }
 }

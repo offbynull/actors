@@ -48,6 +48,12 @@ public final class SuccessorTable {
         Id baseId = basePtr.getId();
         Id successorId = successor.getId();
         
+        if (successorId.equals(baseId)) {
+            if (successor.equals(basePtr)) {
+                throw new IllegalArgumentException();
+            }
+        }
+        
         while (!table.isEmpty()) {
             Pointer ptr = table.removeFirst();
             
@@ -77,7 +83,15 @@ public final class SuccessorTable {
         Id baseId = basePtr.getId();
         int bitCount = baseId.getBitCount();
         
-        if (successor.getId().getBitCount() != bitCount) {
+        Id successorId = successor.getId();
+        
+        if (successorId.equals(baseId)) {
+            if (successor.equals(basePtr)) {
+                throw new IllegalArgumentException();
+            }
+        }
+        
+        if (successorId.getBitCount() != bitCount) {
             throw new IllegalArgumentException();
         }
         
@@ -96,19 +110,25 @@ public final class SuccessorTable {
             }
             
             if (ptrSuccessorId.equals(baseId)) {
+                if (!ptrSuccessor.equals(basePtr)) {
+                    throw new IllegalArgumentException();
+                }
+                
                 lastTableIdx = idx;
                 break;
             }
             
-            if (ptrSuccessorId.comparePosition(baseId, lastId) < 0) {
+            if (ptrSuccessorId.comparePosition(baseId, lastId) <= 0) {
                 throw new IllegalArgumentException();
             }
+            
+            lastId = ptrSuccessor.getId();
             
             idx++;
         }
         
         if (lastTableIdx != -1) {
-            table = table.subList(0, lastTableIdx + 1);
+            table = table.subList(0, lastTableIdx);
         }
         
         int len = table.size() + 1;
@@ -125,7 +145,7 @@ public final class SuccessorTable {
     }
     
     public void moveToNextSucessor() {
-        if (table.isEmpty()) {
+        if (table.size() == 1) {
             throw new IllegalStateException();
         }
         

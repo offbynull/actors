@@ -90,9 +90,6 @@ public class SuccessorTableTest {
         assertEquals(ptr2, st.getSuccessor());
         assertFalse(st.isEmpty());
         st.moveToNextSucessor();
-        assertEquals(basePtr, st.getSuccessor());
-        assertFalse(st.isEmpty());
-        st.moveToNextSucessor();
         assertTrue(st.isEmpty());
     }
     

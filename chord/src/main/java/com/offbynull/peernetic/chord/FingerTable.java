@@ -302,7 +302,7 @@ public final class FingerTable {
         
         Id baseId = basePtr.getId();
         
-        if (id.getBitCount() != bitCount) {
+        if (id.getBitCount() != bitCount || id.equals(baseId)) {
             throw new IllegalArgumentException();
         }
         
@@ -390,6 +390,19 @@ public final class FingerTable {
         
         // replace entries with self id all the way till the end...
         for (int i = position; i < bitCount; i++) {
+            InternalEntry priorEntry = table.get(i);
+            
+            priorEntry.actualId = baseId;
+            priorEntry.address = baseAddress;
+        }
+    }
+
+    public void clear() {
+        Id baseId = basePtr.getId();
+        Address baseAddress = basePtr.getAddress();
+        
+        // replace entries with self id all the way till the end...
+        for (int i = 0; i < bitCount; i++) {
             InternalEntry priorEntry = table.get(i);
             
             priorEntry.actualId = baseId;

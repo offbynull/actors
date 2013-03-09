@@ -56,13 +56,13 @@ public final class ChordState {
             }
         }
         
-        syncToFingerTable();
+        syncSuccessorTableToFingerTable();
     }
     
     public void removePredecessor() {
         predecessorPtr = null;
         
-        syncToFingerTable();
+        syncSuccessorTableToFingerTable();
     } 
 
     public Pointer getSuccessor() {
@@ -71,7 +71,15 @@ public final class ChordState {
     
     public void shiftSuccessor() {
         successorTable.moveToNextSucessor();
-        syncToFingerTable();
+        
+        if (successorTable.isEmpty()) {
+            return;
+        }
+
+        syncSuccessorTableToFingerTable();
+        syncFingerTableToPredecessor(); // incase successor is only entry in
+                                        // finger table and predecessor is now
+                                        // greater than successor
     }
 
     public void setSuccessor(Pointer successor, List<Pointer> table) {
@@ -80,32 +88,52 @@ public final class ChordState {
         }
         
         successorTable.update(successor, table);
-        syncToFingerTable();
+        syncSuccessorTableToFingerTable();
+        syncFingerTableToPredecessor(); // incase successor is only entry in
+                                        // finger table and predecessor is now
+                                        // greater than successor
+    }
+
+    private void syncFingerTableToPredecessor() {
+        // If predecessor is < last non-self finger id, update predecessor to be
+        // last non-self finger id
+        Pointer lastFingerPtr = fingerTable.getMaximumNonBase();
+        if (lastFingerPtr == null) {
+            // Nothing exists in the finger table, so trash the predecessor
+            predecessorPtr = null;
+        } else if (predecessorPtr == null) {
+            // There is no predecessor, so set the last finger as the
+            // predecessor
+            predecessorPtr = lastFingerPtr;
+        } else {
+            // There is a predecessor, so make sure it's < last finger. If it
+            // isn't, then set predecessor to last finger because it doesn't
+            // sense for there to be a node after the node that's suppose to
+            // be our predecessor (that isn't us).
+            Id lastFingerId = lastFingerPtr.getId();
+            Id predecessorId = predecessorPtr.getId();
+            Id baseId = basePtr.getId();
+            
+            if (lastFingerId.comparePosition(baseId, predecessorId) > 0) {
+                predecessorPtr = lastFingerPtr;
+            }
+        }
     }
     
-    private void syncToFingerTable() {
-        if (successorTable.isEmpty()) {
-            return;
-        }
-        
+    private void syncSuccessorTableToFingerTable() {
         // Trust in the successor table... adjust finger table so that anything
         // before the new successor gets removed and the new successor is set as
-        // fingerTable[0].
+        // fingerTable[0]. However, if the successor is us, clear the finger
+        // table such that all fingers = base.
         Pointer successorPtr = successorTable.getSuccessor();
-        Id successorId = successorPtr.getId();
-        
-        fingerTable.clearBefore(successorId);
-        fingerTable.put(successorPtr);
-        
-        // Trust in the predecessor... adjust finger table so that anything
-        // after the predecessor is cleared. If anything was cleared, the
-        // predecessor should be inserted in to the finger table to take its
-        // place
-        if (predecessorPtr != null) {
-            Id predecessorId = predecessorPtr.getId();
 
-            fingerTable.clearAfter(predecessorId);
-            fingerTable.put(predecessorPtr);
+        if (!basePtr.equals(successorPtr)) {
+            Id successorId = successorPtr.getId();
+
+            fingerTable.clearBefore(successorId);
+            fingerTable.put(successorPtr);
+        } else {
+            fingerTable.clear();
         }
     }
     
@@ -139,7 +167,7 @@ public final class ChordState {
         }
         
         fingerTable.put(pointer);
-        syncToSuccessorTableAndPredecessor();
+        syncFingerTableToSuccessorTableAndPredecessor();
     }
 
     public void removeFinger(Pointer pointer) {
@@ -148,10 +176,10 @@ public final class ChordState {
         }
         
         fingerTable.remove(pointer);
-        syncToSuccessorTableAndPredecessor();
+        syncFingerTableToSuccessorTableAndPredecessor();
     }
     
-    private void syncToSuccessorTableAndPredecessor() {
+    private void syncFingerTableToSuccessorTableAndPredecessor() {
         // Force successorTable to use the value from fingerTable[0]
         Pointer successorPtr = fingerTable.get(0);
         successorTable.updateTrim(successorPtr);
@@ -179,9 +207,5 @@ public final class ChordState {
                 predecessorPtr = lastFingerPtr;
             }
         }
-    }
-
-    public boolean isDead() {
-        return successorTable.isEmpty();
     }
 }

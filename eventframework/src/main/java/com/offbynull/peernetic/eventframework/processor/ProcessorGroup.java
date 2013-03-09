@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 
 public class ProcessorGroup<K> {
 
-    private LinkedHashMap<K, Processor> map;
+    private LinkedHashMap<K, Processor<?>> map;
     private boolean ignoreExceptions;
 
     public ProcessorGroup() {
@@ -49,10 +49,10 @@ public class ProcessorGroup<K> {
             throws Exception {
         Map<K, ProcessResult> processResultMap = new HashMap<>();
 
-        Iterator<Entry<K, Processor>> it = map.entrySet().iterator();
+        Iterator<Entry<K, Processor<?>>> it = map.entrySet().iterator();
         
         while (it.hasNext()) {
-            Entry<K, Processor> entry = it.next();
+            Entry<K, Processor<?>> entry = it.next();
             
             K key = entry.getKey();
             Processor processor = entry.getValue();

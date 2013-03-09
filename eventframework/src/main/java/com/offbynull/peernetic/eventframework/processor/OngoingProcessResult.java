@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public final class OngoingProcessResult implements ProcessResult {
+public final class OngoingProcessResult<T> implements ProcessResult<T> {
     private List<OutgoingEvent> outgoingEvents;
 
     public OngoingProcessResult(OutgoingEvent ... outgoingEvents) {

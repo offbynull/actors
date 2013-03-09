@@ -7,8 +7,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public final class FinishedProcessResult implements ProcessResult {
-    private Object result;
+public final class FinishedProcessResult<T> implements ProcessResult<T> {
+    private T result;
     private List<OutgoingEvent> outgoingEvents;
 
     public FinishedProcessResult(OutgoingEvent ... outgoingEvents) {
@@ -23,13 +23,11 @@ public final class FinishedProcessResult implements ProcessResult {
         this(null, outgoingEvents);
     }
     
-    public FinishedProcessResult(Object result,
-            OutgoingEvent ... outgoingEvents) {
+    public FinishedProcessResult(T result, OutgoingEvent ... outgoingEvents) {
         this(result, Arrays.<OutgoingEvent>asList(outgoingEvents));
     }
 
-    public FinishedProcessResult(Object result,
-            List<OutgoingEvent> outgoingEvents) {
+    public FinishedProcessResult(T result, List<OutgoingEvent> outgoingEvents) {
         if (outgoingEvents == null || outgoingEvents.contains(null)) {
             throw new NullPointerException();
         } 
@@ -38,8 +36,7 @@ public final class FinishedProcessResult implements ProcessResult {
         this.result = result;
     }
     
-    public FinishedProcessResult(Object result,
-            Set<OutgoingEvent> outgoingEvents) {
+    public FinishedProcessResult(T result, Set<OutgoingEvent> outgoingEvents) {
         if (outgoingEvents == null || outgoingEvents.contains(null)) {
             throw new NullPointerException();
         } 

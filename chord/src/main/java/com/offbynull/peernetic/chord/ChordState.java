@@ -61,6 +61,8 @@ public final class ChordState {
     
     public void removePredecessor() {
         predecessorPtr = null;
+        
+        syncToFingerTable();
     } 
 
     public Pointer getSuccessor() {

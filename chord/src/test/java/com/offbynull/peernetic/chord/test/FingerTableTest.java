@@ -72,20 +72,62 @@ public class FingerTableTest {
     }
     
     @Test
-    public void testPut4() { 
+    public void testReplace1() { 
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        FingerTable ft = new FingerTable(basePtr);
+        
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        
+        ft.replace(ptr4);
+        
+        Pointer entry;
+        
+        entry = ft.get(0);
+        assertEquals(ptr4, entry);
+        entry = ft.get(1);
+        assertEquals(ptr4, entry);
+        entry = ft.get(2);
+        assertEquals(ptr4, entry);
+    }
+    
+    @Test
+    public void testReplace2() { 
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
         Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
         
-        ft.put(ptr4);
-        ft.put(ptr5, true);
+        ft.put(ptr5);
+        ft.replace(ptr4);
         
         Pointer entry;
         
         entry = ft.get(0);
         assertEquals(ptr4, entry);
+        entry = ft.get(1);
+        assertEquals(ptr4, entry);
+        entry = ft.get(2);
+        assertEquals(ptr4, entry);
+    }
+
+    @Test
+    public void testReplace3() { 
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        FingerTable ft = new FingerTable(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        
+        ft.replace(ptr1);
+        ft.replace(ptr5);
+        ft.replace(ptr4);
+        
+        Pointer entry;
+        
+        entry = ft.get(0);
+        assertEquals(ptr1, entry);
         entry = ft.get(1);
         assertEquals(ptr4, entry);
         entry = ft.get(2);

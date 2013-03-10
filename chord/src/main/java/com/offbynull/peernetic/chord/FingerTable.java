@@ -106,10 +106,6 @@ public final class FingerTable {
     }
     
     public void put(Pointer ptr) {
-        put(ptr, false);
-    }
-    
-    public void put(Pointer ptr, boolean replaceOnlyIfBase) {
         if (ptr == null) {
             throw new NullPointerException();
         }
@@ -142,12 +138,8 @@ public final class FingerTable {
             return;
         }
         
-        InternalEntry entry = table.get(replacePos);
-        if (replaceOnlyIfBase && !entry.actualId.equals(baseId)) {
-            return;
-        }
-        
         // replace in table
+        InternalEntry entry = table.get(replacePos);
         entry.actualId = id;
         entry.address = address;
         
@@ -162,6 +154,99 @@ public final class FingerTable {
                 priorEntry.address = address;
             } else {
                 break;
+            }
+        }
+    }
+    
+    /**
+     * Similar to {@link #put(com.offbynull.peernetic.chord.Pointer) }, but
+     * makes sure that {@code ptr} is less than or equal to the expected id
+     * before putting it in. Makes sure to apply new value to contiguous prior
+     * entries that contain the value being replaced.
+     * <p/>
+     * For example, imagine a finger table for a base pointer with an id of 0
+     * and a bit count of 3. This is what the initial table would look like...
+     * <pre>
+     * Index 0 = id:0 (base)
+     * Index 1 = id:0 (base)
+     * Index 2 = id:0 (base)
+     * </pre>
+     * If a value pointer with id of 6 were put in here, then a pointer with id
+     * of 1 were put in here, the table would look like this...
+     * <pre>
+     * Index 0 = id:1 (base)
+     * Index 1 = id:6 (base)
+     * Index 2 = id:6 (base)
+     * </pre>
+     * If this method were called with a pointer that had id of 7, nothing would
+     * happen. If this method were called with a pointer that had id of 5, then
+     * the table would be adjusted to look like this...
+     * <pre>
+     * Index 0 = id:1 (base)
+     * Index 1 = id:5 (base)
+     * Index 2 = id:5 (base)
+     * </pre>
+     * @param ptr pointer to add in as finger
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
+     * count than this object's base pointer
+     * @throws IllegalArgumentException if {@code ptr} has an id that matches
+     * the base pointer.
+     */
+    public void replace(Pointer ptr) {
+        if (ptr == null) {
+            throw new NullPointerException();
+        }
+        
+        Id id = ptr.getId();
+        Address address = ptr.getAddress();
+        
+        if (id.getBitCount() != bitCount
+                || PointerUtils.selfPointerTest(basePtr, ptr)) {
+            throw new IllegalArgumentException();
+        }
+        
+        Id baseId = basePtr.getId();
+        
+        // search for position to insert to
+        int replacePos = -1;
+        for (int i = 0; i < table.size(); i++) {
+            InternalEntry ie = table.get(i);
+            Id goalId = ie.expectedId;
+            int compVal = goalId.comparePosition(baseId, id);
+            if (compVal < 0) {
+                replacePos = i;
+            } else if (compVal == 0) {
+                replacePos = i;
+                break;
+            }
+        }
+        
+        if (replacePos == -1) {
+            return;
+        }
+        
+        
+        // check if can be replaced -- if so, replace.
+        InternalEntry entry = table.get(replacePos);
+        
+        Id oldId;
+        if (id.comparePosition(baseId, entry.actualId) < 0
+                || entry.actualId.equals(baseId)) {
+            oldId = entry.actualId;
+            entry.actualId = id;
+            entry.address = address;
+            
+            // replace immediate preceding neighbours if they = old value
+            for (int i = replacePos - 1; i >= 0; i--) {
+                InternalEntry priorEntry = table.get(i);
+
+                if (priorEntry.actualId.equals(oldId)) {
+                    priorEntry.actualId = id;
+                    priorEntry.address = address;
+                } else {
+                    break;
+                }
             }
         }
     }

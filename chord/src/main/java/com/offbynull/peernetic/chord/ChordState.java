@@ -2,12 +2,27 @@ package com.offbynull.peernetic.chord;
 
 import java.util.List;
 
+/**
+ * Holds the state information for a Chord entity. State information includes
+ * a successor table, a finger table, and a predecessor.
+ * <p/>
+ * This class attempts to keep the successor table, finger table, and
+ * predecessor in sync with each other. The finger table and successor table
+ * aren't allowed to exceed the predecessor. Changes to the finger table's first
+ * index are propagated to the successor table (and vice versa).
+ * @author Kasra Faghihi
+ */
 public final class ChordState {
     private Pointer basePtr;
     private FingerTable fingerTable;
     private SuccessorTable successorTable;
     private Pointer predecessorPtr;
 
+    /**
+     * Construct a {@link ChordState} object.
+     * @param basePtr pointer to self (also known as base pointer
+     * @throws NullPointerException if any of the arguments are {@code null}
+     */
     public ChordState(Pointer basePtr) {
         if (basePtr == null) {
             throw new NullPointerException();
@@ -18,26 +33,116 @@ public final class ChordState {
         predecessorPtr = null;
     }
 
+    /**
+     * Get the bit length of IDs that this Chord entity is suppose to use.
+     * <p/>
+     * For example:
+     * <ul>
+     * <li>1 bit = max value of 1b = address space from 0 to 1</li>
+     * <li>2 bits = max value of 11b = address space from 0 to 3</li>
+     * <li>3 bits = max value of 111b = address space from 0 to 7<li>
+     * </ul>
+     * If bit count = n, the address space will be from 0 to
+     * {@code Math.pow(2, n) - 1}.
+     * @return 
+     */
     public int getBitCount() {
         return basePtr.getId().getBitCount();
     }
     
+    /**
+     * Get the base pointer.
+     * @return base pointer
+     */
     public Pointer getBase() {
         return basePtr;
     }
     
+    /**
+     * Get the ID from the base pointer.
+     * @return ID for base pointer
+     */
     public Id getBaseId() {
         return basePtr.getId();
     }
     
+    /**
+     * Get the address from the base pointer.
+     * @return address for base pointer
+     */
     public Address getBaseAddress() {
         return basePtr.getAddress();
     }
 
+    /**
+     * Get the predecessor.
+     * @return predecessor
+     */
     public Pointer getPredecessor() {
         return predecessorPtr;
     }
 
+    /**
+     * Set the predecessor. If an existing predecessor is set, the new
+     * predecessor must be between the old predecessor (exclusive) and the
+     * base (exclusive). If the new predecessor is less than pointers in the
+     * finger table, the finger table will be truncated  such that no values
+     * exceed the new predecessor (if index 0 of finger table is changes, that
+     * change will be moved over to the successor table).
+     * <p/>
+     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * node 6. Node 5 asks node 0 to set it's predecessor to it. In this case,
+     * node 5 isn't between the existing predecessor (node 6) and node being
+     * updated (node 0), so nothing will be changed.
+     * <p/>
+     * <pre>
+     *   0-1
+     *  /   \
+     * x     2
+     * |     |
+     * 6     3
+     *  \   /
+     *   5-4
+     * </pre>
+     * <p/>
+     * <b>Case 2:</b> In a 8 node ring, node 0 has no predecessor set. Node 5
+     * asks node 0 to set it's predecessor to it. In this case, node 0 clears
+     * its finger table of all entries greater than or equal to node 5, then
+     * sets node 5 as its predecessor.
+     * <p/>
+     * <pre>
+     *   0-1
+     *  /   \
+     * x     2
+     * |     |
+     * x     3
+     *  \   /
+     *   5-4
+     * </pre>
+     * <p/>
+     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * node 5. Node 6 asks node 0 to set it's predecessor to it. In this case,
+     * node 6 is between the existing predecessor (node 5) and node being
+     * updated (node 0), so the predecessor will be changed. The finger table
+     * will also be adjusted such that node 6 will be added in if it makes
+     * sense to do this.
+     * <p/>
+     * <pre>
+     *   0-1
+     *  /   \
+     * x     2
+     * |     |
+     * x     3
+     *  \   /
+     *   5-4
+     * </pre>
+     * <p/>
+     * @throws NullPointerException if any of the arguments are {@code null}
+     * @throws IllegalArgumentException if new predecessor is the base pointer
+     * @throws IllegalArgumentException if new predecessor is not between
+     * existing predecessor and base
+     * @param predecessor new predecessor value
+     */
     public void setPredecessor(Pointer predecessor) {
         if (predecessor == null) {
             throw new NullPointerException();
@@ -64,6 +169,13 @@ public final class ChordState {
     }
     
     public void removePredecessor() {
+        if (predecessorPtr != null) {
+            // Since we're removing our predecessor, make sure it doesn't exist
+            // in the finger table as well. Since predecessor will only ever
+            // map to the last non-base entry in the finger table, it's safe to
+            // do a remove here (instead of clearAfter and remove).
+            fingerTable.remove(predecessorPtr);
+        }
         predecessorPtr = null;
     } 
 
@@ -132,8 +244,6 @@ public final class ChordState {
         
         Pointer maxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
         fingerTable.remove(pointer);
-        adjustFingerTableToMatchPredecessor(); //incase pred is now < last finger
-        adjustSuccessorTableToMatchFingerTable();
         
         // If finger is the predecessor and fingerTable successfully removed a
         // finger, then you may want to remove predecessor as well -- pred will
@@ -141,11 +251,13 @@ public final class ChordState {
         // if it equals the predecessor and something was actually removed in
         // the call to fingerTable's remove method, then it's probably okay to
         // unset predecessor here.
-        
         if (pointer.equals(maxNonBaseFingerPtr)
                 && pointer.equals(predecessorPtr)) {
             removePredecessor();
         }
+        
+        adjustFingerTableToMatchPredecessor(); //incase pred is now < last finger
+        adjustSuccessorTableToMatchFingerTable();
     }
     
     /**
@@ -175,11 +287,10 @@ public final class ChordState {
 
             if (predecessorId.comparePosition(baseId, lastFingerId) < 0) {
                 fingerTable.clearAfter(predecessorId);
-                fingerTable.put(predecessorPtr);
             }
-        } else {
-            fingerTable.put(predecessorPtr);
         }
+        
+        fingerTable.replace(predecessorPtr);
         
         // ensure successor table in sync with finger table
         adjustSuccessorTableToMatchFingerTable();

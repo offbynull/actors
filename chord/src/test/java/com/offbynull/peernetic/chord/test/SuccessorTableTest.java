@@ -29,7 +29,6 @@ public class SuccessorTableTest {
         Pointer successorPtr = st.getSuccessor();
         
         assertEquals(basePtr, successorPtr);
-        assertFalse(st.isEmpty());
     }
 
     public void testInitialEmpty1() {
@@ -58,18 +57,12 @@ public class SuccessorTableTest {
                 basePtr));
         
         assertEquals(ptr1, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr2, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr3, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr4, st.getSuccessor());
-        assertFalse(st.isEmpty());
-        st.moveToNextSucessor();
-        assertTrue(st.isEmpty());
     }
 
     @Test
@@ -85,12 +78,26 @@ public class SuccessorTableTest {
                 ptr2));
         
         assertEquals(ptr1, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr2, st.getSuccessor());
-        assertFalse(st.isEmpty());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testUpdateFail1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0L);
+        SuccessorTable st = new SuccessorTable(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        
+        st.update(ptr1,
+                Lists.newArrayList(ptr2, basePtr, ptr1, ptr2, basePtr, ptr1,
+                ptr2));
+        
+        assertEquals(ptr1, st.getSuccessor());
         st.moveToNextSucessor();
-        assertTrue(st.isEmpty());
+        assertEquals(ptr2, st.getSuccessor());
+        st.moveToNextSucessor();
     }
     
     @Test
@@ -112,15 +119,10 @@ public class SuccessorTableTest {
         st.updateTrim(ptr3);
         
         assertEquals(ptr3, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr4, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr5, st.getSuccessor());
-        assertFalse(st.isEmpty());
-        st.moveToNextSucessor();
-        assertTrue(st.isEmpty());
     }
 
     @Test
@@ -142,12 +144,8 @@ public class SuccessorTableTest {
         st.updateTrim(ptr3);
         
         assertEquals(ptr3, st.getSuccessor());
-        assertFalse(st.isEmpty());
         st.moveToNextSucessor();
         assertEquals(ptr4, st.getSuccessor());
-        assertFalse(st.isEmpty());
-        st.moveToNextSucessor();
-        assertTrue(st.isEmpty());
     }
 
     @Test
@@ -169,8 +167,5 @@ public class SuccessorTableTest {
         st.updateTrim(ptr7);
         
         assertEquals(ptr7, st.getSuccessor());
-        assertFalse(st.isEmpty());
-        st.moveToNextSucessor();
-        assertTrue(st.isEmpty());
     }
 }

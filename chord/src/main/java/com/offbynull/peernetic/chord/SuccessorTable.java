@@ -48,10 +48,10 @@ public final class SuccessorTable {
         Id baseId = basePtr.getId();
         Id successorId = successor.getId();
         
-        if (successorId.equals(baseId)) {
-            if (successor.equals(basePtr)) {
-                throw new IllegalArgumentException();
-            }
+        if (PointerUtils.selfPointerTest(basePtr, successor)) {
+            table = new ArrayDeque<>();
+            table.add(successor);
+            return;
         }
         
         while (!table.isEmpty()) {
@@ -85,12 +85,6 @@ public final class SuccessorTable {
         
         Id successorId = successor.getId();
         
-        if (successorId.equals(baseId)) {
-            if (successor.equals(basePtr)) {
-                throw new IllegalArgumentException();
-            }
-        }
-        
         if (successorId.getBitCount() != bitCount) {
             throw new IllegalArgumentException();
         }
@@ -109,11 +103,7 @@ public final class SuccessorTable {
                 throw new IllegalArgumentException();
             }
             
-            if (ptrSuccessorId.equals(baseId)) {
-                if (!ptrSuccessor.equals(basePtr)) {
-                    throw new IllegalArgumentException();
-                }
-                
+            if (PointerUtils.selfPointerTest(basePtr, ptrSuccessor)) {
                 lastTableIdx = idx;
                 break;
             }
@@ -152,15 +142,7 @@ public final class SuccessorTable {
         table.removeFirst();
     }
     
-    public boolean isEmpty() {
-        return table.isEmpty();
-    }
-    
     public boolean isPointingToBase() {
-        if (table.isEmpty()) {
-            return false;
-        }
-        
         Pointer ptr = table.getFirst();
         return ptr.equals(basePtr);
     }

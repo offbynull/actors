@@ -56,13 +56,49 @@ public final class ChordState {
             }
         }
         
-        syncSuccessorTableToFingerTable();
+        syncPredecessorToFingerTable();
+    }
+    
+    /**
+     * Modifies the finger table such that no entry is greater than the
+     * predecessor. If the finger table has no entries in it (other than base),
+     * the predecessor will be put inside, making at least index 0 (also known
+     * as the successor) set to the predecessor.
+     * <p/>
+     * Since this method potentially modifies index 0, it makes sure that the
+     * successor table's first entry matches up with the finger table's
+     * successor.
+     * <p/>
+     * <b>Note</b>: This method does nothing if the predecessor is not set.
+     */
+    private void syncPredecessorToFingerTable() {
+        if (predecessorPtr == null) {
+            return;
+        }
+        
+        Id baseId = basePtr.getId();
+        
+        Pointer lastFingerPtr = fingerTable.getMaximumNonBase();
+        
+        if (lastFingerPtr != null) {
+            Id lastFingerId = lastFingerPtr.getId();
+            Id predecessorId = predecessorPtr.getId();
+
+            if (predecessorId.comparePosition(baseId, lastFingerId) < 0) {
+                fingerTable.clearAfter(predecessorId);
+                fingerTable.put(predecessorPtr);
+            }
+        } else {
+            fingerTable.put(predecessorPtr);
+        }
+        
+        // ensure successor table in sync with finger table
+        Pointer firstFingerPtr = fingerTable.get(0);
+        successorTable.updateTrim(firstFingerPtr);
     }
     
     public void removePredecessor() {
         predecessorPtr = null;
-        
-        syncSuccessorTableToFingerTable();
     } 
 
     public Pointer getSuccessor() {
@@ -71,15 +107,10 @@ public final class ChordState {
     
     public void shiftSuccessor() {
         successorTable.moveToNextSucessor();
-        
-        if (successorTable.isEmpty()) {
-            return;
-        }
 
         syncSuccessorTableToFingerTable();
-        syncFingerTableToPredecessor(); // incase successor is only entry in
-                                        // finger table and predecessor is now
-                                        // greater than successor
+        syncPredecessorToFingerTable(); // finger table has changed, make sure
+                                        // it doesn't exceed predecessor
     }
 
     public void setSuccessor(Pointer successor, List<Pointer> table) {
@@ -88,36 +119,10 @@ public final class ChordState {
         }
         
         successorTable.update(successor, table);
-        syncSuccessorTableToFingerTable();
-        syncFingerTableToPredecessor(); // incase successor is only entry in
-                                        // finger table and predecessor is now
-                                        // greater than successor
-    }
 
-    private void syncFingerTableToPredecessor() {
-        // If predecessor is < last non-self finger id, update predecessor to be
-        // last non-self finger id
-        Pointer lastFingerPtr = fingerTable.getMaximumNonBase();
-        if (lastFingerPtr == null) {
-            // Nothing exists in the finger table, so trash the predecessor
-            predecessorPtr = null;
-        } else if (predecessorPtr == null) {
-            // There is no predecessor, so set the last finger as the
-            // predecessor
-            predecessorPtr = lastFingerPtr;
-        } else {
-            // There is a predecessor, so make sure it's < last finger. If it
-            // isn't, then set predecessor to last finger because it doesn't
-            // sense for there to be a node after the node that's suppose to
-            // be our predecessor (that isn't us).
-            Id lastFingerId = lastFingerPtr.getId();
-            Id predecessorId = predecessorPtr.getId();
-            Id baseId = basePtr.getId();
-            
-            if (lastFingerId.comparePosition(baseId, predecessorId) > 0) {
-                predecessorPtr = lastFingerPtr;
-            }
-        }
+        syncSuccessorTableToFingerTable();
+        syncPredecessorToFingerTable(); // finger table has changed, make sure
+                                        // it doesn't exceed predecessor
     }
     
     private void syncSuccessorTableToFingerTable() {

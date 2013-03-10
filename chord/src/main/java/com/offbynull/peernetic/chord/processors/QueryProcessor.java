@@ -8,7 +8,7 @@ import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.messages.shared.NodeId;
 import com.offbynull.peernetic.chord.messages.shared.NodePointer;
-import com.offbynull.peernetic.chord.messages.validation.util.MessageUtils;
+import com.offbynull.peernetic.chord.messages.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.TrackedIdGenerator;

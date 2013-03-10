@@ -58,7 +58,7 @@ public class ChordStateTest {
         assertEquals(basePtr, cs.getFinger(2));
         
         assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
     }
 
     @Test
@@ -82,7 +82,7 @@ public class ChordStateTest {
         assertEquals(ptr7, cs.getFinger(2));
         
         assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
     }
 
     @Test
@@ -106,7 +106,7 @@ public class ChordStateTest {
         assertEquals(ptr7, cs.getFinger(2));
         
         assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
     }
     
     @Test(expected = IllegalArgumentException.class)
@@ -122,27 +122,11 @@ public class ChordStateTest {
         Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
         Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
         
-        cs.setSuccessor(basePtr, Lists.<Pointer>newArrayList());
-    }
-    
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetSuccessorFail2() {
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
-        ChordState cs = new ChordState(basePtr);
-        
-        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
         cs.setSuccessor(ptr7, Lists.<Pointer>newArrayList(ptr1));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testSetSuccessorFail3() {
+    public void testSetSuccessorFail2() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -158,7 +142,7 @@ public class ChordStateTest {
     }
     
     @Test(expected = IllegalArgumentException.class)
-    public void testSetSuccessorFail4() {
+    public void testSetSuccessorFail3() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -192,9 +176,8 @@ public class ChordStateTest {
         assertEquals(ptr7, cs.getFinger(0));
         assertEquals(ptr7, cs.getFinger(1));
         assertEquals(ptr7, cs.getFinger(2));
-        
         assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
     }
     
     @Test
@@ -216,7 +199,7 @@ public class ChordStateTest {
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
         assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
         
         cs.shiftSuccessor();
         
@@ -224,7 +207,7 @@ public class ChordStateTest {
         assertEquals(ptr7, cs.getFinger(1));
         assertEquals(ptr7, cs.getFinger(2));
         assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
         
         boolean expHit = false;
         try {
@@ -254,7 +237,7 @@ public class ChordStateTest {
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
         assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertNull(cs.getPredecessor());
         
         cs.shiftSuccessor();
     }

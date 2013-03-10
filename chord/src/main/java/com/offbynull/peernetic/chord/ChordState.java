@@ -43,6 +43,10 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
+        if (PointerUtils.selfPointerTest(basePtr, predecessor)) {
+            throw new IllegalArgumentException();
+        }
+        
         Id id = basePtr.getId();
         
         if (this.predecessorPtr == null) {
@@ -126,9 +130,22 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
+        Pointer maxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
         fingerTable.remove(pointer);
         adjustFingerTableToMatchPredecessor(); //incase pred is now < last finger
         adjustSuccessorTableToMatchFingerTable();
+        
+        // If finger is the predecessor and fingerTable successfully removed a
+        // finger, then you may want to remove predecessor as well -- pred will
+        // always be >= last non-base entry in the finger table (or null), so
+        // if it equals the predecessor and something was actually removed in
+        // the call to fingerTable's remove method, then it's probably okay to
+        // unset predecessor here.
+        
+        if (pointer.equals(maxNonBaseFingerPtr)
+                && pointer.equals(predecessorPtr)) {
+            removePredecessor();
+        }
     }
     
     /**
@@ -177,7 +194,7 @@ public final class ChordState {
     private void adjustFingerTableToMatchSuccessorTable() {
         Pointer successorPtr = successorTable.getSuccessor();
 
-        if (basePtr.equals(successorPtr)) {
+        if (PointerUtils.selfPointerTest(basePtr, successorPtr)) {
             // if the successor is us, clear the finger table such that all
             // fingers = base.
             fingerTable.clear();

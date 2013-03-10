@@ -39,7 +39,7 @@ public class ChordStateTest {
     }
 
     @Test
-    public void testSetSuccessorSync1() {
+    public void testSetSuccessor1() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -62,7 +62,7 @@ public class ChordStateTest {
     }
 
     @Test
-    public void testSetSuccessorSync2() {
+    public void testSetSuccessor2() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -86,7 +86,7 @@ public class ChordStateTest {
     }
 
     @Test
-    public void testSetSuccessorSync3() {
+    public void testSetSuccessor3() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -158,7 +158,7 @@ public class ChordStateTest {
     }
     
     @Test
-    public void testShiftSuccessorSync1() {
+    public void testShiftSuccessor1() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -181,7 +181,7 @@ public class ChordStateTest {
     }
     
     @Test
-    public void testShiftSuccessorSync2() {
+    public void testShiftSuccessor2() {
         Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
         ChordState cs = new ChordState(basePtr);
         
@@ -258,5 +258,299 @@ public class ChordStateTest {
         cs.setSuccessor(ptr1, Lists.<Pointer>newArrayList(ptr7));
         cs.shiftSuccessor();
         cs.shiftSuccessor();
+    }
+    
+    @Test
+    public void testSetPredecessor1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.setPredecessor(ptr1);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(basePtr, cs.getFinger(1));
+        assertEquals(basePtr, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertEquals(ptr1, cs.getPredecessor());
+    }
+
+    @Test
+    public void testSetPredecessor2() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.setPredecessor(ptr7);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(basePtr, cs.getFinger(1));
+        assertEquals(basePtr, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertEquals(ptr7, cs.getPredecessor());
+    }
+
+    @Test
+    public void testSetPredecessor3() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr7);
+        cs.setPredecessor(ptr1);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(basePtr, cs.getFinger(1));
+        assertEquals(basePtr, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertEquals(ptr1, cs.getPredecessor());
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetPredecessorFail1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr7);
+        cs.setPredecessor(basePtr);
+    }
+
+    @Test
+    public void testRemovePredecessor1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr2);
+        cs.setPredecessor(ptr7);
+        cs.removePredecessor();
+        
+        assertEquals(ptr2, cs.getFinger(0));
+        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(basePtr, cs.getFinger(2));
+        assertEquals(ptr2, cs.getSuccessor());
+        assertNull(cs.getPredecessor());
+    }
+    
+    @Test
+    public void testPutFinger1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(basePtr, cs.getFinger(1));
+        assertEquals(basePtr, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertNull(cs.getPredecessor());
+    }
+    
+    @Test
+    public void testPutFinger2() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.putFinger(ptr2);
+        cs.putFinger(ptr4);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(ptr4, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertNull(cs.getPredecessor());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPutFingerFail1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(basePtr);
+    }
+    
+    @Test
+    public void testRemoveFinger1() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.putFinger(ptr2);
+        cs.putFinger(ptr4);
+        cs.removeFinger(ptr2);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptr4, cs.getFinger(1));
+        assertEquals(ptr4, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertNull(cs.getPredecessor());
+    }
+    
+    @Test
+    public void testRemoveFinger2() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.putFinger(ptr2);
+        cs.putFinger(ptr4);
+        cs.setPredecessor(ptr4);
+        cs.removeFinger(ptr1);
+        
+        assertEquals(ptr2, cs.getFinger(0));
+        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(ptr4, cs.getFinger(2));
+        assertEquals(ptr2, cs.getSuccessor());
+        assertEquals(ptr4, cs.getPredecessor());
+    }
+    
+    @Test
+    public void testRemoveFinger3() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.putFinger(ptr2);
+        cs.putFinger(ptr4);
+        cs.setPredecessor(ptr4);
+        cs.removeFinger(ptr4);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(basePtr, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertNull(cs.getPredecessor());
+    }
+
+    @Test
+    public void testRemoveFinger4() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.putFinger(ptr2);
+        cs.putFinger(ptr4);
+        cs.setPredecessor(ptr4);
+        cs.removeFinger(ptr5);
+        
+        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(ptr4, cs.getFinger(2));
+        assertEquals(ptr1, cs.getSuccessor());
+        assertEquals(ptr4, cs.getPredecessor());
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testRemoveFinger1Fail() {
+        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        ChordState cs = new ChordState(basePtr);
+        
+        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        
+        cs.putFinger(ptr1);
+        cs.putFinger(ptr2);
+        cs.putFinger(ptr4);
+        cs.setPredecessor(ptr4);
+        cs.removeFinger(basePtr);
     }
 }

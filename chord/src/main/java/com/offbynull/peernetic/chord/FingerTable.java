@@ -117,11 +117,12 @@ public final class FingerTable {
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        Id baseId = basePtr.getId();
-        
-        if (id.getBitCount() != bitCount || id.equals(baseId)) {
+        if (id.getBitCount() != bitCount
+                || PointerUtils.selfPointerTest(basePtr, ptr)) {
             throw new IllegalArgumentException();
         }
+        
+        Id baseId = basePtr.getId();
         
         // search for position to insert to
         int replacePos = -1;
@@ -231,7 +232,8 @@ public final class FingerTable {
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        if (id.getBitCount() != bitCount || id.equals(baseId)) {
+        if (id.getBitCount() != bitCount
+                || PointerUtils.selfPointerTest(basePtr, ptr)) {
             throw new IllegalArgumentException();
         }
         

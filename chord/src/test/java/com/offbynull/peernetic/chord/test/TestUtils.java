@@ -5,7 +5,7 @@ import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
-import com.offbynull.peernetic.chord.util.MessageUtils;
+import com.offbynull.peernetic.chord.messages.validation.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;

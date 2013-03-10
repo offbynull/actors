@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.chord.util;
+package com.offbynull.peernetic.chord.messages.validation.util;
 
 import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.FingerTable;

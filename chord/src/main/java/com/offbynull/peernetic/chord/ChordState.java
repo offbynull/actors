@@ -8,14 +8,30 @@ import java.util.List;
  * <p/>
  * This class attempts to keep the successor table, finger table, and
  * predecessor in sync with each other. The finger table and successor table
- * aren't allowed to exceed the predecessor. Changes to the finger table's first
+ * aren't allowed to exceed the predecessor. Changes to the finger table's 0
  * index are propagated to the successor table (and vice versa).
  * @author Kasra Faghihi
  */
 public final class ChordState {
+    /**
+     * The pointer to this node.
+     */
     private Pointer basePtr;
+    
+    /**
+     * Finger table -- accelerates key lookup. As per the Chord research paper.
+     */
     private FingerTable fingerTable;
+    
+    /**
+     * Successor table -- keeps track of a recursive list of successors. As per
+     * the Chord research paper.
+     */
     private SuccessorTable successorTable;
+    
+    /**
+     * The pointer to this node's predecessor.
+     */
     private Pointer predecessorPtr;
 
     /**
@@ -120,7 +136,7 @@ public final class ChordState {
      *   5-4
      * </pre>
      * <p/>
-     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * <b>Case 3:</b> In a 8 node ring, node 0 has it's predecessor set to
      * node 5. Node 6 asks node 0 to set it's predecessor to it. In this case,
      * node 6 is between the existing predecessor (node 5) and node being
      * updated (node 0), so the predecessor will be changed. The finger table
@@ -168,6 +184,11 @@ public final class ChordState {
         adjustFingerTableToMatchPredecessor();
     }
     
+    /**
+     * Removes the predecessor. If the predecessor exists in the finger table,
+     * it's removed as well. If it does exist in the finger table, it'll be the
+     * last non-base entry.
+     */
     public void removePredecessor() {
         if (predecessorPtr != null) {
             // Since we're removing our predecessor, make sure it doesn't exist
@@ -179,10 +200,70 @@ public final class ChordState {
         predecessorPtr = null;
     } 
 
+    /**
+     * Gets the successor. The successor is also the name of index 0 of the
+     * finger table. Index 0 of the finger table and index 0 of the successor
+     * table are always in sync with each other.
+     * @return successor
+     */
     public Pointer getSuccessor() {
         return successorTable.getSuccessor();
     }
     
+    /**
+     * Shifts the successor to the next successor in the successor table. The
+     * new successor will always be higher than the previous successor, which
+     * means that it has the possibility of exceeding the predecessor. If it
+     * does exceed the predecessor, then the successor will be set to the
+     * predecessor. The finger table will be adjusted such that its index 0
+     * matches up with the new successor. 
+     * <p/>
+     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * node 1 and its successor table set to [node 1, node 7]. Node 1 fails to
+     * respond to node 0's requests, so node 0 attempts to shift to the next
+     * successor in its successor table (node 7). Node 7 is greater than node
+     * 0's predecessor (node 1), so this is not allowed. Instead, node 0 will
+     * set its successor to its predecessor (it gets set back to node 1). Node 1
+     * will be prepended on to node 0's successor table, bringing the successor
+     * table make to its original value: [node 1, node 7].
+     * <p/>
+     * An outside method will presumably be called at regular intervals to check
+     * if the predecessor is alive. Eventually the predecessor will be removed,
+     * allowing the successor table to move to node 7. Even if it doesn't, node
+     * 7 should eventually ask node 0 to set it as its predecessor, so the
+     * predecessor will be updated either way.
+     * <p/>
+     * <pre>
+     *   0-x
+     *  /   \
+     * 7     x
+     * |     |
+     * x     x
+     *  \   /
+     *   x-x
+     * </pre>
+     * <p/>
+     * <b>Case 2:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * node 7 and its successor table set to [node 1, node 2, node 7]. Node 1
+     * fails to respond to node 0's requests, so node 0 moves to the next
+     * successor in its successor table (node 2). Node 2 is less than node 0's
+     * predecessor, so everything should be fine. The removal of node 1 from the
+     * successor table gets sync'd up with the finger table -- node 1 gets
+     * removed from index 0 and node 2 takes its place. The successor table will
+     * end up looking like this: [node 2, node 7].
+     * <p/>
+     * <pre>
+     *   0-x
+     *  /   \
+     * 7     2
+     * |     |
+     * x     x
+     *  \   /
+     *   x-x
+     * </pre>
+     * @throws IllegalStateException if successor table has no other nodes to
+     * shift to
+     */
     public void shiftSuccessor() {
         successorTable.moveToNextSucessor();
 
@@ -191,6 +272,27 @@ public final class ChordState {
                                                // sure it doesn't exceed pred
     }
 
+    /**
+     * Resets the successor table with new successors. The new successor has the
+     * possibility of exceeding the predecessor. If it does exceed the
+     * predecessor, then the successor will be set to the predecessor. The
+     * finger table will be adjusted such that its index 0 matches up with the
+     * new successor.
+     * <p/>
+     * This method is very similar to how {@link #shiftSuccessor() } operates.
+     * The main difference is that we're accepting a new successor from an
+     * outside source rather than shifting to the next successor in our
+     * successor table. See use-cases in {@link #shiftSuccessor() } javadoc to
+     * gain a better understanding of what happens when this method gets called.
+     * @see #shiftSuccessor() 
+     * @param successor new successor
+     * @param table successor table of the new successor being passed in
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws NullPointerException if {@code table} contains a {@code null}
+     * element
+     * @throws IllegalArgumentException if any incoming pointer's bit count
+     * doesn't match the base pointer's bit count
+     */
     public void setSuccessor(Pointer successor, List<Pointer> table) {
         if (successor == null || table == null || table.contains(null)) {
             throw new NullPointerException();
@@ -201,8 +303,23 @@ public final class ChordState {
         adjustFingerTableToMatchSuccessorTable();
         adjustFingerTableToMatchPredecessor(); // finger table has changed, make
                                                // sure it doesn't exceed pred
+        
+        // TODO: If predecessor is unset? should be force it to be set here?
     }
     
+    /**
+     * Attempts to route to the given id, as specified in the original chord
+     * algorithm (find_successor / closest_preceding_node). This is a single
+     * step in the algorithm.
+     * <p/>
+     * This method just calls
+     * {@link FingerTable#route(com.offbynull.peernetic.chord.Id) }.
+     * @param id id being searched for
+     * @return routing results
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code id}'s bit count doesn't match
+     * the base pointer's bit count
+     */
     public RouteResult route(Id id) {
         if (id == null) {
             throw new NullPointerException();
@@ -211,22 +328,118 @@ public final class ChordState {
         return fingerTable.route(id);
     }
     
+    /**
+     * Gets the expected id for a specific finger table index. This is
+     * equivalent to calling {@link FingerTable#getExpectedId(int) }.
+     * @param bitPosition finger table index
+     * @return id for finger table index
+     * @throws IllegalArgumentException if
+     * {@code bitPosition < 0 || >= bitCount}
+     */
     public Id getExpectedFingerId(int bitPosition) {
-        if (bitPosition < 0) {
+        if (bitPosition < 0 || bitPosition >= getBitCount()) {
             throw new IllegalArgumentException();
         }
         
         return fingerTable.getExpectedId(bitPosition);
     }
 
+    /**
+     * Gets the id set for a specific finger table index. This is equivalent to
+     * calling {@link FingerTable#get(int) }.
+     * @param bitPosition finger table index
+     * @return id for finger table index
+     * @throws IllegalArgumentException if
+     * {@code bitPosition < 0 || >= bitCount}
+     */
     public Pointer getFinger(int bitPosition) {
-        if (bitPosition < 0) {
+        if (bitPosition < 0 || bitPosition >= getBitCount()) {
             throw new IllegalArgumentException();
         }
         
         return fingerTable.get(bitPosition);
     }
     
+    /**
+     * Inserts a finger into the finger table (see
+     * {@link FingerTable#put(com.offbynull.peernetic.chord.Pointer) } for
+     * insertion algorithm). Once the finger has been added in, if the
+     * predecessor is less than the last non-base entry, the finger table will
+     * be truncated such that no values exceed the predecessor, and the
+     * predecessor will be put in as the last non-base entry in the finger
+     * table. Since the finger table may get truncated, there's a possibility
+     * that finger[0] may get changed. As such, the finger[0] is resynch'd with
+     * the successor table.
+     * <p/>
+     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * node 1 and its finger table set to [node 1, node 0, node 0]. Node 0 finds
+     * node 7 and attempts to put node 7 in to its finger table. Node 7 is
+     * greater than node 0's predecessor (node 1), so this is not allowed. node
+     * 0 will truncate all values in the finger table > node 1, bringing the
+     * finger table to its original value: [node 1, node 0, node 0].
+     * <p/>
+     * At some point node 7 should eventually ask node 0 to set it as its
+     * predecessor, so the predecessor will be updated eventually. As a part of
+     * that process, the predecessor will automatically be pushed in to the
+     * finger table giving the result we want. This only happens if there are
+     * unset fingers that the predecessor can occupy
+     * (see {@link #setPredecessor(com.offbynull.peernetic.chord.Pointer) } for
+     * more information on this.
+     * <p/>
+     * Even if the predecessor changes weren't propagated to the finger table,
+     * once the predecessor is updated, the next time this finger tries to get
+     * set, it'll be successful.
+     * <p/>
+     * <pre>
+     *   0-1
+     *  /   \
+     * 7     x
+     * |     |
+     * x     x
+     *  \   /
+     *   x-x
+     * </pre>
+     * <b>Case 2:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * node 7 and its finger table set to [node 1, node 7, node 7]. Node 0 finds
+     * node 3 and attempts to put node 3 in to its finger table. Node 3 is less
+     * than node 0's predecessor (node 7), so this is fine. Node 0 will end up
+     * with this finger table: [node 1, node 3, node 6].
+     * <p/>
+     * <pre>
+     *   0-1
+     *  /   \
+     * 7     x
+     * |     |
+     * x     3
+     *  \   /
+     *   x-x
+     * </pre>
+     * <p/>
+     * <b>Case 2:</b> In a 8 node ring, node 0 has it's predecessor set to
+     * nothing and its finger table set to [node 0, node 0, node 0]. Node 0
+     * finds node 3 and attempts to put node 3 in to its finger table. Node 0's
+     * predecessor isn't set, so this is fine. Node 0 will end up with this
+     * finger table: [node 3, node 3, node 0]. Index 0 of the finger table will
+     * be copied to the successor table to keep the finger table and the
+     * successor table in sync. The predecessor will remain unset even though
+     * some new values have been pushed in to the finger table (should this be
+     * changed so that if the predecessor is null, it gets set to the max
+     * non-base finger entry?).
+     * <p/>
+     * <pre>
+     *   0-x
+     *  /   \
+     * x     x
+     * |     |
+     * x     3
+     *  \   /
+     *   x-x
+     * </pre>
+     * @param pointer pointer to add to the finger table
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code pointers}'s bit count doesn't
+     * match the base pointer's bit count
+     */
     public void putFinger(Pointer pointer) {
         if (pointer == null) {
             throw new NullPointerException();
@@ -235,8 +448,20 @@ public final class ChordState {
         fingerTable.put(pointer);
         adjustFingerTableToMatchPredecessor(); //incase pred is now < last finger
         adjustSuccessorTableToMatchFingerTable();
+        
+        // TODO: If predecessor is unset? should be force it to be set here?
     }
 
+    /**
+     * Remove a finger from the finger table. If the finger is the successor,
+     * the successor table will be truncated to match the new finger table. If
+     * the removed finger equals the predecessor, and the removed finger was the
+     * max non-base entry in the finger table, then unset the predecessor.
+     * @param pointer pointer to remove
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code pointers}'s bit count doesn't
+     * match the base pointer's bit count
+     */
     public void removeFinger(Pointer pointer) {
         if (pointer == null) {
             throw new NullPointerException();
@@ -296,12 +521,20 @@ public final class ChordState {
         adjustSuccessorTableToMatchFingerTable();
     }
     
+    /**
+     * Synchs up the successor table with the finger table by trimming it 
+     * to finger table's index 0. 
+     */
     private void adjustSuccessorTableToMatchFingerTable() {
         // make sure successor table's value is finger table's idx 0
         Pointer successorPtr = fingerTable.get(0);
         successorTable.updateTrim(successorPtr);
     }
-    
+
+    /**
+     * Synchs up the finger table to match up with the current successor in
+     * successor table.
+     */
     private void adjustFingerTableToMatchSuccessorTable() {
         Pointer successorPtr = successorTable.getSuccessor();
 

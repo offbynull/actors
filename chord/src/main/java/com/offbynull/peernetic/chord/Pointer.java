@@ -23,6 +23,29 @@ public final class Pointer {
         return address;
     }
 
+    /**
+     * Like {@link #equals(java.lang.Object) }, but ensures that if the ids are
+     * the same, the address have to be the same as well. If the ids are the
+     * same but the addresses are different, then an exception will be thrown.
+     * @param other pointer being tested against
+     * @return {@code true} if equal, {@code false} otherwise
+     * @throws IllegalArgumentException if the ids are the same but the
+     * addresses are different
+     */
+    public boolean equalsEnsureAddress(Pointer other) {
+        Id otherId = other.getId();
+        
+        if (id.equals(otherId)) {
+            if (!this.equals(other)) {
+                throw new IllegalArgumentException();
+            }
+            
+            return true;
+        }
+        
+        return false;
+    }
+
     @Override
     public int hashCode() {
         int hash = 7;

@@ -236,8 +236,7 @@ public final class FingerTable {
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        if (id.getBitCount() != bitCount
-                || PointerUtils.selfPointerTest(basePtr, ptr)) {
+        if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
         }
         
@@ -323,8 +322,7 @@ public final class FingerTable {
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        if (id.getBitCount() != bitCount
-                || PointerUtils.selfPointerTest(basePtr, ptr)) {
+        if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
         }
         
@@ -489,8 +487,7 @@ public final class FingerTable {
         Id id = ptr.getId();
         Address address = ptr.getAddress();
         
-        if (id.getBitCount() != bitCount
-                || PointerUtils.selfPointerTest(basePtr, ptr)) {
+        if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
         }
         

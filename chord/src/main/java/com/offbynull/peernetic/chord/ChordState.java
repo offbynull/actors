@@ -171,7 +171,7 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
-        if (PointerUtils.selfPointerTest(basePtr, predecessor)) {
+        if (basePtr.equalsEnsureAddress(predecessor)) {
             throw new IllegalArgumentException();
         }
         
@@ -692,7 +692,7 @@ public final class ChordState {
     private void adjustFingerTableToMatchSuccessorTable() {
         Pointer successorPtr = successorTable.getSuccessor();
 
-        if (PointerUtils.selfPointerTest(basePtr, successorPtr)) {
+        if (basePtr.equalsEnsureAddress(successorPtr)) {
             // if the successor is us, clear the finger table such that all
             // fingers = base.
             fingerTable.clear();

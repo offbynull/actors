@@ -95,7 +95,7 @@ public final class SuccessorTable {
             throw new IllegalArgumentException();
         }
         
-        if (PointerUtils.selfPointerTest(basePtr, successor)) {
+        if (basePtr.equalsEnsureAddress(successor)) {
             table = new ArrayDeque<>();
             table.add(successor);
             return;
@@ -169,7 +169,7 @@ public final class SuccessorTable {
                 throw new IllegalArgumentException();
             }
             
-            if (PointerUtils.selfPointerTest(basePtr, ptrSuccessor)) {
+            if (basePtr.equalsEnsureAddress(ptrSuccessor)) {
                 lastTableIdx = idx;
                 break;
             }

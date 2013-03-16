@@ -6,11 +6,95 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
+/**
+ * Holds on to routing information. For more information on how a finger table
+ * operates, please refer to the Chord research paper. This implementation makes
+ * some minor additions to the original finger table algorithm to ensure that
+ * that there aren't any inconsistencies. That is, this implementation
+ * guarantees that...
+ * <ol>
+ * <li>
+ * Fingers that point to the base pointer show up for a contiguous range from
+ * the entry after the last non-base entry (or 0 if there are no non-base
+ * entries) all the way to the last entry in the finger table. For example:
+ * <p/>
+ * Imagine that you have just created a finger table and the base id is 0:<br/>
+ * [0, 0, 0, 0, 0, 0].
+ * <p/>
+ * You insert a finger with id 8:<br/>
+ * [8, 8, 8, 8, 0, 0].
+ * <p/>
+ * </li>
+ * <li>An inserted finger will propagate backwards until it finds an entry
+ * that isn't the base entry and isn't the same id as the id being replaced, but
+ * is greater than or equal to the expected id. For
+ * example:
+ * <p/>
+ * Imagine that you have just created a finger table and the base id is 0:<br/>
+ * [0, 0, 0, 0, 0, 0].
+ * <p/>
+ * You insert a finger with id 16:<br/>
+ * [16, 16, 16, 16, 16, 0].
+ * <p/>
+ * You insert a finger with id 2:<br/>
+ * [2, 2, 16, 16, 16, 0].
+ * <p/>
+ * You insert a finger with id 8:<br/>
+ * [2, 2, 8, 8, 16, 0].
+ * <p/>
+ * You insert a finger with id 4:<br/>
+ * [2, 2, 4, 8, 16, 0].
+ * </li>
+ * <li>A finger being removed will propagate backwards until it finds an entry
+ * that isn't the base (it will never be base -- based on previous guarantees)
+ * and isn't the same id as the id being removed. The replacement value for the
+ * finger being removed will be the finger in front of it (or base if it's the
+ * last finger and there are no other fingers in front of it). For example:
+ * <p/>
+ * Imagine that you have just created a finger table and the base id is 0:<br/>
+ * [0, 0, 0, 0, 0, 0].
+ * <p/>
+ * You insert a finger with id 16:<br/>
+ * [16, 16, 16, 16, 16, 0].
+ * <p/>
+ * You insert a finger with id 2:<br/>
+ * [2, 2, 16, 16, 16, 0].
+ * <p/>
+ * You insert a finger with id 8:<br/>
+ * [2, 2, 8, 8, 16, 0].
+ * <p/>
+ * You remove a finger with id 8:<br/>
+ * [2, 2, 16, 16, 16, 0].
+ * <p/>
+ * You remove a finger with id 16:<br/>
+ * [2, 2, 0, 0, 0, 0].
+ * <p/>
+ * You remove a finger with id 2:<br/>
+ * [0, 0, 0, 0, 0, 0].
+ * </li>
+ * </ol>
+ * @author Kasra Faghihi
+ */
 public final class FingerTable {
+    /**
+     * Internal table that keeps track of fingers.
+     */
     private List<InternalEntry> table;
+    /**
+     * Base (self) pointer.
+     */
     private Pointer basePtr;
+    /**
+     * The bit count in {@link #basePtr}.
+     */
     private int bitCount;
     
+    /**
+     * Constructs a {@link FingerTable}. All fingers are initialized to
+     * {@code base}.
+     * @param base base pointer
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public FingerTable(Pointer base) {
         if (base == null) {
             throw new NullPointerException();
@@ -39,6 +123,24 @@ public final class FingerTable {
         }
     }
     
+    /**
+     * Attempts to perform find_successor from the Chord research paper, but
+     * doesn't reach out to other nodes. That is...
+     * <ul>
+     * <li>If {@code id} is between base (exclusive) and finger[0]/successor
+     * (inclusive), it'll return with finger[0]/successor and a
+     * {@link ResultType#FOUND} result type.</li>
+     * <li>If {@code id} matches the base id, it'll return with base and a
+     * {@link ResultType#SELF} result type.</li>
+     * <li>Otherwise, it'll return the closest preceding finger it can find to
+     * {@code id} and a {@link ResultType#CLOSEST_PREDECESSOR} result type.</li>
+     * </ul>
+     * @param id id being searched for
+     * @return route results as defined above
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id} has a different bit count
+     * count than base pointer's id
+     */
     public RouteResult route(Id id) {
         if (id == null) {
             throw new NullPointerException();
@@ -71,6 +173,14 @@ public final class FingerTable {
         return new RouteResult(resultType, pointer);
     }
     
+    /**
+     * An implementation of closest_preceding_node in the Chord research paper.
+     * @param id id being searched for
+     * @return closest preceding pointer
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id} has a different bit count
+     * count than base pointer's id
+     */
     private Pointer findClosestPreceding(Id id) {
         if (id == null) {
             throw new NullPointerException();
@@ -105,6 +215,19 @@ public final class FingerTable {
         return ret;
     }
     
+    /**
+     * Puts a pointer in to the finger table. See the constraints / guarantees
+     * mentioned in the class Javadoc: {@link FingerTable}.
+     * <p/>
+     * This method automatically determines the correct position for the finger.
+     * The old pointer in that finger will be replaced by {@code ptr}.
+     * @param ptr pointer to put in as finger
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
+     * count than this object's base pointer
+     * @throws IllegalArgumentException if {@code ptr} has an id that matches
+     * the base pointer.
+     */
     public void put(Pointer ptr) {
         if (ptr == null) {
             throw new NullPointerException();
@@ -161,8 +284,7 @@ public final class FingerTable {
     /**
      * Similar to {@link #put(com.offbynull.peernetic.chord.Pointer) }, but
      * makes sure that {@code ptr} is less than or equal to the expected id
-     * before putting it in. Makes sure to apply new value to contiguous prior
-     * entries that contain the value being replaced.
+     * before putting it in.
      * <p/>
      * For example, imagine a finger table for a base pointer with an id of 0
      * and a bit count of 3. This is what the initial table would look like...
@@ -251,18 +373,39 @@ public final class FingerTable {
         }
     }
 
+    /**
+     * Get the base pointer.
+     * @return base pointer
+     */
     public Pointer getBase() {
         return basePtr;
     }
     
+    /**
+     * Get the id from the base pointer. Equivalent to calling
+     * {@code getBase().getId()}.
+     * @return base pointer id
+     */
     public Id getBaseId() {
         return basePtr.getId();
     }
     
+    /**
+     * Get the address from the base pointer. Equivalent to calling
+     * {@code getBase().getAddress()}.
+     * @return base pointer address
+     */
     public Address getBaseAddress() {
         return basePtr.getAddress();
     }
     
+    /**
+     * Get the last/maximum finger that isn't set to base. If no such finger is
+     * found, gives back {@code null}. See the constraints/guarantees mentioned
+     * in the Javadoc header {@link FingerTable}.
+     * @return last/max non-base finger, or {@code null} if no such finger
+     * exists
+     */
     public Pointer getMaximumNonBase() {
         Id baseId = basePtr.getId();
         
@@ -276,6 +419,11 @@ public final class FingerTable {
         return null;
     }
     
+    /**
+     * Get finger[0] if it doesn't match the base id. If it does match the base
+     * id, gives back {@code null}
+     * @return finger[0], or {@code null} if finger[0] is base
+     */
     public Pointer getMinimumNonBase() {
         Id baseId = basePtr.getId();
         InternalEntry ie = table.get(0);
@@ -289,6 +437,12 @@ public final class FingerTable {
         return ret;
     }
     
+    /**
+     * Get the finger at a specific index
+     * @param idx finger index
+     * @return finger at index {@code idx}
+     * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
+     */
     public Pointer get(int idx) {
         if (idx < 0 || idx >= table.size()) {
             throw new IllegalArgumentException();
@@ -298,6 +452,15 @@ public final class FingerTable {
         return new Pointer(ie.actualId, ie.address);
     }
     
+    /**
+     * Get the id expected for a finger position. For example, if base id is 0,
+     * finger pos 0 expects 1, finger pos 1 expects 2, finger pos 2 expects 4,
+     * finger pos 3 expects 8, etc... For more information, see Chord research
+     * paper.
+     * @param idx finger position to get expected id for
+     * @return expected id for a specific finger position
+     * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
+     */
     public Id getExpectedId(int idx) {
         if (idx < 0 || idx >= table.size()) {
             throw new IllegalArgumentException();
@@ -307,12 +470,21 @@ public final class FingerTable {
         return ie.expectedId;
     }
     
+    /**
+     * Removes a pointer in to the finger table. If the pointer doesn't exist in
+     * the finger table, does nothing. See the constraints / guarantees
+     * mentioned in the class Javadoc: {@link FingerTable}.
+     * @param ptr pointer to put in as finger
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
+     * count than this object's base pointer
+     * @throws IllegalArgumentException if {@code ptr} has an id that matches
+     * the base pointer.
+     */
     public void remove(Pointer ptr) {
         if (ptr == null) {
             throw new NullPointerException();
         }
-        
-        Id baseId = basePtr.getId();
         
         Id id = ptr.getId();
         Address address = ptr.getAddress();
@@ -335,8 +507,19 @@ public final class FingerTable {
         }
     }
     
-    private void remove(int position) {
-        if (position < 0 || position >= bitCount) {
+    /**
+     * Removes the pointer at index {@code idx} of the finger table. See the
+     * constraints / guarantees mentioned in the class Javadoc:
+     * {@link FingerTable}.
+     * @param idx finger position to clear
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
+     * count than this object's base pointer
+     * @throws IllegalArgumentException if {@code ptr} has an id that matches
+     * the base pointer.
+     */
+    private void remove(int idx) {
+        if (idx < 0 || idx >= bitCount) {
             throw new IllegalArgumentException();
         }
         
@@ -344,7 +527,7 @@ public final class FingerTable {
         Address baseAddress = basePtr.getAddress();
         
         // save existing id
-        InternalEntry entry = table.get(position);
+        InternalEntry entry = table.get(idx);
         Id oldId = entry.actualId;
         
         if (oldId.equals(baseId)) {
@@ -357,9 +540,9 @@ public final class FingerTable {
         Id nextId;
         Address nextAddress;
 
-        if (position < bitCount - 1) {
+        if (idx < bitCount - 1) {
             // set values if there's a next available (if we aren't at ceiling)
-            InternalEntry nextEntry = table.get(position + 1);
+            InternalEntry nextEntry = table.get(idx + 1);
             nextId = nextEntry.actualId;
             nextAddress = nextEntry.address;
         } else {
@@ -370,7 +553,7 @@ public final class FingerTable {
         
         // replace prior ids with next id if prior same as old id and is
         // contiguous... prior ids will never be greater than the old id
-        for (int i = position; i >= 0; i--) {
+        for (int i = idx; i >= 0; i--) {
             InternalEntry priorEntry = table.get(i);
             
             if (priorEntry.actualId.equals(oldId)) {
@@ -382,6 +565,15 @@ public final class FingerTable {
         }
     }
 
+    /**
+     * Removes all fingers before {@code id} (does not remove {@code id}
+     * itself).
+     * @param id id of which all fingers before it will be removed
+     * @return number of fingers that were cleared
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id} has a different bit count
+     * count than base pointer's id
+     */
     public int clearBefore(Id id) {
         if (id == null) {
             throw new NullPointerException();
@@ -408,8 +600,14 @@ public final class FingerTable {
         return 0;
     }
     
-    private void clearBefore(int position) {
-        if (position < 0 || position >= bitCount) {
+    /**
+     * Removes all fingers before position {@code idx} (does not remove finger
+     * at {@code idx}).
+     * @param idx position which all fingers before it will be removed
+     * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
+     */
+    private void clearBefore(int idx) {
+        if (idx < 0 || idx >= bitCount) {
             throw new IllegalArgumentException();
         }
         
@@ -420,9 +618,9 @@ public final class FingerTable {
         Id nextId;
         Address nextAddress;
 
-        if (position < bitCount - 1) {
+        if (idx < bitCount - 1) {
             // set values if there's a next available (if we aren't at ceiling)
-            InternalEntry nextEntry = table.get(position + 1);
+            InternalEntry nextEntry = table.get(idx + 1);
             nextId = nextEntry.actualId;
             nextAddress = nextEntry.address;
         } else {
@@ -433,7 +631,7 @@ public final class FingerTable {
         
         // replace prior ids with next id... prior ids will never be greater
         // than the id at the position we're removing
-        for (int i = position; i >= 0; i--) {
+        for (int i = idx; i >= 0; i--) {
             InternalEntry priorEntry = table.get(i);
             
             priorEntry.actualId = nextId;
@@ -441,6 +639,14 @@ public final class FingerTable {
         }
     }
 
+    /**
+     * Removes all fingers after {@code id} (does not remove {@code id} itself).
+     * @param id id of which all fingers after it will be removed
+     * @return number of fingers that were cleared
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id} has a different bit count
+     * count than base pointer's id
+     */
     public int clearAfter(Id id) {
         if (id == null) {
             throw new NullPointerException();
@@ -467,8 +673,14 @@ public final class FingerTable {
         return 0;
     }
 
-    private void clearAfter(int position) {
-        if (position < 0 || position >= bitCount) {
+    /**
+     * Removes all fingers after position {@code idx} (does not remove finger
+     * at {@code idx}).
+     * @param idx position which all fingers after it will be removed
+     * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
+     */
+    private void clearAfter(int idx) {
+        if (idx < 0 || idx >= bitCount) {
             throw new IllegalArgumentException();
         }
         
@@ -476,7 +688,7 @@ public final class FingerTable {
         Address baseAddress = basePtr.getAddress();
         
         // replace entries with self id all the way till the end...
-        for (int i = position; i < bitCount; i++) {
+        for (int i = idx; i < bitCount; i++) {
             InternalEntry priorEntry = table.get(i);
             
             priorEntry.actualId = baseId;
@@ -484,6 +696,9 @@ public final class FingerTable {
         }
     }
 
+    /**
+     * Clears the finger table. All fingers will be set to the base pointer.
+     */
     public void clear() {
         Id baseId = basePtr.getId();
         Address baseAddress = basePtr.getAddress();
@@ -497,6 +712,11 @@ public final class FingerTable {
         }
     }
 
+    /**
+     * Checks to see if all entries in the finger table are set to base pointer.
+     * @return {@code true} if all entries are set to base pointer,
+     * {@code false} otherwise
+     */
     public boolean isPointingToBase() {
         if (table.isEmpty()) {
             return false;
@@ -507,6 +727,10 @@ public final class FingerTable {
         return ptr.equals(basePtr);
     }
     
+    /**
+     * Dumps the fingers.
+     * @return list of fingers
+     */
     public List<Pointer> dump() {
         List<Pointer> ret = new ArrayList<>(table.size());
         
@@ -518,9 +742,21 @@ public final class FingerTable {
         return ret;
     }
 
+    /**
+     * Internal class to keep track of a finger.
+     */
     private static final class InternalEntry {
+        /**
+         * Desired id for finger.
+         */
         public Id expectedId;
+        /**
+         * Id of finger.
+         */
         public Id actualId;
+        /**
+         * Address of finger.
+         */
         public Address address;
     }
 }

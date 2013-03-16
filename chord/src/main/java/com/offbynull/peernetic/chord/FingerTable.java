@@ -224,7 +224,7 @@ public final class FingerTable {
      * @param ptr pointer to put in as finger
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
-     * count than this object's base pointer
+     * count than the base pointer's id
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
@@ -311,7 +311,7 @@ public final class FingerTable {
      * @param ptr pointer to add in as finger
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
-     * count than this object's base pointer
+     * count than the base pointer's id
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
@@ -477,7 +477,7 @@ public final class FingerTable {
      * @param ptr pointer to put in as finger
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
-     * count than this object's base pointer
+     * count than the base pointer's id
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
@@ -514,7 +514,7 @@ public final class FingerTable {
      * @param idx finger position to clear
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
-     * count than this object's base pointer
+     * count than the base pointer's id
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */

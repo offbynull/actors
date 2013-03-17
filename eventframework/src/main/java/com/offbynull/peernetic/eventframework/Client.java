@@ -5,6 +5,7 @@ import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.Handler;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;
 import com.offbynull.peernetic.eventframework.handler.OutgoingEventQueue;
+import com.offbynull.peernetic.eventframework.helper.ClassMap;
 import com.offbynull.peernetic.eventframework.helper.SimpleIterateService;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
@@ -27,11 +28,11 @@ public final class Client {
     private Set<Processor<? extends IncomingEvent>> subProcessors;
     private Service service;
     private IncomingEventQueue incomingEventQueue;
-    private Map<Class<? extends OutgoingEvent>, OutgoingSimplifier<?>>
+    private ClassMap<Class<? extends OutgoingEvent>, OutgoingSimplifier<?>>
             eventOutgoingSimplifierMap;
-    private Map<Class<? extends IncomingEvent>, IncomingSimplifier<?>>
+    private ClassMap<Class<? extends IncomingEvent>, IncomingSimplifier<?>>
             eventIncomingSimplifierMap;
-    private Map<Class<? extends OutgoingEvent>, Handler> eventHandlerMap;
+    private ClassMap<Class<? extends OutgoingEvent>, Handler> eventHandlerMap;
     private Map<Handler, OutgoingEventQueue> handlerOutgoingQueueMap;
     private ClientResultListener resultListener;
 
@@ -51,7 +52,7 @@ public final class Client {
         subProcessors = new LinkedHashSet<>();
         service = new Service();
         incomingEventQueue = new IncomingEventQueue();
-        eventHandlerMap = new HashMap<>();
+        eventHandlerMap = new ClassMap<>();
         handlerOutgoingQueueMap = new HashMap<>();
         
         // process handlers
@@ -72,7 +73,7 @@ public final class Client {
         
         
         // process simplifiers
-        eventOutgoingSimplifierMap = new HashMap<>();
+        eventOutgoingSimplifierMap = new ClassMap<>();
         
         for (OutgoingSimplifier simplifier : outgoingSimplifiers) {
             Set<Class<? extends OutgoingEvent>> acceptedTypes =
@@ -89,7 +90,7 @@ public final class Client {
         
         
         // process incoming simplifiers
-        eventIncomingSimplifierMap = new HashMap<>();
+        eventIncomingSimplifierMap = new ClassMap<>();
         
         for (IncomingSimplifier simplifier : incomingSimplifiers) {
             Set<Class<? extends IncomingEvent>> acceptedTypes =

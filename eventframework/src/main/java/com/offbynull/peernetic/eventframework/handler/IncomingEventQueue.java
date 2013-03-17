@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.eventframework.handler;
 
+import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;

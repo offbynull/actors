@@ -7,6 +7,8 @@ import com.offbynull.peernetic.eventframework.handler.communication.Communicatio
 import com.offbynull.peernetic.eventframework.handler.lifecycle.LifecycleHandler;
 import com.offbynull.peernetic.eventframework.handler.timer.TimerHandler;
 import com.offbynull.peernetic.eventframework.processor.Processor;
+import com.offbynull.peernetic.eventframework.interceptor.OutgoingInterceptor;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.After;
@@ -46,7 +48,8 @@ public class ClientTest {
         BlockingClientResultListener resultListener =
                 new BlockingClientResultListener();
 
-        Client client = new Client(processor, resultListener, handlers);
+        Client client = new Client(processor, resultListener, handlers,
+                Collections.<OutgoingInterceptor>emptySet());
         client.start();
         
         resultListener.waitForResult();
@@ -65,7 +68,7 @@ public class ClientTest {
                 new BlockingClientResultListener();
         Processor serverProcessor = new EchoServerProcessor(1);
         Client serverClient = new Client(serverProcessor, serverResultListener,
-                serverHandlers);
+                serverHandlers, Collections.<OutgoingInterceptor>emptySet());
         serverClient.start();
         
         Thread.sleep(500L); // wait for server to set up
@@ -77,7 +80,7 @@ public class ClientTest {
                 new BlockingClientResultListener();
         Processor processor = new EchoClientProcessor();
         Client clientClient = new Client(processor, clientResultListener,
-                clientHandlers);
+                clientHandlers, Collections.<OutgoingInterceptor>emptySet());
         clientClient.start();
         
         clientResultListener.waitForResult();

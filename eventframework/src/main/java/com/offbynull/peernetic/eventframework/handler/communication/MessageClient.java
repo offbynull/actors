@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.eventframework.handler.communication;
 
-import com.offbynull.peernetic.eventframework.handler.DefaultErrorIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;
 import com.offbynull.peernetic.eventframework.helper.StateTracker;
 import com.thoughtworks.xstream.XStream;

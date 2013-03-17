@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.handler.communication;
 
-import com.offbynull.peernetic.eventframework.handler.DefaultSuccessIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.DefaultSuccessIncomingEvent;
 
 public final class ReceiveResponseIncomingEvent
         extends DefaultSuccessIncomingEvent{

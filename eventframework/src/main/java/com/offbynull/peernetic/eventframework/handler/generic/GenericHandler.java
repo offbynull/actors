@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.eventframework.handler.generic;
 
-import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.EventQueuePair;
 import com.offbynull.peernetic.eventframework.handler.Handler;
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;
 import com.offbynull.peernetic.eventframework.handler.OutgoingEventQueue;
 import com.offbynull.peernetic.eventframework.helper.SimpleIterateService;

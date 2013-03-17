@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.handler.timer;
 
-import com.offbynull.peernetic.eventframework.handler.DefaultTrackedOutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.DefaultTrackedOutgoingEvent;
 
 public final class NewTimerOutgoingEvent extends DefaultTrackedOutgoingEvent {
     private long duration;

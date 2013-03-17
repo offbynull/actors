@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.eventframework.handler;
+package com.offbynull.peernetic.eventframework.event;
 
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 

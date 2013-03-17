@@ -1,10 +1,10 @@
 package com.offbynull.peernetic.eventframework.tests;
 
-import com.offbynull.peernetic.eventframework.handler.ErrorIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
-import com.offbynull.peernetic.eventframework.handler.SuccessIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.TrackedIdGenerator;
+import com.offbynull.peernetic.eventframework.event.ErrorIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.SuccessIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.handler.communication.ReceiveMessageIncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.communication.SendResponseOutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.communication.StartServerOutgoingEvent;

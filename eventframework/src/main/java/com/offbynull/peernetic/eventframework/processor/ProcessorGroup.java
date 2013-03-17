@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.processor;
 
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;

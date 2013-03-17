@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.handler.lifecycle;
 
-import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.Handler;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;
 import com.offbynull.peernetic.eventframework.handler.OutgoingEventQueue;

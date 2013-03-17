@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.eventframework.tests;
 
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
-import com.offbynull.peernetic.eventframework.handler.TrackedIdGenerator;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.handler.lifecycle.InitializeIncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.timer.NewTimerOutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.timer.TimerHitIncomingEvent;

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.eventframework.handler;
+package com.offbynull.peernetic.eventframework.event;
 
 public interface ErrorIncomingEvent extends TrackedIncomingEvent {
     String getDescription();

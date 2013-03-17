@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.eventframework.handler;
+package com.offbynull.peernetic.eventframework.event;
 
 public class DefaultErrorIncomingEvent implements ErrorIncomingEvent {
     private long trackedId;

@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.processor;
 
-import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

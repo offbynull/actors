@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.eventframework.handler.communication;
 
-import com.offbynull.peernetic.eventframework.handler.DefaultErrorIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.DefaultSuccessIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.OutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.DefaultSuccessIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.EventQueuePair;
 import com.offbynull.peernetic.eventframework.handler.Handler;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;

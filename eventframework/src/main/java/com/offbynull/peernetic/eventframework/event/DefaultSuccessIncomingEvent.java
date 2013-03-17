@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.eventframework.handler;
+package com.offbynull.peernetic.eventframework.event;
 
 public class DefaultSuccessIncomingEvent implements SuccessIncomingEvent {
     private long trackedId;

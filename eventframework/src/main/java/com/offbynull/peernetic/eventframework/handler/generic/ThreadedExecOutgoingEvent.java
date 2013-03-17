@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.handler.generic;
 
-import com.offbynull.peernetic.eventframework.handler.DefaultTrackedOutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.DefaultTrackedOutgoingEvent;
 import java.util.concurrent.Callable;
 
 public final class ThreadedExecOutgoingEvent extends DefaultTrackedOutgoingEvent {

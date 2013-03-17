@@ -150,6 +150,10 @@ public final class Client {
                             result.viewOutgoingEvents());
                     sendToOutgoingSimplifiers(newOutEvents);
                     
+                    // put remaining out events in newOutEvents in to pull
+                    totalOutEvents.addAll(newOutEvents);
+                    
+                    
                     // process subprocessors
                     while (true) {
                         // create pools

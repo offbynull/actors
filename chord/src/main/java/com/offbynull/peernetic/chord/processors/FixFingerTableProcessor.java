@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.chord.processors;
 
 import com.offbynull.peernetic.chord.ChordState;
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.TrackedIdGenerator;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;

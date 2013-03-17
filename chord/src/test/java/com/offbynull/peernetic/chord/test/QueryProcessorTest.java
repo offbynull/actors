@@ -10,9 +10,9 @@ import com.offbynull.peernetic.chord.processors.QueryProcessor.QueryFailedProces
 import static com.offbynull.peernetic.chord.test.TestUtils.assertOutgoingEventTypes;
 import static com.offbynull.peernetic.chord.test.TestUtils.extractProcessResultEvent;
 import static com.offbynull.peernetic.chord.test.TestUtils.extractProcessResultResult;
-import com.offbynull.peernetic.eventframework.handler.DefaultErrorIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.IncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.TrackedIdGenerator;
+import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
+import com.offbynull.peernetic.eventframework.event.IncomingEvent;
+import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.handler.communication.ReceiveResponseIncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.communication.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.eventframework.handler.lifecycle.InitializeIncomingEvent;

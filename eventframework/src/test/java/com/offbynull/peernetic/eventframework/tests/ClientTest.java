@@ -7,7 +7,8 @@ import com.offbynull.peernetic.eventframework.handler.communication.Communicatio
 import com.offbynull.peernetic.eventframework.handler.lifecycle.LifecycleHandler;
 import com.offbynull.peernetic.eventframework.handler.timer.TimerHandler;
 import com.offbynull.peernetic.eventframework.processor.Processor;
-import com.offbynull.peernetic.eventframework.interceptor.OutgoingInterceptor;
+import com.offbynull.peernetic.eventframework.simplifier.IncomingSimplifier;
+import com.offbynull.peernetic.eventframework.simplifier.OutgoingSimplifier;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -49,7 +50,8 @@ public class ClientTest {
                 new BlockingClientResultListener();
 
         Client client = new Client(processor, resultListener, handlers,
-                Collections.<OutgoingInterceptor>emptySet());
+                Collections.<OutgoingSimplifier>emptySet(),
+                Collections.<IncomingSimplifier>emptySet());
         client.start();
         
         resultListener.waitForResult();
@@ -68,7 +70,8 @@ public class ClientTest {
                 new BlockingClientResultListener();
         Processor serverProcessor = new EchoServerProcessor(1);
         Client serverClient = new Client(serverProcessor, serverResultListener,
-                serverHandlers, Collections.<OutgoingInterceptor>emptySet());
+                serverHandlers, Collections.<OutgoingSimplifier>emptySet(),
+                Collections.<IncomingSimplifier>emptySet());
         serverClient.start();
         
         Thread.sleep(500L); // wait for server to set up
@@ -80,7 +83,8 @@ public class ClientTest {
                 new BlockingClientResultListener();
         Processor processor = new EchoClientProcessor();
         Client clientClient = new Client(processor, clientResultListener,
-                clientHandlers, Collections.<OutgoingInterceptor>emptySet());
+                clientHandlers, Collections.<OutgoingSimplifier>emptySet(),
+                Collections.<IncomingSimplifier>emptySet());
         clientClient.start();
         
         clientResultListener.waitForResult();

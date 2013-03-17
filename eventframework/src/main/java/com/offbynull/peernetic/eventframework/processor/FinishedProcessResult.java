@@ -45,7 +45,7 @@ public final class FinishedProcessResult<T> implements ProcessResult<T> {
         this.result = result;
     }
 
-    public Object getResult() {
+    public T getResult() {
         return result;
     }
 

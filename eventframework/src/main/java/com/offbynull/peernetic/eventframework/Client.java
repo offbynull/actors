@@ -10,8 +10,12 @@ import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
-import com.offbynull.peernetic.eventframework.interceptor.OutgoingInterceptor;
+import com.offbynull.peernetic.eventframework.simplifier.IncomingSimplifier;
+import com.offbynull.peernetic.eventframework.simplifier.OutgoingSimplifier;
+import com.offbynull.peernetic.eventframework.simplifier.SimplifierResult;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,24 +24,31 @@ import java.util.Set;
 public final class Client {
 
     private Processor rootPattern;
+    private Set<Processor<? extends IncomingEvent>> subProcessors;
     private Service service;
     private IncomingEventQueue incomingEventQueue;
-    private Map<Class<? extends OutgoingEvent>, OutgoingInterceptor<?>>
-            eventSimplifierMap;
+    private Map<Class<? extends OutgoingEvent>, OutgoingSimplifier<?>>
+            eventOutgoingSimplifierMap;
+    private Map<Class<? extends IncomingEvent>, IncomingSimplifier<?>>
+            eventIncomingSimplifierMap;
     private Map<Class<? extends OutgoingEvent>, Handler> eventHandlerMap;
     private Map<Handler, OutgoingEventQueue> handlerOutgoingQueueMap;
     private ClientResultListener resultListener;
 
     public Client(Processor rootPattern, ClientResultListener resultListener,
-            Set<Handler> handlers, Set<OutgoingInterceptor> simplifiers) {
+            Set<Handler> handlers, Set<OutgoingSimplifier> outgoingSimplifiers,
+            Set<IncomingSimplifier> incomingSimplifiers) {
         if (rootPattern == null || resultListener == null || handlers == null
-                || handlers.contains(null) || simplifiers == null
-                || simplifiers.contains(null)) {
+                || handlers.contains(null) || outgoingSimplifiers == null
+                || outgoingSimplifiers.contains(null)
+                || incomingSimplifiers == null
+                || incomingSimplifiers.contains(null)) {
             throw new NullPointerException();
         }
 
         this.rootPattern = rootPattern;
         this.resultListener = resultListener;
+        subProcessors = new LinkedHashSet<>();
         service = new Service();
         incomingEventQueue = new IncomingEventQueue();
         eventHandlerMap = new HashMap<>();
@@ -60,19 +71,35 @@ public final class Client {
         }
         
         
-        eventSimplifierMap = new HashMap<>();
-        
         // process simplifiers
-        for (OutgoingInterceptor simplifier : simplifiers) {
+        eventOutgoingSimplifierMap = new HashMap<>();
+        
+        for (OutgoingSimplifier simplifier : outgoingSimplifiers) {
             Set<Class<? extends OutgoingEvent>> acceptedTypes =
                     simplifier.viewHandledEvents();
             
             for (Class<? extends OutgoingEvent> type : acceptedTypes) {
                 if (eventHandlerMap.containsKey(type)
-                        || eventSimplifierMap.containsKey(type)) {
+                        || eventOutgoingSimplifierMap.containsKey(type)) {
                     throw new IllegalArgumentException();
                 }
-                eventSimplifierMap.put(type, simplifier);
+                eventOutgoingSimplifierMap.put(type, simplifier);
+            }
+        }
+        
+        
+        // process incoming simplifiers
+        eventIncomingSimplifierMap = new HashMap<>();
+        
+        for (IncomingSimplifier simplifier : incomingSimplifiers) {
+            Set<Class<? extends IncomingEvent>> acceptedTypes =
+                    simplifier.viewHandledEvents();
+            
+            for (Class<? extends IncomingEvent> type : acceptedTypes) {
+                if (eventIncomingSimplifierMap.containsKey(type)) {
+                    throw new IllegalArgumentException();
+                }
+                eventIncomingSimplifierMap.put(type, simplifier);
             }
         }
     }
@@ -90,30 +117,67 @@ public final class Client {
         @Override
         public boolean iterate() throws InterruptedException {
             try {
-                LinkedList<IncomingEvent> inEvents = new LinkedList<>();
-                incomingEventQueue.waitForEvents(inEvents);
-
                 long timestamp = System.currentTimeMillis();
+                
+                
+                LinkedList<OutgoingEvent> totalOutEvents = new LinkedList<>();
+                LinkedList<IncomingEvent> totalInEvents = new LinkedList<>();
 
-                while (!inEvents.isEmpty()) {
-                    IncomingEvent incomingEvent = inEvents.pollFirst();
+                
+                LinkedList<IncomingEvent> initialInEvents = new LinkedList<>();
+                incomingEventQueue.waitForEvents(initialInEvents);
+                sendToIncomingSimplifiers(initialInEvents);
+                totalInEvents.addAll(initialInEvents);
+
+                
+                while (!totalInEvents.isEmpty()) {
+                    IncomingEvent inEvent = totalInEvents.pollFirst();
                     
-                    ProcessResult result = rootPattern.process(
-                            timestamp, incomingEvent);
-
-                    List<OutgoingEvent> outEvents = result.viewOutgoingEvents();
-
-                    for (OutgoingEvent outgoingEvent : outEvents) {
-                        List<IncomingEvent> additionalInEvents =
-                                processOutgoingEvents(timestamp, outgoingEvent);
-                        inEvents.addAll(additionalInEvents);
+                    ProcessResult<?> result = rootPattern.process(timestamp,
+                            inEvent);
+                    if (checkRootProcessorResult(timestamp, result)) {
+                        return false;
                     }
 
-                    if (checkIfFinished(timestamp, result)) {
-                        return false;
+                    List<OutgoingEvent> newOutEvents = new LinkedList<>(
+                            result.viewOutgoingEvents());
+                    
+                    while (true) {
+                        // add newOutEvents to total here -- newOutEvents may
+                        // have been trimmed by simplifiers
+                        totalOutEvents.addAll(newOutEvents);
+                        
+
+                        // process subprocessors
+                        List<OutgoingEvent> newSubOutEvents = new LinkedList<>();
+                        List<IncomingEvent> newSubInEvents = new LinkedList<>();
+                        callSubProcessors(timestamp, inEvent, newSubOutEvents,
+                                newSubInEvents);
+
+                        
+                        // send new inevents to incoming simplifiers
+                        sendToIncomingSimplifiers(newSubInEvents);
+                        
+                        
+                        // send new outevents to outgoing simplifiers
+                        sendToOutgoingSimplifiers(newSubOutEvents);
+                        
+                        
+                        // add new events to totals
+                        totalOutEvents.addAll(newSubOutEvents);
+                        totalInEvents.addAll(newSubInEvents);
+                        
+                        
+                        // if no new subprocessor out events, break out of loop
+                        if (newSubOutEvents.isEmpty()) {
+                            break;
+                        }
                     }
                 }
 
+                // send to handlers
+                sendToHandlers(totalOutEvents);
+                
                 return true;
             } catch (InterruptedException ie) {
                 throw ie;
@@ -136,56 +200,121 @@ public final class Client {
                 }
             }
         }
+        
+        private void callSubProcessors(long timestamp, IncomingEvent inEvent,
+                List<OutgoingEvent> newOutEvents,
+                List<IncomingEvent> newInEvents) {
+            
+            Iterator<Processor<? extends IncomingEvent>> it =
+                    subProcessors.iterator();
+            
+            while (it.hasNext()) {
+                Processor<? extends IncomingEvent> proc = it.next();
+                
+                try {
+                    ProcessResult<? extends IncomingEvent> result =
+                            proc.process(timestamp, inEvent);
+                    newOutEvents.addAll(result.viewOutgoingEvents());
+                    
+                    if (result instanceof FinishedProcessResult) {
+                        FinishedProcessResult<? extends IncomingEvent> finRes =
+                                (FinishedProcessResult<? extends IncomingEvent>)
+                                result;
+                        
+                        newInEvents.add(finRes.getResult());
+                        it.remove();
+                    }
+                } catch (Exception e) {
+                    it.remove();
+                }
+            }
+        }
+        
+        private void sendToOutgoingSimplifiers(List<OutgoingEvent> outEvents) {
+            
+            LinkedList<Processor<? extends IncomingEvent>> newProcs =
+                        new LinkedList<>();
 
-        private List<IncomingEvent> processOutgoingEvents(long timestamp,
-                OutgoingEvent outgoingEvent) throws Exception {
-            
-            LinkedList<IncomingEvent> inEvents = new LinkedList<>();
-            
-            LinkedList<OutgoingEvent> outEvents = new LinkedList<>();
-            outEvents.add(outgoingEvent);
-            
-            while (!outEvents.isEmpty()) {
-                OutgoingEvent outEvent = outEvents.pollFirst();
+            Iterator<OutgoingEvent> it = outEvents.iterator();
+            while (it.hasNext()) {
+                OutgoingEvent outEvent = it.next();
                 
                 // handle if simplifier
-                OutgoingInterceptor<?> simplifier = eventSimplifierMap.get(
+                OutgoingSimplifier<?> simplifier = eventOutgoingSimplifierMap.get(
                         outEvent.getClass());
 
                 if (simplifier != null) {
-                    List<IncomingEvent> retInEvents = new LinkedList<>();
-                    List<OutgoingEvent> retOutEvents = new LinkedList<>();
+                    SimplifierResult<? extends IncomingEvent> res = null;
                     
-                    simplifier.intercept(timestamp, outEvent, retInEvents,
-                            retOutEvents);
+                    try {
+                        res = simplifier.simplify(outEvent); 
+                    } catch (Exception e) {
+                        // do nothing
+                    }
                     
-                    outEvents.addAll(retOutEvents);
-                    inEvents.addAll(retInEvents);
-                    
-                    continue;
+                    if (res != null) {
+                        newProcs.add(res.getNewProcessor());
+                        if (res.isConsumeEvent()) {
+                            it.remove();
+                        }
+                    }
                 }
+            }
+            
+            subProcessors.addAll(newProcs);
+        }
+        
+        private void sendToIncomingSimplifiers(List<IncomingEvent> inEvents) {
+            
+            LinkedList<Processor<? extends IncomingEvent>> newProcs =
+                        new LinkedList<>();
 
+            Iterator<IncomingEvent> it = inEvents.iterator();
+            while (it.hasNext()) {
+                IncomingEvent inEvent = it.next();
+                
+                // handle if simplifier
+                IncomingSimplifier<?> simplifier =
+                        eventIncomingSimplifierMap.get(inEvent.getClass());
 
-                // handle if handler
+                if (simplifier != null) {
+                    SimplifierResult<? extends IncomingEvent> res = null;
+                    
+                    try {
+                        res = simplifier.simplify(inEvent); 
+                    } catch (Exception e) {
+                        // do nothing
+                    }
+                    
+                    if (res != null) {
+                        newProcs.add(res.getNewProcessor());
+                        if (res.isConsumeEvent()) {
+                            it.remove();
+                        }
+                    }
+                }
+            }
+            
+            subProcessors.addAll(newProcs);
+        }
+        
+        private void sendToHandlers(List<OutgoingEvent> outEvents) {
+            for (OutgoingEvent outEvent : outEvents) {
                 Handler handler = eventHandlerMap.get(
                         outEvent.getClass());
 
                 if (handler != null) {
-                    OutgoingEventQueue outgoingEventQueue
-                            = handlerOutgoingQueueMap.get(handler);
-                    outgoingEventQueue.push(outEvent);
-                    continue;
+                    OutgoingEventQueue outEventQueue =
+                            handlerOutgoingQueueMap.get(handler);
+                    outEventQueue.push(outEvent);
+                } else {
+                    throw new IllegalStateException();
                 }
-
-
-                // can't handle
-                throw new IllegalStateException();
             }
-            
-            return inEvents;
         }
 
-        private boolean checkIfFinished(long timestamp, ProcessResult result) {
+        private boolean checkRootProcessorResult(long timestamp,
+                ProcessResult result) {
             if (result instanceof OngoingProcessResult) {
                 // do nothing
             } else if (result instanceof FinishedProcessResult) {

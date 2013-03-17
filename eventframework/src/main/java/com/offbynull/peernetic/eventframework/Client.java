@@ -117,58 +117,61 @@ public final class Client {
         @Override
         public boolean iterate() throws InterruptedException {
             try {
+                // get timestamp to pass in to processors
                 long timestamp = System.currentTimeMillis();
                 
-                
+                // create event pools
                 LinkedList<OutgoingEvent> totalOutEvents = new LinkedList<>();
                 LinkedList<IncomingEvent> totalInEvents = new LinkedList<>();
 
-                
+                // grab events from handlers and send to simplifiers
+                // (potentially pruned by simplifiers)
                 LinkedList<IncomingEvent> initialInEvents = new LinkedList<>();
                 incomingEventQueue.waitForEvents(initialInEvents);
                 sendToIncomingSimplifiers(initialInEvents);
+                
+                // add to in events pool
                 totalInEvents.addAll(initialInEvents);
 
-                
+                // process
                 while (!totalInEvents.isEmpty()) {
+                    // get event
                     IncomingEvent inEvent = totalInEvents.pollFirst();
                     
+                    // pass to root processor and see if it wants to finish
                     ProcessResult<?> result = rootPattern.process(timestamp,
                             inEvent);
                     if (checkRootProcessorResult(timestamp, result)) {
                         return false;
                     }
 
+                    // grab out events from root proc & send to out simplifiers
                     List<OutgoingEvent> newOutEvents = new LinkedList<>(
                             result.viewOutgoingEvents());
+                    sendToOutgoingSimplifiers(newOutEvents);
                     
+                    // process subprocessors
                     while (true) {
-                        // add newOutEvents to total here -- newOutEvents may
-                        // have been trimmed by simplifiers
-                        totalOutEvents.addAll(newOutEvents);
-                        
-
-                        // process subprocessors
+                        // create pools
                         List<OutgoingEvent> newSubOutEvents = new LinkedList<>();
                         List<IncomingEvent> newSubInEvents = new LinkedList<>();
+                        
+                        // call subprocessors -- pools filled here
                         callSubProcessors(timestamp, inEvent, newSubOutEvents,
                                 newSubInEvents);
 
-                        
-                        // send new inevents to incoming simplifiers
+                        // send inevent pool to incoming simplifiers
                         sendToIncomingSimplifiers(newSubInEvents);
                         
-                        
-                        // send new outevents to outgoing simplifiers
+                        // send outevent pool to outgoing simplifiers
                         sendToOutgoingSimplifiers(newSubOutEvents);
-                        
                         
                         // add new events to totals
                         totalOutEvents.addAll(newSubOutEvents);
                         totalInEvents.addAll(newSubInEvents);
                         
-                        
-                        // if no new subprocessor out events, break out of loop
+                        // if no new outevents from subprocessor, break out of
+                        // loop
                         if (newSubOutEvents.isEmpty()) {
                             break;
                         }

@@ -15,7 +15,6 @@ import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 
 public final class FixFingerProcessor implements Processor {
-    private TrackedIdGenerator tidGen;
     private ChordState chordState;
     private State state;
     private int index;
@@ -23,9 +22,8 @@ public final class FixFingerProcessor implements Processor {
     private QueryProcessor queryProc;
     private RouteProcessor routeProc;
 
-    public FixFingerProcessor(ChordState chordState, int index,
-            TrackedIdGenerator tidGen) {
-        if (tidGen == null || chordState == null) {
+    public FixFingerProcessor(ChordState chordState, int index) {
+        if (chordState == null) {
             throw new NullPointerException();
         }
         
@@ -33,21 +31,21 @@ public final class FixFingerProcessor implements Processor {
             throw new IllegalArgumentException();
         }
         
-        this.tidGen = tidGen;
         this.chordState = chordState;
         this.state = State.TEST;
         this.index = index;
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event) {
+    public ProcessResult process(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case TEST:
-                return processTestState(timestamp, event);
+                return processTestState(timestamp, event, trackedIdGen);
             case TEST_WAIT:
-                return processTestWaitState(timestamp, event);
+                return processTestWaitState(timestamp, event, trackedIdGen);
             case UPDATE_WAIT:
-                return processUpdateWaitState(timestamp, event);
+                return processUpdateWaitState(timestamp, event, trackedIdGen);
             case FINISHED:
                 return processFinishedState(timestamp, event);
             default:
@@ -56,10 +54,11 @@ public final class FixFingerProcessor implements Processor {
     }
 
     private ProcessResult processTestState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         testPtr = chordState.getFinger(index);
-        queryProc = new QueryProcessor(tidGen, testPtr.getAddress());
-        ProcessResult queryProcRes = queryProc.process(timestamp, event);
+        queryProc = new QueryProcessor(testPtr.getAddress());
+        ProcessResult queryProcRes = queryProc.process(timestamp, event,
+                trackedIdGen);
         
         state = State.TEST_WAIT;
         
@@ -67,15 +66,15 @@ public final class FixFingerProcessor implements Processor {
     }
 
     private ProcessResult processTestWaitState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         ProcessResult queryProcRes;
         try {
-            queryProcRes = queryProc.process(timestamp, event);
+            queryProcRes = queryProc.process(timestamp, event, trackedIdGen);
         } catch (QueryFailedProcessorException qfe) {
             // finger node failed to respond to test, so remove it before moving
             // on to update
             chordState.removeFinger(testPtr);
-            return performUpdate(timestamp, event);
+            return performUpdate(timestamp, event, trackedIdGen);
         }
         
         if (queryProcRes instanceof OngoingProcessResult) {
@@ -84,10 +83,11 @@ public final class FixFingerProcessor implements Processor {
         }
         
         // finger node responded to test, move on to update
-        return performUpdate(timestamp, event);
+        return performUpdate(timestamp, event, trackedIdGen);
     }
     
-    private ProcessResult performUpdate(long timestamp, IncomingEvent event) {
+    private ProcessResult performUpdate(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         Id destId = chordState.getExpectedFingerId(index);
         RouteResult routeRes = chordState.route(destId);
         
@@ -134,16 +134,16 @@ public final class FixFingerProcessor implements Processor {
         }
         
         Id selfId = chordState.getBaseId();
-        routeProc = new RouteProcessor(tidGen, selfId, destId, bootstrap);
+        routeProc = new RouteProcessor(selfId, destId, bootstrap);
         state = State.UPDATE_WAIT;
-        return routeProc.process(timestamp, event);
+        return routeProc.process(timestamp, event, trackedIdGen);
     }
 
     private ProcessResult processUpdateWaitState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         ProcessResult routeProcRes;
         try {
-            routeProcRes = routeProc.process(timestamp, event);
+            routeProcRes = routeProc.process(timestamp, event, trackedIdGen);
         } catch (RouteProcessorException rpe) {
             return new FinishedProcessResult(false);
         }

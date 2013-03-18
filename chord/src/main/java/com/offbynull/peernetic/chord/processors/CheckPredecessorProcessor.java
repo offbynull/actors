@@ -10,16 +10,14 @@ import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 
 public final class CheckPredecessorProcessor implements Processor {
-    private TrackedIdGenerator tidGen;
     private ChordState chordState;
     private State state;
     private int index;
     private Pointer testPtr;
     private QueryProcessor queryProc;
 
-    public CheckPredecessorProcessor(ChordState chordState, int index,
-            TrackedIdGenerator tidGen) {
-        if (tidGen == null || chordState == null) {
+    public CheckPredecessorProcessor(ChordState chordState, int index) {
+        if (chordState == null) {
             throw new NullPointerException();
         }
         
@@ -27,31 +25,32 @@ public final class CheckPredecessorProcessor implements Processor {
             throw new IllegalArgumentException();
         }
         
-        this.tidGen = tidGen;
         this.chordState = chordState;
         this.state = State.TEST;
         this.index = index;
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event) {
+    public ProcessResult process(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case TEST:
-                return processTestState(timestamp, event);
+                return processTestState(timestamp, event, trackedIdGen);
             case TEST_WAIT:
-                return processTestWaitState(timestamp, event);
+                return processTestWaitState(timestamp, event, trackedIdGen);
             case FINISHED:
-                return processFinishedState(timestamp, event);
+                return processFinishedState(timestamp, event, trackedIdGen);
             default:
                 throw new IllegalStateException();
         }
     }
 
     private ProcessResult processTestState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         testPtr = chordState.getFinger(index);
-        queryProc = new QueryProcessor(tidGen, testPtr.getAddress());
-        ProcessResult queryProcRes = queryProc.process(timestamp, event);
+        queryProc = new QueryProcessor(testPtr.getAddress());
+        ProcessResult queryProcRes = queryProc.process(timestamp, event,
+                trackedIdGen);
         
         state = State.TEST_WAIT;
         
@@ -59,9 +58,9 @@ public final class CheckPredecessorProcessor implements Processor {
     }
 
     private ProcessResult processTestWaitState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         try {
-            return queryProc.process(timestamp, event);
+            return queryProc.process(timestamp, event, trackedIdGen);
         } catch (QueryFailedProcessorException qfe) {
             chordState.setPredecessor(null);
             return new FinishedProcessResult();
@@ -69,7 +68,7 @@ public final class CheckPredecessorProcessor implements Processor {
     }
 
     private ProcessResult processFinishedState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         throw new IllegalStateException();
     }
 

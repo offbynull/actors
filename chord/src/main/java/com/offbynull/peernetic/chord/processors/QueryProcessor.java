@@ -1,5 +1,8 @@
 package com.offbynull.peernetic.chord.processors;
 
+import com.offbynull.eventframework.network.tcpmessage.ReceiveResponseIncomingEvent;
+import com.offbynull.eventframework.network.tcpmessage.Request;
+import com.offbynull.eventframework.network.tcpmessage.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
@@ -12,10 +15,7 @@ import com.offbynull.peernetic.chord.messages.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.event.TrackedUtil;
-import com.offbynull.peernetic.eventframework.handler.communication.ReceiveResponseIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.communication.Request;
-import com.offbynull.peernetic.eventframework.handler.communication.SendMessageOutgoingEvent;
+import com.offbynull.peernetic.eventframework.event.EventUtils;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
@@ -29,21 +29,21 @@ public final class QueryProcessor implements Processor {
     private Address address;
     private long pendingId; 
 
-    public QueryProcessor(TrackedIdGenerator tidGen, Address address) {
-        if (tidGen == null || address == null) {
+    public QueryProcessor(Address address) {
+        if (address == null) {
             throw new NullPointerException();
         }
         
         state = State.SEND;
-        pendingId = tidGen.getNextId(); 
         this.address = address;
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event) {
+    public ProcessResult process(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case SEND: {
-                return processSendState();
+                return processSendState(trackedIdGen);
             }
             case RESPONSE_WAIT: {
                 return processResponseWaitState(event);
@@ -56,7 +56,9 @@ public final class QueryProcessor implements Processor {
         }
     }
     
-    private ProcessResult processSendState() {
+    private ProcessResult processSendState(TrackedIdGenerator trackedIdGen) {
+        pendingId = trackedIdGen.getNextId();
+        
         state = State.RESPONSE_WAIT;
 
         Request req = new StatusRequest();
@@ -66,10 +68,10 @@ public final class QueryProcessor implements Processor {
     }
     
     private ProcessResult processResponseWaitState(IncomingEvent inEvent) {
-        TrackedUtil.throwProcessorExceptionOnError(inEvent, pendingId,
+        EventUtils.throwProcessorExceptionOnError(inEvent, pendingId,
                 QueryFailedProcessorException.class);
         
-        ReceiveResponseIncomingEvent rrie = TrackedUtil.testAndConvert(inEvent,
+        ReceiveResponseIncomingEvent rrie = EventUtils.testAndConvert(inEvent,
                 pendingId, ReceiveResponseIncomingEvent.class);
         
         if (rrie != null) {

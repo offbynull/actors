@@ -24,33 +24,30 @@ public final class RouteProcessor implements Processor {
     private Id selfId;
     private Id lastHitId;
     private Address nextSearchAddress;
-    private TrackedIdGenerator tidGen; 
     private State state;
     private QueryProcessor queryProc;
     private Set<Address> accessedAddresses;
 
-    public RouteProcessor(TrackedIdGenerator tidGen, Id selfId, Id findId,
-            Address bootstrap) {
-        if (tidGen == null || findId == null || selfId == null
-                || bootstrap == null) {
+    public RouteProcessor(Id selfId, Id findId, Address bootstrap) {
+        if (findId == null || selfId == null || bootstrap == null) {
             throw new NullPointerException();
         }
         this.findId = findId;
         this.selfId = selfId;
         this.nextSearchAddress = bootstrap;
-        this.tidGen = tidGen;
         accessedAddresses = new HashSet<>();
         
         state = State.INIT;
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event) {
+    public ProcessResult process(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case INIT:
-                return processInitState(timestamp, event);
+                return processInitState(timestamp, event, trackedIdGen);
             case PROCESSING:
-                return processProcessState(timestamp, event);
+                return processProcessState(timestamp, event, trackedIdGen);
             case FINISHED:
                 return processFinishedState();
             default:
@@ -59,17 +56,18 @@ public final class RouteProcessor implements Processor {
     }
     
     private ProcessResult processInitState(long timestamp,
-            IncomingEvent event) {
-        List<OutgoingEvent> outEvents = startNewQuery(timestamp, event);
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+        List<OutgoingEvent> outEvents = startNewQuery(timestamp, event,
+                trackedIdGen);
         state = State.PROCESSING;
         return new OngoingProcessResult(outEvents);
     }
     
     private ProcessResult processProcessState(long timestamp,
-            IncomingEvent event) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         ProcessResult queryRes;
         try {
-            queryRes = queryProc.process(timestamp, event);
+            queryRes = queryProc.process(timestamp, event, trackedIdGen);
         } catch (QueryFailedProcessorException qfpe) {
             throw new RouteFailedProcessorException();
         }
@@ -106,7 +104,7 @@ public final class RouteProcessor implements Processor {
                     nextSearchAddress = ptr.getAddress();
                     
                     List<OutgoingEvent> outEvents = startNewQuery(timestamp,
-                            event);
+                            event, trackedIdGen);
                     
                     return new OngoingProcessResult(outEvents);
                 }
@@ -123,9 +121,9 @@ public final class RouteProcessor implements Processor {
     }
     
     private List<OutgoingEvent> startNewQuery(long timestamp,
-            IncomingEvent event) {
-        queryProc = new QueryProcessor(tidGen, nextSearchAddress);
-        ProcessResult pr = queryProc.process(timestamp, event);
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+        queryProc = new QueryProcessor(nextSearchAddress);
+        ProcessResult pr = queryProc.process(timestamp, event, trackedIdGen);
         
         return pr.viewOutgoingEvents();
     }

@@ -1,2 +1,6 @@
 /eventframework/target/
 /chord/target/
+/communication-helper/target/
+/eventframework-core/target/
+/eventframework-network/target/
+/eventframework/eventframework-basic/target/

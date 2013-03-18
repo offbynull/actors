@@ -10,37 +10,36 @@ import com.offbynull.peernetic.eventframework.processor.Processor;
 
 public final class FixFingerTableProcessor implements Processor {
 
-    private TrackedIdGenerator tidGen;
     private ChordState chordState;
     private int index;
     private FixFingerProcessor fixFingerProc;
     private State state;
 
-    public FixFingerTableProcessor(ChordState chordState,
-            TrackedIdGenerator tidGen) {
-        if (tidGen == null || chordState == null) {
+    public FixFingerTableProcessor(ChordState chordState) {
+        if (chordState == null) {
             throw new NullPointerException();
         }
         
-        this.tidGen = tidGen;
         this.chordState = chordState;
     }
     
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event) {
+    public ProcessResult process(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case INIT:
-                return processInitState(timestamp, event);
+                return processInitState(timestamp, event, trackedIdGen);
             case RUNNING:
-                return processRunningState(timestamp, event);
+                return processRunningState(timestamp, event, trackedIdGen);
             case STALLING:
-                return processRunningState(timestamp, event);
+                return processRunningState(timestamp, event, trackedIdGen);
             default:
                 throw new IllegalStateException();
         }
     }
 
-    private ProcessResult processInitState(long timestamp, IncomingEvent event) {
+    private ProcessResult processInitState(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         if (chordState.getBaseId().getBitCount() == 1) {
             // The finger table only contains the successor, which is updated
             // elsewhere. Do nothing now and force the processor to do nothing
@@ -50,14 +49,16 @@ public final class FixFingerTableProcessor implements Processor {
         }
         
         index = 1;
-        fixFingerProc = new FixFingerProcessor(chordState, index, tidGen);
-        fixFingerProc.process(timestamp, event);
+        fixFingerProc = new FixFingerProcessor(chordState, index);
+        fixFingerProc.process(timestamp, event, trackedIdGen);
         state = State.RUNNING;
         return new OngoingProcessResult();
     }
 
-    private ProcessResult processRunningState(long timestamp, IncomingEvent event) {
-        ProcessResult pr = fixFingerProc.process(timestamp, event);
+    private ProcessResult processRunningState(long timestamp,
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+        ProcessResult pr = fixFingerProc.process(timestamp, event,
+                trackedIdGen);
         
         if (pr instanceof FinishedProcessResult) {
             index++;
@@ -66,8 +67,8 @@ public final class FixFingerTableProcessor implements Processor {
                 index = 1;
             }
             
-            fixFingerProc = new FixFingerProcessor(chordState, index, tidGen);
-            fixFingerProc.process(timestamp, event);
+            fixFingerProc = new FixFingerProcessor(chordState, index);
+            fixFingerProc.process(timestamp, event, trackedIdGen);
         }
         
         return new OngoingProcessResult();

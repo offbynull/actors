@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.chord.test;
 
+import com.offbynull.eventframework.network.tcpmessage.ReceiveResponseIncomingEvent;
+import com.offbynull.eventframework.network.tcpmessage.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
@@ -12,9 +14,7 @@ import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedProces
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteSelfProcessorException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.handler.communication.ReceiveResponseIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.communication.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.eventframework.handler.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.basic.lifecycle.InitializeIncomingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +58,7 @@ public class RouteProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        RouteProcessor rp = new RouteProcessor(tidGen, _111Id, _101Id,
+        RouteProcessor rp = new RouteProcessor(_111Id, _101Id,
                 _000Address);
 
         SendMessageOutgoingEvent smOutEvent;
@@ -72,7 +72,7 @@ public class RouteProcessorTest {
 
         // Trigger RP to start by sending in garbage event
         inEvent = new InitializeIncomingEvent();
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 000b
@@ -93,7 +93,7 @@ public class RouteProcessorTest {
         
         // Pass in response to RP
         inEvent = new ReceiveResponseIncomingEvent(statusResp, trackedId);
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 100b
@@ -114,7 +114,7 @@ public class RouteProcessorTest {
         
         // Pass in response to RP
         inEvent = new ReceiveResponseIncomingEvent(statusResp, trackedId);
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Ensure RP found exact match
@@ -149,7 +149,7 @@ public class RouteProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        RouteProcessor rp = new RouteProcessor(tidGen, _111Id, _101Id,
+        RouteProcessor rp = new RouteProcessor(_111Id, _101Id,
                 _000Address);
 
         SendMessageOutgoingEvent smOutEvent;
@@ -163,7 +163,7 @@ public class RouteProcessorTest {
 
         // Trigger RP to start by sending in garbage event
         inEvent = new InitializeIncomingEvent();
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 000b
@@ -184,7 +184,7 @@ public class RouteProcessorTest {
         
         // Pass in response to RP
         inEvent = new ReceiveResponseIncomingEvent(statusResp, trackedId);
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 100b
@@ -205,7 +205,7 @@ public class RouteProcessorTest {
         
         // Pass in response to RP
         inEvent = new ReceiveResponseIncomingEvent(statusResp, trackedId);
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Ensure RP found exact match
@@ -240,7 +240,7 @@ public class RouteProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        RouteProcessor rp = new RouteProcessor(tidGen, _000Id, _111Id,
+        RouteProcessor rp = new RouteProcessor(_000Id, _111Id,
                 _000Address);
 
         SendMessageOutgoingEvent smOutEvent;
@@ -254,7 +254,7 @@ public class RouteProcessorTest {
 
         // Trigger RP to start by sending in garbage event
         inEvent = new InitializeIncomingEvent();
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 000b
@@ -275,7 +275,7 @@ public class RouteProcessorTest {
         
         // Pass in response to RP
         inEvent = new ReceiveResponseIncomingEvent(statusResp, trackedId);
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
     }
     
     @Test(expected = RouteFailedProcessorException.class)
@@ -298,7 +298,7 @@ public class RouteProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        RouteProcessor rp = new RouteProcessor(tidGen, _111Id, _101Id,
+        RouteProcessor rp = new RouteProcessor(_111Id, _101Id,
                 _000Address);
 
         SendMessageOutgoingEvent smOutEvent;
@@ -312,7 +312,7 @@ public class RouteProcessorTest {
 
         // Trigger RP to start by sending in garbage event
         inEvent = new InitializeIncomingEvent();
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 000b
@@ -333,6 +333,6 @@ public class RouteProcessorTest {
         
         // Pass in response to RP
         inEvent = new DefaultErrorIncomingEvent(trackedId);
-        pr = rp.process(1L, inEvent);
+        pr = rp.process(1L, inEvent, tidGen);
     }
 }

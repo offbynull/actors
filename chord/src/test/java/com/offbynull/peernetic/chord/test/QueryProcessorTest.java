@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.chord.test;
 
+import com.offbynull.eventframework.network.tcpmessage.ReceiveResponseIncomingEvent;
+import com.offbynull.eventframework.network.tcpmessage.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
@@ -13,9 +15,7 @@ import static com.offbynull.peernetic.chord.test.TestUtils.extractProcessResultR
 import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.handler.communication.ReceiveResponseIncomingEvent;
-import com.offbynull.peernetic.eventframework.handler.communication.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.eventframework.handler.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.basic.lifecycle.InitializeIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +55,7 @@ public class QueryProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        QueryProcessor qp = new QueryProcessor(tidGen, _000Address);
+        QueryProcessor qp = new QueryProcessor(_000Address);
 
         SendMessageOutgoingEvent smOutEvent;
         IncomingEvent inEvent;
@@ -68,7 +68,7 @@ public class QueryProcessorTest {
 
         // Trigger QP to start by sending in garbage event
         inEvent = new InitializeIncomingEvent();
-        pr = qp.process(1L, inEvent);
+        pr = qp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 000b
@@ -89,7 +89,7 @@ public class QueryProcessorTest {
         
         // Pass in response to QP
         inEvent = new ReceiveResponseIncomingEvent(statusResp, trackedId);
-        pr = qp.process(1L, inEvent);
+        pr = qp.process(1L, inEvent, tidGen);
         
         
         // Ensure QP found exact match
@@ -118,7 +118,7 @@ public class QueryProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        QueryProcessor qp = new QueryProcessor(tidGen, _000Address);
+        QueryProcessor qp = new QueryProcessor(_000Address);
 
         SendMessageOutgoingEvent smOutEvent;
         IncomingEvent inEvent;
@@ -131,7 +131,7 @@ public class QueryProcessorTest {
 
         // Trigger QP to start by sending in garbage event
         inEvent = new InitializeIncomingEvent();
-        pr = qp.process(1L, inEvent);
+        pr = qp.process(1L, inEvent, tidGen);
         
         
         // Get message to be sent out and generate fake response from 000b
@@ -152,6 +152,6 @@ public class QueryProcessorTest {
         
         // Pass in response to QP
         inEvent = new DefaultErrorIncomingEvent(trackedId, null);
-        qp.process(1L, inEvent);
+        qp.process(1L, inEvent, tidGen);
     }
 }

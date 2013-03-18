@@ -10,7 +10,7 @@
     <modules>
         <module>chord</module>
         <module>eventframework</module>
-  </modules>
+    </modules>
     
     <dependencyManagement>
         <dependencies>
@@ -34,6 +34,18 @@
                 <groupId>org.apache.mina</groupId>
                 <artifactId>mina-core</artifactId>
                 <version>2.0.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.mina</groupId>
+                <artifactId>mina-filter-compression</artifactId>
+                <version>2.0.7</version>
+                <!-- This is required because of mina's rediculous packaging: https://issues.apache.org/jira/browse/DIRMINA-806 --> 
+                <exclusions> 
+                    <exclusion> 
+                        <groupId>org.apache.mina</groupId> 
+                        <artifactId>mina-core</artifactId> 
+                    </exclusion> 
+                </exclusions> 
             </dependency>
             <dependency>
                 <groupId>com.thoughtworks.xstream</groupId>

@@ -1,5 +1,6 @@
-package com.offbynull.eventframework.network.tcpmessage;
+package com.offbynull.eventframework.network.simpletcp;
 
+import com.offbynull.eventframework.network.message.Request;
 import com.offbynull.peernetic.eventframework.event.DefaultTrackedIncomingEvent;
 
 public final class ReceiveMessageIncomingEvent

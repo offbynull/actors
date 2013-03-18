@@ -2,7 +2,7 @@ package com.offbynull.peernetic.eventframework.tests;
 
 import com.offbynull.peernetic.eventframework.Client;
 import com.offbynull.peernetic.eventframework.handler.Handler;
-import com.offbynull.eventframework.network.tcpmessage.CommunicationHandler;
+import com.offbynull.eventframework.network.simpletcp.CommunicationHandler;
 import com.offbynull.peernetic.eventframework.BlockingClientResultListener;
 import com.offbynull.peernetic.eventframework.basic.lifecycle.LifecycleHandler;
 import com.offbynull.peernetic.eventframework.processor.Processor;

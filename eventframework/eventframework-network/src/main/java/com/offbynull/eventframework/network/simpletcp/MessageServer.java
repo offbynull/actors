@@ -1,5 +1,7 @@
-package com.offbynull.eventframework.network.tcpmessage;
+package com.offbynull.eventframework.network.simpletcp;
 
+import com.offbynull.eventframework.network.message.Request;
+import com.offbynull.eventframework.network.message.Response;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;
 import com.offbynull.peernetic.eventframework.helper.StateTracker;
@@ -23,6 +25,7 @@ import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.codec.prefixedstring.PrefixedStringCodecFactory;
+import org.apache.mina.filter.compression.CompressionFilter;
 import org.apache.mina.filter.executor.ExecutorFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 
@@ -60,6 +63,8 @@ final class MessageServer {
         tracker.checkFresh();
 
         acceptor = new NioSocketAcceptor();
+        acceptor.getFilterChain().addLast("compress",
+                new CompressionFilter(CompressionFilter.COMPRESSION_MAX));
         acceptor.getFilterChain().addLast("codec",
                 new ProtocolCodecFilter(
                 new PrefixedStringCodecFactory(Charset.forName("UTF-8"))));

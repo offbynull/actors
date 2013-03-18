@@ -1,4 +1,4 @@
-package com.offbynull.eventframework.network.tcpmessage;
+package com.offbynull.eventframework.network.simpletcp;
 
 import com.offbynull.peernetic.eventframework.event.DefaultTrackedOutgoingEvent;
 

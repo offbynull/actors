@@ -39,13 +39,8 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>eventframework-core</artifactId>
+            <artifactId>eventframework</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.offbynull</groupId>
-            <artifactId>eventframework-network</artifactId>
-            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.chord.test;
 
-import com.offbynull.eventframework.network.simpletcp.ReceiveResponseIncomingEvent;
-import com.offbynull.eventframework.network.simpletcp.SendMessageOutgoingEvent;
+import com.offbynull.eventframework.network.impl.simpletcp.ReceiveResponseIncomingEvent;
+import com.offbynull.eventframework.network.impl.simpletcp.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
@@ -14,7 +14,7 @@ import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedProces
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteSelfProcessorException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.basic.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.impl.basic.lifecycle.InitializeIncomingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

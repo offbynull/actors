@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.eventframework.network.simpletcp.ReceiveResponseIncomingEvent;
-import com.offbynull.eventframework.network.message.Request;
-import com.offbynull.eventframework.network.simpletcp.SendMessageOutgoingEvent;
+import com.offbynull.eventframework.network.impl.simpletcp.ReceiveResponseIncomingEvent;
+import com.offbynull.eventframework.network.impl.message.Request;
+import com.offbynull.eventframework.network.impl.simpletcp.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;

@@ -9,7 +9,6 @@
     
     <modules>
         <module>chord</module>
-        <module>eventframework</module>
     </modules>
     
     <dependencyManagement>

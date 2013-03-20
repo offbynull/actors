@@ -1,4 +1,4 @@
-package com.offbynull.eventframework.network.impl.address;
+package com.offbynull.peernetic.eventframework.impl.network.address;
 
 public final class ResolvedAddress {
     private String hostname;

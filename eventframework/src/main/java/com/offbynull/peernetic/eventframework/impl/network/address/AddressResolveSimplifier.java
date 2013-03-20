@@ -1,4 +1,4 @@
-package com.offbynull.eventframework.network.impl.address;
+package com.offbynull.peernetic.eventframework.impl.network.address;
 
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.Processor;

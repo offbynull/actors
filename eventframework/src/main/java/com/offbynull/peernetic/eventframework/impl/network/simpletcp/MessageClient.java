@@ -1,7 +1,7 @@
-package com.offbynull.eventframework.network.impl.simpletcp;
+package com.offbynull.peernetic.eventframework.impl.network.simpletcp;
 
-import com.offbynull.eventframework.network.impl.message.Request;
-import com.offbynull.eventframework.network.impl.message.Response;
+import com.offbynull.peernetic.eventframework.impl.network.message.Request;
+import com.offbynull.peernetic.eventframework.impl.network.message.Response;
 import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.handler.IncomingEventQueue;

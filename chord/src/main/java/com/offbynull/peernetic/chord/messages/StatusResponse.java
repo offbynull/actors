@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.chord.messages;
 
-import com.offbynull.eventframework.network.impl.message.Response;
+import com.offbynull.peernetic.eventframework.impl.network.message.Response;
 import com.offbynull.peernetic.chord.messages.shared.NodeId;
 import com.offbynull.peernetic.chord.messages.shared.NodePointer;
 import com.offbynull.peernetic.chord.messages.validation.NotNullSetElements;

@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.tests;
 
-import com.offbynull.eventframework.network.impl.message.Request;
+import com.offbynull.peernetic.eventframework.impl.network.message.Request;
 
 public final class FakeRequest implements Request {
     private String data;

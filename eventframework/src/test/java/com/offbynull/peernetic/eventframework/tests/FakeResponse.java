@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.eventframework.tests;
 
-import com.offbynull.eventframework.network.impl.message.Response;
+import com.offbynull.peernetic.eventframework.impl.network.message.Response;
 
 public final class FakeResponse implements Response {
     private String data;

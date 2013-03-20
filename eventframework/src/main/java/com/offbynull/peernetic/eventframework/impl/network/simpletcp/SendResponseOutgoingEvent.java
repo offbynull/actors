@@ -1,6 +1,6 @@
-package com.offbynull.eventframework.network.impl.simpletcp;
+package com.offbynull.peernetic.eventframework.impl.network.simpletcp;
 
-import com.offbynull.eventframework.network.impl.message.Response;
+import com.offbynull.peernetic.eventframework.impl.network.message.Response;
 import com.offbynull.peernetic.eventframework.event.DefaultTrackedOutgoingEvent;
 
 public final class SendResponseOutgoingEvent

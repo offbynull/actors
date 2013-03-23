@@ -12,6 +12,7 @@ import org.hibernate.validator.constraints.NotEmpty;
 public final class StatusResponse implements Response {
     private NodeId id;
     private Set<NodePointer> pointers;
+    private NodePointer predecessor;
 
     public StatusResponse() {
     }
@@ -36,4 +37,14 @@ public final class StatusResponse implements Response {
     public void setPointers(Set<NodePointer> pointers) {
         this.pointers = pointers;
     }
+
+    @Valid
+    public NodePointer getPredecessor() {
+        return predecessor;
+    }
+
+    public void setPredecessor(NodePointer predecessor) {
+        this.predecessor = predecessor;
+    }
+    
 }

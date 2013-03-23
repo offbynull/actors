@@ -7,8 +7,8 @@ import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
-import com.offbynull.peernetic.chord.processors.QueryProcessor;
-import com.offbynull.peernetic.chord.processors.QueryProcessor.QueryFailedProcessorException;
+import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor;
+import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import static com.offbynull.peernetic.chord.test.TestUtils.assertOutgoingEventTypes;
 import static com.offbynull.peernetic.chord.test.TestUtils.extractProcessResultEvent;
 import static com.offbynull.peernetic.chord.test.TestUtils.extractProcessResultResult;
@@ -55,7 +55,7 @@ public class QueryProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        QueryProcessor qp = new QueryProcessor(_000Address);
+        QueryForFingerTableProcessor qp = new QueryForFingerTableProcessor(_000Address);
 
         SendMessageOutgoingEvent smOutEvent;
         IncomingEvent inEvent;
@@ -98,7 +98,7 @@ public class QueryProcessorTest {
         assertEquals(_000Id, res.getBaseId());
     }
 
-    @Test(expected = QueryFailedProcessorException.class)
+    @Test(expected = QueryForFingerTableException.class)
     public void testFailure() {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
@@ -118,7 +118,7 @@ public class QueryProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        QueryProcessor qp = new QueryProcessor(_000Address);
+        QueryForFingerTableProcessor qp = new QueryForFingerTableProcessor(_000Address);
 
         SendMessageOutgoingEvent smOutEvent;
         IncomingEvent inEvent;

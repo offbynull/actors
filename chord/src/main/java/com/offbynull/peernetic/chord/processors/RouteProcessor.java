@@ -5,7 +5,7 @@ import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
-import com.offbynull.peernetic.chord.processors.QueryProcessor.QueryFailedProcessorException;
+import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.Result;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
@@ -20,13 +20,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class RouteProcessor implements Processor<Result> {
+public final class RouteProcessor implements Processor {
     private Id findId;
     private Id selfId;
     private Id lastHitId;
     private Address nextSearchAddress;
     private State state;
-    private QueryProcessor queryProc;
+    private QueryForFingerTableProcessor queryProc;
     private Set<Address> accessedAddresses;
 
     public RouteProcessor(Id selfId, Id findId, Address bootstrap) {
@@ -42,7 +42,7 @@ public final class RouteProcessor implements Processor<Result> {
     }
 
     @Override
-    public ProcessResult<Result> process(long timestamp, IncomingEvent event,
+    public ProcessResult process(long timestamp, IncomingEvent event,
             TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case INIT:
@@ -56,20 +56,20 @@ public final class RouteProcessor implements Processor<Result> {
         }
     }
     
-    private ProcessResult<Result> processInitState(long timestamp,
+    private ProcessResult processInitState(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         List<OutgoingEvent> outEvents = startNewQuery(timestamp, event,
                 trackedIdGen);
         state = State.PROCESSING;
-        return new OngoingProcessResult<>(outEvents);
+        return new OngoingProcessResult(outEvents);
     }
     
-    private ProcessResult<Result> processProcessState(long timestamp,
+    private ProcessResult processProcessState(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         ProcessResult queryRes;
         try {
             queryRes = queryProc.process(timestamp, event, trackedIdGen);
-        } catch (QueryFailedProcessorException qfpe) {
+        } catch (QueryForFingerTableException qfpe) {
             throw new RouteFailedProcessorException();
         }
         
@@ -107,23 +107,23 @@ public final class RouteProcessor implements Processor<Result> {
                     List<OutgoingEvent> outEvents = startNewQuery(timestamp,
                             event, trackedIdGen);
                     
-                    return new OngoingProcessResult<>(outEvents);
+                    return new OngoingProcessResult(outEvents);
                 }
                 default:
                     throw new IllegalStateException();
             }
         }
         
-        return new OngoingProcessResult<>();
+        return new OngoingProcessResult();
     }
     
-    private ProcessResult<Result> processFinishedState() {
+    private ProcessResult processFinishedState() {
         throw new IllegalStateException();
     }
     
     private List<OutgoingEvent> startNewQuery(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
-        queryProc = new QueryProcessor(nextSearchAddress);
+        queryProc = new QueryForFingerTableProcessor(nextSearchAddress);
         ProcessResult pr = queryProc.process(timestamp, event, trackedIdGen);
         
         return pr.viewOutgoingEvents();

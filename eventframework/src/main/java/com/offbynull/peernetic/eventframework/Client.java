@@ -144,7 +144,7 @@ public final class Client {
                     IncomingEvent inEvent = totalInEvents.pollFirst();
                     
                     // pass to root processor and see if it wants to finish
-                    ProcessResult<?> result = rootPattern.process(timestamp,
+                    ProcessResult result = rootPattern.process(timestamp,
                             inEvent, trackedIdGen);
                     if (checkRootProcessorResult(timestamp, result)) {
                         return false;
@@ -224,11 +224,12 @@ public final class Client {
                 Processor<? extends IncomingEvent> proc = it.next();
                 
                 try {
-                    ProcessResult<? extends IncomingEvent> result =
+                    ProcessResult result =
                             proc.process(timestamp, inEvent, trackedIdGen);
                     newOutEvents.addAll(result.viewOutgoingEvents());
                     
                     if (result instanceof FinishedProcessResult) {
+                        @SuppressWarnings("unchecked")
                         FinishedProcessResult<? extends IncomingEvent> finRes =
                                 (FinishedProcessResult<? extends IncomingEvent>)
                                 result;

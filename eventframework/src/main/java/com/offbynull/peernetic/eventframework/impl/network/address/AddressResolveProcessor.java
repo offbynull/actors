@@ -16,8 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-public final class AddressResolveProcessor
-        implements Processor<AddressResolvedIncomingEvent> {
+public final class AddressResolveProcessor implements Processor {
 
     private State state;
     private long trackedId;
@@ -39,7 +38,7 @@ public final class AddressResolveProcessor
     }
     
     @Override
-    public ProcessResult<AddressResolvedIncomingEvent> process(long timestamp,
+    public ProcessResult process(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case INIT:
@@ -53,8 +52,7 @@ public final class AddressResolveProcessor
         }
     }
 
-    private ProcessResult<AddressResolvedIncomingEvent> processInitState(
-            long timestamp, IncomingEvent event,
+    private ProcessResult processInitState(long timestamp, IncomingEvent event,
             TrackedIdGenerator trackedIdGen) {
         trackedId = trackedIdGen.getNextId();
         
@@ -64,12 +62,11 @@ public final class AddressResolveProcessor
         
         state = State.RESOLVING;
         
-        return new OngoingProcessResult<>(teoe);
+        return new OngoingProcessResult(teoe);
     }
 
-    private ProcessResult<AddressResolvedIncomingEvent> processResolvingState(
-            long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
+    private ProcessResult processResolvingState(long timestamp,
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         EventUtils.throwProcessorExceptionOnError(event, trackedId);
         
         ThreadedExecResultIncomingEvent terie = EventUtils.testAndConvert(
@@ -81,14 +78,11 @@ public final class AddressResolveProcessor
         
         state = State.FINISHED;
         
-        AddressResolvedIncomingEvent ie =
-                new AddressResolvedIncomingEvent(resAddrs);
-        return new FinishedProcessResult<>(ie);
+        return new FinishedProcessResult<>(resAddrs);
     }
 
-    private ProcessResult<AddressResolvedIncomingEvent> processFinishedState(
-            long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
+    private ProcessResult processFinishedState(long timestamp,
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         throw new IllegalArgumentException();
     }
     

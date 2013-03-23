@@ -31,7 +31,7 @@ public final class AddressResolveSimplifier
                     (ResolveAddressOutgoingEvent) event;
             
             Processor<AddressResolvedIncomingEvent> proc =
-                    new AddressResolveProcessor(raoe.getAddress());
+                    new AddressResolveSimplifierProcessor(raoe.getAddress());
             return new SimplifierResult<>(proc, true);
         }
         

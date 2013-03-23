@@ -18,7 +18,7 @@ import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 
-public final class NotifyProcessor implements Processor<Boolean> {
+public final class NotifyProcessor implements Processor {
     
     private long netPendingId;
     private State state;
@@ -36,7 +36,7 @@ public final class NotifyProcessor implements Processor<Boolean> {
     
     
     @Override
-    public ProcessResult<Boolean> process(long timestamp, IncomingEvent event,
+    public ProcessResult process(long timestamp, IncomingEvent event,
             TrackedIdGenerator trackedIdGen) throws Exception {
         switch (state) {
             case INIT:
@@ -50,7 +50,7 @@ public final class NotifyProcessor implements Processor<Boolean> {
         }
     }
     
-    private ProcessResult<Boolean> processInit(long timestamp,
+    private ProcessResult processInit(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         netPendingId = trackedIdGen.getNextId();
@@ -67,10 +67,10 @@ public final class NotifyProcessor implements Processor<Boolean> {
 
         state = State.WAIT_RESPONSE;
 
-        return new OngoingProcessResult<>(outEvent);
+        return new OngoingProcessResult(outEvent);
     }
     
-    private ProcessResult<Boolean> processWaitResponse(long timestamp,
+    private ProcessResult processWaitResponse(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         EventUtils.throwProcessorExceptionOnError(event, netPendingId,
@@ -86,10 +86,10 @@ public final class NotifyProcessor implements Processor<Boolean> {
             return new FinishedProcessResult<>(assigned);
         }
         
-        return new OngoingProcessResult<>();
+        return new OngoingProcessResult();
     }
     
-    private ProcessResult<Boolean> processFinished(long timestamp,
+    private ProcessResult processFinished(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         throw new IllegalStateException();

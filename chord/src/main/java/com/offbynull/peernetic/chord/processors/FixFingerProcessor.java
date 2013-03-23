@@ -5,7 +5,7 @@ import com.offbynull.peernetic.chord.ChordState;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
-import com.offbynull.peernetic.chord.processors.QueryProcessor.QueryFailedProcessorException;
+import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteProcessorException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
@@ -14,12 +14,12 @@ import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 
-public final class FixFingerProcessor implements Processor<Boolean> {
+public final class FixFingerProcessor implements Processor {
     private ChordState chordState;
     private State state;
     private int index;
     private Pointer testPtr;
-    private QueryProcessor queryProc;
+    private QueryForFingerTableProcessor queryProc;
     private RouteProcessor routeProc;
 
     public FixFingerProcessor(ChordState chordState, int index) {
@@ -37,7 +37,7 @@ public final class FixFingerProcessor implements Processor<Boolean> {
     }
 
     @Override
-    public ProcessResult<Boolean> process(long timestamp, IncomingEvent event,
+    public ProcessResult process(long timestamp, IncomingEvent event,
             TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case TEST:
@@ -56,7 +56,7 @@ public final class FixFingerProcessor implements Processor<Boolean> {
     private ProcessResult processTestState(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         testPtr = chordState.getFinger(index);
-        queryProc = new QueryProcessor(testPtr.getAddress());
+        queryProc = new QueryForFingerTableProcessor(testPtr.getAddress());
         ProcessResult queryProcRes = queryProc.process(timestamp, event,
                 trackedIdGen);
         
@@ -70,7 +70,7 @@ public final class FixFingerProcessor implements Processor<Boolean> {
         ProcessResult queryProcRes;
         try {
             queryProcRes = queryProc.process(timestamp, event, trackedIdGen);
-        } catch (QueryFailedProcessorException qfe) {
+        } catch (QueryForFingerTableException qfe) {
             // finger node failed to respond to test, so remove it before moving
             // on to update
             chordState.removeFinger(testPtr);

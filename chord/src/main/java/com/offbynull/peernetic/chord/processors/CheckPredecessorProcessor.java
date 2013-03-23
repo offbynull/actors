@@ -2,7 +2,7 @@ package com.offbynull.peernetic.chord.processors;
 
 import com.offbynull.peernetic.chord.ChordState;
 import com.offbynull.peernetic.chord.Pointer;
-import com.offbynull.peernetic.chord.processors.QueryProcessor.QueryFailedProcessorException;
+import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
@@ -14,7 +14,7 @@ public final class CheckPredecessorProcessor implements Processor {
     private State state;
     private int index;
     private Pointer testPtr;
-    private QueryProcessor queryProc;
+    private QueryForFingerTableProcessor queryProc;
 
     public CheckPredecessorProcessor(ChordState chordState, int index) {
         if (chordState == null) {
@@ -48,7 +48,7 @@ public final class CheckPredecessorProcessor implements Processor {
     private ProcessResult processTestState(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         testPtr = chordState.getFinger(index);
-        queryProc = new QueryProcessor(testPtr.getAddress());
+        queryProc = new QueryForFingerTableProcessor(testPtr.getAddress());
         ProcessResult queryProcRes = queryProc.process(timestamp, event,
                 trackedIdGen);
         
@@ -61,7 +61,7 @@ public final class CheckPredecessorProcessor implements Processor {
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         try {
             return queryProc.process(timestamp, event, trackedIdGen);
-        } catch (QueryFailedProcessorException qfe) {
+        } catch (QueryForFingerTableException qfe) {
             chordState.setPredecessor(null);
             return new FinishedProcessResult();
         }

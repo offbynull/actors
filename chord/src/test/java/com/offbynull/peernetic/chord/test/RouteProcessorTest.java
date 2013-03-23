@@ -14,7 +14,7 @@ import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedProces
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteSelfProcessorException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.impl.basic.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

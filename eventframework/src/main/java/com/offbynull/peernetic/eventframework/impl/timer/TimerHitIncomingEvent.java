@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.eventframework.impl.basic.timer;
+package com.offbynull.peernetic.eventframework.impl.timer;
 
 import com.offbynull.peernetic.eventframework.event.DefaultTrackedIncomingEvent;
 

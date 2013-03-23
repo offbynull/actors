@@ -15,7 +15,7 @@ import static com.offbynull.peernetic.chord.test.TestUtils.extractProcessResultR
 import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.impl.basic.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import org.junit.After;
 import org.junit.Before;

@@ -4,7 +4,7 @@ import com.offbynull.peernetic.eventframework.Client;
 import com.offbynull.peernetic.eventframework.handler.Handler;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.CommunicationHandler;
 import com.offbynull.peernetic.eventframework.BlockingClientResultListener;
-import com.offbynull.peernetic.eventframework.impl.basic.lifecycle.LifecycleHandler;
+import com.offbynull.peernetic.eventframework.impl.lifecycle.LifecycleHandler;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.simplifier.IncomingSimplifier;
 import com.offbynull.peernetic.eventframework.simplifier.OutgoingSimplifier;

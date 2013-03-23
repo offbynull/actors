@@ -9,7 +9,7 @@ import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveMess
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendResponseOutgoingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.StartServerOutgoingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.StopServerOutgoingEvent;
-import com.offbynull.peernetic.eventframework.impl.basic.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.eventframework.impl.basic.generic;
+package com.offbynull.peernetic.eventframework.impl.generic;
 
 import com.offbynull.peernetic.eventframework.event.DefaultSuccessIncomingEvent;
 

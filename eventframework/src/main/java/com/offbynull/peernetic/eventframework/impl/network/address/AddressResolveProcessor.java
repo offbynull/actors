@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.eventframework.impl.network.address;
 
-import com.offbynull.peernetic.eventframework.impl.basic.generic.ThreadedExecOutgoingEvent;
-import com.offbynull.peernetic.eventframework.impl.basic.generic.ThreadedExecResultIncomingEvent;
+import com.offbynull.peernetic.eventframework.impl.generic.ThreadedExecOutgoingEvent;
+import com.offbynull.peernetic.eventframework.impl.generic.ThreadedExecResultIncomingEvent;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.event.EventUtils;

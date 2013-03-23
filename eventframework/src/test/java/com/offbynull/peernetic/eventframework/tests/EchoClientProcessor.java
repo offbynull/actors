@@ -6,7 +6,7 @@ import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveResponseIncomingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.eventframework.impl.basic.lifecycle.InitializeIncomingEvent;
+import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;

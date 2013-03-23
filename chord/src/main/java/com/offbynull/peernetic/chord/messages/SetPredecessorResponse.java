@@ -5,27 +5,16 @@ import com.offbynull.peernetic.eventframework.impl.network.message.Response;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-// returns whether or not pred was set and what the current pred is
 public final class SetPredecessorResponse implements Response {
-    private boolean set;
-    private NodePointer predecessor;
-
-    public boolean isSet() {
-        return set;
-    }
-
-    public void setSet(boolean set) {
-        this.set = set;
-    }
+    private NodePointer assignedPredecessor;
 
     @NotNull
     @Valid
-    public NodePointer getPredecessor() {
-        return predecessor;
+    public NodePointer getAssignedPredecessor() {
+        return assignedPredecessor;
     }
 
-    public void setPredecessor(NodePointer predecessor) {
-        this.predecessor = predecessor;
+    public void setAssignedPredecessor(NodePointer assignedPredecessor) {
+        this.assignedPredecessor = assignedPredecessor;
     }
-    
 }

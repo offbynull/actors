@@ -30,7 +30,6 @@ public final class FixFingerTableProcessor implements Processor {
             case INIT:
                 return processInitState(timestamp, event, trackedIdGen);
             case RUNNING:
-                return processRunningState(timestamp, event, trackedIdGen);
             case STALLING:
                 return processRunningState(timestamp, event, trackedIdGen);
             default:

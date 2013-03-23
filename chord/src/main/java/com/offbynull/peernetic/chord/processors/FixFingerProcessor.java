@@ -14,7 +14,7 @@ import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 
-public final class FixFingerProcessor implements Processor {
+public final class FixFingerProcessor implements Processor<Boolean> {
     private ChordState chordState;
     private State state;
     private int index;
@@ -37,7 +37,7 @@ public final class FixFingerProcessor implements Processor {
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
+    public ProcessResult<Boolean> process(long timestamp, IncomingEvent event,
             TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case TEST:

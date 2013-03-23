@@ -33,6 +33,19 @@ public final class EventUtils {
         }
     }
     
+    public static boolean isResponse(IncomingEvent inEvent, long trackedId) {
+        
+        if (inEvent instanceof TrackedIncomingEvent) {
+            TrackedIncomingEvent tie = (TrackedIncomingEvent) inEvent;
+
+            if (trackedId == tie.getTrackedId()) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     public static boolean isError(IncomingEvent inEvent, long trackedId) {
         
         if (inEvent instanceof ErrorIncomingEvent) {

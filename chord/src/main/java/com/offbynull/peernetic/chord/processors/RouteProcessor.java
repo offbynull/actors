@@ -6,6 +6,7 @@ import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
 import com.offbynull.peernetic.chord.processors.QueryProcessor.QueryFailedProcessorException;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.Result;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
@@ -19,7 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class RouteProcessor implements Processor {
+public final class RouteProcessor implements Processor<Result> {
     private Id findId;
     private Id selfId;
     private Id lastHitId;
@@ -41,7 +42,7 @@ public final class RouteProcessor implements Processor {
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
+    public ProcessResult<Result> process(long timestamp, IncomingEvent event,
             TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case INIT:
@@ -55,15 +56,15 @@ public final class RouteProcessor implements Processor {
         }
     }
     
-    private ProcessResult processInitState(long timestamp,
+    private ProcessResult<Result> processInitState(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         List<OutgoingEvent> outEvents = startNewQuery(timestamp, event,
                 trackedIdGen);
         state = State.PROCESSING;
-        return new OngoingProcessResult(outEvents);
+        return new OngoingProcessResult<>(outEvents);
     }
     
-    private ProcessResult processProcessState(long timestamp,
+    private ProcessResult<Result> processProcessState(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         ProcessResult queryRes;
         try {
@@ -98,7 +99,7 @@ public final class RouteProcessor implements Processor {
                 case FOUND:
                 case SELF: {
                     Result result = new Result(accessedAddresses, ptr);
-                    return new FinishedProcessResult(result);
+                    return new FinishedProcessResult<>(result);
                 }
                 case CLOSEST_PREDECESSOR: {
                     nextSearchAddress = ptr.getAddress();
@@ -106,17 +107,17 @@ public final class RouteProcessor implements Processor {
                     List<OutgoingEvent> outEvents = startNewQuery(timestamp,
                             event, trackedIdGen);
                     
-                    return new OngoingProcessResult(outEvents);
+                    return new OngoingProcessResult<>(outEvents);
                 }
                 default:
                     throw new IllegalStateException();
             }
         }
         
-        return new OngoingProcessResult();
+        return new OngoingProcessResult<>();
     }
     
-    private ProcessResult processFinishedState() {
+    private ProcessResult<Result> processFinishedState() {
         throw new IllegalStateException();
     }
     

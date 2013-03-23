@@ -23,7 +23,7 @@ import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 import java.util.Set;
 
-public final class QueryProcessor implements Processor {
+public final class QueryProcessor implements Processor<FingerTable> {
     
     private State state;
     private Address address;
@@ -39,8 +39,8 @@ public final class QueryProcessor implements Processor {
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
+    public ProcessResult<FingerTable> process(long timestamp,
+            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         switch (state) {
             case SEND: {
                 return processSendState(trackedIdGen);
@@ -56,7 +56,8 @@ public final class QueryProcessor implements Processor {
         }
     }
     
-    private ProcessResult processSendState(TrackedIdGenerator trackedIdGen) {
+    private ProcessResult<FingerTable> processSendState(
+            TrackedIdGenerator trackedIdGen) {
         pendingId = trackedIdGen.getNextId();
         
         state = State.RESPONSE_WAIT;
@@ -64,10 +65,11 @@ public final class QueryProcessor implements Processor {
         Request req = new StatusRequest();
         OutgoingEvent outEvent = new SendMessageOutgoingEvent(req,
                 address.getHost(), address.getPort(), pendingId);
-        return new OngoingProcessResult(outEvent);
+        return new OngoingProcessResult<>(outEvent);
     }
     
-    private ProcessResult processResponseWaitState(IncomingEvent inEvent) {
+    private ProcessResult<FingerTable> processResponseWaitState(
+            IncomingEvent inEvent) {
         EventUtils.throwProcessorExceptionOnError(inEvent, pendingId,
                 QueryFailedProcessorException.class);
         
@@ -97,13 +99,13 @@ public final class QueryProcessor implements Processor {
             
             state = State.FINISHED;
 
-            return new FinishedProcessResult(fingerTable);
+            return new FinishedProcessResult<>(fingerTable);
         }
         
-        return new OngoingProcessResult();
+        return new OngoingProcessResult<>();
     }
     
-    private ProcessResult processFinishedState() {
+    private ProcessResult<FingerTable> processFinishedState() {
         throw new IllegalStateException();
     }
     

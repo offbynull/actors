@@ -9,72 +9,65 @@ import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.messages.shared.NodeId;
 import com.offbynull.peernetic.chord.messages.shared.NodePointer;
 import com.offbynull.peernetic.chord.messages.util.MessageUtils;
-import com.offbynull.peernetic.eventframework.event.IncomingEvent;
-import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageProcessor;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageProcessor.SendMessageException;
-import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
-import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
+import com.offbynull.peernetic.eventframework.processor.ProcessorAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
-import com.offbynull.peernetic.eventframework.processor.ProcessorUtils;
 import java.util.Set;
 
-public final class QueryForFingerTableProcessor implements Processor {
-    
+public final class QueryForFingerTableProcessor
+        extends ProcessorAdapter<StatusResponse, FingerTable> {
+
     private Address address;
-    private SendMessageProcessor backingProc;
 
     public QueryForFingerTableProcessor(Address address) {
         if (address == null) {
             throw new NullPointerException();
         }
-        
-        backingProc = new SendMessageProcessor(address.getHost(),
-                address.getPort(), new StatusRequest(), StatusResponse.class);
+
+
         this.address = address;
+        Processor proc = new SendMessageProcessor(address.getHost(),
+                address.getPort(), new StatusRequest(), StatusResponse.class);
+
+        setProcessor(proc);
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
-        ProcessResult pr;
-        
+    protected FingerTable onResult(StatusResponse res) {
+        // got response
+        NodeId nodeId = res.getId();
+        Set<NodePointer> nodePtrs = res.getPointers();
+
+        // reconstruct finger table
+        FingerTable fingerTable;
         try {
-            pr = backingProc.process(timestamp, event, trackedIdGen);
-        } catch (SendMessageException e) {
+            Id id = MessageUtils.convertTo(nodeId, false);
+            Pointer ptr = new Pointer(id, address);
+            fingerTable = new FingerTable(ptr);
+            for (NodePointer pointer : nodePtrs) {
+                Pointer fingerPtr = MessageUtils.convertTo(pointer, false);
+
+                fingerTable.put(fingerPtr);
+            }
+        } catch (RuntimeException re) {
             throw new QueryForFingerTableException();
         }
         
-        StatusResponse resp = ProcessorUtils.extractFinishedResult(pr);
-        if (resp != null) {
-            // got response
-            NodeId nodeId = resp.getId();
-            Set<NodePointer> nodePtrs = resp.getPointers();
-
-            // reconstruct finger table
-            FingerTable fingerTable;
-            try {
-                Id id = MessageUtils.convertTo(nodeId, false);
-                Pointer ptr = new Pointer(id, address);
-                fingerTable = new FingerTable(ptr);
-                for (NodePointer pointer : nodePtrs) {
-                    Pointer fingerPtr = MessageUtils.convertTo(pointer, false);
-                    
-                    fingerTable.put(fingerPtr);
-                }
-            } catch (RuntimeException re) {
-                throw new QueryForFingerTableException();
-            }
-
-            return new FinishedProcessResult<>(fingerTable);
-        }
-        
-        return pr;
+        return fingerTable;
     }
-    
+
+    @Override
+    protected FingerTable onException(Exception e) throws Exception {
+        if (e instanceof SendMessageException) {
+            throw new QueryForFingerTableException();
+        }
+
+        throw e;
+    }
+
     public static class QueryForFingerTableException
             extends ProcessorException {
-        
     }
 }

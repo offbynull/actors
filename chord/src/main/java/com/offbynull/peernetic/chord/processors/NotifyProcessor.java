@@ -74,7 +74,7 @@ public final class NotifyProcessor implements Processor {
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         EventUtils.throwProcessorExceptionOnError(event, netPendingId,
-                NotifyFailedProcessorException.class);
+                NotifyFailedException.class);
         
         SetPredecessorResponse resp = NetEventUtils.testAndConvertResponse(
                 event, netPendingId);
@@ -95,7 +95,7 @@ public final class NotifyProcessor implements Processor {
         throw new IllegalStateException();
     }
     
-    public static class NotifyFailedProcessorException
+    public static class NotifyFailedException
             extends ProcessorException {
         
     }

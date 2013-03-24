@@ -36,7 +36,7 @@ public class QueryProcessorTest {
     }
 
     @Test
-    public void testSuccess() {
+    public void testSuccess() throws Throwable {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
         Id _000Id = TestUtils.generateId(3, 0x00L);
@@ -99,7 +99,7 @@ public class QueryProcessorTest {
     }
 
     @Test(expected = QueryForFingerTableException.class)
-    public void testFailure() {
+    public void testFailure() throws Throwable {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
         Id _000Id = TestUtils.generateId(3, 0x00L);

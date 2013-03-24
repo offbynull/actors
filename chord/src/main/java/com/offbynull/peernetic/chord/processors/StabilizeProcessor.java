@@ -2,13 +2,16 @@ package com.offbynull.peernetic.chord.processors;
 
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
+import com.offbynull.peernetic.chord.processors.NotifyProcessor.NotifyFailedException;
 import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
+import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 import com.offbynull.peernetic.eventframework.processor.ProcessorUtils;
+import com.offbynull.peernetic.eventframework.processor.ProcessorUtils.OutputValue;
 
 public final class StabilizeProcessor implements Processor {
     
@@ -17,6 +20,7 @@ public final class StabilizeProcessor implements Processor {
     private Pointer base;
     private Pointer successor;
     private State state;
+    private Pointer newSuccessor;
 
     public StabilizeProcessor(Pointer base, Pointer successor) {
         if (base == null || successor == null) {
@@ -64,22 +68,33 @@ public final class StabilizeProcessor implements Processor {
         try {
             pr = queryProcessor.process(timestamp, event, trackedIdGen);
         } catch (QueryForFingerTableException e) {
-            throw new StabilizeQueryFailedProcessorException();
+            throw new StabilizeFailedProcessorException();
         }
         
-        // TODO result can be null, so this logic needs to be changed to move
-        // to next state even if it is null
-        Pointer predOfSuccessor = ProcessorUtils.extractFinishedResult(pr);
-        if (predOfSuccessor != null) {
-            Id posId = predOfSuccessor.getId();
-            Id baseId = base.getId();
-            Id successorId = successor.getId();
-            
-            if (posId.isWithin(baseId, baseId, false, successorId, false)) {
-                successor = predOfSuccessor;
+        OutputValue<Boolean> successfulExtraction = new OutputValue<>();
+        Pointer predOfSuccessor = ProcessorUtils.extractFinishedResult(pr,
+                successfulExtraction);
+        
+        if (successfulExtraction.getValue()) {
+            if (predOfSuccessor == null) {
+                newSuccessor = successor;
+            } else {
+                Id posId = predOfSuccessor.getId();
+                Id baseId = base.getId();
+                Id successorId = successor.getId();
+
+                if (posId.isWithin(baseId, baseId, false, successorId, false)) {
+                    successor = predOfSuccessor;
+                } else {
+                    newSuccessor = successor;
+                }
             }
             
             state = State.NOTIFY_RESPONSE_WAIT;
+            
+            notifyProcessor = new NotifyProcessor(base, newSuccessor);
+
+            pr = notifyProcessor.process(timestamp, event, trackedIdGen);
         }
         
         return pr;
@@ -88,26 +103,28 @@ public final class StabilizeProcessor implements Processor {
     public ProcessResult processNotifyResponseWait(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
-        throw new UnsupportedOperationException();
+        ProcessResult pr;
+        try {
+            pr = notifyProcessor.process(timestamp, event, trackedIdGen);
+        } catch (NotifyFailedException e) {
+            throw new StabilizeFailedProcessorException();
+        }
         
+        if (pr instanceof FinishedProcessResult) {
+            state = State.FINISHED;
+            return new FinishedProcessResult<>(newSuccessor);
+        }
+        
+        return pr;
     }
 
-    private ProcessResult processFinished(long timestamp, IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+    private ProcessResult processFinished(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) {
         throw new IllegalStateException();
     }
     
-    public static class StabilizeFailedProcessorException
+    public static final class StabilizeFailedProcessorException
             extends ProcessorException {
-        
-    }
-    
-    public static final class StabilizeQueryFailedProcessorException
-            extends StabilizeFailedProcessorException {
-       
-    }
-    
-    public static final class StabilizeNotifyFailedProcessorException
-            extends StabilizeFailedProcessorException {
         
     }
     

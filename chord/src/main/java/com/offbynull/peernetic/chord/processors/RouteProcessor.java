@@ -43,7 +43,7 @@ public final class RouteProcessor implements Processor {
 
     @Override
     public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
+            TrackedIdGenerator trackedIdGen) throws Exception {
         switch (state) {
             case INIT:
                 return processInitState(timestamp, event, trackedIdGen);
@@ -56,8 +56,8 @@ public final class RouteProcessor implements Processor {
         }
     }
     
-    private ProcessResult processInitState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+    private ProcessResult processInitState(long timestamp, IncomingEvent event,
+            TrackedIdGenerator trackedIdGen) throws Exception {
         List<OutgoingEvent> outEvents = startNewQuery(timestamp, event,
                 trackedIdGen);
         state = State.PROCESSING;
@@ -65,7 +65,8 @@ public final class RouteProcessor implements Processor {
     }
     
     private ProcessResult processProcessState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen)
+            throws Exception {
         ProcessResult queryRes;
         try {
             queryRes = queryProc.process(timestamp, event, trackedIdGen);
@@ -122,7 +123,8 @@ public final class RouteProcessor implements Processor {
     }
     
     private List<OutgoingEvent> startNewQuery(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen)
+            throws Exception {
         queryProc = new QueryForFingerTableProcessor(nextSearchAddress);
         ProcessResult pr = queryProc.process(timestamp, event, trackedIdGen);
         

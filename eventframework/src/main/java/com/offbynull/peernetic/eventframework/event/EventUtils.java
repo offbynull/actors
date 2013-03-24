@@ -33,7 +33,8 @@ public final class EventUtils {
         }
     }
     
-    public static boolean isResponse(IncomingEvent inEvent, long trackedId) {
+    public static boolean isTrackedResponse(IncomingEvent inEvent,
+            long trackedId) {
         
         if (inEvent instanceof TrackedIncomingEvent) {
             TrackedIncomingEvent tie = (TrackedIncomingEvent) inEvent;
@@ -46,7 +47,8 @@ public final class EventUtils {
         return false;
     }
     
-    public static boolean isError(IncomingEvent inEvent, long trackedId) {
+    public static boolean isTrackedError(IncomingEvent inEvent,
+            long trackedId) {
         
         if (inEvent instanceof ErrorIncomingEvent) {
             ErrorIncomingEvent eie = (ErrorIncomingEvent) inEvent;
@@ -60,18 +62,32 @@ public final class EventUtils {
     }
     
     @SuppressWarnings("unchecked")
-    public static <T extends TrackedIncomingEvent> T testAndConvert(
-            IncomingEvent inEvent, long trackedId, Class<T> toClass) {
+    public static <T extends TrackedIncomingEvent> T trackedCast(
+            IncomingEvent inEvent, long trackedId) {
         
         if (inEvent instanceof TrackedIncomingEvent) {
             TrackedIncomingEvent tie = (TrackedIncomingEvent) inEvent;
 
-            if (trackedId == tie.getTrackedId()
-                    && toClass.isInstance(tie)) {
-                return (T) tie;
+            if (trackedId == tie.getTrackedId()) {
+                try {
+                    return (T) tie;
+                } catch (ClassCastException cce) {
+                    return null;
+                }
             }
         }
         
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends TrackedIncomingEvent> T cast(
+            IncomingEvent inEvent, long trackedId) {
+        
+        try {
+            return (T) inEvent;
+        } catch (ClassCastException cce) {
+            return null;
+        }
     }
 }

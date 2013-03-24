@@ -69,15 +69,19 @@ public final class AddressResolveProcessor implements Processor {
             IncomingEvent event, TrackedIdGenerator trackedIdGen) {
         EventUtils.throwProcessorExceptionOnError(event, trackedId);
         
-        ThreadedExecResultIncomingEvent terie = EventUtils.testAndConvert(
-                event, trackedId, ThreadedExecResultIncomingEvent.class);
+        ThreadedExecResultIncomingEvent terie = EventUtils.trackedCast(
+                event, trackedId);
         
+        if (terie == null) {
+            return new OngoingProcessResult();
+        }
+
         @SuppressWarnings("unchecked")
         Set<ResolvedAddress> resAddrs =
                 (Set<ResolvedAddress>) terie.getResult();
-        
+
         state = State.FINISHED;
-        
+
         return new FinishedProcessResult<>(resAddrs);
     }
 

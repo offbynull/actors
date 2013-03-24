@@ -18,14 +18,27 @@ public final class ReceiveMessageProcessor implements Processor {
     
     private long serverTrackedId;
     private State state;
-    private ReceiveMessageFactory factory;
+    private ReceiveMessageResponseFactory responseFactory;
+    private ReceiveMessageProcessorFactory processorFactory;
     private long nextProcGroupId;
     private ProcessorGroup<Long> procGroup;
     private int serverPort;
 
-    public ReceiveMessageProcessor(ReceiveMessageFactory factory,
-            int port) {
-        if (factory == null) {
+    public ReceiveMessageProcessor(
+            ReceiveMessageResponseFactory responseFactory, int port) {
+        this(responseFactory, null, port);
+    }
+
+    public ReceiveMessageProcessor(
+            ReceiveMessageProcessorFactory processorFactory, int port) {
+        this(null, processorFactory, port);
+    }
+    
+    public ReceiveMessageProcessor(
+            ReceiveMessageResponseFactory responseFactory,
+            ReceiveMessageProcessorFactory processorFactory, int port) {
+        if (responseFactory == null && processorFactory == null) {
+            // they can't both be null
             throw new NullPointerException();
         }
         
@@ -33,7 +46,8 @@ public final class ReceiveMessageProcessor implements Processor {
             throw new IllegalArgumentException();
         }
         
-        this.factory = factory;
+        this.responseFactory = responseFactory;
+        this.processorFactory = processorFactory;
         this.serverPort = port;
         this.procGroup = new ProcessorGroup<>(true);
         state = State.INIT;
@@ -98,16 +112,25 @@ public final class ReceiveMessageProcessor implements Processor {
         
         List<OutgoingEvent> outgoingEvents = new LinkedList<>();
         if (rmie != null) {
-            SendResponseOutgoingEvent sroe = factory.createResponse(rmie);
+            boolean handled = false;
             
-            if (sroe != null) {
-                outgoingEvents.add(sroe);
-            } else {
-                Processor proc = factory.createProcessor(rmie);
+            if (responseFactory != null) {
+                SendResponseOutgoingEvent sroe =
+                        responseFactory.createResponse(rmie);
+                
+                if (sroe != null) {
+                    outgoingEvents.add(sroe);
+                    handled = true;
+                }
+            }
+            
+            if (!handled && processorFactory != null) {
+                Processor proc = processorFactory.createProcessor(rmie);
 
                 if (proc != null) {
                     procGroup.add(nextProcGroupId, proc);
                     nextProcGroupId++;
+                    handled = true;
                 }
             }
         }
@@ -159,9 +182,12 @@ public final class ReceiveMessageProcessor implements Processor {
         FINISHED
     }
     
-    public interface ReceiveMessageFactory {
+    public interface ReceiveMessageResponseFactory {
         SendResponseOutgoingEvent createResponse(
                 ReceiveMessageIncomingEvent event);
+    }
+
+    public interface ReceiveMessageProcessorFactory {
         Processor createProcessor(ReceiveMessageIncomingEvent event);
     }
 }

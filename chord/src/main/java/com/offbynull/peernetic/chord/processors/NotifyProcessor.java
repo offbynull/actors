@@ -32,6 +32,7 @@ public final class NotifyProcessor implements Processor {
         
         this.base = base;
         this.dest = dest;
+        state = State.INIT;
     }
     
     

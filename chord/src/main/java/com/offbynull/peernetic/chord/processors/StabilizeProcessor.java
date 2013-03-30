@@ -50,7 +50,7 @@ public final class StabilizeProcessor implements Processor {
         }
     }
     
-    public ProcessResult processInit(long timestamp,
+    private ProcessResult processInit(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         queryProcessor = new QueryForPredecessorProcessor(
@@ -61,7 +61,7 @@ public final class StabilizeProcessor implements Processor {
         return queryProcessor.process(timestamp, event, trackedIdGen);
     }
     
-    public ProcessResult processQueryResponseWait(long timestamp,
+    private ProcessResult processQueryResponseWait(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         ProcessResult pr;
@@ -100,7 +100,7 @@ public final class StabilizeProcessor implements Processor {
         return pr;
     }
     
-    public ProcessResult processNotifyResponseWait(long timestamp,
+    private ProcessResult processNotifyResponseWait(long timestamp,
             IncomingEvent event, TrackedIdGenerator trackedIdGen)
             throws Exception {
         ProcessResult pr;

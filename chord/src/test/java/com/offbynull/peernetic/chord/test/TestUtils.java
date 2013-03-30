@@ -4,6 +4,7 @@ import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
+import com.offbynull.peernetic.chord.messages.SetPredecessorResponse;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.messages.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
@@ -58,16 +59,60 @@ public final class TestUtils {
         return new Pointer(id, address);
     }
     
-    public static StatusResponse generateStatusResponse(Id id,
-            Long predecessorUndershoot, Long ... entryOvershoot) {
-        if (id.getBitCount() != entryOvershoot.length) {
-            throw new IllegalArgumentException();
-        }
+    private static long convertIdToLong(Id id) {
         byte[] bytes = id.asByteArray();
         long value = 0;
         for (int i = 0; i < bytes.length; i++) {
             value += ((long) bytes[i] & 0xffL) << (8 * i);
         }
+        return value;
+    }
+    
+    public static SetPredecessorResponse generateSetPredecessorResponse(
+            Id id, Long predecessorUndershoot) {
+        
+        if (id.getBitCount() >= 64) {
+            throw new IllegalArgumentException();
+        }
+        
+        SetPredecessorResponse resp = new SetPredecessorResponse();
+        
+        if (predecessorUndershoot == null) {
+            resp.setAssignedPredecessor(null);
+        } else {
+            long idData = convertIdToLong(id);
+            
+            int bitCount = id.getBitCount();
+            long limit = 1L << bitCount;
+            
+            if (predecessorUndershoot >= limit) {
+                throw new IllegalArgumentException();
+            }
+            
+            long val = idData - 1L - predecessorUndershoot;
+            if (val < 0L) {
+                val += limit;
+            }
+
+            byte[] data = ByteBuffer.allocate(8).putLong(val).array();
+            Id predId = new Id(bitCount, data);
+
+            Address predAddress = generateAddressFromId(predId);
+            
+            Pointer pred = new Pointer(predId, predAddress);
+            
+            resp.setAssignedPredecessor(MessageUtils.createFrom(pred, false));
+        }
+        
+        return resp;
+    }
+    
+    public static StatusResponse generateStatusResponse(Id id,
+            Long predecessorUndershoot, Long ... entryOvershoot) {
+        if (id.getBitCount() != entryOvershoot.length) {
+            throw new IllegalArgumentException();
+        }
+        long value = convertIdToLong(id);
         
         return generateStatusResponse(value, predecessorUndershoot,
                 entryOvershoot);
@@ -140,10 +185,10 @@ public final class TestUtils {
                     throw new IllegalArgumentException();
                 }
                 
-                // must be less than next id
+                // must be less than or equal to next expected id
                 if (i < entryOvershoot.length - 1) {
                     Id nextId = ft.getExpectedId(i + 1);
-                    if (fingId.comparePosition(selfId, nextId) >= 0) {
+                    if (fingId.comparePosition(selfId, nextId) > 0) {
                         throw new IllegalArgumentException();
                     }
                 }

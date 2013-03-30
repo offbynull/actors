@@ -25,7 +25,7 @@ public final class FixFingerTableProcessor implements Processor {
     
     @Override
     public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
+            TrackedIdGenerator trackedIdGen) throws Exception {
         switch (state) {
             case INIT:
                 return processInitState(timestamp, event, trackedIdGen);
@@ -38,7 +38,7 @@ public final class FixFingerTableProcessor implements Processor {
     }
 
     private ProcessResult processInitState(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) {
+            TrackedIdGenerator trackedIdGen) throws Exception {
         if (chordState.getBaseId().getBitCount() == 1) {
             // The finger table only contains the successor, which is updated
             // elsewhere. Do nothing now and force the processor to do nothing
@@ -55,7 +55,8 @@ public final class FixFingerTableProcessor implements Processor {
     }
 
     private ProcessResult processRunningState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen) {
+            IncomingEvent event, TrackedIdGenerator trackedIdGen)
+            throws Exception {
         ProcessResult pr = fixFingerProc.process(timestamp, event,
                 trackedIdGen);
         

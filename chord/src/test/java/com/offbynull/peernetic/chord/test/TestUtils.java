@@ -9,6 +9,7 @@ import com.offbynull.peernetic.chord.messages.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.List;
 import static org.junit.Assert.*;
@@ -58,7 +59,7 @@ public final class TestUtils {
     }
     
     public static StatusResponse generateStatusResponse(Id id,
-            Long ... entryOvershoot) {
+            Long predecessorUndershoot, Long ... entryOvershoot) {
         if (id.getBitCount() != entryOvershoot.length) {
             throw new IllegalArgumentException();
         }
@@ -68,13 +69,40 @@ public final class TestUtils {
             value += ((long) bytes[i] & 0xffL) << (8 * i);
         }
         
-        return generateStatusResponse(value, entryOvershoot);
+        return generateStatusResponse(value, predecessorUndershoot,
+                entryOvershoot);
     }
     
     public static StatusResponse generateStatusResponse(long idData,
-            Long ... entryOvershoot) {
+            Long predecessorUndershoot, Long ... entryOvershoot) {
         FingerTable ft = generateFingerTable(idData, entryOvershoot);
-        return MessageUtils.createFrom(ft.getBaseId(), ft.dump(), false);
+        
+        Pointer pred;
+        
+        if (predecessorUndershoot == null) {
+            pred = null;
+        } else {
+            int bitCount = entryOvershoot.length;
+            long limit = 1L << bitCount;
+            
+            if (predecessorUndershoot >= limit) {
+                throw new IllegalArgumentException();
+            }
+            
+            long val = idData - 1L - predecessorUndershoot;
+            if (val < 0L) {
+                val += limit;
+            }
+
+            byte[] data = ByteBuffer.allocate(8).putLong(val).array();
+            Id predId = new Id(bitCount, data);
+
+            Address predAddress = generateAddressFromId(predId);
+            
+            pred = new Pointer(predId, predAddress);
+        }
+        
+        return MessageUtils.createFrom(ft.getBaseId(), pred, ft.dump(), false);
     }
     
     public static FingerTable generateFingerTable(long idData,
@@ -84,14 +112,8 @@ public final class TestUtils {
         
         for (int i = 0; i < entryOvershoot.length; i++) {
             Long val = entryOvershoot[i];
-            byte[] data;
-            
-            if (val == null) {
-                data = null;
-            } else {
-                data = ByteBuffer.allocate(8).putLong(val).array();
-            }
-            
+            byte[] data = val == null ? null
+                    : ByteBuffer.allocate(8).putLong(val).array();
             convertEntryOvershoot[i] = data;
         }
         

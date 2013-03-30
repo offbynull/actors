@@ -14,8 +14,7 @@ public final class NetEventUtils {
             TrackedIncomingEvent tie = (TrackedIncomingEvent) inEvent;
 
             if (trackedId == tie.getTrackedId()
-                    && inEvent.getClass().isInstance(
-                    ReceiveResponseIncomingEvent.class)) {
+                    && ReceiveResponseIncomingEvent.class.isInstance(inEvent)) {
                 return (T) ((ReceiveResponseIncomingEvent) tie).getResponse();
             }
         }

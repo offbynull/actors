@@ -109,21 +109,23 @@ public final class MessageUtils {
         return new Address(src.getHost(), src.getPort());
     }
 
-    public static StatusResponse createFrom(Id id, FingerTable fingers) {
-        return createFrom(id, fingers, false);
+    public static StatusResponse createFrom(Id id, Pointer predecessor,
+            FingerTable fingers) {
+        return createFrom(id, predecessor, fingers, false);
     }
     
-    public static StatusResponse createFrom(Id id, FingerTable fingers,
-            boolean validate) {
-        return createFrom(id, fingers.dump(), validate);
+    public static StatusResponse createFrom(Id id, Pointer predecessor,
+            FingerTable fingers, boolean validate) {
+        return createFrom(id, predecessor, fingers.dump(), validate);
     }
 
-    public static StatusResponse createFrom(Id id, List<Pointer> pointers) {
-        return createFrom(id, pointers, false);
+    public static StatusResponse createFrom(Id id, Pointer predecessor,
+            List<Pointer> pointers) {
+        return createFrom(id, predecessor, pointers, false);
     }
     
-    public static StatusResponse createFrom(Id id, List<Pointer> pointers,
-            boolean validate) {
+    public static StatusResponse createFrom(Id id, Pointer predecessor,
+            List<Pointer> pointers, boolean validate) {
         StatusResponse ret = new StatusResponse();
         ret.setId(createFrom(id, false));
         Set<NodePointer> nodePointers = new HashSet<>();
@@ -132,6 +134,8 @@ public final class MessageUtils {
             nodePointers.add(nodePointer);
         }
         ret.setPointers(nodePointers);
+        ret.setPredecessor(predecessor == null ? null
+                : createFrom(predecessor, false));
         
         if (validate) {
             validate(ret);

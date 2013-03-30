@@ -39,7 +39,7 @@ public class RouteProcessorTest {
     }
 
     @Test
-    public void testSuccess() {
+    public void testSuccess() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
         Id _000Id = TestUtils.generateId(3, 0x00L);
@@ -87,7 +87,7 @@ public class RouteProcessorTest {
         assertEquals(_000Address.getHost(), host);
         assertEquals(_000Address.getPort(), port);
 
-        statusResp = TestUtils.generateStatusResponse(_000Id,
+        statusResp = TestUtils.generateStatusResponse(_000Id, null,
                 0L, 0L, 0L);
         
         
@@ -108,7 +108,7 @@ public class RouteProcessorTest {
         assertEquals(_100Address.getHost(), host);
         assertEquals(_100Address.getPort(), port);
 
-        statusResp = TestUtils.generateStatusResponse(_100Id,
+        statusResp = TestUtils.generateStatusResponse(_100Id, null,
                 0L, 0L, 0L);
         
         
@@ -130,7 +130,7 @@ public class RouteProcessorTest {
     }
 
     @Test(expected = RouteBackwardProcessorException.class)
-    public void testBackwardFailure() {
+    public void testBackwardFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
         Id _000Id = TestUtils.generateId(3, 0x00L);
@@ -178,7 +178,7 @@ public class RouteProcessorTest {
         assertEquals(_000Address.getHost(), host);
         assertEquals(_000Address.getPort(), port);
 
-        statusResp = TestUtils.generateStatusResponse(_000Id,
+        statusResp = TestUtils.generateStatusResponse(_000Id, null,
                 0L, 0L, 0L);
         
         
@@ -199,7 +199,7 @@ public class RouteProcessorTest {
         assertEquals(_100Address.getHost(), host);
         assertEquals(_100Address.getPort(), port);
 
-        statusResp = TestUtils.generateStatusResponse(_000Id,
+        statusResp = TestUtils.generateStatusResponse(_000Id, null,
                 0L, 0L, 0L);
         
         
@@ -221,7 +221,7 @@ public class RouteProcessorTest {
     }
     
     @Test(expected = RouteSelfProcessorException.class)
-    public void testSelfFailure() {
+    public void testSelfFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
         Id _000Id = TestUtils.generateId(3, 0x00L);
@@ -269,7 +269,7 @@ public class RouteProcessorTest {
         assertEquals(_000Address.getHost(), host);
         assertEquals(_000Address.getPort(), port);
 
-        statusResp = TestUtils.generateStatusResponse(_001Id,
+        statusResp = TestUtils.generateStatusResponse(_001Id, null,
                 null, null, 3L /* Points to _000Id */);
         
         
@@ -279,7 +279,7 @@ public class RouteProcessorTest {
     }
     
     @Test(expected = RouteFailedProcessorException.class)
-    public void testCommunicationFailure() {
+    public void testCommunicationFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
         Id _000Id = TestUtils.generateId(3, 0x00L);
@@ -327,7 +327,7 @@ public class RouteProcessorTest {
         assertEquals(_000Address.getHost(), host);
         assertEquals(_000Address.getPort(), port);
 
-        statusResp = TestUtils.generateStatusResponse(_000Id,
+        statusResp = TestUtils.generateStatusResponse(_000Id, null,
                 0L, 0L, 0L);
         
         

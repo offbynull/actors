@@ -3,7 +3,7 @@ package com.offbynull.peernetic.chord.processors;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.processors.NotifyProcessor.NotifyFailedException;
-import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
+import com.offbynull.peernetic.chord.processors.QueryForPredecessorProcessor.QueryForPredecessorException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
@@ -67,8 +67,8 @@ public final class StabilizeProcessor implements Processor {
         ProcessResult pr;
         try {
             pr = queryProcessor.process(timestamp, event, trackedIdGen);
-        } catch (QueryForFingerTableException e) {
-            throw new StabilizeFailedProcessorException();
+        } catch (QueryForPredecessorException e) {
+            throw new StabilizeFailedException();
         }
         
         OutputValue<Boolean> successfulExtraction = new OutputValue<>();
@@ -107,7 +107,7 @@ public final class StabilizeProcessor implements Processor {
         try {
             pr = notifyProcessor.process(timestamp, event, trackedIdGen);
         } catch (NotifyFailedException e) {
-            throw new StabilizeFailedProcessorException();
+            throw new StabilizeFailedException();
         }
         
         if (pr instanceof FinishedProcessResult) {
@@ -123,7 +123,7 @@ public final class StabilizeProcessor implements Processor {
         throw new IllegalStateException();
     }
     
-    public static final class StabilizeFailedProcessorException
+    public static final class StabilizeFailedException
             extends ProcessorException {
         
     }

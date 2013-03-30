@@ -24,6 +24,10 @@ public abstract class ProcessorAdapter<R, N> implements Processor {
             throw new NullPointerException();
         }
         
+        if (this.processor != null) {
+            throw new IllegalArgumentException();
+        }
+        
         this.processor = processor;
     }
     

@@ -9,9 +9,9 @@ import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.processors.RouteProcessor;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.Result;
-import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteBackwardProcessorException;
-import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedProcessorException;
-import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteSelfProcessorException;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedBackwardException;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedException;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedSelfException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingEvent;
@@ -129,7 +129,7 @@ public class RouteProcessorTest {
         assertEquals(expectedAddresses, res.viewAccessedAddresses());
     }
 
-    @Test(expected = RouteBackwardProcessorException.class)
+    @Test(expected = RouteFailedBackwardException.class)
     public void testBackwardFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
@@ -220,7 +220,7 @@ public class RouteProcessorTest {
         assertEquals(expectedAddresses, res.viewAccessedAddresses());
     }
     
-    @Test(expected = RouteSelfProcessorException.class)
+    @Test(expected = RouteFailedSelfException.class)
     public void testSelfFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
@@ -278,7 +278,7 @@ public class RouteProcessorTest {
         pr = rp.process(1L, inEvent, tidGen);
     }
     
-    @Test(expected = RouteFailedProcessorException.class)
+    @Test(expected = RouteFailedException.class)
     public void testCommunicationFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();

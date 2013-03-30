@@ -5,28 +5,21 @@ import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
-import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.Result;
-import com.offbynull.peernetic.eventframework.event.IncomingEvent;
-import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
-import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
-import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
-import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
+import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-public final class RouteProcessor implements Processor {
+public final class RouteProcessor extends ProcessorChainAdapter<Result> {
+
     private Id findId;
     private Id selfId;
     private Id lastHitId;
     private Address nextSearchAddress;
-    private State state;
-    private QueryForFingerTableProcessor queryProc;
     private Set<Address> accessedAddresses;
 
     public RouteProcessor(Id selfId, Id findId, Address bootstrap) {
@@ -38,58 +31,26 @@ public final class RouteProcessor implements Processor {
         this.nextSearchAddress = bootstrap;
         accessedAddresses = new HashSet<>();
         
-        state = State.INIT;
+        accessedAddresses.add(bootstrap);
+        Processor proc = new QueryForFingerTableProcessor(bootstrap);
+        setProcessor(proc);
     }
-
+    
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) throws Exception {
-        switch (state) {
-            case INIT:
-                return processInitState(timestamp, event, trackedIdGen);
-            case PROCESSING:
-                return processProcessState(timestamp, event, trackedIdGen);
-            case FINISHED:
-                return processFinishedState();
-            default:
-                throw new IllegalStateException();
-        }
-    }
-    
-    private ProcessResult processInitState(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) throws Exception {
-        List<OutgoingEvent> outEvents = startNewQuery(timestamp, event,
-                trackedIdGen);
-        state = State.PROCESSING;
-        return new OngoingProcessResult(outEvents);
-    }
-    
-    private ProcessResult processProcessState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
-            throws Exception {
-        ProcessResult queryRes;
-        try {
-            queryRes = queryProc.process(timestamp, event, trackedIdGen);
-        } catch (QueryForFingerTableException qfpe) {
-            throw new RouteFailedProcessorException();
-        }
-        
-        if (queryRes instanceof FinishedProcessResult) {
-            FinishedProcessResult queryFinRes =
-                    (FinishedProcessResult) queryRes;
-            
-            FingerTable ft = (FingerTable) queryFinRes.getResult();
+    protected NextAction onResult(Processor proc, Object res) throws Exception {
+        if (proc instanceof QueryForFingerTableProcessor) {
+            FingerTable ft = (FingerTable) res;
             RouteResult routeRes = ft.route(findId);
             Pointer ptr = routeRes.getPointer();
             Id ptrId = ptr.getId();
 
             if (ptrId.equals(selfId)) {
-                throw new RouteSelfProcessorException();
+                throw new RouteFailedSelfException();
             }
             
             if (lastHitId != null
                     && ptrId.comparePosition(lastHitId, lastHitId) <= 0) {
-                throw new RouteBackwardProcessorException();
+                throw new RouteFailedBackwardException();
             }
             
             lastHitId = ptrId;
@@ -99,61 +60,45 @@ public final class RouteProcessor implements Processor {
             switch (routeRes.getResultType()) {
                 case FOUND:
                 case SELF: {
-                    Result result = new Result(accessedAddresses, ptr);
-                    return new FinishedProcessResult<>(result);
+                    Result action = new Result(accessedAddresses, ptr);
+                    return new ReturnResult(action);
                 }
                 case CLOSEST_PREDECESSOR: {
                     nextSearchAddress = ptr.getAddress();
-                    
-                    List<OutgoingEvent> outEvents = startNewQuery(timestamp,
-                            event, trackedIdGen);
-                    
-                    return new OngoingProcessResult(outEvents);
+                    Processor nextProc = new QueryForFingerTableProcessor(
+                            nextSearchAddress);
+                    return new GoToNextProcessor(nextProc);
                 }
                 default:
                     throw new IllegalStateException();
             }
         }
         
-        return new OngoingProcessResult();
-    }
-    
-    private ProcessResult processFinishedState() {
         throw new IllegalStateException();
     }
-    
-    private List<OutgoingEvent> startNewQuery(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
+
+    @Override
+    protected NextAction onException(Processor proc, Exception e)
             throws Exception {
-        queryProc = new QueryForFingerTableProcessor(nextSearchAddress);
-        ProcessResult pr = queryProc.process(timestamp, event, trackedIdGen);
+        if (e instanceof RouteFailedException) {
+            throw e;
+        }
         
-        return pr.viewOutgoingEvents();
+        throw new RouteFailedException();
     }
-    
-    private enum State {
-        INIT,
-        PROCESSING,
-        FINISHED
-    }
-    
-    public static class RouteProcessorException
+
+    public static class RouteFailedException
         extends ProcessorException {
         
     }
-    
-    public static final class RouteFailedProcessorException
-            extends RouteProcessorException {
-        
-    }
 
-    public static final class RouteSelfProcessorException
-            extends RouteProcessorException {
+    public static final class RouteFailedSelfException
+            extends RouteFailedException {
         
     }
     
-    public static final class RouteBackwardProcessorException
-            extends RouteProcessorException {
+    public static final class RouteFailedBackwardException
+            extends RouteFailedException {
         
     }
     

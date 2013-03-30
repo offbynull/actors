@@ -6,7 +6,7 @@ import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
 import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
-import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteProcessorException;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedException;
 import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
@@ -147,7 +147,7 @@ public final class FixFingerProcessor implements Processor {
         ProcessResult routeProcRes;
         try {
             routeProcRes = routeProc.process(timestamp, event, trackedIdGen);
-        } catch (RouteProcessorException rpe) {
+        } catch (RouteFailedException rpe) {
             return new FinishedProcessResult<>(false);
         }
         

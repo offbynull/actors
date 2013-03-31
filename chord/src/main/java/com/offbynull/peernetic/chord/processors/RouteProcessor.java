@@ -6,7 +6,6 @@ import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.Result;
-import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;

@@ -1,29 +1,19 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.SetPredecessorRequest;
 import com.offbynull.peernetic.chord.messages.SetPredecessorResponse;
 import com.offbynull.peernetic.chord.messages.shared.NodePointer;
 import com.offbynull.peernetic.chord.messages.util.MessageUtils;
-import com.offbynull.peernetic.eventframework.event.EventUtils;
-import com.offbynull.peernetic.eventframework.event.IncomingEvent;
-import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
-import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.impl.network.simpletcp.NetEventUtils;
-import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
-import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
-import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageProcessor;
 import com.offbynull.peernetic.eventframework.processor.Processor;
+import com.offbynull.peernetic.eventframework.processor.ProcessorAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 
-public final class NotifyProcessor implements Processor {
-    
-    private long netPendingId;
-    private State state;
+public final class NotifyProcessor extends
+        ProcessorAdapter<SetPredecessorResponse, Boolean> {
+
     private Pointer base;
-    private Pointer dest;
 
     public NotifyProcessor(Pointer base, Pointer dest) {
         if (base == null || dest == null) {
@@ -31,79 +21,26 @@ public final class NotifyProcessor implements Processor {
         }
         
         this.base = base;
-        this.dest = dest;
-        state = State.INIT;
+        
+        Processor proc = new SendMessageProcessor(dest.getAddress().getHost(),
+                dest.getAddress().getPort(), new SetPredecessorRequest(),
+                SetPredecessorResponse.class);
+        setProcessor(proc);
     }
-    
     
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) throws Exception {
-        switch (state) {
-            case INIT:
-                return processInit(timestamp, event, trackedIdGen);
-            case WAIT_RESPONSE:
-                return processWaitResponse(timestamp, event, trackedIdGen);
-            case FINISHED:
-                return processFinished(timestamp, event, trackedIdGen);
-            default:
-                throw new IllegalStateException();
-        }
+    protected Boolean onResult(SetPredecessorResponse res) throws Exception {
+        NodePointer otherPredNp = res.getAssignedPredecessor();        
+        Pointer otherPred = MessageUtils.convertTo(otherPredNp, false);
+        return base.equals(otherPred);
     }
-    
-    private ProcessResult processInit(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
-            throws Exception {
-        netPendingId = trackedIdGen.getNextId();
 
-        Address destAddr = dest.getAddress();
-
-        NodePointer baseNp = MessageUtils.createFrom(base, false);
-
-        SetPredecessorRequest req = new SetPredecessorRequest();
-        req.setPredecessor(baseNp);
-
-        OutgoingEvent outEvent = new SendMessageOutgoingEvent(req,
-                destAddr.getHost(), destAddr.getPort(), netPendingId);
-
-        state = State.WAIT_RESPONSE;
-
-        return new OngoingProcessResult(outEvent);
+    @Override
+    protected Boolean onException(Exception e) throws Exception {
+        throw new NotifyFailedException();
     }
-    
-    private ProcessResult processWaitResponse(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
-            throws Exception {
-        EventUtils.throwProcessorExceptionOnError(event, netPendingId,
-                NotifyFailedException.class);
+
+    public static class NotifyFailedException extends ProcessorException {
         
-        SetPredecessorResponse resp = NetEventUtils.testAndConvertResponse(
-                event, netPendingId);
-        
-        if (resp != null) {
-            NodePointer otherPredNp = resp.getAssignedPredecessor();        
-            Pointer otherPred = MessageUtils.convertTo(otherPredNp, false);
-            boolean assigned = base.equals(otherPred);
-            return new FinishedProcessResult<>(assigned);
-        }
-        
-        return new OngoingProcessResult();
-    }
-    
-    private ProcessResult processFinished(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
-            throws Exception {
-        throw new IllegalStateException();
-    }
-    
-    public static class NotifyFailedException
-            extends ProcessorException {
-        
-    }
-    
-    private enum State {
-        INIT,
-        WAIT_RESPONSE,
-        FINISHED
     }
 }

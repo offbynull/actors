@@ -7,20 +7,15 @@ import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
 import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedException;
-import com.offbynull.peernetic.eventframework.event.IncomingEvent;
-import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
-import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
-import com.offbynull.peernetic.eventframework.processor.OngoingProcessResult;
-import com.offbynull.peernetic.eventframework.processor.ProcessResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
+import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
+import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 
-public final class FixFingerProcessor implements Processor {
+public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
+
     private ChordState chordState;
-    private State state;
     private int index;
     private Pointer testPtr;
-    private QueryForFingerTableProcessor queryProc;
-    private RouteProcessor routeProc;
 
     public FixFingerProcessor(ChordState chordState, int index) {
         if (chordState == null) {
@@ -32,64 +27,43 @@ public final class FixFingerProcessor implements Processor {
         }
         
         this.chordState = chordState;
-        this.state = State.TEST;
         this.index = index;
+
+        
+        testPtr = chordState.getFinger(index);
+        Processor proc = new QueryForFingerTableProcessor(testPtr.getAddress());
+        setProcessor(proc);
+    }
+    
+    @Override
+    protected NextAction onResult(Processor proc, Object res) throws Exception {
+        if (proc instanceof QueryForFingerTableProcessor) {
+            return performUpdate();
+        } else if (proc instanceof RouteProcessor) {
+            return new ReturnResult(true);
+        }
+        
+        throw new IllegalStateException();
     }
 
     @Override
-    public ProcessResult process(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) throws Exception {
-        switch (state) {
-            case TEST:
-                return processTestState(timestamp, event, trackedIdGen);
-            case TEST_WAIT:
-                return processTestWaitState(timestamp, event, trackedIdGen);
-            case UPDATE_WAIT:
-                return processUpdateWaitState(timestamp, event, trackedIdGen);
-            case FINISHED:
-                return processFinishedState(timestamp, event);
-            default:
-                throw new IllegalStateException();
-        }
-    }
-
-    private ProcessResult processTestState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
+    protected NextAction onException(Processor proc, Exception e)
             throws Exception {
-        testPtr = chordState.getFinger(index);
-        queryProc = new QueryForFingerTableProcessor(testPtr.getAddress());
-        ProcessResult queryProcRes = queryProc.process(timestamp, event,
-                trackedIdGen);
-        
-        state = State.TEST_WAIT;
-        
-        return queryProcRes;
-    }
-
-    private ProcessResult processTestWaitState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
-            throws Exception {
-        ProcessResult queryProcRes;
-        try {
-            queryProcRes = queryProc.process(timestamp, event, trackedIdGen);
-        } catch (QueryForFingerTableException qfe) {
+        if (e instanceof QueryForFingerTableException) {
             // finger node failed to respond to test, so remove it before moving
             // on to update
             chordState.removeFinger(testPtr);
-            return performUpdate(timestamp, event, trackedIdGen);
+            return performUpdate();
+        } else if (e instanceof RouteFailedException) {
+            return new ReturnResult(false);
+        } else if (e instanceof FixFingerFailedException) {
+            throw e;
         }
         
-        if (queryProcRes instanceof OngoingProcessResult) {
-            // test hasn't finished
-            return queryProcRes;
-        }
-        
-        // finger node responded to test, move on to update
-        return performUpdate(timestamp, event, trackedIdGen);
+        throw new FixFingerFailedException();
     }
-    
-    private ProcessResult performUpdate(long timestamp, IncomingEvent event,
-            TrackedIdGenerator trackedIdGen) throws Exception {
+
+    private NextAction performUpdate() throws Exception {
         Id destId = chordState.getExpectedFingerId(index);
         RouteResult routeRes = chordState.route(destId);
         
@@ -107,8 +81,7 @@ public final class FixFingerProcessor implements Processor {
         Address bootstrap = null;
         switch (routeRes.getResultType()) {
             case FOUND: {
-                state = State.FINISHED;
-                return new FinishedProcessResult<>(false);
+                return new ReturnResult(false);
             }
             case SELF: {
                 Id selfId = chordState.getBaseId();
@@ -122,8 +95,7 @@ public final class FixFingerProcessor implements Processor {
                 }
                 
                 if (bootstrap == null) {
-                    state = State.FINISHED;
-                    return new FinishedProcessResult<>(false);
+                    return new ReturnResult(false);
                 }
                 break;
             }
@@ -136,40 +108,12 @@ public final class FixFingerProcessor implements Processor {
         }
         
         Id selfId = chordState.getBaseId();
-        routeProc = new RouteProcessor(selfId, destId, bootstrap);
-        state = State.UPDATE_WAIT;
-        return routeProc.process(timestamp, event, trackedIdGen);
+        Processor nextProc = new RouteProcessor(selfId, destId, bootstrap);
+        return new GoToNextProcessor(nextProc);
     }
 
-    private ProcessResult processUpdateWaitState(long timestamp,
-            IncomingEvent event, TrackedIdGenerator trackedIdGen)
-            throws Exception {
-        ProcessResult routeProcRes;
-        try {
-            routeProcRes = routeProc.process(timestamp, event, trackedIdGen);
-        } catch (RouteFailedException rpe) {
-            return new FinishedProcessResult<>(false);
-        }
+    public static final class FixFingerFailedException
+        extends ProcessorException {
         
-        if (routeProcRes instanceof OngoingProcessResult) {
-            // route hasn't finished
-            return routeProcRes;
-        }
-
-        // route has finished and finger's fixed
-        return new FinishedProcessResult<>(true);
-    }
-
-    private ProcessResult processFinishedState(long timestamp,
-            IncomingEvent event) {
-        throw new IllegalStateException();
-    }
-
-    
-    private enum State {
-        TEST,
-        TEST_WAIT,
-        UPDATE_WAIT,
-        FINISHED
     }
 }

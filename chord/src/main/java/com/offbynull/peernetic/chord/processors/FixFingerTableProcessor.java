@@ -1,32 +1,35 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.ChordState;
+import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 
 public final class FixFingerTableProcessor
-        extends ProcessorChainAdapter<Boolean> {
+        extends ProcessorChainAdapter<FingerTable> {
 
-    private ChordState chordState;
+    private FingerTable fingerTable;
     private int index;
+    private int bitCount;
     
-    public FixFingerTableProcessor(ChordState chordState) {
-        if (chordState == null) {
+    public FixFingerTableProcessor(FingerTable fingerTable) {
+        if (fingerTable == null) {
             throw new NullPointerException();
         }
 
-        if (chordState.getBaseId().getBitCount() == 1) {
+        bitCount = fingerTable.getBaseId().getBitCount();
+        
+        if (bitCount == 1) {
             // The finger table only contains the successor, which is updated
             // elsewhere. Do nothing now and force the processor to do nothing
             // for ever.
             throw new IllegalArgumentException();
         }
         
-        this.chordState = chordState;
+        this.fingerTable = new FingerTable(fingerTable);
         this.index = 1;
         
-        Processor proc = new FixFingerProcessor(chordState, index);
+        Processor proc = new FixFingerProcessor(fingerTable, index);
         setProcessor(proc);
     }
     
@@ -35,11 +38,11 @@ public final class FixFingerTableProcessor
             throws Exception {
         index++;
         
-        if (index == chordState.getBitCount()) {
-            return new ReturnResult(true);
+        if (index == bitCount) {
+            return new ReturnResult(fingerTable);
         }
         
-        Processor newProc = new FixFingerProcessor(chordState, index);
+        Processor newProc = new FixFingerProcessor(fingerTable, index);
         return new GoToNextProcessor(newProc);
     }
 

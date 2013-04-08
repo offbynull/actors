@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.chord.processors;
 
 import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.ChordState;
+import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
@@ -13,24 +13,24 @@ import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 
 public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
 
-    private ChordState chordState;
+    private FingerTable fingerTable;
     private int index;
     private Pointer testPtr;
 
-    public FixFingerProcessor(ChordState chordState, int index) {
-        if (chordState == null) {
+    public FixFingerProcessor(FingerTable fingerTable, int index) {
+        if (fingerTable == null) {
             throw new NullPointerException();
         }
         
-        if (index < 0 || index >= chordState.getBitCount()) {
+        if (index < 0 || index >= fingerTable.getBaseId().getBitCount()) {
             throw new IllegalArgumentException();
         }
         
-        this.chordState = chordState;
+        this.fingerTable = new FingerTable(fingerTable);
         this.index = index;
 
         
-        testPtr = chordState.getFinger(index);
+        testPtr = fingerTable.get(index);
         Processor proc = new QueryForFingerTableProcessor(testPtr.getAddress());
         setProcessor(proc);
     }
@@ -52,7 +52,7 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
         if (e instanceof QueryForFingerTableException) {
             // finger node failed to respond to test, so remove it before moving
             // on to update
-            chordState.removeFinger(testPtr);
+            fingerTable.remove(testPtr);
             return performUpdate();
         } else if (e instanceof RouteFailedException) {
             return new ReturnResult(false);
@@ -64,8 +64,8 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
     }
 
     private NextAction performUpdate() throws Exception {
-        Id destId = chordState.getExpectedFingerId(index);
-        RouteResult routeRes = chordState.route(destId);
+        Id destId = fingerTable.getExpectedId(index);
+        RouteResult routeRes = fingerTable.route(destId);
         
         // If router result is FOUND, that means all other fingers are in front
         // or equal to what we're looking for. This would be the case if you
@@ -84,10 +84,10 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
                 return new ReturnResult(false);
             }
             case SELF: {
-                Id selfId = chordState.getBaseId();
+                Id selfId = fingerTable.getBaseId();
                 
                 for (int i = index - 1; i >= 0; i++) {
-                    Pointer ptr = chordState.getFinger(i);
+                    Pointer ptr = fingerTable.get(i);
                     if (!ptr.getId().equals(selfId)) {
                         bootstrap = ptr.getAddress();
                         break;
@@ -107,7 +107,7 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
                 throw new IllegalStateException();
         }
         
-        Id selfId = chordState.getBaseId();
+        Id selfId = fingerTable.getBaseId();
         Processor nextProc = new RouteProcessor(selfId, destId, bootstrap);
         return new GoToNextProcessor(nextProc);
     }

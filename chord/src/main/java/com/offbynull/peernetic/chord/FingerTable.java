@@ -122,6 +122,29 @@ public final class FingerTable {
             table.add(te);
         }
     }
+
+    /**
+     * Constructs a copy of a {@link FingerTable}.
+     * @param orig finger table to copy
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public FingerTable(FingerTable orig) {
+        if (orig == null) {
+            throw new NullPointerException();
+        }
+        
+        basePtr = orig.basePtr;
+        bitCount = orig.bitCount;
+        table = new ArrayList<>(orig.table.size());
+        for (InternalEntry origTe : orig.table) {
+            InternalEntry te = new InternalEntry();
+            te.expectedId = origTe.expectedId;
+            te.actualId = origTe.actualId;
+            te.address = origTe.address;
+            
+            table.add(te);            
+        }
+    }
     
     /**
      * Attempts to perform find_successor from the Chord research paper, but

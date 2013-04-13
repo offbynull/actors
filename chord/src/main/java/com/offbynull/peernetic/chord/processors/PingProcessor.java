@@ -11,26 +11,17 @@ import com.offbynull.peernetic.eventframework.processor.ProcessorAdapter;
 
 public final class PingProcessor
         extends ProcessorAdapter<StatusResponse, Boolean> {
-
-    private Pointer pointer;
     
-    public PingProcessor(Pointer pointer) {
-        if (pointer == null) {
+    public PingProcessor(Address address) {
+        if (address == null) {
             throw new NullPointerException();
         }
-
-        this.pointer = pointer;
         
-        Address address = pointer.getAddress();
-        
+        @SuppressWarnings("unchecked")
         Processor proc = new SendMessageProcessor(address.getHost(),
                 address.getPort(), new StatusRequest(), StatusResponse.class);
 
         setProcessor(proc);
-    }
-
-    public Pointer getPointer() {
-        return pointer;
     }
 
     @Override

@@ -10,7 +10,6 @@ import com.offbynull.peernetic.chord.messages.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.List;
 import static org.junit.Assert.*;

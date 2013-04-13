@@ -1,12 +1,9 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.Address;
 import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
-import com.offbynull.peernetic.chord.RouteResult;
-import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor.QueryForFingerTableException;
-import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteFailedException;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteProcessorResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
@@ -16,104 +13,105 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
     private FingerTable fingerTable;
     private int index;
     private Pointer testPtr;
+    private State state;
 
     public FixFingerProcessor(FingerTable fingerTable, int index) {
         if (fingerTable == null) {
             throw new NullPointerException();
         }
-        
+
         if (index < 0 || index >= fingerTable.getBaseId().getBitCount()) {
             throw new IllegalArgumentException();
         }
-        
-        this.fingerTable = new FingerTable(fingerTable);
+
+        this.fingerTable = fingerTable;
         this.index = index;
 
-        
+        state = State.TESTING_INIT;
+
         testPtr = fingerTable.get(index);
         Processor proc = new QueryForFingerTableProcessor(testPtr.getAddress());
         setProcessor(proc);
     }
-    
+
     @Override
     protected NextAction onResult(Processor proc, Object res) throws Exception {
-        if (proc instanceof QueryForFingerTableProcessor) {
-            return performUpdate();
-        } else if (proc instanceof RouteProcessor) {
-            return new ReturnResult(true);
+        switch (state) {
+            case TESTING_INIT:
+                return processTestingInit();
+            case SCANNING:
+                return processScanningResult(res);
+            case TESTING_SUCCESSOR:
+                return processTestingSuccessorResult(res);
+            default:
+                throw new IllegalStateException();
         }
-        
-        throw new IllegalStateException();
     }
 
     @Override
     protected NextAction onException(Processor proc, Exception e)
             throws Exception {
-        if (e instanceof QueryForFingerTableException) {
-            // finger node failed to respond to test, so remove it before moving
-            // on to update
-            fingerTable.remove(testPtr);
-            return performUpdate();
-        } else if (e instanceof RouteFailedException) {
-            return new ReturnResult(false);
-        } else if (e instanceof FixFingerFailedException) {
+        if (e instanceof FixFingerFailedException) {
             throw e;
         }
         
-        throw new FixFingerFailedException();
-    }
-
-    private NextAction performUpdate() throws Exception {
-        Id destId = fingerTable.getExpectedId(index);
-        RouteResult routeRes = fingerTable.route(destId);
-        
-        // If router result is FOUND, that means all other fingers are in front
-        // or equal to what we're looking for. This would be the case if you
-        // try to fix finger for finger[0] (also known as the successor). The
-        // stabilize/notify process should help keep the successor in sync. End
-        // the processor at this point.
-        //
-        // If route result is SELF, go back until you find a Id that isn't your
-        // own, and use that to bootstrap the route address. Can't find one?
-        // Then end the processor.
-        //
-        // Else, use the address from route res to bootstrap the route address
-        Address bootstrap = null;
-        switch (routeRes.getResultType()) {
-            case FOUND: {
+        switch (state) {
+            case TESTING_INIT:
+                // finger node failed to respond to test, so remove it before
+                // moving on to update
+                fingerTable.remove(testPtr);
+                return processTestingInit();
+            case SCANNING:
+            case TESTING_SUCCESSOR:
                 return new ReturnResult(false);
-            }
-            case SELF: {
-                Id selfId = fingerTable.getBaseId();
-                
-                for (int i = index - 1; i >= 0; i++) {
-                    Pointer ptr = fingerTable.get(i);
-                    if (!ptr.getId().equals(selfId)) {
-                        bootstrap = ptr.getAddress();
-                        break;
-                    }
-                }
-                
-                if (bootstrap == null) {
-                    return new ReturnResult(false);
-                }
-                break;
-            }
-            case CLOSEST_PREDECESSOR: {
-                bootstrap = routeRes.getPointer().getAddress();
-                break;
-            }
             default:
                 throw new IllegalStateException();
         }
+    }
+
+    private NextAction processTestingInit() throws Exception {
+        Id destId = fingerTable.getExpectedId(index);
+        Id baseId = fingerTable.getBaseId();
+
+        Pointer bootstrap = fingerTable.get(0);
+        Id bootstrapId = bootstrap.getId();
+
+        if (destId.isWithin(baseId, true, bootstrapId, false)) {
+            return new ReturnResult(false);
+        }
+
+        state = State.SCANNING;
         
-        Id selfId = fingerTable.getBaseId();
-        Processor nextProc = new RouteProcessor(selfId, destId, bootstrap);
+        Processor nextProc = new RouteProcessor(baseId, destId,
+                bootstrap.getAddress());
         return new GoToNextProcessor(nextProc);
     }
 
-    public static final class FixFingerFailedException
-        extends ProcessorException {
+    private NextAction processScanningResult(Object res) {
+        RouteProcessorResult rpRes = (RouteProcessorResult) res;
+        Pointer pred = rpRes.getFound();
         
+        state = State.TESTING_SUCCESSOR;
+        
+        Processor proc = new QueryForFingerTableProcessor(pred.getAddress());
+        return new GoToNextProcessor(proc);
+    }
+
+    private NextAction processTestingSuccessorResult(Object res) {
+        FingerTable ftRes = (FingerTable) res;
+        fingerTable.put(ftRes.getBase());
+        return new ReturnResult(true);
+    }
+
+    private enum State {
+
+        TESTING_INIT,
+        SCANNING,
+        TESTING_SUCCESSOR,
+        FINISHED
+    }
+
+    public static final class FixFingerFailedException
+            extends ProcessorException {
     }
 }

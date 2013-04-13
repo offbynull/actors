@@ -5,7 +5,7 @@ import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.RouteResult;
-import com.offbynull.peernetic.chord.processors.RouteProcessor.Result;
+import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteProcessorResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public final class RouteProcessor extends ProcessorChainAdapter<Result> {
+public final class RouteProcessor extends ProcessorChainAdapter<RouteProcessorResult> {
 
     private Id findId;
     private Id selfId;
@@ -59,7 +59,8 @@ public final class RouteProcessor extends ProcessorChainAdapter<Result> {
             switch (routeRes.getResultType()) {
                 case FOUND:
                 case SELF: {
-                    Result action = new Result(accessedAddresses, ptr);
+                    RouteProcessorResult action =
+                            new RouteProcessorResult(accessedAddresses, ptr);
                     return new ReturnResult(action);
                 }
                 case CLOSEST_PREDECESSOR: {
@@ -101,11 +102,11 @@ public final class RouteProcessor extends ProcessorChainAdapter<Result> {
         
     }
     
-    public static final class Result {
+    public static final class RouteProcessorResult {
         private Set<Address> accessedAddresses;
         private Pointer found;
 
-        private Result(Set<Address> accessedAddresses, Pointer found) {
+        private RouteProcessorResult(Set<Address> accessedAddresses, Pointer found) {
             // no need to check for null here to make backing copies, only
             // routeprocessor calls and has access to this, and its lifecycle
             // ends as soon as it creates one of these.

@@ -1,8 +1,5 @@
 package com.offbynull.peernetic.chord.test;
 
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.SetPredecessorRequest;
 import com.offbynull.peernetic.chord.messages.SetPredecessorResponse;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
@@ -19,6 +16,9 @@ import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingE
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveResponseIncomingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageOutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,14 +40,14 @@ public class StabilizeProcessorTest {
     @Test
     public void successNoAdjustTest() throws Exception {
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -56,8 +56,8 @@ public class StabilizeProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        Pointer base = new Pointer(_000Id, _000Address);
-        Pointer successor = new Pointer(_001Id, _001Address);
+        BitLimitedPointer base = new BitLimitedPointer(_000Id, _000Address);
+        BitLimitedPointer successor = new BitLimitedPointer(_001Id, _001Address);
         StabilizeProcessor sp = new StabilizeProcessor(base, successor);
         
         SendMessageOutgoingEvent smOutEvent;
@@ -84,7 +84,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, 0L,
@@ -105,7 +105,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(SetPredecessorRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
         
         setPredResp = TestUtils.generateSetPredecessorResponse(_001Id, 0L);
@@ -117,7 +117,7 @@ public class StabilizeProcessorTest {
         
         
         // Ensure found exact match
-        Pointer res = extractProcessResultResult(pr);
+        BitLimitedPointer res = extractProcessResultResult(pr);
         
         assertEquals(_001Id, res.getId());
         assertEquals(_001Address, res.getAddress());
@@ -126,14 +126,14 @@ public class StabilizeProcessorTest {
     @Test
     public void successAdjustTest() throws Exception {
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -142,8 +142,8 @@ public class StabilizeProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        Pointer base = new Pointer(_000Id, _000Address);
-        Pointer successor = new Pointer(_001Id, _001Address);
+        BitLimitedPointer base = new BitLimitedPointer(_000Id, _000Address);
+        BitLimitedPointer successor = new BitLimitedPointer(_001Id, _001Address);
         StabilizeProcessor sp = new StabilizeProcessor(base, successor);
         
         SendMessageOutgoingEvent smOutEvent;
@@ -170,7 +170,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, 0L,
@@ -191,7 +191,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(SetPredecessorRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
         
         setPredResp = TestUtils.generateSetPredecessorResponse(_010Id, 0L);
@@ -203,7 +203,7 @@ public class StabilizeProcessorTest {
         
         
         // Ensure found exact match
-        Pointer res = extractProcessResultResult(pr);
+        BitLimitedPointer res = extractProcessResultResult(pr);
         
         assertEquals(_001Id, res.getId());
         assertEquals(_001Address, res.getAddress());
@@ -212,14 +212,14 @@ public class StabilizeProcessorTest {
     @Test(expected = StabilizeFailedException.class)
     public void failureOnPredecessorQueryTest() throws Exception {
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -228,8 +228,8 @@ public class StabilizeProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        Pointer base = new Pointer(_000Id, _000Address);
-        Pointer successor = new Pointer(_001Id, _001Address);
+        BitLimitedPointer base = new BitLimitedPointer(_000Id, _000Address);
+        BitLimitedPointer successor = new BitLimitedPointer(_001Id, _001Address);
         StabilizeProcessor sp = new StabilizeProcessor(base, successor);
         
         SendMessageOutgoingEvent smOutEvent;
@@ -256,7 +256,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, 0L,
@@ -271,14 +271,14 @@ public class StabilizeProcessorTest {
     @Test(expected = StabilizeFailedException.class)
     public void failureOnPredecessorSetTest() throws Exception {
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -287,8 +287,8 @@ public class StabilizeProcessorTest {
         Address _101Address = TestUtils.generateAddressFromId(_101Id);
         Address _110Address = TestUtils.generateAddressFromId(_110Id);
         Address _111Address = TestUtils.generateAddressFromId(_111Id);
-        Pointer base = new Pointer(_000Id, _000Address);
-        Pointer successor = new Pointer(_001Id, _001Address);
+        BitLimitedPointer base = new BitLimitedPointer(_000Id, _000Address);
+        BitLimitedPointer successor = new BitLimitedPointer(_001Id, _001Address);
         StabilizeProcessor sp = new StabilizeProcessor(base, successor);
         
         SendMessageOutgoingEvent smOutEvent;
@@ -315,7 +315,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, 0L,
@@ -336,7 +336,7 @@ public class StabilizeProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(SetPredecessorRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
         
         setPredResp = TestUtils.generateSetPredecessorResponse(_001Id, 0L);

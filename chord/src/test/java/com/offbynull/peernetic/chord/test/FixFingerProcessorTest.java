@@ -2,10 +2,6 @@ package com.offbynull.peernetic.chord.test;
 
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveResponseIncomingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.processors.FixFingerProcessor;
@@ -19,6 +15,10 @@ import static org.junit.Assert.*;
 import static com.offbynull.peernetic.chord.test.TestUtils.*;
 import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
 
 public class FixFingerProcessorTest {
 
@@ -37,14 +37,14 @@ public class FixFingerProcessorTest {
     public void testSuccess() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -79,7 +79,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_101Address.getHost(), host);
+        assertEquals(_101Address.getIpAsString(), host);
         assertEquals(_101Address.getPort(), port);
         
         
@@ -97,7 +97,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, null,
@@ -118,7 +118,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_011Address.getHost(), host);
+        assertEquals(_011Address.getIpAsString(), host);
         assertEquals(_011Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_011Id, null,
@@ -139,7 +139,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_100Address.getHost(), host);
+        assertEquals(_100Address.getIpAsString(), host);
         assertEquals(_100Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_100Id, null,
@@ -155,21 +155,21 @@ public class FixFingerProcessorTest {
         boolean res = extractProcessResultResult(pr);
         assertTrue(res);
         
-        assertEquals(new Pointer(_100Id, _100Address), ft.get(2));
+        assertEquals(new BitLimitedPointer(_100Id, _100Address), ft.get(2));
     }
 
     @Test
     public void testFailureOnScan() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -204,7 +204,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_101Address.getHost(), host);
+        assertEquals(_101Address.getIpAsString(), host);
         assertEquals(_101Address.getPort(), port);
         
         statusResp = TestUtils.generateStatusResponse(_101Id, null,
@@ -225,7 +225,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, null,
@@ -246,7 +246,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_011Address.getHost(), host);
+        assertEquals(_011Address.getIpAsString(), host);
         assertEquals(_011Address.getPort(), port);
         
         
@@ -259,21 +259,21 @@ public class FixFingerProcessorTest {
         boolean res = extractProcessResultResult(pr);
         assertFalse(res);
         
-        assertEquals(new Pointer(_101Id, _101Address), ft.get(2));
+        assertEquals(new BitLimitedPointer(_101Id, _101Address), ft.get(2));
     }
 
     @Test
     public void testFailureOnSuccessorTest() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -308,7 +308,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_101Address.getHost(), host);
+        assertEquals(_101Address.getIpAsString(), host);
         assertEquals(_101Address.getPort(), port);
         
         
@@ -326,7 +326,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_001Address.getHost(), host);
+        assertEquals(_001Address.getIpAsString(), host);
         assertEquals(_001Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, null,
@@ -347,7 +347,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_011Address.getHost(), host);
+        assertEquals(_011Address.getIpAsString(), host);
         assertEquals(_011Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_011Id, null,
@@ -368,7 +368,7 @@ public class FixFingerProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_100Address.getHost(), host);
+        assertEquals(_100Address.getIpAsString(), host);
         assertEquals(_100Address.getPort(), port);
         
         
@@ -383,6 +383,6 @@ public class FixFingerProcessorTest {
         
         // this is 000 because the finger was removed in the initial test that
         // failed
-        assertEquals(new Pointer(_000Id, _000Address), ft.get(2));
+        assertEquals(new BitLimitedPointer(_000Id, _000Address), ft.get(2));
     }
 }

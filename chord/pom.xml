@@ -42,5 +42,10 @@
             <artifactId>eventframework</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>p2p-tools</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

@@ -1,13 +1,13 @@
 package com.offbynull.peernetic.chord.messages.util;
 
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.messages.shared.NodeAddress;
 import com.offbynull.peernetic.chord.messages.shared.NodeId;
 import com.offbynull.peernetic.chord.messages.shared.NodePointer;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,26 +22,26 @@ public final class MessageUtils {
         
     }
 
-    public static Pointer convertTo(NodePointer src) {
+    public static BitLimitedPointer convertTo(NodePointer src) {
         return convertTo(src, false);
     }
     
-    public static Pointer convertTo(NodePointer src, boolean validate) {
+    public static BitLimitedPointer convertTo(NodePointer src, boolean validate) {
         if (validate) {
             validate(src);
         }
         
-        Id id = convertTo(src.getId(), false);
+        BitLimitedId id = convertTo(src.getId(), false);
         Address address = convertTo(src.getAddress(), false);
         
-        return new Pointer(id, address);
+        return new BitLimitedPointer(id, address);
     }
 
-    public static NodePointer createFrom(Pointer pointer) {
+    public static NodePointer createFrom(BitLimitedPointer pointer) {
         return createFrom(pointer, false);
     }
     
-    public static NodePointer createFrom(Pointer pointer, boolean validate) {
+    public static NodePointer createFrom(BitLimitedPointer pointer, boolean validate) {
         NodePointer ret = new NodePointer();
         ret.setAddress(createFrom(pointer.getAddress(), false));
         ret.setId(createFrom(pointer.getId(), false));
@@ -53,23 +53,23 @@ public final class MessageUtils {
         return ret;
     }
     
-    public static Id convertTo(NodeId src) {
+    public static BitLimitedId convertTo(NodeId src) {
         return convertTo(src, false);
     }
     
-    public static Id convertTo(NodeId src, boolean validate) {
+    public static BitLimitedId convertTo(NodeId src, boolean validate) {
         if (validate) {
             validate(src);
         }
         
-        return new Id(src.getBitCount(), src.getData());
+        return new BitLimitedId(src.getBitCount(), src.getData());
     }
     
-    public static NodeId createFrom(Id src) {
+    public static NodeId createFrom(BitLimitedId src) {
         return createFrom(src, false);
     }
     
-    public static NodeId createFrom(Id src, boolean validate) {
+    public static NodeId createFrom(BitLimitedId src, boolean validate) {
         NodeId ret = new NodeId();
         ret.setBitCount(src.getBitCount());
         ret.setData(src.asByteArray());
@@ -87,7 +87,7 @@ public final class MessageUtils {
     
     public static NodeAddress createFrom(Address src, boolean validate) {
         NodeAddress ret = new NodeAddress();
-        ret.setHost(src.getHost());
+        ret.setIp(src.getIp());
         ret.setPort(src.getPort());
         
         if (validate) {
@@ -106,30 +106,30 @@ public final class MessageUtils {
             validate(src);
         }
         
-        return new Address(src.getHost(), src.getPort());
+        return new Address(src.getIp(), src.getPort());
     }
 
-    public static StatusResponse createFrom(Id id, Pointer predecessor,
+    public static StatusResponse createFrom(BitLimitedId id, BitLimitedPointer predecessor,
             FingerTable fingers) {
         return createFrom(id, predecessor, fingers, false);
     }
     
-    public static StatusResponse createFrom(Id id, Pointer predecessor,
+    public static StatusResponse createFrom(BitLimitedId id, BitLimitedPointer predecessor,
             FingerTable fingers, boolean validate) {
         return createFrom(id, predecessor, fingers.dump(), validate);
     }
 
-    public static StatusResponse createFrom(Id id, Pointer predecessor,
-            List<Pointer> pointers) {
+    public static StatusResponse createFrom(BitLimitedId id, BitLimitedPointer predecessor,
+            List<BitLimitedPointer> pointers) {
         return createFrom(id, predecessor, pointers, false);
     }
     
-    public static StatusResponse createFrom(Id id, Pointer predecessor,
-            List<Pointer> pointers, boolean validate) {
+    public static StatusResponse createFrom(BitLimitedId id, BitLimitedPointer predecessor,
+            List<BitLimitedPointer> pointers, boolean validate) {
         StatusResponse ret = new StatusResponse();
         ret.setId(createFrom(id, false));
         Set<NodePointer> nodePointers = new HashSet<>();
-        for (Pointer pointer : pointers) {
+        for (BitLimitedPointer pointer : pointers) {
             NodePointer nodePointer = createFrom(pointer, false);
             nodePointers.add(nodePointer);
         }
@@ -162,16 +162,16 @@ public final class MessageUtils {
         return ret;
     }
 
-    public static NodeAddress buildNodeAddress(String host, int port) {
-        return buildNodeAddress(host, port, false);
+    public static NodeAddress buildNodeAddress(byte[] ip, int port) {
+        return buildNodeAddress(ip, port, false);
     }
     
-    public static NodeAddress buildNodeAddress(String host, int port,
+    public static NodeAddress buildNodeAddress(byte[] ip, int port,
             boolean validate) {
         NodeAddress ret = new NodeAddress();
         
         ret.setPort(port);
-        ret.setHost(host);
+        ret.setIp(ip);
         
         if (validate) {
             validate(ret);
@@ -180,12 +180,12 @@ public final class MessageUtils {
         return ret;
     }
     
-    public static NodePointer buildNodePointer(String host, int port,
+    public static NodePointer buildNodePointer(byte[] ip, int port,
             int bitCount, byte[] data) {
-        return buildNodePointer(host, port, bitCount, data, false);
+        return buildNodePointer(ip, port, bitCount, data, false);
     }
     
-    public static NodePointer buildNodePointer(String host, int port,
+    public static NodePointer buildNodePointer(byte[] ip, int port,
             int bitCount, byte[] data, boolean validate) {
         NodeId id = new NodeId();
         id.setBitCount(bitCount);
@@ -193,7 +193,7 @@ public final class MessageUtils {
         
         NodeAddress address = new NodeAddress();
         address.setPort(port);
-        address.setHost(host);
+        address.setIp(ip);
         
         return buildNodePointer(address, id, validate);
     }

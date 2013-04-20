@@ -2,9 +2,6 @@ package com.offbynull.peernetic.chord.test;
 
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveResponseIncomingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.processors.QueryForFingerTableProcessor;
@@ -17,6 +14,9 @@ import com.offbynull.peernetic.eventframework.event.IncomingEvent;
 import com.offbynull.peernetic.eventframework.event.TrackedIdGenerator;
 import com.offbynull.peernetic.eventframework.impl.lifecycle.InitializeIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,14 +39,14 @@ public class QueryForFingerTableProcessorTest {
     public void testSuccess() throws Throwable {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -80,7 +80,7 @@ public class QueryForFingerTableProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_000Address.getHost(), host);
+        assertEquals(_000Address.getIpAsString(), host);
         assertEquals(_000Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_000Id, null,
@@ -102,14 +102,14 @@ public class QueryForFingerTableProcessorTest {
     public void testFailure() throws Throwable {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -143,7 +143,7 @@ public class QueryForFingerTableProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_000Address.getHost(), host);
+        assertEquals(_000Address.getIpAsString(), host);
         assertEquals(_000Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_000Id, null,

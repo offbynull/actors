@@ -1,8 +1,6 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.ChordState;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.ChordState;
 import com.offbynull.peernetic.chord.messages.SetPredecessorRequest;
 import com.offbynull.peernetic.chord.messages.SetPredecessorResponse;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
@@ -19,6 +17,8 @@ import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveMess
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendResponseOutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessorAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -57,18 +57,18 @@ public final class ServerProcessor extends ProcessorAdapter<Object, Object> {
     private Response generateResponse(StatusRequest req) {
         StatusResponse srResp = new StatusResponse();
 
-        Id id = chordState.getBaseId();
+        BitLimitedId id = chordState.getBaseId();
         NodeId nid = MessageUtils.createFrom(id);
         srResp.setId(nid);
 
-        Pointer pred = chordState.getPredecessor();
+        BitLimitedPointer pred = chordState.getPredecessor();
         NodePointer nPred = MessageUtils.createFrom(pred);
         srResp.setPredecessor(nPred);
 
         Set<NodePointer> nFingers = new HashSet<>();
         int bitCnt = chordState.getBitCount();
         for (int i = 0; i < bitCnt; i++) {
-            Pointer finger = chordState.getFinger(i);
+            BitLimitedPointer finger = chordState.getFinger(i);
             NodePointer nFinger = MessageUtils.createFrom(finger);
             nFingers.add(nFinger);
         }
@@ -81,14 +81,14 @@ public final class ServerProcessor extends ProcessorAdapter<Object, Object> {
         SetPredecessorResponse spResp = new SetPredecessorResponse();
 
         NodePointer nNewPred = spReq.getPredecessor();
-        Pointer newPred = MessageUtils.convertTo(nNewPred);
+        BitLimitedPointer newPred = MessageUtils.convertTo(nNewPred);
         try {
             chordState.setPredecessor(newPred);
         } catch (Exception e) {
             // ignore exception
         }
 
-        Pointer pred = chordState.getPredecessor();
+        BitLimitedPointer pred = chordState.getPredecessor();
         NodePointer nPred = MessageUtils.createFrom(pred);
         spResp.setAssignedPredecessor(nPred);
 

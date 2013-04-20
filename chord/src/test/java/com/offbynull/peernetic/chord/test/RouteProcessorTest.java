@@ -2,9 +2,6 @@ package com.offbynull.peernetic.chord.test;
 
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.ReceiveResponseIncomingEvent;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageOutgoingEvent;
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.processors.RouteProcessor;
@@ -22,6 +19,9 @@ import static org.junit.Assert.*;
 import static com.offbynull.peernetic.chord.test.TestUtils.*;
 import com.offbynull.peernetic.eventframework.event.DefaultErrorIncomingEvent;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,14 +42,14 @@ public class RouteProcessorTest {
     public void testSuccess() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -84,7 +84,7 @@ public class RouteProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_000Address.getHost(), host);
+        assertEquals(_000Address.getIpAsString(), host);
         assertEquals(_000Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_000Id, null,
@@ -105,7 +105,7 @@ public class RouteProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_100Address.getHost(), host);
+        assertEquals(_100Address.getIpAsString(), host);
         assertEquals(_100Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_100Id, null,
@@ -120,7 +120,7 @@ public class RouteProcessorTest {
         // Ensure RP found exact match
         RouteProcessorResult res = extractProcessResultResult(pr);
         
-        Pointer expectedPtr = new Pointer(_101Id, _101Address);
+        BitLimitedPointer expectedPtr = new BitLimitedPointer(_101Id, _101Address);
         Set<Address> expectedAddresses = new HashSet<>();
         expectedAddresses.add(_000Address);
         expectedAddresses.add(_100Address);
@@ -133,14 +133,14 @@ public class RouteProcessorTest {
     public void testBackwardFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -175,7 +175,7 @@ public class RouteProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_000Address.getHost(), host);
+        assertEquals(_000Address.getIpAsString(), host);
         assertEquals(_000Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_000Id, null,
@@ -196,7 +196,7 @@ public class RouteProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_100Address.getHost(), host);
+        assertEquals(_100Address.getIpAsString(), host);
         assertEquals(_100Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_000Id, null,
@@ -211,7 +211,7 @@ public class RouteProcessorTest {
         // Ensure RP found exact match
         RouteProcessorResult res = extractProcessResultResult(pr);
         
-        Pointer expectedPtr = new Pointer(_101Id, _101Address);
+        BitLimitedPointer expectedPtr = new BitLimitedPointer(_101Id, _101Address);
         Set<Address> expectedAddresses = new HashSet<>();
         expectedAddresses.add(_000Address);
         expectedAddresses.add(_100Address);
@@ -224,14 +224,14 @@ public class RouteProcessorTest {
     public void testSelfFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -266,7 +266,7 @@ public class RouteProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_000Address.getHost(), host);
+        assertEquals(_000Address.getIpAsString(), host);
         assertEquals(_000Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_001Id, null,
@@ -282,14 +282,14 @@ public class RouteProcessorTest {
     public void testCommunicationFailure() throws Exception {
         // Setup
         TrackedIdGenerator tidGen = new TrackedIdGenerator();
-        Id _000Id = TestUtils.generateId(3, 0x00L);
-        Id _001Id = TestUtils.generateId(3, 0x01L);
-        Id _010Id = TestUtils.generateId(3, 0x02L);
-        Id _011Id = TestUtils.generateId(3, 0x03L);
-        Id _100Id = TestUtils.generateId(3, 0x04L);
-        Id _101Id = TestUtils.generateId(3, 0x05L);
-        Id _110Id = TestUtils.generateId(3, 0x06L);
-        Id _111Id = TestUtils.generateId(3, 0x07L);
+        BitLimitedId _000Id = TestUtils.generateId(3, 0x00L);
+        BitLimitedId _001Id = TestUtils.generateId(3, 0x01L);
+        BitLimitedId _010Id = TestUtils.generateId(3, 0x02L);
+        BitLimitedId _011Id = TestUtils.generateId(3, 0x03L);
+        BitLimitedId _100Id = TestUtils.generateId(3, 0x04L);
+        BitLimitedId _101Id = TestUtils.generateId(3, 0x05L);
+        BitLimitedId _110Id = TestUtils.generateId(3, 0x06L);
+        BitLimitedId _111Id = TestUtils.generateId(3, 0x07L);
         Address _000Address = TestUtils.generateAddressFromId(_000Id);
         Address _001Address = TestUtils.generateAddressFromId(_001Id);
         Address _010Address = TestUtils.generateAddressFromId(_010Id);
@@ -324,7 +324,7 @@ public class RouteProcessorTest {
         port = smOutEvent.getPort();
         
         assertEquals(StatusRequest.class, smOutEvent.getRequest().getClass());
-        assertEquals(_000Address.getHost(), host);
+        assertEquals(_000Address.getIpAsString(), host);
         assertEquals(_000Address.getPort(), port);
 
         statusResp = TestUtils.generateStatusResponse(_000Id, null,

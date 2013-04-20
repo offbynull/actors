@@ -1,19 +1,18 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
-import com.offbynull.peernetic.eventframework.processor.ProcessorUtils;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 
-public final class StabilizeProcessor extends ProcessorChainAdapter<Pointer> {
+public final class StabilizeProcessor extends ProcessorChainAdapter<BitLimitedPointer> {
 
-    private Pointer base;
-    private Pointer successor;
-    private Pointer newSuccessor;
+    private BitLimitedPointer base;
+    private BitLimitedPointer successor;
+    private BitLimitedPointer newSuccessor;
     
-    public StabilizeProcessor(Pointer base, Pointer successor) {
+    public StabilizeProcessor(BitLimitedPointer base, BitLimitedPointer successor) {
         if (base == null || successor == null) {
             throw new NullPointerException();
         }
@@ -27,14 +26,14 @@ public final class StabilizeProcessor extends ProcessorChainAdapter<Pointer> {
     @Override
     protected NextAction onResult(Processor proc, Object res) throws Exception {
         if (proc instanceof QueryForPredecessorProcessor) {
-            Pointer predOfSuccessor = (Pointer) res;
+            BitLimitedPointer predOfSuccessor = (BitLimitedPointer) res;
         
             if (predOfSuccessor == null) {
                 newSuccessor = successor;
             } else {
-                Id posId = predOfSuccessor.getId();
-                Id baseId = base.getId();
-                Id successorId = successor.getId();
+                BitLimitedId posId = predOfSuccessor.getId();
+                BitLimitedId baseId = base.getId();
+                BitLimitedId successorId = successor.getId();
 
                 if (posId.isWithin(baseId, baseId, false, successorId, false)) {
                     successor = predOfSuccessor;

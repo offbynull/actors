@@ -1,27 +1,27 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
-import com.offbynull.peernetic.chord.RouteResult;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteProcessorResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable.RouteResult;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 public final class RouteProcessor extends ProcessorChainAdapter<RouteProcessorResult> {
 
-    private Id findId;
-    private Id selfId;
-    private Id lastHitId;
+    private BitLimitedId findId;
+    private BitLimitedId selfId;
+    private BitLimitedId lastHitId;
     private Address nextSearchAddress;
     private Set<Address> accessedAddresses;
 
-    public RouteProcessor(Id selfId, Id findId, Address bootstrap) {
+    public RouteProcessor(BitLimitedId selfId, BitLimitedId findId, Address bootstrap) {
         if (findId == null || selfId == null || bootstrap == null) {
             throw new NullPointerException();
         }
@@ -40,8 +40,8 @@ public final class RouteProcessor extends ProcessorChainAdapter<RouteProcessorRe
         if (proc instanceof QueryForFingerTableProcessor) {
             FingerTable ft = (FingerTable) res;
             RouteResult routeRes = ft.route(findId);
-            Pointer ptr = routeRes.getPointer();
-            Id ptrId = ptr.getId();
+            BitLimitedPointer ptr = routeRes.getPointer();
+            BitLimitedId ptrId = ptr.getId();
 
             if (ptrId.equals(selfId)) {
                 throw new RouteFailedSelfException();
@@ -104,9 +104,9 @@ public final class RouteProcessor extends ProcessorChainAdapter<RouteProcessorRe
     
     public static final class RouteProcessorResult {
         private Set<Address> accessedAddresses;
-        private Pointer found;
+        private BitLimitedPointer found;
 
-        private RouteProcessorResult(Set<Address> accessedAddresses, Pointer found) {
+        private RouteProcessorResult(Set<Address> accessedAddresses, BitLimitedPointer found) {
             // no need to check for null here to make backing copies, only
             // routeprocessor calls and has access to this, and its lifecycle
             // ends as soon as it creates one of these.
@@ -118,7 +118,7 @@ public final class RouteProcessor extends ProcessorChainAdapter<RouteProcessorRe
             return Collections.unmodifiableSet(accessedAddresses);
         }
 
-        public Pointer getFound() {
+        public BitLimitedPointer getFound() {
             return found;
         }
     }

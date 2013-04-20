@@ -1,16 +1,17 @@
 package com.offbynull.peernetic.chord.test;
 
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.SetPredecessorResponse;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.messages.util.MessageUtils;
 import com.offbynull.peernetic.eventframework.event.OutgoingEvent;
 import com.offbynull.peernetic.eventframework.processor.FinishedProcessResult;
 import com.offbynull.peernetic.eventframework.processor.ProcessResult;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import static org.junit.Assert.*;
 
@@ -42,23 +43,25 @@ public final class TestUtils {
         return (T) fpr.getResult();
     }
     
-    public static Id generateId(int bitCount, long idData) {
+    public static BitLimitedId generateId(int bitCount, long idData) {
         byte[] bytes = ByteBuffer.allocate(8).putLong(idData).array();
-        return new Id(bitCount, bytes);
+        return new BitLimitedId(bitCount, bytes);
     }
     
-    public static Address generateAddressFromId(Id id) {
-        Address selfAddress = new Address(id.asBigInteger().toString(), 1);
+    public static Address generateAddressFromId(BitLimitedId id) {
+        byte[] data = Arrays.copyOf(id.asByteArray(), 16);
+        
+        Address selfAddress = new Address(data, 1);
         return selfAddress;
     }
     
-    public static Pointer generatePointer(int bitCount, long idData) {
-        Id id = generateId(bitCount, idData);
+    public static BitLimitedPointer generatePointer(int bitCount, long idData) {
+        BitLimitedId id = generateId(bitCount, idData);
         Address address = generateAddressFromId(id);
-        return new Pointer(id, address);
+        return new BitLimitedPointer(id, address);
     }
     
-    private static long convertIdToLong(Id id) {
+    private static long convertIdToLong(BitLimitedId id) {
         byte[] bytes = id.asByteArray();
         long value = 0;
         for (int i = 0; i < bytes.length; i++) {
@@ -68,7 +71,7 @@ public final class TestUtils {
     }
     
     public static SetPredecessorResponse generateSetPredecessorResponse(
-            Id id, Long predecessorUndershoot) {
+            BitLimitedId id, Long predecessorUndershoot) {
         
         if (id.getBitCount() >= 64) {
             throw new IllegalArgumentException();
@@ -94,11 +97,11 @@ public final class TestUtils {
             }
 
             byte[] data = ByteBuffer.allocate(8).putLong(val).array();
-            Id predId = new Id(bitCount, data);
+            BitLimitedId predId = new BitLimitedId(bitCount, data);
 
             Address predAddress = generateAddressFromId(predId);
             
-            Pointer pred = new Pointer(predId, predAddress);
+            BitLimitedPointer pred = new BitLimitedPointer(predId, predAddress);
             
             resp.setAssignedPredecessor(MessageUtils.createFrom(pred, false));
         }
@@ -106,7 +109,7 @@ public final class TestUtils {
         return resp;
     }
     
-    public static StatusResponse generateStatusResponse(Id id,
+    public static StatusResponse generateStatusResponse(BitLimitedId id,
             Long predecessorUndershoot, Long ... entryOvershoot) {
         if (id.getBitCount() != entryOvershoot.length) {
             throw new IllegalArgumentException();
@@ -121,7 +124,7 @@ public final class TestUtils {
             Long predecessorUndershoot, Long ... entryOvershoot) {
         FingerTable ft = generateFingerTable(idData, entryOvershoot);
         
-        Pointer pred;
+        BitLimitedPointer pred;
         
         if (predecessorUndershoot == null) {
             pred = null;
@@ -139,11 +142,11 @@ public final class TestUtils {
             }
 
             byte[] data = ByteBuffer.allocate(8).putLong(val).array();
-            Id predId = new Id(bitCount, data);
+            BitLimitedId predId = new BitLimitedId(bitCount, data);
 
             Address predAddress = generateAddressFromId(predId);
             
-            pred = new Pointer(predId, predAddress);
+            pred = new BitLimitedPointer(predId, predAddress);
         }
         
         return MessageUtils.createFrom(ft.getBaseId(), pred, ft.dump(), false);
@@ -168,31 +171,31 @@ public final class TestUtils {
             byte[] ... entryOvershoot) {
         int bitCount = entryOvershoot.length;
         
-        Id selfId = new Id(bitCount, idData);
+        BitLimitedId selfId = new BitLimitedId(bitCount, idData);
         Address selfAddress = generateAddressFromId(selfId);
-        FingerTable ft = new FingerTable(new Pointer(selfId, selfAddress));
+        FingerTable ft = new FingerTable(new BitLimitedPointer(selfId, selfAddress));
         
         for (int i = 0; i < entryOvershoot.length; i++) {
             if (entryOvershoot[i] != null) {
-                Id overshootAmountId = new Id(bitCount, entryOvershoot[i]);
-                Id fingId = ft.getExpectedId(i).add(overshootAmountId);
+                BitLimitedId overshootAmountId = new BitLimitedId(bitCount, entryOvershoot[i]);
+                BitLimitedId fingId = ft.getExpectedId(i).add(overshootAmountId);
                 Address fingAddress = generateAddressFromId(fingId);
                 
                 // must be greater than or equal to expected id
-                Id expId = ft.getExpectedId(i);
+                BitLimitedId expId = ft.getExpectedId(i);
                 if (fingId.comparePosition(selfId, expId) < 0) {
                     throw new IllegalArgumentException();
                 }
                 
                 // must be less than or equal to next expected id
                 if (i < entryOvershoot.length - 1) {
-                    Id nextId = ft.getExpectedId(i + 1);
+                    BitLimitedId nextId = ft.getExpectedId(i + 1);
                     if (fingId.comparePosition(selfId, nextId) > 0) {
                         throw new IllegalArgumentException();
                     }
                 }
                 
-                Pointer fingPtr = new Pointer(fingId, fingAddress);
+                BitLimitedPointer fingPtr = new BitLimitedPointer(fingId, fingAddress);
                 ft.put(fingPtr);
             }
         }

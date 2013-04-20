@@ -1,13 +1,12 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageProcessor;
 import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessageProcessor.SendMessageException;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorAdapter;
+import com.offbynull.peernetic.p2ptools.identification.Address;
 
 public final class PingProcessor
         extends ProcessorAdapter<StatusResponse, Boolean> {
@@ -18,7 +17,7 @@ public final class PingProcessor
         }
         
         @SuppressWarnings("unchecked")
-        Processor proc = new SendMessageProcessor(address.getHost(),
+        Processor proc = new SendMessageProcessor(address.getIpAsString(),
                 address.getPort(), new StatusRequest(), StatusResponse.class);
 
         setProcessor(proc);

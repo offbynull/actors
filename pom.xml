@@ -10,6 +10,7 @@
     <modules>
         <module>eventframework</module>
         <module>chord</module>
+        <module>p2p-tools</module>
     </modules>
     
     <dependencyManagement>

@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.FingerTable;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
 
 public final class FixFingerTableProcessor
         extends ProcessorChainAdapter<FingerTable> {

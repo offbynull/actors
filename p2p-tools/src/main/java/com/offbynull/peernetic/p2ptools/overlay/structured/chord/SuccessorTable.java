@@ -1,5 +1,8 @@
-package com.offbynull.peernetic.chord;
+package com.offbynull.peernetic.p2ptools.overlay.structured.chord;
 
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,11 +18,11 @@ public final class SuccessorTable {
     /**
      * Base (self) pointer.
      */
-    private Pointer basePtr;
+    private BitLimitedPointer basePtr;
     /**
      * List of successors.
      */
-    private ArrayDeque<Pointer> table;
+    private ArrayDeque<BitLimitedPointer> table;
     /**
      * Maximum number of successors that can be held (maps to basePtr's id bit
      * count).
@@ -31,14 +34,14 @@ public final class SuccessorTable {
      * @param basePtr base pointer
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SuccessorTable(Pointer basePtr) {
+    public SuccessorTable(BitLimitedPointer basePtr) {
         if (basePtr == null) {
             throw new NullPointerException();
         }
         
         this.basePtr = basePtr;
         
-        Id baseId = basePtr.getId();
+        BitLimitedId baseId = basePtr.getId();
         
         limit = baseId.getBitCount();
         
@@ -50,7 +53,7 @@ public final class SuccessorTable {
      * Get the base pointer.
      * @return base pointer
      */
-    public Pointer getBase() {
+    public BitLimitedPointer getBase() {
         return basePtr;
     }
     
@@ -59,7 +62,7 @@ public final class SuccessorTable {
      * {@code getBase().getId()}.
      * @return base pointer id
      */
-    public Id getBaseId() {
+    public BitLimitedId getBaseId() {
         return basePtr.getId();
     }
     
@@ -81,15 +84,15 @@ public final class SuccessorTable {
      * @throws IllegalArgumentException if {@code successor}'s id has a
      * different bit count than the base pointer's id
      */
-    public void updateTrim(Pointer successor) {
+    public void updateTrim(BitLimitedPointer successor) {
         if (successor == null) {
             throw new NullPointerException();
         }
         
-        Id baseId = basePtr.getId();
+        BitLimitedId baseId = basePtr.getId();
         int bitCount = baseId.getBitCount();
         
-        Id successorId = successor.getId();
+        BitLimitedId successorId = successor.getId();
         
         if (successorId.getBitCount() != bitCount) {
             throw new IllegalArgumentException();
@@ -102,9 +105,9 @@ public final class SuccessorTable {
         }
         
         while (!table.isEmpty()) {
-            Pointer ptr = table.removeFirst();
+            BitLimitedPointer ptr = table.removeFirst();
             
-            Id ptrId = ptr.getId();
+            BitLimitedId ptrId = ptr.getId();
             if (ptrId.comparePosition(baseId, successorId) > 0) {
                 table.addFirst(ptr);
                 break;
@@ -137,7 +140,7 @@ public final class SuccessorTable {
      * {@code table} have a different bit count than the base pointer's id
      * @throws IllegalArgumentException if {@code table} isn't sorted
      */
-    public void update(Pointer successor, List<Pointer> table) {
+    public void update(BitLimitedPointer successor, List<BitLimitedPointer> table) {
         if (successor == null || table == null) {
             throw new NullPointerException();
         }
@@ -146,24 +149,24 @@ public final class SuccessorTable {
             table = table.subList(0, limit);
         }
 
-        Id baseId = basePtr.getId();
+        BitLimitedId baseId = basePtr.getId();
         int bitCount = baseId.getBitCount();
         
-        Id successorId = successor.getId();
+        BitLimitedId successorId = successor.getId();
         
         if (successorId.getBitCount() != bitCount) {
             throw new IllegalArgumentException();
         }
         
-        Id lastId = successor.getId();
+        BitLimitedId lastId = successor.getId();
         int lastTableIdx = -1;
         int idx = 0;
-        for (Pointer ptrSuccessor : table) {
+        for (BitLimitedPointer ptrSuccessor : table) {
             if (ptrSuccessor == null) {
                 throw new NullPointerException();
             }
             
-            Id ptrSuccessorId = ptrSuccessor.getId();
+            BitLimitedId ptrSuccessorId = ptrSuccessor.getId();
             
             if (ptrSuccessorId.getBitCount() != bitCount) {
                 throw new IllegalArgumentException();
@@ -188,7 +191,7 @@ public final class SuccessorTable {
         }
         
         int len = table.size() + 1;
-        ArrayDeque<Pointer> newTable = new ArrayDeque<>(len);
+        ArrayDeque<BitLimitedPointer> newTable = new ArrayDeque<>(len);
         
         newTable.add(successor);
         newTable.addAll(table);
@@ -200,7 +203,7 @@ public final class SuccessorTable {
      * Gets the immediate successor.
      * @return immediate successor
      */
-    public Pointer getSuccessor() {
+    public BitLimitedPointer getSuccessor() {
         return table.peekFirst();
     }
     
@@ -223,7 +226,7 @@ public final class SuccessorTable {
      * otherwise
      */
     public boolean isPointingToBase() {
-        Pointer ptr = table.getFirst();
+        BitLimitedPointer ptr = table.getFirst();
         return ptr.equals(basePtr);
     }
     
@@ -231,7 +234,7 @@ public final class SuccessorTable {
      * Dumps out the successor table.
      * @return list of successor table
      */
-    public List<Pointer> dump() {
+    public List<BitLimitedPointer> dump() {
         return new ArrayList<>(table);
     }
 }

@@ -1,18 +1,18 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.processors.RouteProcessor.RouteProcessorResult;
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
 
 public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
 
     private FingerTable fingerTable;
     private int index;
-    private Pointer testPtr;
+    private BitLimitedPointer testPtr;
     private State state;
 
     public FixFingerProcessor(FingerTable fingerTable, int index) {
@@ -70,11 +70,11 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
     }
 
     private NextAction processTestingInit() throws Exception {
-        Id destId = fingerTable.getExpectedId(index);
-        Id baseId = fingerTable.getBaseId();
+        BitLimitedId destId = fingerTable.getExpectedId(index);
+        BitLimitedId baseId = fingerTable.getBaseId();
 
-        Pointer bootstrap = fingerTable.get(0);
-        Id bootstrapId = bootstrap.getId();
+        BitLimitedPointer bootstrap = fingerTable.get(0);
+        BitLimitedId bootstrapId = bootstrap.getId();
 
         if (destId.isWithin(baseId, true, bootstrapId, false)) {
             return new ReturnResult(false);
@@ -89,7 +89,7 @@ public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
 
     private NextAction processScanningResult(Object res) {
         RouteProcessorResult rpRes = (RouteProcessorResult) res;
-        Pointer pred = rpRes.getFound();
+        BitLimitedPointer pred = rpRes.getFound();
         
         state = State.TESTING_SUCCESSOR;
         

@@ -1,7 +1,5 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.chord.Address;
-import com.offbynull.peernetic.chord.Pointer;
 import com.offbynull.peernetic.chord.messages.StatusRequest;
 import com.offbynull.peernetic.chord.messages.StatusResponse;
 import com.offbynull.peernetic.chord.messages.shared.NodePointer;
@@ -11,32 +9,34 @@ import com.offbynull.peernetic.eventframework.impl.network.simpletcp.SendMessage
 import com.offbynull.peernetic.eventframework.processor.Processor;
 import com.offbynull.peernetic.eventframework.processor.ProcessorAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
+import com.offbynull.peernetic.p2ptools.identification.Address;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 
 public final class QueryForPredecessorProcessor extends
-        ProcessorAdapter<StatusResponse, Pointer> {
+        ProcessorAdapter<StatusResponse, BitLimitedPointer> {
 
     public QueryForPredecessorProcessor(Address address) {
         if (address == null) {
             throw new NullPointerException();
         }
 
-        Processor proc = new SendMessageProcessor(address.getHost(),
+        Processor proc = new SendMessageProcessor(address.getIpAsString(),
                 address.getPort(), new StatusRequest(), StatusResponse.class);
 
         setProcessor(proc);
     }
 
     @Override
-    protected Pointer onResult(StatusResponse res) {
+    protected BitLimitedPointer onResult(StatusResponse res) {
         // got response
         NodePointer predNp = res.getPredecessor();
-        Pointer ret = MessageUtils.convertTo(predNp, false);
+        BitLimitedPointer ret = MessageUtils.convertTo(predNp, false);
 
         return ret;
     }
 
     @Override
-    protected Pointer onException(Exception e) throws Exception {
+    protected BitLimitedPointer onException(Exception e) throws Exception {
         if (e instanceof SendMessageException) {
             throw new QueryForPredecessorException();
         }

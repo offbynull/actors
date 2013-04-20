@@ -1,12 +1,12 @@
-package com.offbynull.peernetic.chord;
+package com.offbynull.peernetic.p2ptools.identification;
 
 import java.util.Objects;
 
-public final class Pointer {
-    private Id id;
+public final class LimitedPointer {
+    private LimitedId id;
     private Address address;
 
-    public Pointer(Id id, Address address) {
+    public LimitedPointer(LimitedId id, Address address) {
         if (id == null || address == null) {
             throw new NullPointerException();
         }
@@ -15,7 +15,7 @@ public final class Pointer {
         this.address = address;
     }
 
-    public Id getId() {
+    public LimitedId getLimitedId() {
         return id;
     }
 
@@ -32,10 +32,10 @@ public final class Pointer {
      * @throws IllegalArgumentException if the ids are the same but the
      * addresses are different
      */
-    public boolean equalsEnsureAddress(Pointer other) {
-        Id otherId = other.getId();
+    public boolean equalsEnsureAddress(LimitedPointer other) {
+        LimitedId otherLimitedId = other.getLimitedId();
         
-        if (id.equals(otherId)) {
+        if (id.equals(otherLimitedId)) {
             if (!this.equals(other)) {
                 throw new IllegalArgumentException();
             }
@@ -62,7 +62,7 @@ public final class Pointer {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final Pointer other = (Pointer) obj;
+        final LimitedPointer other = (LimitedPointer) obj;
         if (!Objects.equals(this.id, other.id)) {
             return false;
         }
@@ -74,6 +74,6 @@ public final class Pointer {
 
     @Override
     public String toString() {
-        return "Pointer{" + "id=" + id + ", address=" + address + '}';
+        return "BitLimitedPointer{" + "id=" + id + ", address=" + address + '}';
     }
 }

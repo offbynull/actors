@@ -1,18 +1,18 @@
-package com.offbynull.peernetic.chord.test;
+package com.offbynull.peernetic.p2putils.tests;
 
-import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.Id;
-import com.offbynull.peernetic.chord.Pointer;
-import com.offbynull.peernetic.chord.RouteResult;
-import com.offbynull.peernetic.chord.RouteResult.ResultType;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
+import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable.RouteResult;
+import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable.RouteResult.ResultType;
 import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
-public class FingerTableTest {
+public class RingRoutingTableTest {
     
-    public FingerTableTest() {
+    public RingRoutingTableTest() {
     }
     
     @Before
@@ -25,7 +25,7 @@ public class FingerTableTest {
 
     @Test(expected=IllegalArgumentException.class)
     public void testPut1() { 
-        Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
         ft.put(basePtr);
@@ -33,14 +33,14 @@ public class FingerTableTest {
     
     @Test
     public void testPut2() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.put(ptr4);
         
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(0);
         assertEquals(ptr4, entry);
@@ -52,16 +52,16 @@ public class FingerTableTest {
 
     @Test
     public void testPut3() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
         
         ft.put(ptr4);
         ft.put(ptr5);
         
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(0);
         assertEquals(ptr4, entry);
@@ -73,14 +73,14 @@ public class FingerTableTest {
     
     @Test
     public void testReplace1() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.replace(ptr4);
         
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(0);
         assertEquals(ptr4, entry);
@@ -92,16 +92,16 @@ public class FingerTableTest {
     
     @Test
     public void testReplace2() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
         
         ft.put(ptr5);
         ft.replace(ptr4);
         
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(0);
         assertEquals(ptr4, entry);
@@ -113,18 +113,18 @@ public class FingerTableTest {
 
     @Test
     public void testReplace3() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
         
         ft.replace(ptr1);
         ft.replace(ptr5);
         ft.replace(ptr4);
         
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(0);
         assertEquals(ptr1, entry);
@@ -136,13 +136,13 @@ public class FingerTableTest {
     
     @Test
     public void testEmptyFingerTable() {
-        Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Id id1 = TestUtils.generateId(2, 0x00L);
-        Id id2 = TestUtils.generateId(2, 0x01L);
-        Id id3 = TestUtils.generateId(2, 0x02L);
-        Id id4 = TestUtils.generateId(2, 0x03L);
+        BitLimitedId id1 = TestUtils.generateId(2, 0x00L);
+        BitLimitedId id2 = TestUtils.generateId(2, 0x01L);
+        BitLimitedId id3 = TestUtils.generateId(2, 0x02L);
+        BitLimitedId id4 = TestUtils.generateId(2, 0x03L);
         
         RouteResult res;
         
@@ -162,13 +162,13 @@ public class FingerTableTest {
 
     @Test
     public void testPartialFingerTable() {
-        Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
         
-        Pointer firstNeighbour = TestUtils.generatePointer(2, 0x01L);
-        Pointer secondNeighbour = TestUtils.generatePointer(2, 0x02L);
+        BitLimitedPointer firstNeighbour = TestUtils.generatePointer(2, 0x01L);
+        BitLimitedPointer secondNeighbour = TestUtils.generatePointer(2, 0x02L);
         ft.put(secondNeighbour);
-        Pointer thirdNeighbour = TestUtils.generatePointer(2, 0x03L);
+        BitLimitedPointer thirdNeighbour = TestUtils.generatePointer(2, 0x03L);
         
         RouteResult res;
         
@@ -192,14 +192,14 @@ public class FingerTableTest {
     
     @Test
     public void testFullFingerTable() {
-        Pointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
 
-        Pointer firstNeighbour = TestUtils.generatePointer(2, 0x01L);
+        BitLimitedPointer firstNeighbour = TestUtils.generatePointer(2, 0x01L);
         ft.put(firstNeighbour);
-        Pointer secondNeighbour = TestUtils.generatePointer(2, 0x02L);
+        BitLimitedPointer secondNeighbour = TestUtils.generatePointer(2, 0x02L);
         ft.put(secondNeighbour);
-        Pointer thirdNeighbour = TestUtils.generatePointer(2, 0x03L);
+        BitLimitedPointer thirdNeighbour = TestUtils.generatePointer(2, 0x03L);
         ft.put(thirdNeighbour);
         
         RouteResult res;
@@ -228,16 +228,16 @@ public class FingerTableTest {
     
     @Test
     public void testRemove1() { 
-        Pointer basePtr = TestUtils.generatePointer(2, 0x02L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x02L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(2, 0x00L);
-        Pointer ptr3 = TestUtils.generatePointer(2, 0x01L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(2, 0x00L);
+        BitLimitedPointer ptr3 = TestUtils.generatePointer(2, 0x01L);
 
         ft.put(ptr2);
         ft.remove(ptr3);
 
         // nothing should be removed
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(1);
         assertEquals(ptr2, entry);
@@ -247,15 +247,15 @@ public class FingerTableTest {
     
     @Test
     public void testRemove2() { 
-        Pointer basePtr = TestUtils.generatePointer(2, 0x02L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x02L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(2, 0x00L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(2, 0x00L);
         
         ft.put(ptr2);
         ft.remove(ptr2);
 
         // table should be reverted
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(0);
         assertEquals(basePtr, entry);
@@ -265,17 +265,17 @@ public class FingerTableTest {
 
     @Test
     public void testRemove3() {
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
 
         ft.put(ptr2);
         ft.put(ptr4);
         ft.remove(ptr4);
         
         // preceding table entry should NOT be replaced
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(basePtr, entry);
@@ -287,10 +287,10 @@ public class FingerTableTest {
 
     @Test
     public void testClearBefore1() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.put(ptr2);
         ft.put(ptr4);
@@ -298,7 +298,7 @@ public class FingerTableTest {
 
         assertEquals(1, cleared);
         // should be a clear finger table
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(ptr4, entry);
@@ -310,11 +310,11 @@ public class FingerTableTest {
 
     @Test
     public void testClearBefore2() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.put(ptr2);
         ft.put(ptr4);
@@ -323,7 +323,7 @@ public class FingerTableTest {
         assertEquals(1, cleared);
         
         // should be a clear finger table
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(ptr4, entry);
@@ -335,11 +335,11 @@ public class FingerTableTest {
 
     @Test
     public void testClearBefore3() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.put(ptr2);
         ft.put(ptr4);
@@ -348,7 +348,7 @@ public class FingerTableTest {
         assertEquals(0, cleared);
 
         // should be a clear finger table
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(ptr4, entry);
@@ -360,10 +360,10 @@ public class FingerTableTest {
 
     @Test
     public void testClearAfter1() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.put(ptr2);
         ft.put(ptr4);
@@ -372,7 +372,7 @@ public class FingerTableTest {
         assertEquals(3, cleared);
 
         // should be a clear finger table
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(basePtr, entry);
@@ -384,11 +384,11 @@ public class FingerTableTest {
 
     @Test
     public void testClearAfter2() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
         
         ft.put(ptr2);
         ft.put(ptr4);
@@ -397,7 +397,7 @@ public class FingerTableTest {
         assertEquals(1, cleared);
 
         // should be a clear finger table
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(basePtr, entry);
@@ -409,11 +409,11 @@ public class FingerTableTest {
 
     @Test
     public void testClearAfter3() { 
-        Pointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
         FingerTable ft = new FingerTable(basePtr);
-        Pointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        Pointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        Pointer ptr5 = TestUtils.generatePointer(3, 0x05L);
+        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
+        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
         
         ft.put(ptr2);
         ft.put(ptr4);
@@ -422,7 +422,7 @@ public class FingerTableTest {
         assertEquals(0, cleared);
 
         // should be a clear finger table
-        Pointer entry;
+        BitLimitedPointer entry;
         
         entry = ft.get(2);
         assertEquals(ptr4, entry);

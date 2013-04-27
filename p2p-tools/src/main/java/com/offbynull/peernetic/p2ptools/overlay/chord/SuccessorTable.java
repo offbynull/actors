@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.p2ptools.overlay.structured.chord;
+package com.offbynull.peernetic.p2ptools.overlay.chord;
 
 import com.offbynull.peernetic.p2ptools.identification.Address;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;

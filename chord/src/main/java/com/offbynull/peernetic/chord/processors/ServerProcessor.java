@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.chord.processors;
 
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.ChordState;
+import com.offbynull.peernetic.p2ptools.overlay.chord.ChordState;
 import com.offbynull.peernetic.chord.messages.SetPredecessorRequest;
 import com.offbynull.peernetic.chord.messages.SetPredecessorResponse;
 import com.offbynull.peernetic.chord.messages.StatusRequest;

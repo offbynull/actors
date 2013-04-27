@@ -4,15 +4,22 @@ import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.util.Random;
 
 public final class DefaultIdGenerator implements BitLimitedIdGenerator,
         LimitedIdGenerator {
 
-    private SecureRandom secureRandom;
+    private Random random;
+    
+    public DefaultIdGenerator(Random random) {
+        if (random != null) {
+            this.random = random;
+        }
+    }
 
     public DefaultIdGenerator() throws NoSuchAlgorithmException,
             NoSuchProviderException {
-        secureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN");
+        this(SecureRandom.getInstance("SHA1PRNG", "SUN"));
     }
 
     @Override
@@ -23,7 +30,7 @@ public final class DefaultIdGenerator implements BitLimitedIdGenerator,
         try {
             int rawLen = (bitCount / 8) + 1;
             byte[] raw = new byte[rawLen];
-            secureRandom.nextBytes(raw);
+            random.nextBytes(raw);
 
             raw = BitUtils.truncateBytes(raw, bitCount);
 
@@ -41,7 +48,7 @@ public final class DefaultIdGenerator implements BitLimitedIdGenerator,
         try {
             int rawLen = limit.length;
             byte[] raw = new byte[rawLen];
-            secureRandom.nextBytes(raw);
+            random.nextBytes(raw);
 
             BigInteger rawBd = new BigInteger(1, raw);
             BigInteger limitBd = new BigInteger(1, limit);

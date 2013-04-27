@@ -6,7 +6,7 @@ import com.offbynull.peernetic.eventframework.processor.ProcessorChainAdapter;
 import com.offbynull.peernetic.eventframework.processor.ProcessorException;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
+import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable;
 
 public final class FixFingerProcessor extends ProcessorChainAdapter<Boolean> {
 

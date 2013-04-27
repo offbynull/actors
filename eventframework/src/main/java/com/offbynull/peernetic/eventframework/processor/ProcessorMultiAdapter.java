@@ -15,7 +15,7 @@ import java.util.Set;
 // An adapter that can have multiple processors running at once
 public abstract class ProcessorMultiAdapter<N> implements Processor {
 
-    private Set<Processor> processors = new HashSet<>();
+    private Set<Processor> processors;
 
     public ProcessorMultiAdapter() {
     }
@@ -37,7 +37,7 @@ public abstract class ProcessorMultiAdapter<N> implements Processor {
             throw new IllegalArgumentException();
         }
 
-        this.processors.addAll(processors);
+        this.processors = new HashSet<>(processors);
     }
 
     protected abstract NextAction onResult(Processor proc, Object res)

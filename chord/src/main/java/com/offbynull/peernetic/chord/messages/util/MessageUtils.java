@@ -7,7 +7,7 @@ import com.offbynull.peernetic.chord.messages.shared.NodePointer;
 import com.offbynull.peernetic.p2ptools.identification.Address;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
+import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;

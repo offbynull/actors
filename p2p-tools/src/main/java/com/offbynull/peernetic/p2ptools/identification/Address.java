@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.p2ptools.identification;
 
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Objects;

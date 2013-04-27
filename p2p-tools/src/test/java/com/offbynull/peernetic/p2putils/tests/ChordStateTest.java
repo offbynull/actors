@@ -2,7 +2,7 @@ package com.offbynull.peernetic.p2putils.tests;
 
 import com.google.common.collect.Lists;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.ChordState;
+import com.offbynull.peernetic.p2ptools.overlay.chord.ChordState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

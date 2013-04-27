@@ -11,7 +11,7 @@
         <module>eventframework</module>
         <module>chord</module>
         <module>p2p-tools</module>
-    </modules>
+  </modules>
     
     <dependencyManagement>
         <dependencies>

@@ -2,9 +2,9 @@ package com.offbynull.peernetic.p2putils.tests;
 
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable;
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable.RouteResult;
-import com.offbynull.peernetic.p2ptools.overlay.structured.chord.FingerTable.RouteResult.ResultType;
+import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable;
+import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable.RouteResult;
+import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable.RouteResult.ResultType;
 import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Before;

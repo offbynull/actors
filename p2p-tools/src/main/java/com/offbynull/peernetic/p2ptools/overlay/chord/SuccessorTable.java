@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.p2ptools.overlay.chord;
 
-import com.offbynull.peernetic.p2ptools.identification.Address;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import java.net.InetSocketAddress;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +71,7 @@ public final class SuccessorTable {
      * {@code getBase().getAddress()}.
      * @return base pointer address
      */
-    public Address getBaseAddress() {
+    public InetSocketAddress getBaseAddress() {
         return basePtr.getAddress();
     }
     

@@ -1,9 +1,11 @@
 package com.offbynull.peernetic.p2putils.tests;
 
-import com.offbynull.peernetic.p2ptools.identification.Address;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -18,16 +20,18 @@ public final class TestUtils {
         return new BitLimitedId(bitCount, bytes);
     }
     
-    public static Address generateAddressFromId(BitLimitedId id) {
+    public static InetSocketAddress generateAddressFromId(BitLimitedId id) {
         byte[] data = Arrays.copyOf(id.asByteArray(), 16);
-        
-        Address selfAddress = new Address(data, 1);
-        return selfAddress;
+        try {
+            return new InetSocketAddress(InetAddress.getByAddress(data), 1);
+        } catch (UnknownHostException ex) {
+            throw new RuntimeException(ex);
+        }
     }
     
     public static BitLimitedPointer generatePointer(int bitCount, long idData) {
         BitLimitedId id = generateId(bitCount, idData);
-        Address address = generateAddressFromId(id);
+        InetSocketAddress address = generateAddressFromId(id);
         return new BitLimitedPointer(id, address);
     }
     
@@ -51,14 +55,14 @@ public final class TestUtils {
         int bitCount = entryOvershoot.length;
         
         BitLimitedId selfId = new BitLimitedId(bitCount, idData);
-        Address selfAddress = generateAddressFromId(selfId);
+        InetSocketAddress selfAddress = generateAddressFromId(selfId);
         FingerTable ft = new FingerTable(new BitLimitedPointer(selfId, selfAddress));
         
         for (int i = 0; i < entryOvershoot.length; i++) {
             if (entryOvershoot[i] != null) {
                 BitLimitedId overshootAmountId = new BitLimitedId(bitCount, entryOvershoot[i]);
                 BitLimitedId fingId = ft.getExpectedId(i).add(overshootAmountId);
-                Address fingAddress = generateAddressFromId(fingId);
+                InetSocketAddress fingAddress = generateAddressFromId(fingId);
                 
                 // must be greater than or equal to expected id
                 BitLimitedId expId = ft.getExpectedId(i);

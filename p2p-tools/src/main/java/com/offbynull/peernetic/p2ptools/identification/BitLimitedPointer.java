@@ -1,12 +1,13 @@
 package com.offbynull.peernetic.p2ptools.identification;
 
+import java.net.InetSocketAddress;
 import java.util.Objects;
 
 public final class BitLimitedPointer {
     private BitLimitedId id;
-    private Address address;
+    private InetSocketAddress address;
 
-    public BitLimitedPointer(BitLimitedId id, Address address) {
+    public BitLimitedPointer(BitLimitedId id, InetSocketAddress address) {
         if (id == null || address == null) {
             throw new NullPointerException();
         }
@@ -19,7 +20,7 @@ public final class BitLimitedPointer {
         return id;
     }
 
-    public Address getAddress() {
+    public InetSocketAddress getAddress() {
         return address;
     }
 

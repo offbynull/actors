@@ -1,10 +1,10 @@
 package com.offbynull.peernetic.p2ptools.overlay.chord;
 
-import com.offbynull.peernetic.p2ptools.identification.Address;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable.RouteResult.ResultType;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -108,7 +108,7 @@ public final class FingerTable {
         this.basePtr = base;
 
         BitLimitedId baseId = base.getId();
-        Address baseAddress = base.getAddress();
+        InetSocketAddress baseAddress = base.getAddress();
 
         this.bitCount = baseId.getBitCount();
 
@@ -221,7 +221,7 @@ public final class FingerTable {
         }
 
         BitLimitedId selfId = basePtr.getId();
-        Address selfAddress = basePtr.getAddress();
+        InetSocketAddress selfAddress = basePtr.getAddress();
 
         InternalEntry foundEntry = null;
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
@@ -266,7 +266,7 @@ public final class FingerTable {
         }
 
         BitLimitedId id = ptr.getId();
-        Address address = ptr.getAddress();
+        InetSocketAddress address = ptr.getAddress();
 
         if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
@@ -351,7 +351,7 @@ public final class FingerTable {
         }
 
         BitLimitedId id = ptr.getId();
-        Address address = ptr.getAddress();
+        InetSocketAddress address = ptr.getAddress();
 
         if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
@@ -427,7 +427,7 @@ public final class FingerTable {
      *
      * @return base pointer address
      */
-    public Address getBaseAddress() {
+    public InetSocketAddress getBaseAddress() {
         return basePtr.getAddress();
     }
 
@@ -524,7 +524,7 @@ public final class FingerTable {
         }
 
         BitLimitedId id = ptr.getId();
-        Address address = ptr.getAddress();
+        InetSocketAddress address = ptr.getAddress();
 
         if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
@@ -534,7 +534,7 @@ public final class FingerTable {
         while (lit.hasPrevious()) {
             InternalEntry ie = lit.previous();
             BitLimitedId testId = ie.actualId;
-            Address testAddress = ie.address;
+            InetSocketAddress testAddress = ie.address;
 
             if (id.equals(testId) && address.equals(testAddress)) {
                 remove(lit.previousIndex() + 1);
@@ -561,7 +561,7 @@ public final class FingerTable {
         }
 
         BitLimitedId baseId = basePtr.getId();
-        Address baseAddress = basePtr.getAddress();
+        InetSocketAddress baseAddress = basePtr.getAddress();
 
         // save existing id
         InternalEntry entry = table.get(idx);
@@ -575,7 +575,7 @@ public final class FingerTable {
 
         // get next id in table, if available
         BitLimitedId nextId;
-        Address nextAddress;
+        InetSocketAddress nextAddress;
 
         if (idx < bitCount - 1) {
             // set values if there's a next available (if we aren't at ceiling)
@@ -651,11 +651,11 @@ public final class FingerTable {
         }
 
         BitLimitedId baseId = basePtr.getId();
-        Address baseAddress = basePtr.getAddress();
+        InetSocketAddress baseAddress = basePtr.getAddress();
 
         // get next id in table, if available
         BitLimitedId nextId;
-        Address nextAddress;
+        InetSocketAddress nextAddress;
 
         if (idx < bitCount - 1) {
             // set values if there's a next available (if we aren't at ceiling)
@@ -726,7 +726,7 @@ public final class FingerTable {
         }
 
         BitLimitedId baseId = basePtr.getId();
-        Address baseAddress = basePtr.getAddress();
+        InetSocketAddress baseAddress = basePtr.getAddress();
 
         // replace entries with self id all the way till the end...
         for (int i = idx; i < bitCount; i++) {
@@ -742,7 +742,7 @@ public final class FingerTable {
      */
     public void clear() {
         BitLimitedId baseId = basePtr.getId();
-        Address baseAddress = basePtr.getAddress();
+        InetSocketAddress baseAddress = basePtr.getAddress();
 
         // replace entries with self id all the way till the end...
         for (int i = 0; i < bitCount; i++) {
@@ -799,9 +799,9 @@ public final class FingerTable {
          */
         public BitLimitedId actualId;
         /**
-         * Address of finger.
+         * InetSocketAddress of finger.
          */
-        public Address address;
+        public InetSocketAddress address;
     }
 
     public static final class RouteResult {

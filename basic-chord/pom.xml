@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.offbynull</groupId>
+        <artifactId>peernetic</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <groupId>com.offbynull.peernetic</groupId>
+    <artifactId>basic-chord</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>basic-chord</name>
+    <url>http://maven.apache.org</url>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <repositories>
+        <repository>
+            <id>jsonrpc4j-webdav-maven-repo</id>
+            <name>jsonrpc4j maven repository</name>
+            <url>http://jsonrpc4j.googlecode.com/svn/maven/repo/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>p2p-tools</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode</groupId>
+            <artifactId>jsonrpc4j</artifactId>
+            <version>0.28</version>
+        </dependency>
+    </dependencies>
+</project>

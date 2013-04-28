@@ -9,6 +9,7 @@
     
     <modules>
         <module>p2p-tools</module>
+    <module>basic-chord</module>
   </modules>
     
     <dependencyManagement>

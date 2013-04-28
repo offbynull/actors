@@ -1,8 +1,8 @@
-package com.offbynull.peernetic.p2putils.tests;
+package com.offbynull.peernetic.chord.test;
 
 import com.google.common.collect.Lists;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.chord.SuccessorTable;
+import com.offbynull.peernetic.chord.SuccessorTable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

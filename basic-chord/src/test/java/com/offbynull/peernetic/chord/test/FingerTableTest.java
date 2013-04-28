@@ -1,18 +1,18 @@
-package com.offbynull.peernetic.p2putils.tests;
+package com.offbynull.peernetic.chord.test;
 
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable;
-import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable.RouteResult;
-import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable.RouteResult.ResultType;
+import com.offbynull.peernetic.chord.FingerTable;
+import com.offbynull.peernetic.chord.RouteResult;
+import com.offbynull.peernetic.chord.RouteResult.ResultType;
 import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
-public class RingRoutingTableTest {
+public class FingerTableTest {
     
-    public RingRoutingTableTest() {
+    public FingerTableTest() {
     }
     
     @Before

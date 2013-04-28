@@ -1,8 +1,9 @@
-package com.offbynull.peernetic.p2putils.tests;
+package com.offbynull.peernetic.chord.test;
 
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable;
+import com.offbynull.peernetic.chord.FingerTable;
+import com.offbynull.peernetic.chord.FingerTable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;

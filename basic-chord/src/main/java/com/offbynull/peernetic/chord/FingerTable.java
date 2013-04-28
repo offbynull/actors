@@ -1,8 +1,8 @@
-package com.offbynull.peernetic.p2ptools.overlay.chord;
+package com.offbynull.peernetic.chord;
 
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
-import com.offbynull.peernetic.p2ptools.overlay.chord.FingerTable.RouteResult.ResultType;
+import com.offbynull.peernetic.chord.RouteResult.ResultType;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -802,34 +802,5 @@ public final class FingerTable {
          * InetSocketAddress of finger.
          */
         public InetSocketAddress address;
-    }
-
-    public static final class RouteResult {
-
-        private ResultType resultType;
-        private BitLimitedPointer pointer;
-
-        public RouteResult(ResultType resultType, BitLimitedPointer pointer) {
-            if (resultType == null || pointer == null) {
-                throw new NullPointerException();
-            }
-            this.resultType = resultType;
-            this.pointer = pointer;
-        }
-
-        public ResultType getResultType() {
-            return resultType;
-        }
-
-        public BitLimitedPointer getPointer() {
-            return pointer;
-        }
-
-        public enum ResultType {
-
-            SELF,
-            FOUND,
-            CLOSEST_PREDECESSOR
-        }
     }
 }

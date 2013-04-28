@@ -9,34 +9,29 @@ import java.util.List;
 /**
  * Holds the state information for a Chord entity. State information includes
  * a successor table, a finger table, and a predecessor.
- * <p/>
- * This class attempts to keep the successor table, finger table, and
- * predecessor in sync with each other. The finger table and successor table
- * aren't allowed to exceed the predecessor. Changes to the finger table's 0
- * index are propagated to the successor table (and vice versa).
  * @author Kasra Faghihi
  */
-public final class ChordState {
+public class ChordState {
     /**
      * The pointer to this node.
      */
-    private BitLimitedPointer basePtr;
+    protected BitLimitedPointer basePtr;
     
     /**
      * Finger table -- accelerates key lookup. As per the Chord research paper.
      */
-    private FingerTable fingerTable;
+    protected FingerTable fingerTable;
     
     /**
      * Successor table -- keeps track of a recursive list of successors. As per
      * the Chord research paper.
      */
-    private SuccessorTable successorTable;
+    protected SuccessorTable successorTable;
     
     /**
      * The pointer to this node's predecessor.
      */
-    private BitLimitedPointer predecessorPtr;
+    protected BitLimitedPointer predecessorPtr;
 
     /**
      * Construct a {@link ChordState} object.
@@ -99,70 +94,7 @@ public final class ChordState {
     /**
      * Set the predecessor. If an existing predecessor is set, the new
      * predecessor must be between the old predecessor (exclusive) and the
-     * base (exclusive). Synchronization effects of this method are as follows:
-     * <ul>
-     * <li>
-     * Once finger table has been modified, it needs to be checked to make sure
-     * that the predecessor is at least larger than the max non-base finger
-     * entry. If it isn't, then set it to the max non-base finger entry, because
-     * it doesn't make sense to have a finger table entry larger than our
-     * predecessor.
-     * </li>
-     * <li>
-     * Since there's a possibility that the finger table may have been truncated
-     * (see above paragraph), there's a possibility that finger[0] may no longer
-     * be there. It's also possible that {@code pointer} may overwrite
-     * finger[0]. We need to adjust the successor in successor table to match
-     * the potentially new (or non-existent) finger[0].
-     * </li>
-     * </ul>
-     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * node 6. Node 5 asks node 0 to set it's predecessor to it. In this case,
-     * node 5 isn't between the existing predecessor (node 6) and node being
-     * updated (node 0), so nothing will be changed.
-     * <p/>
-     * <pre>
-     *   0-1
-     *  /   \
-     * x     2
-     * |     |
-     * 6     3
-     *  \   /
-     *   5-4
-     * </pre>
-     * <p/>
-     * <b>Case 2:</b> In a 8 node ring, node 0 has no predecessor set. Node 5
-     * asks node 0 to set it's predecessor to it. In this case, node 0 clears
-     * its finger table of all entries greater than or equal to node 5, then
-     * sets node 5 as its predecessor.
-     * <p/>
-     * <pre>
-     *   0-1
-     *  /   \
-     * x     2
-     * |     |
-     * x     3
-     *  \   /
-     *   5-4
-     * </pre>
-     * <p/>
-     * <b>Case 3:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * node 5. Node 6 asks node 0 to set it's predecessor to it. In this case,
-     * node 6 is between the existing predecessor (node 5) and node being
-     * updated (node 0), so the predecessor will be changed. The finger table
-     * will also be adjusted such that node 6 will be added in if it makes
-     * sense to do this.
-     * <p/>
-     * <pre>
-     *   0-1
-     *  /   \
-     * x     2
-     * |     |
-     * x     3
-     *  \   /
-     *   5-4
-     * </pre>
-     * <p/>
+     * base (exclusive).
      * @throws NullPointerException if any of the arguments are {@code null}
      * @throws IllegalArgumentException if {@code predecessor} is the base
      * pointer
@@ -191,47 +123,12 @@ public final class ChordState {
         }
         
         this.predecessorPtr = predecessor;
-        
-        // make sure finger table doesn't exceed predecessor
-        adjustFingerTableToMatchPredecessor();
-        
-        // since finger table was changed, there's a change that the index 0 was
-        // changed, so we need to synch up the successor table with the finger
-        // table
-        adjustSuccessorTableToMatchFingerTable();
     }
     
     /**
-     * Removes the predecessor. Synchronization effects of this method are as
-     * follows:
-     * <ul>
-     * <li>
-     * If the predecessor exists in the finger table, it's removed as well.
-     * The predecessor is guaranteed to be at least the max non-base finger
-     * entry, but may be higher (in which case it doesn't exist in the finger
-     * table, so nothing gets removed).
-     * </li>
-     * <li>
-     * Since there's a possibility that the finger table had something removed
-     * (see above paragraph), there's a possibility that the removal was
-     * finger[0]. We need to adjust the successor in successor table to match
-     * the potentially new (or non-existent) finger[0].
-     * </li>
-     * </ul>
+     * Removes the predecessor.
      */
     public void removePredecessor() {
-        if (predecessorPtr != null) {
-            // Since we're removing our predecessor, make sure it doesn't exist
-            // in the finger table as well. Since predecessor will only ever
-            // map to the last non-base entry in the finger table, it's safe to
-            // do a remove here (instead of clearAfter and remove).
-            fingerTable.remove(predecessorPtr);
-            
-            // since finger table was changed, there's a change that the index 0 was
-            // changed, so we need to synch up the successor table with the finger
-            // table
-            adjustSuccessorTableToMatchFingerTable();
-        }
         predecessorPtr = null;
     } 
 
@@ -247,116 +144,16 @@ public final class ChordState {
     
     /**
      * Shifts the successor to the next successor in the successor table.
-     * Synchronization effects of this method are as follows:
-     * <ul>
-     * <li>
-     * The new successor is different from finger[0]. As such, we need to adjust
-     * the finger table so that finger[0] matches the new successor.
-     * </li>
-     * <li>
-     * If the predecessor is unset, the max non-base value from the finger table
-     * will be used as its value (unchanged if no max non-base value). This is
-     * because we know that there are nodes in the system, so we have to have a
-     * predecessor. The predecessor has to at least be the last max non-base
-     * entry. If there's a closer predecessor, it'll notify us eventually and
-     * we'll set the closer value. This also helps correct nodes that think
-     * they're our predecessor but are farther away.
-     * </li>
-     * <li>
-     * Once finger table has been modified, it needs to be checked to make sure
-     * that the predecessor is at least larger than the max non-base finger
-     * entry. If it isn't, then set it to the max non-base finger entry, because
-     * it doesn't make sense to have a finger table entry larger than our
-     * predecessor.
-     * </li>
-     * </ul>
-     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * node 1 and its successor table set to [node 1, node 7]. Node 1 fails to
-     * respond to node 0's requests, so node 0 attempts to shift to the next
-     * successor in its successor table (node 7). Node 7 is greater than node
-     * 0's predecessor (node 1), so this is not allowed. Instead, node 0 will
-     * set its successor to its predecessor (it gets set back to node 1). Node 1
-     * will be prepended on to node 0's successor table, bringing the successor
-     * table make to its original value: [node 1, node 7].
-     * <p/>
-     * An outside method will presumably be called at regular intervals to check
-     * if the predecessor is alive. Eventually the predecessor will be removed,
-     * allowing the successor table to move to node 7. Even if it doesn't, node
-     * 7 should eventually ask node 0 to set it as its predecessor, so the
-     * predecessor will be updated either way.
-     * <p/>
-     * <pre>
-     *   0-x
-     *  /   \
-     * 7     x
-     * |     |
-     * x     x
-     *  \   /
-     *   x-x
-     * </pre>
-     * <p/>
-     * <b>Case 2:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * node 7 and its successor table set to [node 1, node 2, node 7]. Node 1
-     * fails to respond to node 0's requests, so node 0 moves to the next
-     * successor in its successor table (node 2). Node 2 is less than node 0's
-     * predecessor, so everything should be fine. The removal of node 1 from the
-     * successor table gets sync'd up with the finger table -- node 1 gets
-     * removed from index 0 and node 2 takes its place. The successor table will
-     * end up looking like this: [node 2, node 7].
-     * <p/>
-     * <pre>
-     *   0-x
-     *  /   \
-     * 7     2
-     * |     |
-     * x     x
-     *  \   /
-     *   x-x
-     * </pre>
      * @throws IllegalStateException if successor table has no other nodes to
      * shift to
      */
     public void shiftSuccessor() {
         successorTable.moveToNextSucessor();
-
-        // successor table was updated, which means that the successor may have
-        // changed -- synch up finger table to the successor table
         adjustFingerTableToMatchSuccessorTable();
-        
-        // if pred unset or max non-base finger is greater than pred, then set
-        // pred to max non-base finger
-        derivePredecessorFromFingerTable();
-        
-        // since finger table was changed, it means that there may be an entry
-        // that exceeds the predecessor. truncate it so that it doesn't
-        adjustFingerTableToMatchPredecessor();
     }
 
     /**
-     * Resets the successor table with new successors. Synchronization effects
-     * of this method are as follows:
-     * <ul>
-     * <li>
-     * The new successor is likely different from finger[0]. As such, we need
-     * to adjust the finger table so that finger[0] matches the new successor.
-     * </li>
-     * <li>
-     * If the predecessor is unset, the max non-base value from the finger table
-     * will be used as its value (unchanged if no max non-base value). This is
-     * because we know that there are nodes in the system, so we have to have a
-     * predecessor. The predecessor has to at least be the last max non-base
-     * entry. If there's a closer predecessor, it'll notify us eventually and
-     * we'll set the closer value. This also helps correct nodes that think
-     * they're our predecessor but are farther away.
-     * </li>
-     * <li>
-     * Once finger table has been modified, it needs to be checked to make sure
-     * that the predecessor is at least larger than the max non-base finger
-     * entry. If it isn't, then set it to the max non-base finger entry, because
-     * it doesn't make sense to have a finger table entry larger than our
-     * predecessor.
-     * </li>
-     * </ul>
+     * Resets the successor table with new successors.
      * This method is very similar to how {@link #shiftSuccessor() } operates.
      * The main difference is that we're accepting a new successor from an
      * outside source rather than shifting to the next successor in our
@@ -381,14 +178,6 @@ public final class ChordState {
         // successor table was updated, which means that the successor may have
         // changed -- synch up finger table to the successor table
         adjustFingerTableToMatchSuccessorTable();
-        
-        // if pred unset or max non-base finger is greater than pred, then set
-        // pred to max non-base finger
-        derivePredecessorFromFingerTable();
-        
-        // since finger table was changed, it means that there may be an entry
-        // that exceeds the predecessor. truncate it so that it doesn't
-        adjustFingerTableToMatchPredecessor();
     }
     
     /**
@@ -446,97 +235,8 @@ public final class ChordState {
     
     /**
      * Inserts a finger into the finger table (see
-     * {@link FingerTable#put(com.offbynull.peernetic.chord.BitLimitedPointer) } for
-     * insertion algorithm). Synchronization effects of this method are as
-     * follows:
-     * <ul>
-     * <li>
-     * If the predecessor is unset, the max non-base value from the finger table
-     * will be used as its value (unchanged if no max non-base value). This is
-     * because we know that there are nodes in the system, so we have to have a
-     * predecessor. The predecessor has to at least be the last max non-base
-     * entry. If there's a closer predecessor, it'll notify us eventually and
-     * we'll set the closer value. This also helps correct nodes that think
-     * they're our predecessor but are farther away.
-     * </li>
-     * <li>
-     * Once finger table has been modified, it needs to be checked to make sure
-     * that the predecessor is at least larger than the max non-base finger
-     * entry. If it isn't, then set it to the max non-base finger entry, because
-     * it doesn't make sense to have a finger table entry larger than our
-     * predecessor.
-     * </li>
-     * <li>
-     * Since there's a possibility that the finger table may have been truncated
-     * (see above paragraph), there's a possibility that finger[0] may no longer
-     * be there. It's also possible that {@code pointer} may overwrite
-     * finger[0]. We need to adjust the successor in successor table to match
-     * the potentially new (or non-existent) finger[0].
-     * </li>
-     * </ul>
-     * <b>Case 1:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * node 1 and its finger table set to [node 1, node 0, node 0]. Node 0 finds
-     * node 7 and attempts to put node 7 in to its finger table. Node 7 is
-     * greater than node 0's predecessor (node 1), so this is not allowed. node
-     * 0 will truncate all values in the finger table > node 1, bringing the
-     * finger table to its original value: [node 1, node 0, node 0].
-     * <p/>
-     * At some point node 7 should eventually ask node 0 to set it as its
-     * predecessor, so the predecessor will be updated eventually. As a part of
-     * that process, the predecessor will automatically be pushed in to the
-     * finger table giving the result we want. This only happens if there are
-     * unset fingers that the predecessor can occupy
-     * (see {@link #setPredecessor(com.offbynull.peernetic.chord.BitLimitedPointer) } for
-     * more information on this.
-     * <p/>
-     * Even if the predecessor changes weren't propagated to the finger table,
-     * once the predecessor is updated, the next time this finger tries to get
-     * set, it'll be successful.
-     * <p/>
-     * <pre>
-     *   0-1
-     *  /   \
-     * 7     x
-     * |     |
-     * x     x
-     *  \   /
-     *   x-x
-     * </pre>
-     * <b>Case 2:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * node 7 and its finger table set to [node 1, node 7, node 7]. Node 0 finds
-     * node 3 and attempts to put node 3 in to its finger table. Node 3 is less
-     * than node 0's predecessor (node 7), so this is fine. Node 0 will end up
-     * with this finger table: [node 1, node 3, node 6].
-     * <p/>
-     * <pre>
-     *   0-1
-     *  /   \
-     * 7     x
-     * |     |
-     * x     3
-     *  \   /
-     *   x-x
-     * </pre>
-     * <p/>
-     * <b>Case 2:</b> In a 8 node ring, node 0 has it's predecessor set to
-     * nothing and its finger table set to [node 0, node 0, node 0]. Node 0
-     * finds node 3 and attempts to put node 3 in to its finger table. Node 0's
-     * predecessor isn't set, so this is fine. Node 0 will end up with this
-     * finger table: [node 3, node 3, node 0]. Index 0 of the finger table will
-     * be copied to the successor table to keep the finger table and the
-     * successor table in sync. Since node 0's predecessor is set to nothing,
-     * it'll now be set to the max non-base finger entry in the new finger
-     * table (node 3).
-     * <p/>
-     * <pre>
-     *   0-x
-     *  /   \
-     * x     x
-     * |     |
-     * x     3
-     *  \   /
-     *   x-x
-     * </pre>
+     * {@link FingerTable#put(com.offbynull.peernetic.chord.BitLimitedPointer) }
+     * for insertion algorithm).
      * @param pointer pointer to add to the finger table
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code pointers}'s bit count doesn't
@@ -548,39 +248,11 @@ public final class ChordState {
         }
         
         fingerTable.put(pointer);
-        
-        // if pred unset or max non-base finger is greater than pred, then set
-        // pred to max non-base finger
-        derivePredecessorFromFingerTable();
-        
-        // truncate finger table such that all entries are <= pred
-        //   if the pred was unset before the above call, this will do nothing
-        adjustFingerTableToMatchPredecessor();
-        
-        // since the finger may have been truncated by the above call, index 0
-        // of finger table (successpr) may not be the same anymore -- sync
-        // successor table to finger table
         adjustSuccessorTableToMatchFingerTable();
     }
 
     /**
-     * Remove a finger from the finger table. Synchronization effects of this
-     * method are as follows:
-     * <ul>
-     * <li>
-     * If {@code pointer} matches the max non-base entry in the finger table,
-     * and it also matches the predecessor, then the predecessor will be
-     * set to the new max non-base entry once the pointer (which is the current
-     * max non-base entry) is removed. We do this because we're assuming the
-     * finger is dead (why else would it be getting removed?). If it matches the
-     * predecessor, then the predecessor is likely also dead.
-     * </li>
-     * <li>
-     * Since there's a possibility that {@code pointer} may match finger[0], 
-     * we need to adjust the successor in successor table to match the
-     * potentially new (or non-existent) finger[0].
-     * </li>
-     * </ul>
+     * Remove a finger from the finger table.
      * @param pointer pointer to remove
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code pointers}'s bit count doesn't
@@ -591,91 +263,7 @@ public final class ChordState {
             throw new NullPointerException();
         }
         
-        BitLimitedPointer oldMaxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
         fingerTable.remove(pointer);
-        
-        // If finger is max non-base finger entry and also the predecessor,
-        // remove it from the finger table and set predecessor to the new max
-        // non-base finger entry (which may be null, which will mark the pred
-        // as unset, which is fine). The removal is probably due to the finger
-        // being unresponsive, so the predecessor will be unresponsive as well.
-        if (pointer.equals(oldMaxNonBaseFingerPtr)
-                && pointer.equals(predecessorPtr)) {
-            BitLimitedPointer newMaxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
-            predecessorPtr = newMaxNonBaseFingerPtr;
-        }
-        
-        // There's no reason to truncate the finger table to the predecessor
-        // since we're only removing, and the predecessor is always >= max
-        // non-base finger entry
-        
-        // Index 0 (aka the successor) may have been the pointer removed, make
-        // sure this propogates to the successor table.
-        adjustSuccessorTableToMatchFingerTable();
-    }
-    
-    /**
-     * If predecessor is unset or is less than the max non-base entry in the
-     * finger table, set it to the max non-base entry in the finger table (or
-     * unset it if it doesn't exist).
-     */
-    private void derivePredecessorFromFingerTable() {
-        BitLimitedPointer maxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
-        
-        if (predecessorPtr != null) {
-            if (maxNonBaseFingerPtr == null) {
-                // predecessor is not null, so potentially setting it to null
-                // would mean we'd be removing it, which is not what we want
-                return;
-            }
-            
-            BitLimitedId baseId = basePtr.getId();
-            BitLimitedId predecessorId = predecessorPtr.getId();
-            BitLimitedId maxNonBaseFingerId = maxNonBaseFingerPtr.getId();
-            
-            if (predecessorId.comparePosition(baseId, maxNonBaseFingerId) > 0) {
-                // predecessor is greater than max non-base finger, so don't
-                // do anything
-                return;
-            }
-        }
-        
-        predecessorPtr = maxNonBaseFingerPtr;
-    }
-    
-    /**
-     * Modifies the finger table such that no entry is greater than the
-     * predecessor. If the finger table has no entries in it (other than base),
-     * the predecessor will be put inside, making at least index 0 (also known
-     * as the successor) set to the predecessor.
-     * <p/>
-     * Since this method potentially modifies index 0, it makes sure that the
-     * successor table's first entry matches up with the finger table's
-     * successor.
-     * <p/>
-     * <b>Note</b>: This method does nothing if the predecessor is not set.
-     */
-    private void adjustFingerTableToMatchPredecessor() {
-        if (predecessorPtr == null) {
-            return;
-        }
-        
-        BitLimitedId baseId = basePtr.getId();
-        
-        BitLimitedPointer lastFingerPtr = fingerTable.getMaximumNonBase();
-        
-        if (lastFingerPtr != null) {
-            BitLimitedId lastFingerId = lastFingerPtr.getId();
-            BitLimitedId predecessorId = predecessorPtr.getId();
-
-            if (predecessorId.comparePosition(baseId, lastFingerId) < 0) {
-                fingerTable.clearAfter(predecessorId);
-            }
-        }
-        
-        fingerTable.replace(predecessorPtr);
-        
-        // ensure successor table in sync with finger table
         adjustSuccessorTableToMatchFingerTable();
     }
     
@@ -683,7 +271,7 @@ public final class ChordState {
      * Synchs up the successor table with the finger table by trimming it 
      * to finger table's index 0. 
      */
-    private void adjustSuccessorTableToMatchFingerTable() {
+    protected void adjustSuccessorTableToMatchFingerTable() {
         // make sure successor table's value is finger table's idx 0
         BitLimitedPointer successorPtr = fingerTable.get(0);
         successorTable.updateTrim(successorPtr);
@@ -693,7 +281,7 @@ public final class ChordState {
      * Synchs up the finger table to match up with the current successor in
      * successor table.
      */
-    private void adjustFingerTableToMatchSuccessorTable() {
+    protected void adjustFingerTableToMatchSuccessorTable() {
         BitLimitedPointer successorPtr = successorTable.getSuccessor();
 
         if (basePtr.equalsEnsureAddress(successorPtr)) {

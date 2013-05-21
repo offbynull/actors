@@ -8,12 +8,16 @@ import java.util.List;
 
 /**
  * Holds the state information for a Chord entity. State information includes
- * a successor table, a finger table, and a predecessor.
+ * a successor table, a finger table, an update tracker, and a predecessor.
  * <p/>
  * This class attempts to keep the successor table, finger table, and
  * predecessor in sync with each other. The finger table and successor table
  * aren't allowed to exceed the predecessor. Changes to the finger table's 0
  * index are propagated to the successor table (and vice versa).
+ * <p/>
+ * In addition to that, this class attempts to keep track of when updates are
+ * supposed to happen. Updates include fix finger updates as well as stabilizing
+ * the successor.
  * @author Kasra Faghihi
  */
 public final class ChordState {
@@ -34,10 +38,16 @@ public final class ChordState {
     private SuccessorTable successorTable;
     
     /**
-     * The pointer to this node's predecessor.
+     * Update state -- keeps track of when/which fingers are to be fixed and
+     * when the successor is to be stabilized.
+     */
+    private UpdateState updateState;
+    
+    /**
+     * Pointer to this node's predecessor.
      */
     private BitLimitedPointer predecessorPtr;
-
+    
     /**
      * Construct a {@link ChordState} object.
      * @param basePtr pointer to self (also known as base pointer
@@ -50,9 +60,27 @@ public final class ChordState {
         this.basePtr = basePtr;
         fingerTable = new FingerTable(basePtr);
         successorTable = new SuccessorTable(basePtr);
+        updateState = new UpdateState(basePtr);
         predecessorPtr = null;
     }
 
+    /**
+     * Get the next finger update instruction.
+     * @return next finger update instruction
+     */
+    public FingerUpdateInstruction getNextFingerUpdate() {
+        return updateState.getNextFingerUpdate();
+    }
+
+    /**
+     * Get the next successor stabilize instruction.
+     * @return next stabilize update instruction
+     */
+    public SuccessorStabilizeInstruction getNextStabilizeUpdate() {
+        return updateState.getNextStabilizeUpdate();
+    }
+
+    
     /**
      * Get the bit length of IDs that this Chord entity is suppose to use. See
      * {@link BitLimitedId#getBitCount() }. This value is set by the base pointer passed

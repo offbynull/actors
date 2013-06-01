@@ -2,6 +2,9 @@ package com.offbynull.peernetic.chord;
 
 import com.googlecode.jsonrpc4j.JsonRpcHttpClient;
 import com.googlecode.jsonrpc4j.ProxyUtil;
+import static com.offbynull.peernetic.chord.RouteResult.ResultType.CLOSEST_PREDECESSOR;
+import static com.offbynull.peernetic.chord.RouteResult.ResultType.FOUND;
+import static com.offbynull.peernetic.chord.RouteResult.ResultType.SELF;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import java.net.InetSocketAddress;
@@ -115,6 +118,23 @@ public final class ChordClient {
         newSuccessorRpcService.notify(base);
     }
     
+    public BitLimitedPointer findNode(InetSocketAddress bootstrap,
+            BitLimitedId id) {
+        InetSocketAddress address = bootstrap;
+        while (true) {
+            ChordServerInterface rpcService = getRpcService(address);
+            RouteResult res = rpcService.route(id);
+            
+            switch (res.getResultType()) {
+                case CLOSEST_PREDECESSOR:
+                    break;
+                case SELF:
+                case FOUND:
+                    return res.getPointer();
+            }
+        }
+    }
+    
     public BitLimitedPointer findNode(BitLimitedId id) {
         RouteResult res;
         
@@ -125,22 +145,15 @@ public final class ChordClient {
             stateLock.unlock();
         }
 
-        while (true) {
-            switch (res.getResultType()) {
-                case CLOSEST_PREDECESSOR:
-                    break;
-                case SELF:
-                case FOUND:
-                    return res.getPointer();
-            }
-
-            BitLimitedPointer ptr = res.getPointer();
-            InetSocketAddress address = ptr.getAddress();
-
-            ChordServerInterface rpcService = getRpcService(address);
-
-            res = rpcService.route(id);
+        switch (res.getResultType()) {
+            case CLOSEST_PREDECESSOR:
+                break;
+            case SELF:
+            case FOUND:
+                return res.getPointer();
         }
+        
+        return findNode(res.getPointer().getAddress(), id);
     }
     
     public void checkPredecessor() {
@@ -224,6 +237,31 @@ public final class ChordClient {
         }
         
         BitLimitedPointer found = findNode(searchId);
+        
+        stateLock.lock();
+        try {
+            state.putFinger(found);
+        } finally {
+            stateLock.unlock();
+        }
+    }
+    
+    public void fixFinger(InetSocketAddress bootstrap, int idx) {
+        // 1 handled by checkSuccessor
+        if (idx <= 0) {
+            throw new IllegalArgumentException();
+        }
+        
+        BitLimitedId searchId;
+        
+        stateLock.lock();
+        try {
+            searchId = state.getExpectedFingerId(idx);
+        } finally {
+            stateLock.unlock();
+        }
+        
+        BitLimitedPointer found = findNode(bootstrap, searchId);
         
         stateLock.lock();
         try {

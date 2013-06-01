@@ -8,7 +8,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public final class TestUtils {
     
@@ -85,5 +87,18 @@ public final class TestUtils {
         }
         
         return ft;
+    }
+    
+    public static List<BitLimitedPointer> generatePointers(int bitCount,
+            long startIdData) {
+        List<BitLimitedPointer> ret = new ArrayList<>();
+        
+        long idData = startIdData;
+        long len = 1L << (long) bitCount;
+        for (long i = 0; i < len; i++) {
+            ret.add(generatePointer(bitCount, idData + i));
+        }
+        
+        return ret;
     }
 }

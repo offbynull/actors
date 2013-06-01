@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.chord;
 
+import com.offbynull.peernetic.chord.UpdateState.FingerUpdateInstruction;
+import com.offbynull.peernetic.chord.UpdateState.SuccessorStabilizeInstruction;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import java.net.InetSocketAddress;

@@ -3,6 +3,7 @@ package com.offbynull.peernetic.chord.test;
 import com.google.common.collect.Lists;
 import com.offbynull.peernetic.chord.ChordState;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,16 +24,15 @@ public class ChordStateTest {
 
     @Test
     public void testInitialState() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(2, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(2, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(2, 0x02L);
-        
         assertEquals(cs.getBase(), basePtr);
-        assertEquals(cs.getExpectedFingerId(0), ptr1.getId());
+        assertEquals(cs.getExpectedFingerId(0), ptrList.get(1).getId());
         assertEquals(cs.getFinger(0), basePtr);
-        assertEquals(cs.getExpectedFingerId(1), ptr2.getId());
+        assertEquals(cs.getExpectedFingerId(1), ptrList.get(2).getId());
         assertEquals(cs.getFinger(1), basePtr);
         assertEquals(cs.getPredecessor(), null);
         assertEquals(cs.getSuccessor(), basePtr);
@@ -40,221 +40,161 @@ public class ChordStateTest {
 
     @Test
     public void testSetSuccessor1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
         
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList());
-        
-        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));        
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(1), cs.getPredecessor());
     }
 
     @Test
     public void testSetSuccessor2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
+        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList());
         
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList());
-        cs.setSuccessor(ptr7, Lists.<BitLimitedPointer>newArrayList());
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
         
-        assertEquals(ptr7, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        
-        assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
 
     @Test
     public void testSetSuccessor3() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList());
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
         
-        cs.setSuccessor(ptr7, Lists.<BitLimitedPointer>newArrayList());
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList());
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
         
-        assertEquals(ptr1, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetSuccessor4() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr7, Lists.<BitLimitedPointer>newArrayList(ptr1));
+        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList(ptrList.get(1)));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetSuccessor5() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr7, Lists.<BitLimitedPointer>newArrayList(ptr7));
+        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetSuccessor6() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList(ptr5, ptr5));
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(5), ptrList.get(5)));
     }
     
     @Test
     public void testShiftSuccessor1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList(ptr7));
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
         cs.shiftSuccessor();
         
-        assertEquals(ptr7, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
     
     @Test
     public void testShiftSuccessor2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList(ptr7));
-        cs.setPredecessor(ptr1);
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setPredecessor(ptrList.get(1));
         cs.shiftSuccessor();
         
-        assertEquals(ptr7, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
     
     @Test
     public void testShiftSuccessor3() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList(ptr7));
-        cs.setPredecessor(ptr2);
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setPredecessor(ptrList.get(2));
         cs.shiftSuccessor();
         
-        assertEquals(ptr7, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
     
     @Test
     public void testShiftSuccessor4() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList(ptr7, basePtr, ptr1));
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7), basePtr, ptrList.get(1)));
 
-        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(1), cs.getPredecessor());
         
         cs.shiftSuccessor();
         
-        assertEquals(ptr7, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        assertEquals(ptr7, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
         
         boolean expHit = false;
         try {
@@ -267,201 +207,141 @@ public class ChordStateTest {
     
     @Test(expected = IllegalStateException.class)
     public void testShiftSuccessor5() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
         
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList());
-        
-        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(1), cs.getPredecessor());
         
         cs.shiftSuccessor();
     }
     
     @Test(expected = IllegalStateException.class)
     public void testShiftSuccessor6() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.setSuccessor(ptr1, Lists.<BitLimitedPointer>newArrayList(ptr7));
+        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
         cs.shiftSuccessor();
         cs.shiftSuccessor();
     }
     
     @Test
     public void testSetPredecessor1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.setPredecessor(ptrList.get(1));
         
-        cs.setPredecessor(ptr1);
-        
-        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(1), cs.getPredecessor());
     }
 
     @Test
     public void testSetPredecessor2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
+        cs.setPredecessor(ptrList.get(7));
         
-        cs.putFinger(ptr1);
-        cs.setPredecessor(ptr7);
-        
-        assertEquals(ptr1, cs.getFinger(0));
-        assertEquals(ptr7, cs.getFinger(1));
-        assertEquals(ptr7, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr7, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor3() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.putFinger(ptr7);
-        cs.setPredecessor(ptr1);
+        cs.putFinger(ptrList.get(7));
+        cs.setPredecessor(ptrList.get(1));
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor4() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.putFinger(ptr4);
-        cs.setPredecessor(ptr7);
-        cs.setPredecessor(ptr6);
+        cs.putFinger(ptrList.get(4));
+        cs.setPredecessor(ptrList.get(7));
+        cs.setPredecessor(ptrList.get(6));
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor5() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
-        ChordState cs = new ChordState(basePtr);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        BitLimitedPointer basePtr = ptrList.get(0);
+        ChordState cs = new ChordState(basePtr);
         
         cs.setPredecessor(basePtr);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor6() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.putFinger(ptr7);
+        cs.putFinger(ptrList.get(7));
         cs.setPredecessor(basePtr);
     }
 
     @Test
     public void testRemovePredecessor1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.putFinger(ptr2);
-        cs.setPredecessor(ptr7);
+        cs.putFinger(ptrList.get(2));
+        cs.setPredecessor(ptrList.get(7));
         cs.removePredecessor();
         
-        // at this point, ptr7 will be shoved in to finger table but not
+        // at this point, ptrList.get(7) will be shoved in to finger table but not
         // removed
         
         
-        assertEquals(ptr2, cs.getFinger(0));
-        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(ptrList.get(2), cs.getFinger(0));
+        assertEquals(ptrList.get(2), cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
-        assertEquals(ptr2, cs.getSuccessor());
+        assertEquals(ptrList.get(2), cs.getSuccessor());
         assertNull(cs.getPredecessor());
     }
 
     @Test
     public void testRemovePredecessor2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.putFinger(ptr2);
+        cs.putFinger(ptrList.get(2));
         cs.removePredecessor(); // removing pred removes max non-base finger...
                                 // in this case max non-base finger is also
                                 // finger[0] aka successor, so everything is
@@ -476,186 +356,138 @@ public class ChordStateTest {
     
     @Test
     public void testPutFinger1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
         
-        cs.putFinger(ptr1);
-        
-        assertEquals(ptr1, cs.getFinger(0));
+        assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr1, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(1), cs.getPredecessor());
     }
     
     @Test
     public void testPutFinger2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
+        cs.putFinger(ptrList.get(2));
+        cs.putFinger(ptrList.get(4));
         
-        cs.putFinger(ptr1);
-        cs.putFinger(ptr2);
-        cs.putFinger(ptr4);
-        
-        assertEquals(ptr1, cs.getFinger(0));
-        assertEquals(ptr2, cs.getFinger(1));
-        assertEquals(ptr4, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr4, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(2), cs.getFinger(1));
+        assertEquals(ptrList.get(4), cs.getFinger(2));
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(4), cs.getPredecessor());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPutFinger3() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
-        ChordState cs = new ChordState(basePtr);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        BitLimitedPointer basePtr = ptrList.get(0);
+        ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(basePtr);
     }
     
     @Test
     public void testRemoveFinger1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
+        cs.putFinger(ptrList.get(2));
+        cs.putFinger(ptrList.get(4));
+        cs.removeFinger(ptrList.get(2));
         
-        cs.putFinger(ptr1);
-        cs.putFinger(ptr2);
-        cs.putFinger(ptr4);
-        cs.removeFinger(ptr2);
-        
-        assertEquals(ptr1, cs.getFinger(0));
-        assertEquals(ptr4, cs.getFinger(1));
-        assertEquals(ptr4, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr4, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(4), cs.getFinger(1));
+        assertEquals(ptrList.get(4), cs.getFinger(2));
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(4), cs.getPredecessor());
     }
     
     @Test
     public void testRemoveFinger2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
+        cs.putFinger(ptrList.get(2));
+        cs.putFinger(ptrList.get(4));
+        cs.setPredecessor(ptrList.get(4));
+        cs.removeFinger(ptrList.get(1));
         
-        cs.putFinger(ptr1);
-        cs.putFinger(ptr2);
-        cs.putFinger(ptr4);
-        cs.setPredecessor(ptr4);
-        cs.removeFinger(ptr1);
-        
-        assertEquals(ptr2, cs.getFinger(0));
-        assertEquals(ptr2, cs.getFinger(1));
-        assertEquals(ptr4, cs.getFinger(2));
-        assertEquals(ptr2, cs.getSuccessor());
-        assertEquals(ptr4, cs.getPredecessor());
+        assertEquals(ptrList.get(2), cs.getFinger(0));
+        assertEquals(ptrList.get(2), cs.getFinger(1));
+        assertEquals(ptrList.get(4), cs.getFinger(2));
+        assertEquals(ptrList.get(2), cs.getSuccessor());
+        assertEquals(ptrList.get(4), cs.getPredecessor());
     }
     
     @Test
     public void testRemoveFinger3() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
+        cs.putFinger(ptrList.get(2));
+        cs.putFinger(ptrList.get(4));
+        cs.setPredecessor(ptrList.get(4));
+        cs.removeFinger(ptrList.get(4));
         
-        cs.putFinger(ptr1);
-        cs.putFinger(ptr2);
-        cs.putFinger(ptr4);
-        cs.setPredecessor(ptr4);
-        cs.removeFinger(ptr4);
-        
-        assertEquals(ptr1, cs.getFinger(0));
-        assertEquals(ptr2, cs.getFinger(1));
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(2), cs.getFinger(1));
         assertEquals(basePtr, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr2, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(2), cs.getPredecessor());
     }
 
     @Test
     public void testRemoveFinger4() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        cs.putFinger(ptrList.get(1));
+        cs.putFinger(ptrList.get(2));
+        cs.putFinger(ptrList.get(4));
+        cs.setPredecessor(ptrList.get(4));
+        cs.removeFinger(ptrList.get(5));
         
-        cs.putFinger(ptr1);
-        cs.putFinger(ptr2);
-        cs.putFinger(ptr4);
-        cs.setPredecessor(ptr4);
-        cs.removeFinger(ptr5);
-        
-        assertEquals(ptr1, cs.getFinger(0));
-        assertEquals(ptr2, cs.getFinger(1));
-        assertEquals(ptr4, cs.getFinger(2));
-        assertEquals(ptr1, cs.getSuccessor());
-        assertEquals(ptr4, cs.getPredecessor());
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(2), cs.getFinger(1));
+        assertEquals(ptrList.get(4), cs.getFinger(2));
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(4), cs.getPredecessor());
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testRemoveFinger5() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0x00L);
+        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        
+        BitLimitedPointer basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
-        
-        cs.putFinger(ptr1);
-        cs.putFinger(ptr2);
-        cs.putFinger(ptr4);
-        cs.setPredecessor(ptr4);
+        cs.putFinger(ptrList.get(1));
+        cs.putFinger(ptrList.get(2));
+        cs.putFinger(ptrList.get(4));
+        cs.setPredecessor(ptrList.get(4));
         cs.removeFinger(basePtr);
     }
 }

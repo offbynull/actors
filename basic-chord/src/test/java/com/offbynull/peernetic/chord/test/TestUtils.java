@@ -1,12 +1,13 @@
 package com.offbynull.peernetic.chord.test;
 
+import com.offbynull.peernetic.chord.Chord;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedId;
 import com.offbynull.peernetic.p2ptools.identification.BitLimitedPointer;
 import com.offbynull.peernetic.chord.FingerTable;
-import com.offbynull.peernetic.chord.FingerTable;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,10 +25,11 @@ public final class TestUtils {
     }
     
     public static InetSocketAddress generateAddressFromId(BitLimitedId id) {
-        byte[] data = Arrays.copyOf(id.asByteArray(), 16);
         try {
-            return new InetSocketAddress(InetAddress.getByAddress(data), 1);
-        } catch (UnknownHostException ex) {
+            int port = generatePortFromId(id);
+            return InetSocketAddress.createUnresolved(
+                    new String(id.asByteArray(), "US-ASCII"), port);
+        } catch (UnsupportedEncodingException ex) {
             throw new RuntimeException(ex);
         }
     }
@@ -100,5 +102,43 @@ public final class TestUtils {
         }
         
         return ret;
+    }
+
+    public static List<BitLimitedId> generateIds(int bitCount, long startIdData) {
+        List<BitLimitedId> ret = new ArrayList<>();
+        
+        long idData = startIdData;
+        long len = 1L << (long) bitCount;
+        for (long i = 0; i < len; i++) {
+            ret.add(generateId(bitCount, idData + i));
+        }
+        
+        return ret;
+    }
+    
+    public static int generatePortFromId(BitLimitedId id) {
+        int hash = Arrays.hashCode(id.asByteArray());
+        int port = (hash % 65535) + 1;
+        return port;
+    }
+    
+    public static Chord startNetwork(int bitCount, long idData)
+            throws IOException {
+        BitLimitedId id = generateId(bitCount, idData);
+        int port = (int) (((idData + 10000L) % 65535L) + 1L);
+        Chord chord = new Chord(id, port);
+        chord.start();
+        return chord;
+    }
+    
+    public static Chord joinNetwork(int bitCount, long idData, Chord nodeToJoin)
+            throws IOException {
+        BitLimitedId id = generateId(bitCount, idData);
+        int port = (int) (((idData + 10000L) % 65535L) + 1L);
+        Chord chord = new Chord(id, port);
+        InetSocketAddress bootstrapAddr = new InetSocketAddress(
+                InetAddress.getLocalHost(), nodeToJoin.getPort());
+        chord.start(bootstrapAddr);
+        return chord;
     }
 }

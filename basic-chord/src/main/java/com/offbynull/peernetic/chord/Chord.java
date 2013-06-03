@@ -39,6 +39,17 @@ public final class Chord {
         chordStateLock = new ReentrantLock();
         chordServer = new ChordServer(address, port, chordState, chordStateLock);
         chordClient = new ChordClient(chordState, chordStateLock);
+        
+        state = State.CREATED;
+    }
+    
+    public int getPort() {
+        chordStateLock.lock();
+        try {
+            return chordState.getBaseAddress().getPort();
+        } finally {
+            chordStateLock.unlock();
+        }
     }
 
     public void start() {
@@ -53,10 +64,19 @@ public final class Chord {
         if (state != State.CREATED) {
             throw new IllegalStateException();
         }
+        
+        int fingerCount;
+        
+        chordStateLock.lock();
+        try {
+            fingerCount = chordState.getBitCount();
+        } finally {
+            chordStateLock.unlock();
+        }
+        
         chordServer.start();
         
-        int fingerCount = chordState.getBitCount();
-        for (int i = 0; i < fingerCount; i++) {
+        for (int i = 1; i < fingerCount; i++) {
             chordClient.fixFinger(bootstrap, i);
         }
         
@@ -80,8 +100,14 @@ public final class Chord {
 
         @Override
         public void run() {
-            FingerUpdateInstruction inst =
-                    chordState.getNextFingerUpdate();
+            FingerUpdateInstruction inst;
+            
+            chordStateLock.lock();
+            try {
+                inst = chordState.getNextFingerUpdate();
+            } finally {
+                chordStateLock.unlock();
+            }    
             
             chordClient.fixFinger(inst.getFinger());
             
@@ -95,8 +121,14 @@ public final class Chord {
 
         @Override
         public void run() {
-            SuccessorStabilizeInstruction inst =
-                    chordState.getNextStabilizeUpdate();
+            SuccessorStabilizeInstruction inst;
+            
+            chordStateLock.lock();
+            try {
+                inst = chordState.getNextStabilizeUpdate();
+            } finally {
+                chordStateLock.unlock();
+            }
             
             chordClient.stabilize();
             

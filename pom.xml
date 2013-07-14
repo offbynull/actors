@@ -10,6 +10,7 @@
     <modules>
         <module>p2p-tools</module>
     <module>basic-chord</module>
+    <module>p2p-rpc</module>
   </modules>
     
     <dependencyManagement>

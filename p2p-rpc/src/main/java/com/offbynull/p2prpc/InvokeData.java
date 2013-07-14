@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.p2ptools.rpc;
+package com.offbynull.p2prpc;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;

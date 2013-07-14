@@ -1,9 +1,5 @@
-package com.offbynull.p2prpc;
+package com.offbynull.p2prpc.io;
 
-import com.offbynull.p2prpc.invoke.InvokeData;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,7 +12,6 @@ import java.util.Iterator;
 public final class TcpClient implements Client {
 
     private State state = State.INIT;
-    private XStream xstream;
     private long timeout;
 
     public TcpClient() {
@@ -25,8 +20,6 @@ public final class TcpClient implements Client {
 
     public TcpClient(long timeout) {
         this.timeout = timeout;
-
-        xstream = new XStream(new BinaryStreamDriver());
     }
 
     @Override
@@ -39,18 +32,14 @@ public final class TcpClient implements Client {
     }
 
     @Override
-    public Object transmitRpcCall(InetSocketAddress address, InvokeData data)
+    public byte[] send(InetSocketAddress address, byte[] data)
             throws IOException {
 
         if (state != State.STARTED) {
             throw new IllegalStateException();
         }
 
-        // Serialize
-        ByteArrayOutputStream outputOs = new ByteArrayOutputStream();
-        xstream.toXML(data, outputOs);
-        byte[] dataBytes = outputOs.toByteArray();
-        ByteBuffer writeBuf = ByteBuffer.wrap(dataBytes);
+        ByteBuffer writeBuf = ByteBuffer.wrap(data);
 
         // IO
         try (Selector selector = Selector.open();
@@ -84,11 +73,7 @@ public final class TcpClient implements Client {
 
                     if (key.isReadable()) {
                         if (channel.read(readBuf) == -1) {
-                            ByteArrayInputStream inputIs =
-                                    new ByteArrayInputStream(
-                                    inputOs.toByteArray());
-                            Object result = xstream.fromXML(inputIs);
-                            return result;
+                            return inputOs.toByteArray();
                         }
 
                         inputOs.write(readBuf.array(), 0, readBuf.position());
@@ -134,11 +119,8 @@ public final class TcpClient implements Client {
     public static void main(String[] args) throws Throwable {
         TcpClient tcpClient = new TcpClient();
         tcpClient.start();
-        InvokeData data = new InvokeData("fffffffffffff",
-                new Object[]{"hello", "world"},
-                new Class[]{String.class, String.class});
-        tcpClient.transmitRpcCall(new InetSocketAddress("www.blizzard.com", 80),
-                data);
+        tcpClient.send(new InetSocketAddress("www.blizzard.com", 80),
+                "GET /\r\n\r\n".getBytes());
         tcpClient.stop();
     }
 }

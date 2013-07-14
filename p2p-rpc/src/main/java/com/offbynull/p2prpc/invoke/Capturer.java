@@ -1,6 +1,5 @@
 package com.offbynull.p2prpc.invoke;
 
-import com.offbynull.p2prpc.Client;
 import com.offbynull.p2prpc.invoke.Deserializer.DeserializerResult;
 import java.io.IOException;
 import java.lang.reflect.Method;

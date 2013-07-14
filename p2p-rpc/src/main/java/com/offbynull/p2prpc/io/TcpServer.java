@@ -1,11 +1,6 @@
-package com.offbynull.p2prpc;
+package com.offbynull.p2prpc.io;
 
-import com.offbynull.p2prpc.invoke.Invoker;
-import com.offbynull.p2prpc.invoke.InvokerCallback;
-import com.offbynull.p2prpc.invoke.InvokeData;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -23,11 +18,10 @@ import org.apache.commons.io.IOUtils;
 
 public final class TcpServer implements Server {
 
-    private State state = State.INIT;
-    private InetSocketAddress listenAddress;
     private long timeout;
-    private Invoker invoker;
-    private final AtomicReference<Thread> runningThread;
+    private InetSocketAddress listenAddress;
+    private ServerCallback callback;
+    private EventLoop eventLoop;
 
     public TcpServer(int port) {
         this(new InetSocketAddress(port), 10000L);
@@ -40,37 +34,42 @@ public final class TcpServer implements Server {
     public TcpServer(InetSocketAddress listenAddress, long timeout) {
         this.timeout = timeout;
         this.listenAddress = listenAddress;
-        this.runningThread = new AtomicReference<>(null);
     }
 
     @Override
-    public void start(Invoker invoker) throws IOException {
-        if (state != State.STARTED) {
+    public void start(ServerCallback callback) throws IOException {
+        if (eventLoop != null) {
             throw new IllegalStateException();
         }
 
-        this.invoker = invoker;
+        this.callback = callback;
         
-        eventLoopThread = new Thread(new EventLoopRunnable());
+        eventLoop = new EventLoop();
+        eventLoop.startAndWait();
     }
 
     @Override
     public void stop() throws IOException {
-        if (state != State.STOPPED) {
+        if (eventLoop == null || eventLoop.isRunning()) {
             throw new IllegalStateException();
         }
         
-        
+        eventLoop.stopAndWait();
     }
 
     private class EventLoop extends AbstractExecutionThreadService {
         private Selector selector;
         private ServerSocketChannel serverChannel;
-        private Map<SocketChannel, ClientData> clientChannels;
+        private Map<SocketChannel, StreamedIoBuffers> clientChannelBuffers;
+        private final AtomicReference<Thread> runningThread;
+
+        public EventLoop() {
+            this.runningThread = new AtomicReference<>(null);
+        }
 
         @Override
         protected void startUp() throws Exception {
-            clientChannels = new HashMap<>();
+            clientChannelBuffers = new HashMap<>();
             try {
                 selector = Selector.open();
                 serverChannel = ServerSocketChannel.open();
@@ -111,38 +110,40 @@ public final class TcpServer implements Server {
                         clientChannel.socket().setTcpNoDelay(true);
                         clientChannel.register(selector, SelectionKey.OP_READ
                                 | SelectionKey.OP_WRITE);
-                        ClientData clientData = new ClientData();
-                        clientChannels.put(clientChannel, clientData);
+                        
+                        StreamedIoBuffers buffers = new StreamedIoBuffers();
+                        buffers.startReading();
+                        clientChannelBuffers.put(clientChannel, buffers);
                     } else if (key.isReadable()) {
                         SocketChannel clientChannel =
                                 (SocketChannel) key.channel();
-                        ClientData clientData =
-                                clientChannels.get(clientChannel);
+                        StreamedIoBuffers buffers =
+                                clientChannelBuffers.get(clientChannel);
                         
+                        buffer.clear();
                         if (clientChannel.read(buffer) == -1) {
                             clientChannel.shutdownInput();
-                            InvokeData invokeData =
-                                    clientData.dumpIncomingData();
-                            invoker.invoke(invokeData, callback);
+                            byte[] inData = buffers.finishReading();
+                            byte[] outData = callback.incomingMessage(inData);
+                            buffers.startWriting(outData);
+                        } else {
+                            buffers.addReadBlock(buffer);
                         }
-
-                        clientData.appendIncomingData(buffer);
-                        buffer.clear();
                     } else if (key.isWritable()) {
                         SocketChannel clientChannel =
                                 (SocketChannel) key.channel();
-                        ClientData clientData =
-                                clientChannels.get(clientChannel);
+                        StreamedIoBuffers buffers =
+                                clientChannelBuffers.get(clientChannel);
                         
                         buffer.clear();
-                        clientData.grabOutgoingData(buffer);
-                        clientChannel.write(buffer);
+                        buffers.getWriteBlock(buffer);
                         
-                        if (buffer.remaining() == 0) {
+                        if (buffer.position() == 0) {
                             clientChannel.shutdownOutput();
+                        } else {
+                            int amountWritten = clientChannel.write(buffer);
+                            buffers.adjustWritePointer(amountWritten);
                         }
-                        
-                        buffer.clear();
                     } else if (key.isConnectable()) {
                         ((SocketChannel)key.channel()).finishConnect(); 
                     }
@@ -187,55 +188,5 @@ public final class TcpServer implements Server {
             }
         }
 
-    }
-
-    private final class CustomInvokerCallback implements InvokerCallback {
-        private SocketChannel clientChannel;
-        private ClientData clientData;
-
-        public CustomInvokerCallback(SocketChannel clientChannel,
-                ClientData clientData) {
-            this.clientChannel = clientChannel;
-            this.clientData = clientData;
-        }
-
-        @Override
-        public void methodReturned(Object retVal) {
-        }
-
-        @Override
-        public void methodErrored(Throwable throwable) {
-        }
-
-        @Override
-        public void invokationErrored(Throwable throwable) {
-        }
-    }
-
-    private final class ClientData {
-        private ByteArrayOutputStream incomingBuffer;
-        private ByteBuffer outgoingBuffer;
-        
-        public void appendIncomingData(ByteBuffer buffer) {
-            incomingBuffer.write(buffer.array(), 0, buffer.position());
-        }
-        
-        public InvokeData dumpIncomingData() {
-            byte[] data = incomingBuffer.toByteArray();
-            incomingBuffer = null;
-            return (InvokeData) xstream.fromXML(new ByteArrayInputStream(data));
-        }
-        
-        public void grabOutgoingData(ByteBuffer buffer) {
-            
-            buffer.put(outgoingBuffer., offset, length);
-        }
-    }
-    
-    private enum State {
-
-        INIT,
-        STARTED,
-        STOPPED
     }
 }

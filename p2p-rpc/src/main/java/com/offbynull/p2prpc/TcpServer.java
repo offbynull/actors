@@ -1,8 +1,9 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.invoke.Invoker;
+import com.offbynull.p2prpc.invoke.InvokerCallback;
+import com.offbynull.p2prpc.invoke.InvokeData;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,7 +24,6 @@ import org.apache.commons.io.IOUtils;
 public final class TcpServer implements Server {
 
     private State state = State.INIT;
-    private XStream xstream;
     private InetSocketAddress listenAddress;
     private long timeout;
     private Invoker invoker;
@@ -41,8 +41,6 @@ public final class TcpServer implements Server {
         this.timeout = timeout;
         this.listenAddress = listenAddress;
         this.runningThread = new AtomicReference<>(null);
-
-        xstream = new XStream(new BinaryStreamDriver());
     }
 
     @Override
@@ -104,7 +102,6 @@ public final class TcpServer implements Server {
                     }
 
                     if (key.isAcceptable()) {
-			// accept connection 
                         SocketChannel clientChannel = serverChannel.accept();
                         clientChannel.configureBlocking(false);
                         clientChannel.socket().setKeepAlive(true);
@@ -190,6 +187,29 @@ public final class TcpServer implements Server {
             }
         }
 
+    }
+
+    private final class CustomInvokerCallback implements InvokerCallback {
+        private SocketChannel clientChannel;
+        private ClientData clientData;
+
+        public CustomInvokerCallback(SocketChannel clientChannel,
+                ClientData clientData) {
+            this.clientChannel = clientChannel;
+            this.clientData = clientData;
+        }
+
+        @Override
+        public void methodReturned(Object retVal) {
+        }
+
+        @Override
+        public void methodErrored(Throwable throwable) {
+        }
+
+        @Override
+        public void invokationErrored(Throwable throwable) {
+        }
     }
 
     private final class ClientData {

@@ -8,7 +8,7 @@ import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
-public final class RpcSystem {
+public final class OldRpcSystem {
 //
 //    private Map<Object, Server> serverMap;
 //

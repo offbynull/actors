@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.invoke.InvokeData;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 

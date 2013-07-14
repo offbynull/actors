@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc;
+package com.offbynull.p2prpc.invoke;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;

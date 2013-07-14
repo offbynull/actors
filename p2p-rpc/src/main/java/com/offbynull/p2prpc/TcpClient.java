@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.invoke.InvokeData;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
 import java.io.ByteArrayInputStream;

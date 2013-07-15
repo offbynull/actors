@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc.io;
+package com.offbynull.p2prpc.transport;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -1,7 +1,7 @@
-package com.offbynull.p2prpc.io;
+package com.offbynull.p2prpc.transport;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.offbynull.p2prpc.io.StreamedIoBuffers.Mode;
+import com.offbynull.p2prpc.transport.StreamedIoBuffers.Mode;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;

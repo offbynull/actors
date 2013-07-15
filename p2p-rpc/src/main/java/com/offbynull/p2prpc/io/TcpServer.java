@@ -1,6 +1,7 @@
 package com.offbynull.p2prpc.io;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.offbynull.p2prpc.io.StreamedIoBuffers.Mode;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -11,16 +12,15 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 
 public final class TcpServer implements Server {
 
     private long timeout;
     private InetSocketAddress listenAddress;
-    private ServerCallback callback;
+    private ServerMessageCallback callback;
     private EventLoop eventLoop;
 
     public TcpServer(int port) {
@@ -37,46 +37,44 @@ public final class TcpServer implements Server {
     }
 
     @Override
-    public void start(ServerCallback callback) throws IOException {
+    public void start(ServerMessageCallback callback) throws IOException {
         if (eventLoop != null) {
             throw new IllegalStateException();
         }
 
         this.callback = callback;
-        
+
         eventLoop = new EventLoop();
         eventLoop.startAndWait();
     }
 
     @Override
     public void stop() throws IOException {
-        if (eventLoop == null || eventLoop.isRunning()) {
+        if (eventLoop == null || !eventLoop.isRunning()) {
             throw new IllegalStateException();
         }
-        
+
         eventLoop.stopAndWait();
     }
 
     private class EventLoop extends AbstractExecutionThreadService {
+
         private Selector selector;
         private ServerSocketChannel serverChannel;
-        private Map<SocketChannel, StreamedIoBuffers> clientChannelBuffers;
-        private final AtomicReference<Thread> runningThread;
-
-        public EventLoop() {
-            this.runningThread = new AtomicReference<>(null);
-        }
+        private Map<SocketChannel, ClientChannelParams> clientChannelMap;
+        private AtomicBoolean stop;
 
         @Override
         protected void startUp() throws Exception {
-            clientChannelBuffers = new HashMap<>();
+            clientChannelMap = new HashMap<>();
+            stop = new AtomicBoolean(false);
             try {
                 selector = Selector.open();
                 serverChannel = ServerSocketChannel.open();
-                
-                serverChannel.configureBlocking(false); 
-                serverChannel.register(selector, SelectionKey.OP_ACCEPT); 
-                serverChannel.socket().bind(listenAddress); 
+
+                serverChannel.configureBlocking(false);
+                serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+                serverChannel.socket().bind(listenAddress);
             } catch (Exception e) {
                 IOUtils.closeQuietly(selector);
                 IOUtils.closeQuietly(serverChannel);
@@ -87,9 +85,13 @@ public final class TcpServer implements Server {
         @Override
         protected void run() throws Exception {
             ByteBuffer buffer = ByteBuffer.allocate(8192);
-            
+
             while (true) {
                 selector.select();
+
+                if (stop.get()) {
+                    return;
+                }
 
                 Iterator keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
@@ -108,44 +110,53 @@ public final class TcpServer implements Server {
                         clientChannel.socket().setSoLinger(false, 0);
                         clientChannel.socket().setSoTimeout(0);
                         clientChannel.socket().setTcpNoDelay(true);
-                        clientChannel.register(selector, SelectionKey.OP_READ
-                                | SelectionKey.OP_WRITE);
-                        
-                        StreamedIoBuffers buffers = new StreamedIoBuffers();
+
+                        SelectionKey selectionKey = clientChannel.register(
+                                selector, SelectionKey.OP_READ);
+                        StreamedIoBuffers buffers =
+                                new StreamedIoBuffers(Mode.READ_FIRST);
+
+                        ClientChannelParams params = new ClientChannelParams(
+                                buffers, selectionKey);
                         buffers.startReading();
-                        clientChannelBuffers.put(clientChannel, buffers);
+                        clientChannelMap.put(clientChannel, params);
                     } else if (key.isReadable()) {
                         SocketChannel clientChannel =
                                 (SocketChannel) key.channel();
-                        StreamedIoBuffers buffers =
-                                clientChannelBuffers.get(clientChannel);
-                        
+                        ClientChannelParams params =
+                                clientChannelMap.get(clientChannel);
+
+                        StreamedIoBuffers buffers = params.getBuffers();
+
                         buffer.clear();
                         if (clientChannel.read(buffer) == -1) {
                             clientChannel.shutdownInput();
                             byte[] inData = buffers.finishReading();
-                            byte[] outData = callback.incomingMessage(inData);
-                            buffers.startWriting(outData);
+                            ServerResponseCallback responseCallback =
+                                    new ResponseCallback(clientChannel, params);
+                            callback.messageArrived(inData, responseCallback);
                         } else {
                             buffers.addReadBlock(buffer);
                         }
                     } else if (key.isWritable()) {
                         SocketChannel clientChannel =
                                 (SocketChannel) key.channel();
-                        StreamedIoBuffers buffers =
-                                clientChannelBuffers.get(clientChannel);
-                        
+                        ClientChannelParams params =
+                                clientChannelMap.get(clientChannel);
+
+                        StreamedIoBuffers buffers = params.getBuffers();
+
                         buffer.clear();
                         buffers.getWriteBlock(buffer);
-                        
-                        if (buffer.position() == 0) {
+
+                        if (buffer.limit() == 0) {
                             clientChannel.shutdownOutput();
+                            IOUtils.closeQuietly(clientChannel);
+                            clientChannelMap.remove(clientChannel);
                         } else {
                             int amountWritten = clientChannel.write(buffer);
                             buffers.adjustWritePointer(amountWritten);
                         }
-                    } else if (key.isConnectable()) {
-                        ((SocketChannel)key.channel()).finishConnect(); 
                     }
                 }
             }
@@ -153,6 +164,11 @@ public final class TcpServer implements Server {
 
         @Override
         protected void shutDown() throws Exception {
+            for (Entry<SocketChannel, ClientChannelParams> e
+                    : clientChannelMap.entrySet()) {
+                IOUtils.closeQuietly(e.getKey());
+            }
+
             IOUtils.closeQuietly(selector);
             IOUtils.closeQuietly(serverChannel);
         }
@@ -161,32 +177,75 @@ public final class TcpServer implements Server {
         protected String serviceName() {
             return "TCP Server Event Loop (" + listenAddress.toString() + ")";
         }
-        
+
         @Override
-        protected Executor executor() {
-            return new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    Thread thread = Executors.defaultThreadFactory().newThread(
-                            command);
-                    runningThread.compareAndSet(null, thread);
+        protected void triggerShutdown() {
+            stop.set(true);
+            selector.wakeup();
+        }
+    }
 
-                    try {
-                        thread.setName(serviceName());
-                    } catch (SecurityException e) {
-                        // OK if we can't set the name in this environment.
-                    }
-                    thread.start();
-                }
-            };
+    private static final class ResponseCallback
+            implements ServerResponseCallback {
+
+        private SocketChannel channel;
+        private ClientChannelParams params;
+
+        public ResponseCallback(SocketChannel channel,
+                ClientChannelParams params) {
+            this.channel = channel;
+            this.params = params;
         }
 
-        protected void interruptRunningThread() {
-            Thread thread = runningThread.get();
-            if (thread != null) {
-                thread.interrupt();
+        @Override
+        public void responseCompleted(byte[] data) {
+            StreamedIoBuffers buffers = params.getBuffers();
+            SelectionKey selectionKey = params.getSelectionKey();
+            
+            buffers.startWriting(data);
+            selectionKey.interestOps(SelectionKey.OP_WRITE);
+        }
+    }
+
+    private static final class ClientChannelParams {
+
+        private StreamedIoBuffers buffers;
+        private SelectionKey selectionKey;
+
+        public ClientChannelParams(StreamedIoBuffers buffers,
+                SelectionKey selectionKey) {
+            this.buffers = buffers;
+            this.selectionKey = selectionKey;
+        }
+
+        public StreamedIoBuffers getBuffers() {
+            return buffers;
+        }
+
+        public SelectionKey getSelectionKey() {
+            return selectionKey;
+        }
+    }
+
+    public static void main(String[] args) throws Throwable {
+        ServerMessageCallback callback = new ServerMessageCallback() {
+            @Override
+            public void messageArrived(byte[] data,
+                    ServerResponseCallback responseCallback) {
+                responseCallback.responseCompleted("OUTPUT".getBytes());
             }
-        }
+        };
 
+        TcpServer tcpServer = new TcpServer(12345, 999999L);
+        tcpServer.start(callback);
+
+        TcpClient tcpClient = new TcpClient(999999L);
+        tcpClient.start();
+        byte[] data = tcpClient.send(new InetSocketAddress("localhost", 12345),
+                "GET /\r\n\r\n".getBytes());
+        System.out.println(new String(data));
+        tcpClient.stop();
+
+        tcpServer.stop();
     }
 }

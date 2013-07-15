@@ -7,11 +7,17 @@ import java.nio.ByteBuffer;
 public final class StreamedIoBuffers {
 
     private State state = State.INIT;
+    private Mode mode;
     private ByteArrayOutputStream readOs;
     private ByteArrayInputStream writeIs;
 
+    public StreamedIoBuffers(Mode mode) {
+        this.mode = mode;
+    }
+    
     public void startReading() {
-        if (state != State.INIT) {
+        if ((mode == Mode.READ_FIRST && state != State.INIT)
+                || (mode == Mode.WRITE_FIRST && state != State.WRITE_DONE)) {
             throw new IllegalStateException();
         }
         
@@ -31,7 +37,7 @@ public final class StreamedIoBuffers {
         if (state != State.READ) {
             throw new IllegalStateException();
         }
-        
+
         state = State.READ_DONE;
         byte[] data = readOs.toByteArray();
         readOs = null;
@@ -39,7 +45,8 @@ public final class StreamedIoBuffers {
     }
 
     public void startWriting(byte[] data) {
-        if (state != State.READ_DONE) {
+        if ((mode == Mode.READ_FIRST && state != State.READ_DONE)
+                || (mode == Mode.WRITE_FIRST && state != State.INIT)) {
             throw new IllegalStateException();
         }
         
@@ -54,9 +61,12 @@ public final class StreamedIoBuffers {
         
         writeIs.mark(Integer.MAX_VALUE);
         
-        int length = buffer.remaining();
+        int length = buffer.capacity();
         int offset = buffer.position();
-        buffer.put(buffer.array(), offset, length);
+        byte[] array = buffer.array();
+        int amount = writeIs.read(array, offset, length);
+        buffer.position(0);
+        buffer.limit(amount == -1 ? 0 : amount);
     }
     
     public void adjustWritePointer(int amountWritten) {
@@ -73,12 +83,33 @@ public final class StreamedIoBuffers {
             throw new IllegalStateException();
         }
         
-        state = State.DONE;
+        state = State.WRITE_DONE;
         writeIs = null;
     }
     
     public boolean isDone() {
-        return state == State.DONE;
+        switch (mode) {
+            case READ_FIRST:
+                return state == State.WRITE_DONE;
+            case WRITE_FIRST:
+                return state == State.READ_DONE;
+            default:
+                throw new IllegalStateException();
+        }
+    }
+
+    public boolean isReading() {
+        return state == State.READ;
+    }
+    
+    public boolean isWriting() {
+        return state == State.WRITE;
+    }
+    
+
+    public enum Mode {
+        WRITE_FIRST,
+        READ_FIRST
     }
     
     private enum State {
@@ -86,6 +117,6 @@ public final class StreamedIoBuffers {
         READ,
         READ_DONE,
         WRITE,
-        DONE
+        WRITE_DONE
     }
 }

@@ -1,6 +1,6 @@
 package com.offbynull.p2prpc.io;
 
-import java.io.ByteArrayOutputStream;
+import com.offbynull.p2prpc.io.StreamedIoBuffers.Mode;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -8,6 +8,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import org.apache.commons.io.IOUtils;
 
 public final class TcpClient implements Client {
 
@@ -39,7 +40,9 @@ public final class TcpClient implements Client {
             throw new IllegalStateException();
         }
 
-        ByteBuffer writeBuf = ByteBuffer.wrap(data);
+        ByteBuffer buffer = ByteBuffer.allocate(8192);
+        StreamedIoBuffers buffers = new StreamedIoBuffers(Mode.WRITE_FIRST);
+        buffers.startWriting(data);
 
         // IO
         try (Selector selector = Selector.open();
@@ -51,11 +54,9 @@ public final class TcpClient implements Client {
             channel.socket().setSoTimeout(0);
             channel.socket().setTcpNoDelay(true);
             channel.connect(address);
-            channel.register(selector, SelectionKey.OP_READ
-                    | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT);
+            SelectionKey selectionKey = channel.register(selector,
+                    SelectionKey.OP_CONNECT);
 
-            ByteBuffer readBuf = ByteBuffer.allocate(8192);
-            ByteArrayOutputStream inputOs = new ByteArrayOutputStream();
 
             long currentTime = System.currentTimeMillis();
             long endTime = currentTime + timeout;
@@ -72,26 +73,37 @@ public final class TcpClient implements Client {
                     }
 
                     if (key.isReadable()) {
-                        if (channel.read(readBuf) == -1) {
-                            return inputOs.toByteArray();
+                        buffer.clear();
+                        if (channel.read(buffer) == -1) {
+                            IOUtils.closeQuietly(channel);
+                            return buffers.finishReading();
+                        } else {
+                            buffers.addReadBlock(buffer);
                         }
-
-                        inputOs.write(readBuf.array(), 0, readBuf.position());
-                        readBuf.clear();
                     } else if (key.isWritable()) {
-                        channel.write(writeBuf);
+                        buffer.clear();
+                        buffers.getWriteBlock(buffer);
 
-                        if (writeBuf.remaining() == 0) {
+                        if (buffer.limit()== 0) {
+                            selectionKey.interestOps(SelectionKey.OP_READ);
                             channel.shutdownOutput();
+                            buffers.finishWriting();
+                            buffers.startReading();
+                        } else {
+                            int amountWritten = channel.write(buffer);
+                            buffers.adjustWritePointer(amountWritten);
                         }
                     } else if (key.isConnectable()) {
                         channel.finishConnect();
+                        selectionKey.interestOps(SelectionKey.OP_WRITE);
                     }
                 }
 
                 currentTime = System.currentTimeMillis();
             }
 
+            IOUtils.closeQuietly(channel);
+            
             if (currentTime >= endTime) {
                 throw new IOException("Timed out");
             }
@@ -102,7 +114,7 @@ public final class TcpClient implements Client {
 
     @Override
     public void stop() {
-        if (state != State.STOPPED) {
+        if (state != State.STARTED) {
             throw new IllegalStateException();
         }
 
@@ -114,13 +126,5 @@ public final class TcpClient implements Client {
         INIT,
         STARTED,
         STOPPED
-    }
-
-    public static void main(String[] args) throws Throwable {
-        TcpClient tcpClient = new TcpClient();
-        tcpClient.start();
-        tcpClient.send(new InetSocketAddress("www.blizzard.com", 80),
-                "GET /\r\n\r\n".getBytes());
-        tcpClient.stop();
     }
 }

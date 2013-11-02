@@ -61,6 +61,8 @@ public final class TcpServer implements Server<SocketAddress> {
         private InetSocketAddress listenAddress;
         private ServerMessageCallback callback;
         
+        private TimeoutTracker<SocketChannel> timeoutTracker;
+        
         private Selector selector;
         private ServerSocketChannel serverChannel;
         private Map<SocketChannel, ClientChannelParams> clientChannelMap;
@@ -75,6 +77,7 @@ public final class TcpServer implements Server<SocketAddress> {
         @Override
         protected void startUp() throws Exception {
             clientChannelMap = new HashMap<>();
+            timeoutTracker = new TimeoutTracker<>();
             stop = new AtomicBoolean(false);
             try {
                 selector = Selector.open();
@@ -95,11 +98,17 @@ public final class TcpServer implements Server<SocketAddress> {
             ByteBuffer buffer = ByteBuffer.allocate(8192);
 
             while (true) {
-                selector.select();
+                long currentTime = System.currentTimeMillis();
+                long nextAwakeTime = timeoutTracker.getNextQueryTime();
+                long durationUntilNextAwake = Math.max(nextAwakeTime - currentTime, 1L); // must be > 0, 0 = forever for select
+                
+                selector.select(durationUntilNextAwake);
 
                 if (stop.get()) {
                     return;
                 }
+                
+                currentTime = System.currentTimeMillis(); // update
 
                 Iterator keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
@@ -127,7 +136,11 @@ public final class TcpServer implements Server<SocketAddress> {
                         ClientChannelParams params = new ClientChannelParams(
                                 buffers, selectionKey);
                         buffers.startReading();
+                        
                         clientChannelMap.put(clientChannel, params);
+                        
+                        long killTime = currentTime + timeout;
+                        timeoutTracker.add(clientChannel, killTime);
                     } else if (key.isReadable()) {
                         SocketChannel clientChannel =
                                 (SocketChannel) key.channel();
@@ -162,6 +175,7 @@ public final class TcpServer implements Server<SocketAddress> {
                             clientChannel.shutdownOutput();
                             IOUtils.closeQuietly(clientChannel);
                             clientChannelMap.remove(clientChannel);
+                            timeoutTracker.remove(clientChannel);
                         } else {
                             int amountWritten = clientChannel.write(buffer);
                             buffers.adjustWritePointer(amountWritten);

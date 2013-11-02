@@ -15,6 +15,7 @@ public final class StreamedIoBuffers {
         this.mode = mode;
     }
     
+    @Override
     public void startReading() {
         if ((mode == Mode.READ_FIRST && state != State.INIT)
                 || (mode == Mode.WRITE_FIRST && state != State.WRITE_DONE)) {
@@ -25,6 +26,7 @@ public final class StreamedIoBuffers {
         readOs = new ByteArrayOutputStream();
     }
 
+    @Override
     public void addReadBlock(ByteBuffer buffer) {
         if (state != State.READ) {
             throw new IllegalStateException();
@@ -33,6 +35,7 @@ public final class StreamedIoBuffers {
         readOs.write(buffer.array(), 0, buffer.position());
     }
 
+    @Override
     public byte[] finishReading() {
         if (state != State.READ) {
             throw new IllegalStateException();
@@ -44,6 +47,7 @@ public final class StreamedIoBuffers {
         return data;
     }
 
+    @Override
     public void startWriting(byte[] data) {
         if ((mode == Mode.READ_FIRST && state != State.READ_DONE)
                 || (mode == Mode.WRITE_FIRST && state != State.INIT)) {
@@ -54,6 +58,7 @@ public final class StreamedIoBuffers {
         writeIs = new ByteArrayInputStream(data);
     }
 
+    @Override
     public void getWriteBlock(ByteBuffer buffer) {
         if (state != State.WRITE) {
             throw new IllegalStateException();
@@ -69,6 +74,7 @@ public final class StreamedIoBuffers {
         buffer.limit(amount == -1 ? 0 : amount);
     }
     
+    @Override
     public void adjustWritePointer(int amountWritten) {
         if (state != State.WRITE) {
             throw new IllegalStateException();
@@ -78,6 +84,7 @@ public final class StreamedIoBuffers {
         writeIs.skip(amountWritten);
     }
     
+    @Override
     public void finishWriting() {
         if (state != State.WRITE) {
             throw new IllegalStateException();
@@ -87,6 +94,7 @@ public final class StreamedIoBuffers {
         writeIs = null;
     }
     
+    @Override
     public boolean isDone() {
         switch (mode) {
             case READ_FIRST:
@@ -98,10 +106,12 @@ public final class StreamedIoBuffers {
         }
     }
 
+    @Override
     public boolean isReading() {
         return state == State.READ;
     }
     
+    @Override
     public boolean isWriting() {
         return state == State.WRITE;
     }

@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.offbynull.p2prpc.transport.StreamedIoBuffers.Mode;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -16,11 +17,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 
-public final class TcpServer implements Server {
+public final class TcpServer implements Server<SocketAddress> {
 
     private long timeout;
     private InetSocketAddress listenAddress;
-    private ServerMessageCallback callback;
     private EventLoop eventLoop;
 
     public TcpServer(int port) {
@@ -37,14 +37,12 @@ public final class TcpServer implements Server {
     }
 
     @Override
-    public void start(ServerMessageCallback callback) throws IOException {
+    public void start(ServerMessageCallback<SocketAddress> callback) throws IOException {
         if (eventLoop != null) {
             throw new IllegalStateException();
         }
 
-        this.callback = callback;
-
-        eventLoop = new EventLoop();
+        eventLoop = new EventLoop(timeout, listenAddress, callback);
         eventLoop.startAndWait();
     }
 
@@ -57,12 +55,22 @@ public final class TcpServer implements Server {
         eventLoop.stopAndWait();
     }
 
-    private class EventLoop extends AbstractExecutionThreadService {
+    private static final class EventLoop extends AbstractExecutionThreadService {
 
+        private long timeout;
+        private InetSocketAddress listenAddress;
+        private ServerMessageCallback callback;
+        
         private Selector selector;
         private ServerSocketChannel serverChannel;
         private Map<SocketChannel, ClientChannelParams> clientChannelMap;
         private AtomicBoolean stop;
+
+        public EventLoop(long timeout, InetSocketAddress listenAddress, ServerMessageCallback callback) {
+            this.timeout = timeout;
+            this.listenAddress = listenAddress;
+            this.callback = callback;
+        }
 
         @Override
         protected void startUp() throws Exception {
@@ -125,6 +133,7 @@ public final class TcpServer implements Server {
                                 (SocketChannel) key.channel();
                         ClientChannelParams params =
                                 clientChannelMap.get(clientChannel);
+                        SocketAddress from = clientChannel.getRemoteAddress();
 
                         StreamedIoBuffers buffers = params.getBuffers();
 
@@ -134,7 +143,7 @@ public final class TcpServer implements Server {
                             byte[] inData = buffers.finishReading();
                             ServerResponseCallback responseCallback =
                                     new ResponseCallback(clientChannel, params);
-                            callback.messageArrived(inData, responseCallback);
+                            callback.messageArrived(from, inData, responseCallback);
                         } else {
                             buffers.addReadBlock(buffer);
                         }
@@ -228,9 +237,9 @@ public final class TcpServer implements Server {
     }
 
     public static void main(String[] args) throws Throwable {
-        ServerMessageCallback callback = new ServerMessageCallback() {
+        ServerMessageCallback<SocketAddress> callback = new ServerMessageCallback<SocketAddress>() {
             @Override
-            public void messageArrived(byte[] data,
+            public void messageArrived(SocketAddress from, byte[] data,
                     ServerResponseCallback responseCallback) {
                 responseCallback.responseCompleted("OUTPUT".getBytes());
             }

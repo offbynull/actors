@@ -159,12 +159,17 @@ public final class UdpServer implements Server<SocketAddress> {
         }
 
         @Override
-        public void responseCompleted(byte[] data) {
+        public void responseReady(byte[] data) {
             try {
                 channel.send(ByteBuffer.wrap(data), requester);
             } catch (IOException ioe) {
                 // send failed. do nothing.
             }
+        }
+
+        @Override
+        public void terminate() {
+            // do nothing
         }
     }
 
@@ -173,7 +178,7 @@ public final class UdpServer implements Server<SocketAddress> {
             @Override
             public void messageArrived(SocketAddress from, byte[] data,
                     ServerResponseCallback responseCallback) {
-                responseCallback.responseCompleted("OUTPUT".getBytes());
+                responseCallback.responseReady("OUTPUT".getBytes());
             }
         };
 

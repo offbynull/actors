@@ -8,7 +8,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 
@@ -47,48 +51,107 @@ public final class UdpBase {
         eventLoop.stopAndWait();
     }
 
-    private static final class EventLoop extends AbstractExecutionThreadService {
+    public UdpReceiveNotifier getReceiveNotifier() {
+        if (eventLoop == null || !eventLoop.isRunning()) {
+            throw new IllegalStateException();
+        }
+        
+        return eventLoop.getReceiveNotifier();
+    }
+
+    public UdpSendQueuer getSendQueuer() {
+        if (eventLoop == null || !eventLoop.isRunning()) {
+            throw new IllegalStateException();
+        }
+        
+        return eventLoop.getSendQueuer();
+    }
+
+    private final class EventLoop extends AbstractExecutionThreadService {
 
         private int bufferSize;
         private InetSocketAddress listenAddress;
 
         private Selector selector;
-        private DatagramChannel serverChannel;
+        private DatagramChannel channel;
         private AtomicBoolean stop;
+        
+        private UdpReceiveNotifier receiveNotifier;
+        private UdpSendQueuer sendQueuer;
 
-        public EventLoop(int bufferSize, InetSocketAddress listenAddress) {
+        public EventLoop(int bufferSize, InetSocketAddress listenAddress) throws IOException {
             this.bufferSize = bufferSize;
             this.listenAddress = listenAddress;
+            
+            try {
+                selector = Selector.open();
+                channel = DatagramChannel.open();
+            } catch (RuntimeException | IOException e) {
+                IOUtils.closeQuietly(selector);
+                IOUtils.closeQuietly(channel);
+                throw e;
+            }
+            
+            receiveNotifier = new UdpReceiveNotifier();
+            sendQueuer = new UdpSendQueuer(selector);
         }
         
         @Override
-        protected void startUp() throws Exception {
+        protected void startUp() throws IOException {
             stop = new AtomicBoolean(false);
             try {
-                selector = Selector.open();
-                serverChannel = DatagramChannel.open();
-
-                serverChannel.configureBlocking(false);
-                serverChannel.register(selector, SelectionKey.OP_READ);
-                serverChannel.socket().bind(listenAddress);
-            } catch (Exception e) {
+                channel.configureBlocking(false);
+                channel.register(selector, SelectionKey.OP_READ);
+                channel.socket().bind(listenAddress);
+            } catch (RuntimeException | IOException e) {
                 IOUtils.closeQuietly(selector);
-                IOUtils.closeQuietly(serverChannel);
+                IOUtils.closeQuietly(channel);
                 throw e;
             }
+        }
+
+        public UdpReceiveNotifier getReceiveNotifier() {
+            return receiveNotifier;
+        }
+
+        public UdpSendQueuer getSendQueuer() {
+            return sendQueuer;
         }
 
         @Override
         protected void run() throws Exception {
             ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
+            int selectionKey = SelectionKey.OP_READ;
+            LinkedList<UdpOutgoingPacket> pendingOutgoingPackets = new LinkedList<>();
+            LinkedList<UdpIncomingPacket> pendingIncomingPackets = new LinkedList<>();
             while (true) {
+                // get outgoing data
+                sendQueuer.drainTo(pendingOutgoingPackets);
+                
+                // set selection key based on if there's outgoing data available
+                int newSelectionKey = SelectionKey.OP_READ;
+                if (!pendingOutgoingPackets.isEmpty()) {
+                    newSelectionKey |= SelectionKey.OP_WRITE;
+                }
+                
+                if (newSelectionKey != selectionKey) {
+                    selectionKey = newSelectionKey;
+                    channel.register(selector, selectionKey);
+                }
+                
+                // select
                 selector.select();
 
+                // stop if signalled
                 if (stop.get()) {
                     return;
                 }
-
+                
+                // get current time
+                long currentTime = System.currentTimeMillis();
+                
+                // go through selected keys
                 Iterator keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
                     SelectionKey key = (SelectionKey) keys.next();
@@ -98,8 +161,7 @@ public final class UdpBase {
                         continue;
                     }
 
-                    if (key.isReadable()) {
-                        DatagramChannel channel = (DatagramChannel) key.channel();
+                    if (key.isReadable()) { // incoming data available
                         SocketAddress from = channel.receive(buffer);
 
                         buffer.flip();
@@ -107,19 +169,25 @@ public final class UdpBase {
                         buffer.get(inData);
                         buffer.clear();
                         
-//                        ServerResponseCallback responseCallback =
-//                                    new ResponseCallback(channel, from);
-//                        
-//                        callback.messageArrived(from, inData, responseCallback);
+                        UdpIncomingPacket packet = new UdpIncomingPacket(from, inData, currentTime);
+                        pendingIncomingPackets.addLast(packet);
+                    } else if (key.isWritable()) { // ready for outgoing data
+                        UdpOutgoingPacket packet = pendingOutgoingPackets.poll();
+                        
+                        if (packet != null) {
+                            channel.send(packet.getData(), packet.getTo());
+                        }
                     }
                 }
+                
+                receiveNotifier.notify(pendingIncomingPackets);
             }
         }
 
         @Override
         protected void shutDown() throws Exception {
             IOUtils.closeQuietly(selector);
-            IOUtils.closeQuietly(serverChannel);
+            IOUtils.closeQuietly(channel);
         }
 
         @Override
@@ -132,5 +200,150 @@ public final class UdpBase {
             stop.set(true);
             selector.wakeup();
         }
+    }
+    
+    public static final class UdpReceiveNotifier {
+        private LinkedBlockingQueue<UdpReceiveHandler> handlers;
+        
+        private UdpReceiveNotifier() {
+            handlers = new LinkedBlockingQueue<>();
+        }
+
+        public void add(UdpReceiveHandler e) {
+            handlers.add(e);
+        }
+
+        public void remove() {
+            handlers.remove();
+        }
+        
+        public void notify(UdpIncomingPacket ... packets) {
+            notify(Arrays.asList(packets));
+        }
+
+        public void notify(Collection<UdpIncomingPacket> packets) {
+            UdpReceiveHandler[] handlersArray = handlers.toArray(new UdpReceiveHandler[0]);
+            
+            for (UdpIncomingPacket packet : packets) {
+                for (UdpReceiveHandler handler : handlersArray) { // to array to avoid locks
+                    if (handler.incoming(packet)) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    public static final class UdpSendQueuer {
+        private Selector selector;
+        private LinkedBlockingQueue<UdpOutgoingPacket> outgoingPackets;
+
+        private UdpSendQueuer(Selector selector) {
+            this.selector = selector;
+            this.outgoingPackets = new LinkedBlockingQueue<>();
+        }
+        
+        public void send(SocketAddress to, byte[] data) {
+            UdpOutgoingPacket packet = new UdpOutgoingPacket(to, data);
+            outgoingPackets.add(packet);
+            selector.wakeup();
+        }
+        
+        public void drainTo(Collection<UdpOutgoingPacket> destination) {
+            outgoingPackets.drainTo(destination);
+        }
+    }
+    
+    public interface UdpReceiveHandler {
+        boolean incoming(UdpIncomingPacket packet);
+    }
+    
+    public static final class UdpIncomingPacket {
+        private SocketAddress from;
+        private ByteBuffer data;
+        private long arriveTime;
+
+        public UdpIncomingPacket(SocketAddress from, byte[] data, long arriveTime) {
+            this.from = from;
+            this.data = ByteBuffer.allocate(data.length).put(data);
+            this.arriveTime = arriveTime;
+            
+            this.data.flip();
+        }
+
+        public SocketAddress getFrom() {
+            return from;
+        }
+
+        public ByteBuffer getData() {
+            return data.asReadOnlyBuffer();
+        }
+
+        public long getArriveTime() {
+            return arriveTime;
+        }
+        
+    }
+    
+    public static final class UdpOutgoingPacket {
+        private SocketAddress to;
+        private ByteBuffer data;
+
+        public UdpOutgoingPacket(SocketAddress to, byte[] data) {
+            this.to = to;
+            this.data = ByteBuffer.allocate(data.length).put(data);
+            
+            this.data.flip();
+        }
+
+        public SocketAddress getTo() {
+            return to;
+        }
+
+        public ByteBuffer getData() {
+            return data.asReadOnlyBuffer();
+        }
+    }
+    
+    public static void main(String[] args) throws Throwable {
+        ServerMessageCallback<SocketAddress> callback = new ServerMessageCallback<SocketAddress>() {
+            @Override
+            public void messageArrived(SocketAddress from, byte[] data,
+                    ServerResponseCallback responseCallback) {
+                responseCallback.responseReady("OUTPUT".getBytes());
+            }
+        };
+
+        UdpBase base = new UdpBase(12345);
+        base.start();
+        
+        UdpReceiveNotifier recvNotifier = base.getReceiveNotifier();
+        UdpSendQueuer sendQueuer = base.getSendQueuer();
+        
+        recvNotifier.add(new UdpReceiveHandler() {
+
+            @Override
+            public boolean incoming(UdpIncomingPacket packet) {
+                byte[] data = new byte[packet.getData().limit()];
+                packet.getData().get(data);
+                System.out.println(new String(data));
+                return true;
+            }
+        });
+        
+        recvNotifier.add(new UdpReceiveHandler() {
+
+            @Override
+            public boolean incoming(UdpIncomingPacket packet) {
+                throw new RuntimeException();
+            }
+        });
+
+        sendQueuer.send(new InetSocketAddress("localhost", 12345),
+                "GET /\r\n\r\n".getBytes());
+        
+        Thread.sleep(1000L);
+        
+        base.stop();
     }
 }

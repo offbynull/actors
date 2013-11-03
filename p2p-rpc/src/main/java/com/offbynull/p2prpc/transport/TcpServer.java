@@ -221,12 +221,17 @@ public final class TcpServer implements Server<SocketAddress> {
         }
 
         @Override
-        public void responseCompleted(byte[] data) {
+        public void responseReady(byte[] data) {
             StreamedIoBuffers buffers = params.getBuffers();
             SelectionKey selectionKey = params.getSelectionKey();
             
             buffers.startWriting(data);
             selectionKey.interestOps(SelectionKey.OP_WRITE);
+        }
+
+        @Override
+        public void terminate() {
+            IOUtils.closeQuietly(channel);
         }
     }
 
@@ -255,7 +260,7 @@ public final class TcpServer implements Server<SocketAddress> {
             @Override
             public void messageArrived(SocketAddress from, byte[] data,
                     ServerResponseCallback responseCallback) {
-                responseCallback.responseCompleted("OUTPUT".getBytes());
+                responseCallback.responseReady("OUTPUT".getBytes());
             }
         };
 

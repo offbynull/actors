@@ -15,10 +15,10 @@ public final class PacketIdGenerator {
         secondRandom = new Random(secureRandom.nextLong());
     }
 
-    public byte[] generate() {
+    public PacketId generate() {
         long time = System.currentTimeMillis();
         long rand = firstRandom.nextLong() ^ secondRandom.nextLong();
         
-        return ByteBuffer.allocate(16).putLong(rand).putLong(time).array();
+        return new PacketId(ByteBuffer.allocate(16).putLong(rand).putLong(time).array());
     }
 }

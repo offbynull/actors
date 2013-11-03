@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc.transport;
 
 public interface ServerResponseCallback {
-    void responseCompleted(byte[] data);
+    void responseReady(byte[] data);
+    void terminate();
 }

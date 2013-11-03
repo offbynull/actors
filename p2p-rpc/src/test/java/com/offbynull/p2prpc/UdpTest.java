@@ -1,11 +1,11 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.transport.PacketIdGenerator;
-import com.offbynull.p2prpc.transport.ServerMessageCallback;
-import com.offbynull.p2prpc.transport.ServerResponseCallback;
-import com.offbynull.p2prpc.transport.UdpBase;
-import com.offbynull.p2prpc.transport.UdpClient;
-import com.offbynull.p2prpc.transport.UdpServer;
+import com.offbynull.p2prpc.session.PacketIdGenerator;
+import com.offbynull.p2prpc.session.ServerMessageCallback;
+import com.offbynull.p2prpc.session.ServerResponseCallback;
+import com.offbynull.p2prpc.transport.UdpTransport;
+import com.offbynull.p2prpc.session.UdpClient;
+import com.offbynull.p2prpc.session.UdpServer;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import org.junit.After;
@@ -41,7 +41,7 @@ public class UdpTest {
 
     @Test
     public void simpleUdpTest() throws Throwable {
-        UdpBase base = new UdpBase(12345);
+        UdpTransport base = new UdpTransport(12345);
         base.start();
         
         UdpServer server = new UdpServer(base);

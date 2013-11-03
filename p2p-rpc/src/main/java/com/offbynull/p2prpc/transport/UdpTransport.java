@@ -3,7 +3,6 @@ package com.offbynull.p2prpc.transport;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -16,24 +15,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 
-public final class UdpBase {
+public final class UdpTransport implements PacketTransport<InetSocketAddress> {
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
     private int bufferSize;
 
-    public UdpBase(int port) {
+    public UdpTransport(int port) {
         this(new InetSocketAddress(port), 65535);
     }
 
-    public UdpBase(int port, int bufferSize) {
+    public UdpTransport(int port, int bufferSize) {
         this(new InetSocketAddress(port), bufferSize);
     }
 
-    public UdpBase(InetSocketAddress listenAddress, int bufferSize) {
+    public UdpTransport(InetSocketAddress listenAddress, int bufferSize) {
         this.listenAddress = listenAddress;
         this.bufferSize = bufferSize;
     }
     
+    @Override
     public void start() throws IOException {
         if (eventLoop != null) {
             throw new IllegalStateException();
@@ -43,6 +43,7 @@ public final class UdpBase {
         eventLoop.startAndWait();
     }
 
+    @Override
     public void stop() throws IOException {
         if (eventLoop == null || !eventLoop.isRunning()) {
             throw new IllegalStateException();
@@ -51,7 +52,8 @@ public final class UdpBase {
         eventLoop.stopAndWait();
     }
 
-    public UdpReceiveNotifier getReceiveNotifier() {
+    @Override
+    public ReceiveNotifier getReceiveNotifier() {
         if (eventLoop == null || !eventLoop.isRunning()) {
             throw new IllegalStateException();
         }
@@ -59,7 +61,8 @@ public final class UdpBase {
         return eventLoop.getReceiveNotifier();
     }
 
-    public UdpSendQuerier getSendQuerier() {
+    @Override
+    public PacketSender getPacketSender() {
         if (eventLoop == null || !eventLoop.isRunning()) {
             throw new IllegalStateException();
         }
@@ -123,8 +126,8 @@ public final class UdpBase {
             ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
             int selectionKey = SelectionKey.OP_READ;
-            LinkedList<UdpOutgoingPacket> pendingOutgoingPackets = new LinkedList<>();
-            LinkedList<UdpIncomingPacket> pendingIncomingPackets = new LinkedList<>();
+            LinkedList<OutgoingPacket<InetSocketAddress>> pendingOutgoingPackets = new LinkedList<>();
+            LinkedList<IncomingPacket<InetSocketAddress>> pendingIncomingPackets = new LinkedList<>();
             while (true) {
                 // get outgoing data
                 sendQuerier.drainTo(pendingOutgoingPackets);
@@ -162,17 +165,17 @@ public final class UdpBase {
                     }
 
                     if (key.isReadable()) { // incoming data available
-                        SocketAddress from = channel.receive(buffer);
+                        InetSocketAddress from = (InetSocketAddress) channel.receive(buffer);
 
                         buffer.flip();
                         byte[] inData = new byte[buffer.remaining()];
                         buffer.get(inData);
                         buffer.clear();
                         
-                        UdpIncomingPacket packet = new UdpIncomingPacket(from, inData, currentTime);
+                        IncomingPacket<InetSocketAddress> packet = new IncomingPacket<>(from, inData, currentTime);
                         pendingIncomingPackets.addLast(packet);
                     } else if (key.isWritable()) { // ready for outgoing data
-                        UdpOutgoingPacket packet = pendingOutgoingPackets.poll();
+                        OutgoingPacket<InetSocketAddress> packet = pendingOutgoingPackets.poll();
                         
                         if (packet != null) {
                             channel.send(packet.getData(), packet.getTo());
@@ -193,7 +196,7 @@ public final class UdpBase {
 
         @Override
         protected String serviceName() {
-            return "UDP Base Event Loop (" + listenAddress.toString() + ")";
+            return UdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress.toString() + ")";
         }
 
         @Override
@@ -203,31 +206,33 @@ public final class UdpBase {
         }
     }
     
-    public static final class UdpReceiveNotifier {
-        private LinkedBlockingQueue<UdpReceiveHandler> handlers;
+    public static final class UdpReceiveNotifier implements ReceiveNotifier<InetSocketAddress> {
+        private LinkedBlockingQueue<PacketReceiver> handlers;
         
         private UdpReceiveNotifier() {
             handlers = new LinkedBlockingQueue<>();
         }
 
-        public void add(UdpReceiveHandler e) {
+        @Override
+        public void add(PacketReceiver<InetSocketAddress> e) {
             handlers.add(e);
         }
 
-        public void remove(UdpReceiveHandler e) {
+        @Override
+        public void remove(PacketReceiver<InetSocketAddress> e) {
             handlers.remove(e);
         }
         
-        public void notify(UdpIncomingPacket ... packets) {
+        private void notify(IncomingPacket<InetSocketAddress> ... packets) {
             notify(Arrays.asList(packets));
         }
 
-        public void notify(Collection<UdpIncomingPacket> packets) {
-            UdpReceiveHandler[] handlersArray = handlers.toArray(new UdpReceiveHandler[0]);
+        private void notify(Collection<IncomingPacket<InetSocketAddress>> packets) {
+            PacketReceiver[] handlersArray = handlers.toArray(new PacketReceiver[0]);
             
-            for (UdpIncomingPacket packet : packets) {
-                for (UdpReceiveHandler handler : handlersArray) { // to array to avoid locks
-                    if (handler.incoming(packet)) {
+            for (IncomingPacket<InetSocketAddress> packet : packets) {
+                for (PacketReceiver<InetSocketAddress> handler : handlersArray) { // to array to avoid locks
+                    if (handler.packetArrived(packet)) {
                         break;
                     }
                 }
@@ -235,116 +240,23 @@ public final class UdpBase {
         }
     }
     
-    public static final class UdpSendQuerier {
+    public static final class UdpSendQuerier implements PacketSender<InetSocketAddress> {
         private Selector selector;
-        private LinkedBlockingQueue<UdpOutgoingPacket> outgoingPackets;
+        private LinkedBlockingQueue<OutgoingPacket<InetSocketAddress>> outgoingPackets;
 
         private UdpSendQuerier(Selector selector) {
             this.selector = selector;
             this.outgoingPackets = new LinkedBlockingQueue<>();
         }
         
-        public void send(SocketAddress to, byte[] data) {
-            UdpOutgoingPacket packet = new UdpOutgoingPacket(to, data);
+        @Override
+        public void sendPacket(OutgoingPacket<InetSocketAddress> packet) {
             outgoingPackets.add(packet);
             selector.wakeup();
         }
         
-        public void drainTo(Collection<UdpOutgoingPacket> destination) {
+        public void drainTo(Collection<OutgoingPacket<InetSocketAddress>> destination) {
             outgoingPackets.drainTo(destination);
         }
-    }
-    
-    public interface UdpReceiveHandler {
-        boolean incoming(UdpIncomingPacket packet);
-    }
-    
-    public static final class UdpIncomingPacket {
-        private SocketAddress from;
-        private ByteBuffer data;
-        private long arriveTime;
-
-        public UdpIncomingPacket(SocketAddress from, byte[] data, long arriveTime) {
-            this.from = from;
-            this.data = ByteBuffer.allocate(data.length).put(data);
-            this.arriveTime = arriveTime;
-            
-            this.data.flip();
-        }
-
-        public SocketAddress getFrom() {
-            return from;
-        }
-
-        public ByteBuffer getData() {
-            return data.asReadOnlyBuffer();
-        }
-
-        public long getArriveTime() {
-            return arriveTime;
-        }
-        
-    }
-    
-    public static final class UdpOutgoingPacket {
-        private SocketAddress to;
-        private ByteBuffer data;
-
-        public UdpOutgoingPacket(SocketAddress to, byte[] data) {
-            this.to = to;
-            this.data = ByteBuffer.allocate(data.length).put(data);
-            
-            this.data.flip();
-        }
-
-        public SocketAddress getTo() {
-            return to;
-        }
-
-        public ByteBuffer getData() {
-            return data.asReadOnlyBuffer();
-        }
-    }
-    
-    public static void main(String[] args) throws Throwable {
-        ServerMessageCallback<SocketAddress> callback = new ServerMessageCallback<SocketAddress>() {
-            @Override
-            public void messageArrived(SocketAddress from, byte[] data,
-                    ServerResponseCallback responseCallback) {
-                responseCallback.responseReady("OUTPUT".getBytes());
-            }
-        };
-
-        UdpBase base = new UdpBase(12345);
-        base.start();
-        
-        UdpReceiveNotifier recvNotifier = base.getReceiveNotifier();
-        UdpSendQuerier sendQueuer = base.getSendQuerier();
-        
-        recvNotifier.add(new UdpReceiveHandler() {
-
-            @Override
-            public boolean incoming(UdpIncomingPacket packet) {
-                byte[] data = new byte[packet.getData().limit()];
-                packet.getData().get(data);
-                System.out.println(new String(data));
-                return true;
-            }
-        });
-        
-        recvNotifier.add(new UdpReceiveHandler() {
-
-            @Override
-            public boolean incoming(UdpIncomingPacket packet) {
-                throw new RuntimeException();
-            }
-        });
-
-        sendQueuer.send(new InetSocketAddress("localhost", 12345),
-                "GET /\r\n\r\n".getBytes());
-        
-        Thread.sleep(1000L);
-        
-        base.stop();
     }
 }

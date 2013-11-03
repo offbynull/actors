@@ -1,20 +1,27 @@
-package com.offbynull.p2prpc.transport;
+package com.offbynull.p2prpc.session;
 
+import com.offbynull.p2prpc.transport.PacketTransport.IncomingPacket;
+import com.offbynull.p2prpc.transport.PacketTransport.OutgoingPacket;
+import com.offbynull.p2prpc.transport.PacketTransport.PacketReceiver;
+import com.offbynull.p2prpc.transport.PacketTransport.ReceiveNotifier;
+import com.offbynull.p2prpc.transport.PacketTransport.PacketSender;
+import com.offbynull.p2prpc.transport.UdpTransport;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
 public final class UdpServer implements Server<SocketAddress> {
 
-    private UdpBase.UdpSendQuerier querier;
-    private UdpBase.UdpReceiveNotifier notifier;
+    private PacketSender querier;
+    private ReceiveNotifier notifier;
     private ServerMessageCallback<SocketAddress> callback;
     private long timeout;
     
     private UdpPacketTranslator udpPacketTranslator;
 
-    public UdpServer(UdpBase base) {
-        querier = base.getSendQuerier();
+    public UdpServer(UdpTransport base) {
+        querier = base.getPacketSender();
         notifier = base.getReceiveNotifier();
     }
 
@@ -31,11 +38,11 @@ public final class UdpServer implements Server<SocketAddress> {
         notifier.remove(udpPacketTranslator);
     }
 
-    private final class UdpPacketTranslator implements UdpBase.UdpReceiveHandler {
+    private final class UdpPacketTranslator implements PacketReceiver<InetSocketAddress> {
 
         @Override
-        public boolean incoming(UdpBase.UdpIncomingPacket packet) {
-            SocketAddress from = packet.getFrom();
+        public boolean packetArrived(IncomingPacket<InetSocketAddress> packet) {
+            InetSocketAddress from = packet.getFrom();
             ByteBuffer recvData = packet.getData();
             
             PacketId pid = PacketId.extractPrependedId(recvData);
@@ -52,10 +59,10 @@ public final class UdpServer implements Server<SocketAddress> {
     private final class ResponseCallback implements ServerResponseCallback {
 
         private PacketId packetId;
-        private SocketAddress requester;
+        private InetSocketAddress requester;
         private long savedTime;
 
-        public ResponseCallback(long time, PacketId packetId, SocketAddress requester) {
+        public ResponseCallback(long time, PacketId packetId, InetSocketAddress requester) {
             this.requester = requester;
             this.packetId = packetId;
             this.savedTime = time;
@@ -66,7 +73,8 @@ public final class UdpServer implements Server<SocketAddress> {
             long time = System.currentTimeMillis();
             if (time - savedTime < timeout) {
                 byte[] dataWithPid = packetId.prependId(data);
-                querier.send(requester, dataWithPid);
+                OutgoingPacket<InetSocketAddress> outgoingPacket = new OutgoingPacket<>(requester, dataWithPid);
+                querier.sendPacket(outgoingPacket);
             }
         }
 

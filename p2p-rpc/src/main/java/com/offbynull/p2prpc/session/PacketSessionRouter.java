@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc.transport;
+package com.offbynull.p2prpc.session;
 
 import java.util.Map;
 

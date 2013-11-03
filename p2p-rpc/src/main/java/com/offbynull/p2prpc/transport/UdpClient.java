@@ -1,113 +1,65 @@
 package com.offbynull.p2prpc.transport;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.util.Iterator;
-import org.apache.commons.io.IOUtils;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-public final class UdpClient implements Client {
+public final class UdpClient implements Client<SocketAddress> {
 
-    private State state = State.INIT;
-    private long timeout;
-    private int bufferSize;
+    private UdpBase.UdpSendQuerier querier;
+    private UdpBase.UdpReceiveNotifier notifier;
+    private PacketIdGenerator pidGenerator;
 
-    public UdpClient() {
-        this(65535, 10000L);
-    }
-
-    public UdpClient(int bufferSize) {
-        this(bufferSize, 10000L);
-    }
-    
-    public UdpClient(int bufferSize, long timeout) {
-        this.bufferSize = bufferSize;
-        this.timeout = timeout;
+    public UdpClient(UdpBase base, PacketIdGenerator pidGenerator) {
+        querier = base.getSendQuerier();
+        notifier = base.getReceiveNotifier();
+        this.pidGenerator = pidGenerator;
     }
 
     @Override
-    public void start() {
-        if (state != State.INIT) {
-            throw new IllegalStateException();
-        }
+    public byte[] send(SocketAddress to, byte[] data, long timeout) throws IOException, InterruptedException {
+        final PacketId pid = pidGenerator.generate();
+        final Exchanger<byte[]> exchanger = new Exchanger<>();
+        
+        UdpBase.UdpReceiveHandler recvHandler = new UdpBase.UdpReceiveHandler() {
 
-        state = State.STARTED;
-    }
-
-    @Override
-    public byte[] send(InetSocketAddress to, byte[] data)
-            throws IOException {
-
-        if (state != State.STARTED) {
-            throw new IllegalStateException();
-        }
-
-        // IO
-        try (Selector selector = Selector.open();
-                DatagramChannel channel = DatagramChannel.open();) {
-            channel.configureBlocking(false);
-            SelectionKey selectionKey = channel.register(selector,
-                    SelectionKey.OP_WRITE);
-
-
-            long currentTime = System.currentTimeMillis();
-            long endTime = currentTime + timeout;
-            while (currentTime < endTime) {
-                selector.select(endTime - currentTime);
-
-                Iterator keys = selector.selectedKeys().iterator();
-                while (keys.hasNext()) {
-                    SelectionKey key = (SelectionKey) keys.next();
-                    keys.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    if (key.isReadable()) {
-                        ByteBuffer recvBuffer = ByteBuffer.wrap(new byte[bufferSize]);
-                        channel.receive(recvBuffer);
-                        
-                        recvBuffer.flip();
-                        byte[] inData = new byte[recvBuffer.remaining()];
-                        recvBuffer.get(inData);
-                        
-                        return inData;
-                    } else if (key.isWritable()) {
-                        channel.send(ByteBuffer.wrap(data), to);
-                        selectionKey.interestOps(SelectionKey.OP_READ);
+            @Override
+            public boolean incoming(UdpBase.UdpIncomingPacket packet) {
+                ByteBuffer recvData = packet.getData();
+                PacketId incomingPid = PacketId.extractPrependedId(recvData);
+                
+                if (incomingPid.equals(pid)) {
+                    byte[] recvDataWithoutPid = PacketId.removePrependedId(recvData);
+                    
+                    try {
+                        exchanger.exchange(recvDataWithoutPid, 0, TimeUnit.MILLISECONDS);
+                        return true;
+                    } catch (InterruptedException | TimeoutException te) {
+                        // Do nothing. The IE will have to be handled elsewhere. The TE should be gobbled.
+                    } finally {
+                        notifier.remove(this);
                     }
                 }
-
-                currentTime = System.currentTimeMillis();
+                
+                return false;
             }
-
-            IOUtils.closeQuietly(channel);
-            
-            if (currentTime >= endTime) {
-                throw new IOException("Timed out");
-            }
-
-            throw new IOException("Unknown error");
+        };
+        
+        notifier.add(recvHandler);
+        
+        byte []sendData = pid.prependId(data);
+        querier.send(to, sendData);
+        
+        try {
+            byte[] recvData = exchanger.exchange(null, timeout, TimeUnit.MILLISECONDS);
+            return recvData;
+        } catch (TimeoutException te) {
+            return null;
+        } finally {
+            notifier.remove(recvHandler);
         }
-    }
-
-    @Override
-    public void stop() {
-        if (state != State.STARTED) {
-            throw new IllegalStateException();
-        }
-
-        state = State.STOPPED;
-    }
-
-    private enum State {
-
-        INIT,
-        STARTED,
-        STOPPED
     }
 }

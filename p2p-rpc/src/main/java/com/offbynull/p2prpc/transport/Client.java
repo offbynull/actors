@@ -1,10 +1,7 @@
 package com.offbynull.p2prpc.transport;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 
-public interface Client {
-    void start() throws IOException;
-    byte[] send(InetSocketAddress address, byte[] data) throws IOException;
-    void stop() throws IOException;
+public interface Client<A> {
+    byte[] send(A address, byte[] data, long timeout) throws IOException, InterruptedException;
 }

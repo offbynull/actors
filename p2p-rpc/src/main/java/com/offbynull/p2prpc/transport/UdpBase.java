@@ -59,12 +59,12 @@ public final class UdpBase {
         return eventLoop.getReceiveNotifier();
     }
 
-    public UdpSendQueuer getSendQueuer() {
+    public UdpSendQuerier getSendQuerier() {
         if (eventLoop == null || !eventLoop.isRunning()) {
             throw new IllegalStateException();
         }
         
-        return eventLoop.getSendQueuer();
+        return eventLoop.getSendQuerier();
     }
 
     private final class EventLoop extends AbstractExecutionThreadService {
@@ -77,7 +77,7 @@ public final class UdpBase {
         private AtomicBoolean stop;
         
         private UdpReceiveNotifier receiveNotifier;
-        private UdpSendQueuer sendQueuer;
+        private UdpSendQuerier sendQuerier;
 
         public EventLoop(int bufferSize, InetSocketAddress listenAddress) throws IOException {
             this.bufferSize = bufferSize;
@@ -93,7 +93,7 @@ public final class UdpBase {
             }
             
             receiveNotifier = new UdpReceiveNotifier();
-            sendQueuer = new UdpSendQueuer(selector);
+            sendQuerier = new UdpSendQuerier(selector);
         }
         
         @Override
@@ -114,8 +114,8 @@ public final class UdpBase {
             return receiveNotifier;
         }
 
-        public UdpSendQueuer getSendQueuer() {
-            return sendQueuer;
+        public UdpSendQuerier getSendQuerier() {
+            return sendQuerier;
         }
 
         @Override
@@ -127,7 +127,7 @@ public final class UdpBase {
             LinkedList<UdpIncomingPacket> pendingIncomingPackets = new LinkedList<>();
             while (true) {
                 // get outgoing data
-                sendQueuer.drainTo(pendingOutgoingPackets);
+                sendQuerier.drainTo(pendingOutgoingPackets);
                 
                 // set selection key based on if there's outgoing data available
                 int newSelectionKey = SelectionKey.OP_READ;
@@ -181,6 +181,7 @@ public final class UdpBase {
                 }
                 
                 receiveNotifier.notify(pendingIncomingPackets);
+                pendingIncomingPackets.clear();
             }
         }
 
@@ -213,8 +214,8 @@ public final class UdpBase {
             handlers.add(e);
         }
 
-        public void remove() {
-            handlers.remove();
+        public void remove(UdpReceiveHandler e) {
+            handlers.remove(e);
         }
         
         public void notify(UdpIncomingPacket ... packets) {
@@ -234,11 +235,11 @@ public final class UdpBase {
         }
     }
     
-    public static final class UdpSendQueuer {
+    public static final class UdpSendQuerier {
         private Selector selector;
         private LinkedBlockingQueue<UdpOutgoingPacket> outgoingPackets;
 
-        private UdpSendQueuer(Selector selector) {
+        private UdpSendQuerier(Selector selector) {
             this.selector = selector;
             this.outgoingPackets = new LinkedBlockingQueue<>();
         }
@@ -318,7 +319,7 @@ public final class UdpBase {
         base.start();
         
         UdpReceiveNotifier recvNotifier = base.getReceiveNotifier();
-        UdpSendQueuer sendQueuer = base.getSendQueuer();
+        UdpSendQuerier sendQueuer = base.getSendQuerier();
         
         recvNotifier.add(new UdpReceiveHandler() {
 

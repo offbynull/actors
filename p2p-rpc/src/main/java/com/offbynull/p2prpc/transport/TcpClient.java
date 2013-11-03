@@ -2,7 +2,7 @@ package com.offbynull.p2prpc.transport;
 
 import com.offbynull.p2prpc.transport.StreamedIoBuffers.Mode;
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -10,35 +10,11 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import org.apache.commons.io.IOUtils;
 
-public final class TcpClient implements Client {
-
-    private State state = State.INIT;
-    private long timeout;
-
-    public TcpClient() {
-        this(10000L);
-    }
-
-    public TcpClient(long timeout) {
-        this.timeout = timeout;
-    }
+public final class TcpClient implements Client<SocketAddress> {
 
     @Override
-    public void start() {
-        if (state != State.INIT) {
-            throw new IllegalStateException();
-        }
-
-        state = State.STARTED;
-    }
-
-    @Override
-    public byte[] send(InetSocketAddress address, byte[] data)
+    public byte[] send(SocketAddress address, byte[] data, long timeout)
             throws IOException {
-
-        if (state != State.STARTED) {
-            throw new IllegalStateException();
-        }
 
         ByteBuffer buffer = ByteBuffer.allocate(8192);
         StreamedIoBuffers buffers = new StreamedIoBuffers(Mode.WRITE_FIRST);
@@ -110,21 +86,5 @@ public final class TcpClient implements Client {
 
             throw new IOException("Unknown error");
         }
-    }
-
-    @Override
-    public void stop() {
-        if (state != State.STARTED) {
-            throw new IllegalStateException();
-        }
-
-        state = State.STOPPED;
-    }
-
-    private enum State {
-
-        INIT,
-        STARTED,
-        STOPPED
     }
 }

@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc.transport;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public final class PacketId {
@@ -11,6 +12,42 @@ public final class PacketId {
         }
         
         this.id = Arrays.copyOf(id, id.length);
+    }
+
+    public byte[] prependId(byte[] buffer) {
+        ByteBuffer ret = ByteBuffer.allocate(16 + buffer.length);
+        ret.put(id);
+        ret.put(buffer);
+        
+        return ret.array();
+    }
+
+    public static PacketId extractPrependedId(byte[] buffer) {
+        return extractPrependedId(ByteBuffer.wrap(buffer));
+    }
+
+    public static PacketId extractPrependedId(ByteBuffer buffer) {
+        byte[] extractedId = new byte[16];
+        buffer.mark();
+        buffer.get(extractedId);
+        buffer.reset();
+        
+        return new PacketId(extractedId);
+    }
+
+    public static byte[] removePrependedId(byte[] buffer) {
+        return removePrependedId(buffer);
+    }
+    
+    public static byte[] removePrependedId(ByteBuffer buffer) {
+        byte[] extractedData = new byte[buffer.limit() - 16];
+        
+        buffer.mark();
+        buffer.position(16);
+        buffer.get(extractedData);
+        buffer.reset();
+        
+        return extractedData;
     }
 
     @Override

@@ -255,25 +255,25 @@ public final class TcpServer implements Server<SocketAddress> {
         }
     }
 
-    public static void main(String[] args) throws Throwable {
-        ServerMessageCallback<SocketAddress> callback = new ServerMessageCallback<SocketAddress>() {
-            @Override
-            public void messageArrived(SocketAddress from, byte[] data,
-                    ServerResponseCallback responseCallback) {
-                responseCallback.responseReady("OUTPUT".getBytes());
-            }
-        };
-
-        TcpServer tcpServer = new TcpServer(12345, 999999L);
-        tcpServer.start(callback);
-
-        TcpClient tcpClient = new TcpClient(999999L);
-        tcpClient.start();
-        byte[] data = tcpClient.send(new InetSocketAddress("localhost", 12345),
-                "GET /\r\n\r\n".getBytes());
-        System.out.println(new String(data));
-        tcpClient.stop();
-
-        tcpServer.stop();
-    }
+//    public static void main(String[] args) throws Throwable {
+//        ServerMessageCallback<SocketAddress> callback = new ServerMessageCallback<SocketAddress>() {
+//            @Override
+//            public void messageArrived(SocketAddress from, byte[] data,
+//                    ServerResponseCallback responseCallback) {
+//                responseCallback.responseReady("OUTPUT".getBytes());
+//            }
+//        };
+//
+//        TcpServer tcpServer = new TcpServer(12345, 999999L);
+//        tcpServer.start(callback);
+//
+//        TcpClient tcpClient = new TcpClient(999999L);
+//        tcpClient.start();
+//        byte[] data = tcpClient.send(new InetSocketAddress("localhost", 12345),
+//                "GET /\r\n\r\n".getBytes());
+//        System.out.println(new String(data));
+//        tcpClient.stop();
+//
+//        tcpServer.stop();
+//    }
 }

@@ -19,6 +19,11 @@ public final class PacketIdGenerator {
         long time = System.currentTimeMillis();
         long rand = firstRandom.nextLong() ^ secondRandom.nextLong();
         
+        // TODO: firstRandom and secondRandom need to be recreated every n iterations with new SecureRandom values.
+        //
+        // This is not secure. Already worked out a method where you may be able to work backwards to the seed if you have enough rand
+        // values.
+        
         return new PacketId(ByteBuffer.allocate(16).putLong(rand).putLong(time).array());
     }
 }

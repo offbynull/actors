@@ -41,7 +41,11 @@ public interface StreamTransport<A> {
     };
 
     public interface RequestSender<A> {
-        void sendRequest(OutgoingData<A> data, ResponseReceiver<A> responseReceiver);
+        RequestController sendRequest(OutgoingData<A> data, ResponseReceiver<A> responseReceiver);
+    }
+    
+    public interface RequestController {
+        void killCommunication();
     }
     
     public interface ResponseReceiver<A> {

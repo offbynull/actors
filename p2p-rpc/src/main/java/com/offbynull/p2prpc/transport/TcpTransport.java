@@ -16,25 +16,21 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.IOUtils;
 
 public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
-    private long timeout;
 
     public TcpTransport(int port) {
-        this(new InetSocketAddress(port), 10000L);
+        this(new InetSocketAddress(port));
     }
 
-    public TcpTransport(int port, long timeout) {
-        this(new InetSocketAddress(port), timeout);
-    }
-
-    public TcpTransport(InetSocketAddress listenAddress, long timeout) {
+    public TcpTransport(InetSocketAddress listenAddress) {
         this.listenAddress = listenAddress;
-        this.timeout = timeout;
     }
     
     @Override
@@ -82,6 +78,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         private Selector selector;
         private ServerSocketChannel serverChannel;
         private Map<SocketChannel, ChannelParameters> channelParametersMap;
+        private Map<Long, SocketChannel> sendQueueIdMap;
         private AtomicBoolean stop;
 
         public EventLoop() throws IOException {
@@ -140,7 +137,15 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
                 for (OutgoingRequest queuedRequest : pendingRequestData) {
                     try {
-                        createAndInitializeOutgoingSocket(queuedRequest);
+                        if (queuedRequest instanceof SendQueuedRequest) {
+                            createAndInitializeOutgoingSocket((SendQueuedRequest) queuedRequest);
+                        } else if (queuedRequest instanceof KillQueuedRequest) {
+                            KillQueuedRequest kqr = (KillQueuedRequest) queuedRequest;
+
+                            long id = kqr.getId();
+
+                            killSocketByRequestId(id, false);
+                        }
                     } catch (IOException | RuntimeException e) {
                         // do nothing
                     }
@@ -321,6 +326,17 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
             }
         }
 
+        private void killSocketByRequestId(long id, boolean triggerFailure) {
+            SocketChannel channel = sendQueueIdMap.get(id);
+            
+            if (channel != null) {
+                ChannelParameters params = channelParametersMap.get(channel);
+                SelectionKey key = params.getSelectionKey();
+                
+                killSocket(key, channel, triggerFailure);
+            }
+        }
+        
         private void killSocket(SelectionKey key, SocketChannel channel, boolean triggerFailure) {
             if (channel != null) {
                 IOUtils.closeQuietly(channel);
@@ -353,7 +369,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
                 StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.READ_FIRST);
                 buffers.startReading();
 
-                ChannelParameters params = new ChannelParameters(buffers, ClientChannelType.REMOTE_INITIATED, selectionKey, null);
+                ChannelParameters params = new ChannelParameters(buffers, ClientChannelType.REMOTE_INITIATED, selectionKey, null, null);
 
                 channelParametersMap.put(clientChannel, params);
             } catch (IOException | RuntimeException e) {
@@ -361,7 +377,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
             }
         }
 
-        private void createAndInitializeOutgoingSocket(OutgoingRequest queuedRequest) throws IOException {
+        private void createAndInitializeOutgoingSocket(SendQueuedRequest queuedRequest) throws IOException {
             SocketChannel clientChannel = null;
             SelectionKey selectionKey = null;
             
@@ -380,9 +396,12 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
                 InetSocketAddress destinationAddress = queuedRequest.getDestination();
 
+                long id = queuedRequest.getId();
+                
                 ChannelParameters params = new ChannelParameters(buffers, ClientChannelType.LOCAL_INITIATED, selectionKey,
-                        queuedRequest.getReceiver());
-
+                        queuedRequest.getReceiver(), id);
+                
+                sendQueueIdMap.put(id, clientChannel);
                 channelParametersMap.put(clientChannel, params);
 
                 clientChannel.connect(destinationAddress);
@@ -415,7 +434,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         }
     }
 
-    public static final class TcpRequestNotifier implements RequestNotifier<InetSocketAddress> {
+    private static final class TcpRequestNotifier implements RequestNotifier<InetSocketAddress> {
         private LinkedBlockingQueue<RequestReceiver> handlers;
         private LinkedBlockingQueue<OutgoingResponse> queuedResponses;
         
@@ -495,23 +514,16 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
             this.queue = queue;
             this.selector = selector;
             this.channel = channel;
-            this.consumed = new AtomicBoolean();
         }
         
         @Override
         public void sendResponse(OutgoingData<InetSocketAddress> data) {
-            if (consumed.getAndSet(true)) {
-                throw new IllegalStateException("Already responded");
-            }
             queue.add(new SendQueuedResponse(channel, data));
             selector.wakeup();
         }
 
         @Override
         public void killCommunication() {
-            if (consumed.getAndSet(true)) {
-                throw new IllegalStateException("Already responded");
-            }
             queue.add(new KillQueuedResponse(channel));
             selector.wakeup();
         }
@@ -534,7 +546,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         }
     }
     
-    public static final class SendQueuedResponse implements OutgoingResponse {
+    private static final class SendQueuedResponse implements OutgoingResponse {
         private SocketChannel channel;
         private OutgoingData<InetSocketAddress> data;
 
@@ -555,33 +567,69 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
     
     
-    public static final class TcpRequestSender implements RequestSender<InetSocketAddress> {
+    private static final class TcpRequestSender implements RequestSender<InetSocketAddress> {
         private Selector selector;
         private LinkedBlockingQueue<OutgoingRequest> outgoingData;
+        private AtomicLong nextId;
 
         private TcpRequestSender(Selector selector) {
             this.selector = selector;
             this.outgoingData = new LinkedBlockingQueue<>();
+            nextId = new AtomicLong();
         }
         
         @Override
-        public void sendRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
-            outgoingData.add(new OutgoingRequest(data, receiver));
+        public RequestController sendRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
+            // TO FIX THIS FUNCTION...
+            // assign an unique id to outgoingdata
+            // pass that uniqueid to tcprequestcontroller
+            
+            long id = nextId.incrementAndGet();
+            
+            outgoingData.add(new SendQueuedRequest(data, receiver, id));
             selector.wakeup();
+            
+            return new TcpRequestController(id, selector, outgoingData);
         }
         
         private void drainTo(Collection<OutgoingRequest> destination) {
             outgoingData.drainTo(destination);
         }
     }
+    
+    private static final class TcpRequestController implements RequestController {
+        private long id;
+        private Selector selector;
+        private LinkedBlockingQueue<OutgoingRequest> outgoingData;
 
-    private static final class OutgoingRequest {
+        public TcpRequestController(long id, Selector selector, LinkedBlockingQueue<OutgoingRequest> outgoingData) {
+            this.id = id;
+            this.selector = selector;
+            this.outgoingData = outgoingData;
+        }
+
+
+
+        @Override
+        public void killCommunication() {
+            outgoingData.add(new KillQueuedRequest(id));
+            selector.wakeup();
+        }
+        
+    }
+
+    private interface OutgoingRequest {
+        
+    }
+    
+    private static final class SendQueuedRequest implements OutgoingRequest {
 
         private InetSocketAddress destination;
         private StreamIoBuffers buffers;
         private ResponseReceiver<InetSocketAddress> receiver;
+        private long id;
 
-        public OutgoingRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
+        public SendQueuedRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver, long id) {
             this.destination = data.getTo();
             
             StreamIoBuffers streamIoBuffers = new StreamIoBuffers(Mode.WRITE_FIRST);
@@ -589,6 +637,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
                     
             this.buffers = streamIoBuffers;
             this.receiver = receiver;
+            this.id = id;
         }
 
         public InetSocketAddress getDestination() {
@@ -603,8 +652,25 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
             return receiver;
         }
 
+        public long getId() {
+            return id;
+        }
+
     }
-    
+
+    private static final class KillQueuedRequest implements OutgoingRequest {
+
+        private long id;
+
+        public KillQueuedRequest(long id) {
+            this.id = id;
+        }
+
+        public long getId() {
+            return id;
+        }
+
+    }
     
     
     private static final class ChannelParameters {
@@ -613,13 +679,15 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         private ClientChannelType type;
         private SelectionKey selectionKey;
         private ResponseReceiver<InetSocketAddress> receiver;
+        private Long sendRequestId;
 
         public ChannelParameters(StreamIoBuffers buffers, ClientChannelType type, SelectionKey selectionKey,
-                ResponseReceiver<InetSocketAddress> receiver) {
+                ResponseReceiver<InetSocketAddress> receiver, Long sendRequestId) {
             this.buffers = buffers;
             this.type = type;
             this.selectionKey = selectionKey;
             this.receiver = receiver;
+            this.sendRequestId = sendRequestId;
         }
 
         public StreamIoBuffers getBuffers() {
@@ -636,6 +704,10 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
         public ResponseReceiver<InetSocketAddress> getReceiver() {
             return receiver;
+        }
+
+        public Long getSendRequestId() {
+            return sendRequestId;
         }
         
     }

@@ -8,7 +8,6 @@ import com.offbynull.p2prpc.transport.PacketTransport.PacketSender;
 import com.offbynull.p2prpc.transport.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;

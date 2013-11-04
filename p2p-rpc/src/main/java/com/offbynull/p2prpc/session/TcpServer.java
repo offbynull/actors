@@ -1,8 +1,8 @@
 package com.offbynull.p2prpc.session;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.offbynull.p2prpc.transport.StreamedIoBuffers;
-import com.offbynull.p2prpc.transport.StreamedIoBuffers.Mode;
+import com.offbynull.p2prpc.transport.StreamIoBuffers;
+import com.offbynull.p2prpc.transport.StreamIoBuffers.Mode;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -131,8 +131,8 @@ public final class TcpServer implements Server<SocketAddress> {
 
                         SelectionKey selectionKey = clientChannel.register(
                                 selector, SelectionKey.OP_READ);
-                        StreamedIoBuffers buffers =
-                                new StreamedIoBuffers(Mode.READ_FIRST);
+                        StreamIoBuffers buffers =
+                                new StreamIoBuffers(Mode.READ_FIRST);
 
                         ClientChannelParams params = new ClientChannelParams(
                                 buffers, selectionKey);
@@ -149,7 +149,7 @@ public final class TcpServer implements Server<SocketAddress> {
                                 clientChannelMap.get(clientChannel);
                         SocketAddress from = clientChannel.getRemoteAddress();
 
-                        StreamedIoBuffers buffers = params.getBuffers();
+                        StreamIoBuffers buffers = params.getBuffers();
 
                         buffer.clear();
                         if (clientChannel.read(buffer) == -1) {
@@ -167,7 +167,7 @@ public final class TcpServer implements Server<SocketAddress> {
                         ClientChannelParams params =
                                 clientChannelMap.get(clientChannel);
 
-                        StreamedIoBuffers buffers = params.getBuffers();
+                        StreamIoBuffers buffers = params.getBuffers();
 
                         buffer.clear();
                         buffers.getWriteBlock(buffer);
@@ -223,7 +223,7 @@ public final class TcpServer implements Server<SocketAddress> {
 
         @Override
         public void responseReady(byte[] data) {
-            StreamedIoBuffers buffers = params.getBuffers();
+            StreamIoBuffers buffers = params.getBuffers();
             SelectionKey selectionKey = params.getSelectionKey();
             
             buffers.startWriting(data);
@@ -238,16 +238,16 @@ public final class TcpServer implements Server<SocketAddress> {
 
     private static final class ClientChannelParams {
 
-        private StreamedIoBuffers buffers;
+        private StreamIoBuffers buffers;
         private SelectionKey selectionKey;
 
-        public ClientChannelParams(StreamedIoBuffers buffers,
+        public ClientChannelParams(StreamIoBuffers buffers,
                 SelectionKey selectionKey) {
             this.buffers = buffers;
             this.selectionKey = selectionKey;
         }
 
-        public StreamedIoBuffers getBuffers() {
+        public StreamIoBuffers getBuffers() {
             return buffers;
         }
 

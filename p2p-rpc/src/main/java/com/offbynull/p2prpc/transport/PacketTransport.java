@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * Interface for packet-oriented transports where there is no session or reliability (e.g. UDP). There should be no built-in way of linking
- * a request and response together. To do something like that, you need to add in that extra data and the logic to understand it at a higher
- * layer.
+ * Interface for packet-oriented transports where there is no session and only packets are exchanged (e.g. UDP). There should be no built-in
+ * way of linking a request and response together. To do something like that, you need to add in that extra data and the logic to understand
+ * it at a higher layer.
  * @param <A> address type
  */
 public interface PacketTransport<A> {

@@ -4,14 +4,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
-public final class StreamedIoBuffers {
+public final class StreamIoBuffers {
 
     private State state = State.INIT;
     private Mode mode;
     private ByteArrayOutputStream readOs;
     private ByteArrayInputStream writeIs;
 
-    public StreamedIoBuffers(Mode mode) {
+    public StreamIoBuffers(Mode mode) {
         this.mode = mode;
     }
     
@@ -44,14 +44,23 @@ public final class StreamedIoBuffers {
         return data;
     }
 
-    public void startWriting(byte[] data) {
+    public void startWriting(ByteBuffer data) {
         if ((mode == Mode.READ_FIRST && state != State.READ_DONE)
                 || (mode == Mode.WRITE_FIRST && state != State.INIT)) {
             throw new IllegalStateException();
         }
         
         state = State.WRITE;
-        writeIs = new ByteArrayInputStream(data);
+        byte[] dataCopy = new byte[data.limit()];
+        data.mark();
+        data.get(dataCopy);
+        data.reset();
+
+        writeIs = new ByteArrayInputStream(dataCopy);        
+    }
+    
+    public void startWriting(byte[] data) {
+        startWriting(ByteBuffer.wrap(data));
     }
 
     public void getWriteBlock(ByteBuffer buffer) {

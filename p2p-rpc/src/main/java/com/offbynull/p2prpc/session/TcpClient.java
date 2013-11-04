@@ -1,7 +1,7 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.StreamedIoBuffers;
-import com.offbynull.p2prpc.transport.StreamedIoBuffers.Mode;
+import com.offbynull.p2prpc.transport.StreamIoBuffers;
+import com.offbynull.p2prpc.transport.StreamIoBuffers.Mode;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -18,7 +18,7 @@ public final class TcpClient implements Client<SocketAddress> {
             throws IOException {
 
         ByteBuffer buffer = ByteBuffer.allocate(8192);
-        StreamedIoBuffers buffers = new StreamedIoBuffers(Mode.WRITE_FIRST);
+        StreamIoBuffers buffers = new StreamIoBuffers(Mode.WRITE_FIRST);
         buffers.startWriting(data);
 
         // IO

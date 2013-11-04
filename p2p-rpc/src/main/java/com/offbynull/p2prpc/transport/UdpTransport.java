@@ -67,7 +67,7 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
             throw new IllegalStateException();
         }
         
-        return eventLoop.getSendQuerier();
+        return eventLoop.getPacketSender();
     }
 
     private final class EventLoop extends AbstractExecutionThreadService {
@@ -80,7 +80,7 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
         private AtomicBoolean stop;
         
         private UdpReceiveNotifier receiveNotifier;
-        private UdpSendQuerier sendQuerier;
+        private UdpPacketSender packetSender;
 
         public EventLoop(int bufferSize, InetSocketAddress listenAddress) throws IOException {
             this.bufferSize = bufferSize;
@@ -96,11 +96,13 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
             }
             
             receiveNotifier = new UdpReceiveNotifier();
-            sendQuerier = new UdpSendQuerier(selector);
+            packetSender = new UdpPacketSender(selector);
         }
         
         @Override
         protected void startUp() throws IOException {
+            Thread.currentThread().setDaemon(false);
+            
             stop = new AtomicBoolean(false);
             try {
                 channel.configureBlocking(false);
@@ -117,8 +119,8 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
             return receiveNotifier;
         }
 
-        public UdpSendQuerier getSendQuerier() {
-            return sendQuerier;
+        public UdpPacketSender getPacketSender() {
+            return packetSender;
         }
 
         @Override
@@ -130,7 +132,7 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
             LinkedList<IncomingPacket<InetSocketAddress>> pendingIncomingPackets = new LinkedList<>();
             while (true) {
                 // get outgoing data
-                sendQuerier.drainTo(pendingOutgoingPackets);
+                packetSender.drainTo(pendingOutgoingPackets);
                 
                 // set selection key based on if there's outgoing data available
                 int newSelectionKey = SelectionKey.OP_READ;
@@ -240,11 +242,11 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
         }
     }
     
-    public static final class UdpSendQuerier implements PacketSender<InetSocketAddress> {
+    public static final class UdpPacketSender implements PacketSender<InetSocketAddress> {
         private Selector selector;
         private LinkedBlockingQueue<OutgoingPacket<InetSocketAddress>> outgoingPackets;
 
-        private UdpSendQuerier(Selector selector) {
+        private UdpPacketSender(Selector selector) {
             this.selector = selector;
             this.outgoingPackets = new LinkedBlockingQueue<>();
         }
@@ -255,7 +257,7 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
             selector.wakeup();
         }
         
-        public void drainTo(Collection<OutgoingPacket<InetSocketAddress>> destination) {
+        private void drainTo(Collection<OutgoingPacket<InetSocketAddress>> destination) {
             outgoingPackets.drainTo(destination);
         }
     }

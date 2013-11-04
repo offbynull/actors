@@ -2,11 +2,10 @@ package com.offbynull.p2prpc.transport;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 
 /**
  * Interface for stream-oriented transports where there is some kind of session/connection and guarantee of in-order data delivery
- * (e.g. TCP). This interface is intended for short single messages that need a response.
+ * (e.g. TCP). This interface is intended for short messages that need a response.
  * <p/>
  * Send example
  * -----------
@@ -33,16 +32,21 @@ public interface StreamTransport<A> {
     }
     
     public interface RequestReceiver<A> {
-        boolean responseArrived(IncomingData<A> data);
+        boolean requestArrived(IncomingData<A> data, ResponseSender<A> responseSender);
     };
-    
+
+    public interface ResponseSender<A> {
+        void sendResponse(OutgoingData<A> data);
+        void killCommunication();
+    };
+
     public interface RequestSender<A> {
-        void sendRequest(OutgoingData<A> data, ResponseReceiver<A> response);
+        void sendRequest(OutgoingData<A> data, ResponseReceiver<A> responseReceiver);
     }
     
     public interface ResponseReceiver<A> {
         void responseArrived(IncomingData<A> data);
-        void terminated();
+        void communicationFailed();
     }
     
     public static final class IncomingData<A> {

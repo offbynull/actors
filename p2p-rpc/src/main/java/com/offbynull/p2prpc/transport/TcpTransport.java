@@ -9,7 +9,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -128,23 +127,69 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         protected void run() {
             ByteBuffer tempBuffer = ByteBuffer.allocate(65535);
 
-            LinkedList<IncomingData<InetSocketAddress>> pendingIncomingData = new LinkedList<>();
-            LinkedList<QueuedRequest> pendingOutgoingData = new LinkedList<>();
+            LinkedList<IncomingRequest> pendingIncomingData = new LinkedList<>();
+            LinkedList<OutgoingRequest> pendingRequestData = new LinkedList<>();
+            LinkedList<OutgoingResponse> pendingResponseData = new LinkedList<>();
             while (true) {
                 // get current time
                 long currentTime = System.currentTimeMillis();
                 
-                // get requests waiting to go out
-                requestSender.drainTo(pendingOutgoingData);
                 
-                // create sockets for each request waiting to go out
-                try {
-                    for (QueuedRequest queuedRequest : pendingOutgoingData) {
+                // get requests waiting to go out, create socket for each request
+                requestSender.drainTo(pendingRequestData);
+
+                for (OutgoingRequest queuedRequest : pendingRequestData) {
+                    try {
                         createAndInitializeOutgoingSocket(queuedRequest);
+                    } catch (IOException | RuntimeException e) {
+                        // do nothing
                     }
-                } catch (IOException | RuntimeException e) {
-                    // do nothing
                 }
+                pendingRequestData.clear();
+
+                
+                
+                // get responses waiting to go out
+                requestNotifier.drainResponsesTo(pendingResponseData);
+
+                for (OutgoingResponse queuedResponse : pendingResponseData) {
+                    if (queuedResponse instanceof KillQueuedResponse) {
+                        try {
+                            KillQueuedResponse kqr = (KillQueuedResponse) queuedResponse;
+
+                            SocketChannel channel = kqr.getChannel();
+                            ChannelParameters params = channelParametersMap.get(channel);
+
+                            if (params != null) {
+                                killSocket(params.getSelectionKey(), channel, false);
+                            }
+                        } catch (RuntimeException e) {
+                            // do nothing
+                        }
+                    } else if (queuedResponse instanceof SendQueuedResponse) {
+                        try {
+                            SendQueuedResponse sqr = (SendQueuedResponse) queuedResponse;
+
+                            SocketChannel channel = sqr.getChannel();
+                            OutgoingData<InetSocketAddress> data = sqr.getData();
+                            ChannelParameters params = channelParametersMap.get(channel);
+
+                            if (params != null) {
+                                SelectionKey key = params.getSelectionKey();
+                                StreamIoBuffers buffers = params.getBuffers();
+
+                                buffers.startWriting(data.getData());
+                                key.interestOps(SelectionKey.OP_WRITE);
+                            }
+                        } catch (RuntimeException e) {
+                            // do nothing
+                        }
+                    } else {
+                        throw new IllegalStateException();
+                    }
+                }
+                pendingRequestData.clear();
+                
                 
                 // select
                 try {
@@ -224,8 +269,8 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
                                         break;
                                     }
                                     case REMOTE_INITIATED: {
-                                        pendingIncomingData.add(incomingData);
-                                        key.interestOps(SelectionKey.OP_WRITE);
+                                        IncomingRequest request = new IncomingRequest(incomingData, selector, clientChannel);
+                                        pendingIncomingData.add(request);
                                         break;
                                     }
                                     default:
@@ -316,7 +361,7 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
             }
         }
 
-        private void createAndInitializeOutgoingSocket(QueuedRequest queuedRequest) throws IOException {
+        private void createAndInitializeOutgoingSocket(OutgoingRequest queuedRequest) throws IOException {
             SocketChannel clientChannel = null;
             SelectionKey selectionKey = null;
             
@@ -372,9 +417,11 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
     public static final class TcpRequestNotifier implements RequestNotifier<InetSocketAddress> {
         private LinkedBlockingQueue<RequestReceiver> handlers;
+        private LinkedBlockingQueue<OutgoingResponse> queuedResponses;
         
         private TcpRequestNotifier() {
             handlers = new LinkedBlockingQueue<>();
+            queuedResponses = new LinkedBlockingQueue<>();
         }
 
         @Override
@@ -386,27 +433,131 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         public void remove(RequestReceiver<InetSocketAddress> e) {
             handlers.remove(e);
         }
-        
-        private void notify(IncomingData<InetSocketAddress> ... dataCollection) {
-            notify(Arrays.asList(dataCollection));
-        }
 
-        private void notify(Collection<IncomingData<InetSocketAddress>> dataCollection) {
+        private void notify(Collection<IncomingRequest> dataCollection) {
             RequestReceiver[] handlersArray = handlers.toArray(new RequestReceiver[0]);
             
-            for (IncomingData<InetSocketAddress> data : dataCollection) {
+            for (IncomingRequest incomingRequest : dataCollection) {
                 for (RequestReceiver<InetSocketAddress> handler : handlersArray) { // to array to avoid locks
-                    if (handler.requestArrived(data)) {
+                    IncomingData<InetSocketAddress> data = incomingRequest.getRequest();
+                    Selector selector = incomingRequest.getSelector();
+                    SocketChannel channel = incomingRequest.getChannel();
+                    
+                    TcpResponseSender responseSender = new TcpResponseSender(queuedResponses, selector, channel);
+                    
+                    if (handler.requestArrived(data, responseSender)) {
                         break;
                     }
                 }
             }
         }
+        
+        private void drainResponsesTo(Collection<OutgoingResponse> destination) {
+            queuedResponses.drainTo(destination);
+        }
     }
+    
+    
+    private static final class IncomingRequest {
+        private IncomingData<InetSocketAddress> request;
+        private Selector selector;
+        private SocketChannel channel;
+
+        public IncomingRequest(IncomingData<InetSocketAddress> request, Selector selector, SocketChannel channel) {
+            this.request = request;
+            this.selector = selector;
+            this.channel = channel;
+        }
+
+        public IncomingData<InetSocketAddress> getRequest() {
+            return request;
+        }
+
+        public Selector getSelector() {
+            return selector;
+        }
+
+        public SocketChannel getChannel() {
+            return channel;
+        }
+        
+    }
+    
+    
+    private static final class TcpResponseSender implements ResponseSender<InetSocketAddress> {
+
+        private LinkedBlockingQueue<OutgoingResponse> queue;
+        private Selector selector;
+        private SocketChannel channel;
+        private AtomicBoolean consumed;
+
+        public TcpResponseSender(LinkedBlockingQueue<OutgoingResponse> queue, Selector selector, SocketChannel channel) {
+            this.queue = queue;
+            this.selector = selector;
+            this.channel = channel;
+            this.consumed = new AtomicBoolean();
+        }
+        
+        @Override
+        public void sendResponse(OutgoingData<InetSocketAddress> data) {
+            if (consumed.getAndSet(true)) {
+                throw new IllegalStateException("Already responded");
+            }
+            queue.add(new SendQueuedResponse(channel, data));
+            selector.wakeup();
+        }
+
+        @Override
+        public void killCommunication() {
+            if (consumed.getAndSet(true)) {
+                throw new IllegalStateException("Already responded");
+            }
+            queue.add(new KillQueuedResponse(channel));
+            selector.wakeup();
+        }
+        
+    }
+    
+    private interface OutgoingResponse {
+        
+    }
+    
+    private static final class KillQueuedResponse implements OutgoingResponse {
+        private SocketChannel channel;
+
+        public KillQueuedResponse(SocketChannel channel) {
+            this.channel = channel;
+        }
+
+        public SocketChannel getChannel() {
+            return channel;
+        }
+    }
+    
+    public static final class SendQueuedResponse implements OutgoingResponse {
+        private SocketChannel channel;
+        private OutgoingData<InetSocketAddress> data;
+
+        public SendQueuedResponse(SocketChannel channel, OutgoingData<InetSocketAddress> data) {
+            this.channel = channel;
+            this.data = data;
+        }
+
+        public SocketChannel getChannel() {
+            return channel;
+        }
+
+        public OutgoingData<InetSocketAddress> getData() {
+            return data;
+        }
+
+    }
+
+    
     
     public static final class TcpRequestSender implements RequestSender<InetSocketAddress> {
         private Selector selector;
-        private LinkedBlockingQueue<QueuedRequest> outgoingData;
+        private LinkedBlockingQueue<OutgoingRequest> outgoingData;
 
         private TcpRequestSender(Selector selector) {
             this.selector = selector;
@@ -415,22 +566,22 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         
         @Override
         public void sendRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
-            outgoingData.add(new QueuedRequest(data, receiver));
+            outgoingData.add(new OutgoingRequest(data, receiver));
             selector.wakeup();
         }
         
-        private void drainTo(Collection<QueuedRequest> destination) {
+        private void drainTo(Collection<OutgoingRequest> destination) {
             outgoingData.drainTo(destination);
         }
     }
 
-    private static final class QueuedRequest {
+    private static final class OutgoingRequest {
 
         private InetSocketAddress destination;
         private StreamIoBuffers buffers;
         private ResponseReceiver<InetSocketAddress> receiver;
 
-        public QueuedRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
+        public OutgoingRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
             this.destination = data.getTo();
             
             StreamIoBuffers streamIoBuffers = new StreamIoBuffers(Mode.WRITE_FIRST);
@@ -453,6 +604,8 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
         }
 
     }
+    
+    
     
     private static final class ChannelParameters {
 

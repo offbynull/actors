@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -223,10 +222,6 @@ public final class UdpTransport implements PacketTransport<InetSocketAddress> {
         @Override
         public void remove(PacketReceiver<InetSocketAddress> e) {
             handlers.remove(e);
-        }
-        
-        private void notify(IncomingPacket<InetSocketAddress> ... packets) {
-            notify(Arrays.asList(packets));
         }
 
         private void notify(Collection<IncomingPacket<InetSocketAddress>> packets) {

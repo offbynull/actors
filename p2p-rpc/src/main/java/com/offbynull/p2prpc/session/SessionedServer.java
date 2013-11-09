@@ -7,23 +7,23 @@ import com.offbynull.p2prpc.transport.SessionedTransport.RequestReceiver;
 import com.offbynull.p2prpc.transport.SessionedTransport.ResponseSender;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-public final class TcpServer implements Server<InetSocketAddress> {
+public final class SessionedServer<A> implements Server<A> {
 
     private RequestNotifier notifier;
-    private ServerMessageCallback<InetSocketAddress> callback;
+    private ServerMessageCallback<A> callback;
     private long timeout;
     
     private TcpRequestReceiver tcpRequestReceiver;
 
-    public TcpServer(TcpTransport transport) {
+    public SessionedServer(TcpTransport transport, long timeout) {
         notifier = transport.getRequestNotifier();
+        this.timeout = timeout;
     }
 
     @Override
-    public void start(ServerMessageCallback<InetSocketAddress> callback) throws IOException {
+    public void start(ServerMessageCallback<A> callback) throws IOException {
         this.callback = callback;
         tcpRequestReceiver = new TcpRequestReceiver();
         
@@ -35,11 +35,11 @@ public final class TcpServer implements Server<InetSocketAddress> {
         notifier.remove(tcpRequestReceiver);
     }
 
-    private final class TcpRequestReceiver implements RequestReceiver<InetSocketAddress> {
+    private final class TcpRequestReceiver implements RequestReceiver<A> {
 
         @Override
-        public boolean requestArrived(IncomingData<InetSocketAddress> data, ResponseSender<InetSocketAddress> responder) {
-            InetSocketAddress from = data.getFrom();
+        public boolean requestArrived(IncomingData<A> data, ResponseSender<A> responder) {
+            A from = data.getFrom();
             ByteBuffer recvData = data.getData();
             
             byte[] recvDataArray = new byte[recvData.limit()];
@@ -55,11 +55,11 @@ public final class TcpServer implements Server<InetSocketAddress> {
     
     private final class ResponseCallback implements ServerResponseCallback {
 
-        private InetSocketAddress requester;
-        private ResponseSender<InetSocketAddress> responder;
+        private A requester;
+        private ResponseSender<A> responder;
         private long savedTime;
 
-        public ResponseCallback(long time, ResponseSender<InetSocketAddress> responder, InetSocketAddress requester) {
+        public ResponseCallback(long time, ResponseSender<A> responder, A requester) {
             this.requester = requester;
             this.responder = responder;
             this.savedTime = time;
@@ -69,16 +69,16 @@ public final class TcpServer implements Server<InetSocketAddress> {
         public void responseReady(byte[] data) {
             long time = System.currentTimeMillis();
             if (time - savedTime < timeout) {
-                OutgoingData<InetSocketAddress> outgoingData = new OutgoingData<>(requester, data);
+                OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);
                 responder.sendResponse(outgoingData);
             } else {
-                responder.killCommunication();
+                responder.killConnection();
             }
         }
 
         @Override
         public void terminate() {
-            responder.killCommunication();
+            responder.killConnection();
         }
     }
 }

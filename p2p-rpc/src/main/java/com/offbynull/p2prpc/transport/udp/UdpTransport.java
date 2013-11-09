@@ -20,10 +20,6 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
     private EventLoop eventLoop;
     private int bufferSize;
 
-    public UdpTransport(int port) {
-        this(new InetSocketAddress(port), 65535);
-    }
-
     public UdpTransport(int port, int bufferSize) {
         this(new InetSocketAddress(port), bufferSize);
     }
@@ -39,7 +35,7 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
             throw new IllegalStateException();
         }
 
-        eventLoop = new EventLoop(bufferSize, listenAddress);
+        eventLoop = new EventLoop();
         eventLoop.startAndWait();
     }
 
@@ -72,9 +68,6 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
 
     private final class EventLoop extends AbstractExecutionThreadService {
 
-        private int bufferSize;
-        private InetSocketAddress listenAddress;
-
         private Selector selector;
         private DatagramChannel channel;
         private AtomicBoolean stop;
@@ -82,9 +75,7 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
         private UdpReceiveNotifier receiveNotifier;
         private UdpPacketSender packetSender;
 
-        public EventLoop(int bufferSize, InetSocketAddress listenAddress) throws IOException {
-            this.bufferSize = bufferSize;
-            this.listenAddress = listenAddress;
+        public EventLoop() throws IOException {
             
             try {
                 selector = Selector.open();
@@ -196,7 +187,7 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
 
         @Override
         protected String serviceName() {
-            return UdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress.toString() + ")";
+            return UdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
         }
 
         @Override

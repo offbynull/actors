@@ -23,7 +23,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
 
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
-
+    
     public TcpTransport(int port) {
         this(new InetSocketAddress(port));
     }

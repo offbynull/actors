@@ -23,7 +23,7 @@ public interface SessionedTransport<A> {
 
     public interface ResponseSender<A> {
         void sendResponse(OutgoingData<A> data);
-        void killCommunication();
+        void killConnection();
     };
 
     public interface RequestSender<A> {

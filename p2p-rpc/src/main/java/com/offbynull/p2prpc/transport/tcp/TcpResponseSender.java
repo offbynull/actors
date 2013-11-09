@@ -27,7 +27,7 @@ final class TcpResponseSender implements SessionedTransport.ResponseSender<InetS
     }
 
     @Override
-    public void killCommunication() {
+    public void killConnection() {
         queue.add(new KillQueuedResponse(channel));
         selector.wakeup();
     }

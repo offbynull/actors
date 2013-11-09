@@ -1,7 +1,10 @@
-package com.offbynull.p2prpc.transport;
+package com.offbynull.p2prpc.transport.tcp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.offbynull.p2prpc.transport.StreamIoBuffers.Mode;
+import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.SessionedTransport;
+import com.offbynull.p2prpc.transport.StreamIoBuffers;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -9,14 +12,11 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.io.IOUtils;
 
 public final class TcpTransport implements SessionedTransport<InetSocketAddress> {
@@ -126,13 +126,11 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             LinkedList<OutgoingRequest> pendingRequestData = new LinkedList<>();
             LinkedList<OutgoingResponse> pendingResponseData = new LinkedList<>();
             while (true) {
-                System.out.println("Loop started");
                 // get current time
                 long currentTime = System.currentTimeMillis();
                 
                 
                 // get requests waiting to go out, create socket for each request
-                System.out.println("Getting requests");
                 requestSender.drainTo(pendingRequestData);
 
                 for (OutgoingRequest queuedRequest : pendingRequestData) {
@@ -155,7 +153,6 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 
                 
                 // get responses waiting to go out
-                System.out.println("Getting responses");
                 requestNotifier.drainResponsesTo(pendingResponseData);
 
                 for (OutgoingResponse queuedResponse : pendingResponseData) {
@@ -198,7 +195,6 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 
                 
                 // select
-                System.out.println("Selecting");
                 try {
                     selector.select();
                 } catch (IOException ioe) {
@@ -206,33 +202,27 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 }
 
                 // stop if signalled
-                System.out.println("Checking if stopped");
                 if (stop.get()) {
                     return;
                 }
 
                 // go through selected keys
-                System.out.println("Looping through keys");
                 Iterator keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
-                    System.out.println("Getting key");
                     SelectionKey key = (SelectionKey) keys.next();
                     keys.remove();
 
                     if (!key.isValid()) {
-                        System.out.println("Key invalid");
                         continue;
                     }
 
                     if (key.isAcceptable()) {
-                        System.out.println("Key is acceptable");
                         try {
                             acceptAndInitializeIncomingSocket();
                         } catch (RuntimeException | IOException e) {
                             // do nothing
                         }
                     } else if (key.isConnectable()) {
-                        System.out.println("Key is connectable");
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         
                         try {
@@ -258,7 +248,6 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                             killSocket(key, clientChannel, true);
                         }
                     } else if (key.isReadable()) {
-                        System.out.println("Key is readable");
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         
                         try {
@@ -295,7 +284,6 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                             killSocket(key, clientChannel, true);
                         }
                     } else if (key.isWritable()) {
-                        System.out.println("Key is writable");
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         
                         try {
@@ -444,244 +432,6 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             selector.wakeup();
         }
     }
-
-    private static final class TcpRequestNotifier implements RequestNotifier<InetSocketAddress> {
-        private LinkedBlockingQueue<RequestReceiver> handlers;
-        private LinkedBlockingQueue<OutgoingResponse> queuedResponses;
-        
-        private TcpRequestNotifier() {
-            handlers = new LinkedBlockingQueue<>();
-            queuedResponses = new LinkedBlockingQueue<>();
-        }
-
-        @Override
-        public void add(RequestReceiver<InetSocketAddress> e) {
-            handlers.add(e);
-        }
-
-        @Override
-        public void remove(RequestReceiver<InetSocketAddress> e) {
-            handlers.remove(e);
-        }
-
-        private void notify(Collection<IncomingRequest> dataCollection) {
-            RequestReceiver[] handlersArray = handlers.toArray(new RequestReceiver[0]);
-            
-            for (IncomingRequest incomingRequest : dataCollection) {
-                for (RequestReceiver<InetSocketAddress> handler : handlersArray) { // to array to avoid locks
-                    IncomingData<InetSocketAddress> data = incomingRequest.getRequest();
-                    Selector selector = incomingRequest.getSelector();
-                    SocketChannel channel = incomingRequest.getChannel();
-                    
-                    TcpResponseSender responseSender = new TcpResponseSender(queuedResponses, selector, channel);
-                    
-                    if (handler.requestArrived(data, responseSender)) {
-                        break;
-                    }
-                }
-            }
-        }
-        
-        private void drainResponsesTo(Collection<OutgoingResponse> destination) {
-            queuedResponses.drainTo(destination);
-        }
-    }
-    
-    
-    private static final class IncomingRequest {
-        private IncomingData<InetSocketAddress> request;
-        private Selector selector;
-        private SocketChannel channel;
-
-        public IncomingRequest(IncomingData<InetSocketAddress> request, Selector selector, SocketChannel channel) {
-            this.request = request;
-            this.selector = selector;
-            this.channel = channel;
-        }
-
-        public IncomingData<InetSocketAddress> getRequest() {
-            return request;
-        }
-
-        public Selector getSelector() {
-            return selector;
-        }
-
-        public SocketChannel getChannel() {
-            return channel;
-        }
-        
-    }
-    
-    
-    private static final class TcpResponseSender implements ResponseSender<InetSocketAddress> {
-
-        private LinkedBlockingQueue<OutgoingResponse> queue;
-        private Selector selector;
-        private SocketChannel channel;
-        private AtomicBoolean consumed;
-
-        public TcpResponseSender(LinkedBlockingQueue<OutgoingResponse> queue, Selector selector, SocketChannel channel) {
-            this.queue = queue;
-            this.selector = selector;
-            this.channel = channel;
-        }
-        
-        @Override
-        public void sendResponse(OutgoingData<InetSocketAddress> data) {
-            queue.add(new SendQueuedResponse(channel, data));
-            selector.wakeup();
-        }
-
-        @Override
-        public void killCommunication() {
-            queue.add(new KillQueuedResponse(channel));
-            selector.wakeup();
-        }
-        
-    }
-    
-    private interface OutgoingResponse {
-        
-    }
-    
-    private static final class KillQueuedResponse implements OutgoingResponse {
-        private SocketChannel channel;
-
-        public KillQueuedResponse(SocketChannel channel) {
-            this.channel = channel;
-        }
-
-        public SocketChannel getChannel() {
-            return channel;
-        }
-    }
-    
-    private static final class SendQueuedResponse implements OutgoingResponse {
-        private SocketChannel channel;
-        private OutgoingData<InetSocketAddress> data;
-
-        public SendQueuedResponse(SocketChannel channel, OutgoingData<InetSocketAddress> data) {
-            this.channel = channel;
-            this.data = data;
-        }
-
-        public SocketChannel getChannel() {
-            return channel;
-        }
-
-        public OutgoingData<InetSocketAddress> getData() {
-            return data;
-        }
-
-    }
-
-    
-    
-    private static final class TcpRequestSender implements RequestSender<InetSocketAddress> {
-        private Selector selector;
-        private LinkedBlockingQueue<OutgoingRequest> outgoingData;
-        private AtomicLong nextId;
-
-        private TcpRequestSender(Selector selector) {
-            this.selector = selector;
-            this.outgoingData = new LinkedBlockingQueue<>();
-            nextId = new AtomicLong();
-        }
-        
-        @Override
-        public RequestController sendRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
-            // TO FIX THIS FUNCTION...
-            // assign an unique id to outgoingdata
-            // pass that uniqueid to tcprequestcontroller
-            
-            long id = nextId.incrementAndGet();
-            
-            outgoingData.add(new SendQueuedRequest(data, receiver, id));
-            selector.wakeup();
-            
-            return new TcpRequestController(id, selector, outgoingData);
-        }
-        
-        private void drainTo(Collection<OutgoingRequest> destination) {
-            outgoingData.drainTo(destination);
-        }
-    }
-    
-    private static final class TcpRequestController implements RequestController {
-        private long id;
-        private Selector selector;
-        private LinkedBlockingQueue<OutgoingRequest> outgoingData;
-
-        public TcpRequestController(long id, Selector selector, LinkedBlockingQueue<OutgoingRequest> outgoingData) {
-            this.id = id;
-            this.selector = selector;
-            this.outgoingData = outgoingData;
-        }
-
-
-
-        @Override
-        public void killCommunication() {
-            outgoingData.add(new KillQueuedRequest(id));
-            selector.wakeup();
-        }
-        
-    }
-
-    private interface OutgoingRequest {
-        
-    }
-    
-    private static final class SendQueuedRequest implements OutgoingRequest {
-
-        private InetSocketAddress destination;
-        private StreamIoBuffers buffers;
-        private ResponseReceiver<InetSocketAddress> receiver;
-        private long id;
-
-        public SendQueuedRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver, long id) {
-            this.destination = data.getTo();
-            
-            StreamIoBuffers streamIoBuffers = new StreamIoBuffers(Mode.WRITE_FIRST);
-            streamIoBuffers.startWriting(data.getData());
-                    
-            this.buffers = streamIoBuffers;
-            this.receiver = receiver;
-            this.id = id;
-        }
-
-        public InetSocketAddress getDestination() {
-            return destination;
-        }
-
-        public StreamIoBuffers getBuffers() {
-            return buffers;
-        }
-
-        public ResponseReceiver<InetSocketAddress> getReceiver() {
-            return receiver;
-        }
-
-        public long getId() {
-            return id;
-        }
-
-    }
-
-    private static final class KillQueuedRequest implements OutgoingRequest {
-
-        private long id;
-
-        public KillQueuedRequest(long id) {
-            this.id = id;
-        }
-
-        public long getId() {
-            return id;
-        }
-
-    }
     
     
     private static final class ChannelParameters {
@@ -726,28 +476,5 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
     private enum ClientChannelType {
         REMOTE_INITIATED,
         LOCAL_INITIATED
-    }
-    
-    public static void main(String[] args) throws Throwable {
-        TcpTransport transport = new TcpTransport(12345);
-        transport.start();
-        
-        RequestSender<InetSocketAddress> sender = transport.getRequestSender();
-        sender.sendRequest(new OutgoingData<>(new InetSocketAddress("www.google.com", 80), "GET /\r\n\r\n".getBytes("US-ASCII")),
-                new ResponseReceiver<InetSocketAddress>() {
-
-            @Override
-            public void responseArrived(IncomingData<InetSocketAddress> data) {
-                System.out.println(data.getData().toString());
-            }
-
-            @Override
-            public void communicationFailed() {
-                System.out.println("HI");
-            }
-        });
-        
-        
-        Thread.sleep(5000);
     }
 }

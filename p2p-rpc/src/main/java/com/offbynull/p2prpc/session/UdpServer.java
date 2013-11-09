@@ -1,32 +1,31 @@
 package com.offbynull.p2prpc.session;
 
 import com.offbynull.p2prpc.transport.IncomingData;
-import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketReceiver;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageReceiver;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.ReceiveNotifier;
-import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketSender;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageSender;
 import com.offbynull.p2prpc.transport.OutgoingData;
-import com.offbynull.p2prpc.transport.UdpTransport;
+import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
-public final class UdpServer implements Server<SocketAddress> {
+public final class UdpServer implements Server<InetSocketAddress> {
 
-    private PacketSender querier;
+    private MessageSender querier;
     private ReceiveNotifier notifier;
-    private ServerMessageCallback<SocketAddress> callback;
+    private ServerMessageCallback<InetSocketAddress> callback;
     private long timeout;
     
     private UdpPacketTranslator udpPacketTranslator;
 
-    public UdpServer(UdpTransport base) {
-        querier = base.getPacketSender();
-        notifier = base.getReceiveNotifier();
+    public UdpServer(UdpTransport transport) {
+        querier = transport.getMessageSender();
+        notifier = transport.getReceiveNotifier();
     }
 
     @Override
-    public void start(ServerMessageCallback<SocketAddress> callback) throws IOException {
+    public void start(ServerMessageCallback<InetSocketAddress> callback) throws IOException {
         this.callback = callback;
         udpPacketTranslator = new UdpPacketTranslator();
         
@@ -38,10 +37,10 @@ public final class UdpServer implements Server<SocketAddress> {
         notifier.remove(udpPacketTranslator);
     }
 
-    private final class UdpPacketTranslator implements PacketReceiver<InetSocketAddress> {
+    private final class UdpPacketTranslator implements MessageReceiver<InetSocketAddress> {
 
         @Override
-        public boolean packetArrived(IncomingData<InetSocketAddress> packet) {
+        public boolean messageArrived(IncomingData<InetSocketAddress> packet) {
             InetSocketAddress from = packet.getFrom();
             ByteBuffer recvData = packet.getData();
             
@@ -74,7 +73,7 @@ public final class UdpServer implements Server<SocketAddress> {
             if (time - savedTime < timeout) {
                 byte[] dataWithPid = packetId.prependId(data);
                 OutgoingData<InetSocketAddress> outgoingPacket = new OutgoingData<>(requester, dataWithPid);
-                querier.sendPacket(outgoingPacket);
+                querier.sendMessage(outgoingPacket);
             }
         }
 

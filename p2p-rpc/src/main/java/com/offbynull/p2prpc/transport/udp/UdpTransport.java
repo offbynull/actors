@@ -1,16 +1,17 @@
-package com.offbynull.p2prpc.transport;
+package com.offbynull.p2prpc.transport.udp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.NonSessionedTransport;
+import com.offbynull.p2prpc.transport.OutgoingData;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 
@@ -61,7 +62,7 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
     }
 
     @Override
-    public PacketSender getPacketSender() {
+    public MessageSender getMessageSender() {
         if (eventLoop == null || !eventLoop.isRunning()) {
             throw new IllegalStateException();
         }
@@ -204,56 +205,6 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
         protected void triggerShutdown() {
             stop.set(true);
             selector.wakeup();
-        }
-    }
-    
-    public static final class UdpReceiveNotifier implements ReceiveNotifier<InetSocketAddress> {
-        private LinkedBlockingQueue<PacketReceiver> handlers;
-        
-        private UdpReceiveNotifier() {
-            handlers = new LinkedBlockingQueue<>();
-        }
-
-        @Override
-        public void add(PacketReceiver<InetSocketAddress> e) {
-            handlers.add(e);
-        }
-
-        @Override
-        public void remove(PacketReceiver<InetSocketAddress> e) {
-            handlers.remove(e);
-        }
-
-        private void notify(Collection<IncomingData<InetSocketAddress>> packets) {
-            PacketReceiver[] handlersArray = handlers.toArray(new PacketReceiver[0]);
-            
-            for (IncomingData<InetSocketAddress> packet : packets) {
-                for (PacketReceiver<InetSocketAddress> handler : handlersArray) { // to array to avoid locks
-                    if (handler.packetArrived(packet)) {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    
-    public static final class UdpPacketSender implements PacketSender<InetSocketAddress> {
-        private Selector selector;
-        private LinkedBlockingQueue<OutgoingData<InetSocketAddress>> outgoingPackets;
-
-        private UdpPacketSender(Selector selector) {
-            this.selector = selector;
-            this.outgoingPackets = new LinkedBlockingQueue<>();
-        }
-        
-        @Override
-        public void sendPacket(OutgoingData<InetSocketAddress> packet) {
-            outgoingPackets.add(packet);
-            selector.wakeup();
-        }
-        
-        private void drainTo(Collection<OutgoingData<InetSocketAddress>> destination) {
-            outgoingPackets.drainTo(destination);
         }
     }
 }

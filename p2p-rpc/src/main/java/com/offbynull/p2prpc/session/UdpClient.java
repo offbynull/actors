@@ -1,11 +1,11 @@
 package com.offbynull.p2prpc.session;
 
 import com.offbynull.p2prpc.transport.IncomingData;
-import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketReceiver;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageReceiver;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.ReceiveNotifier;
-import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketSender;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageSender;
 import com.offbynull.p2prpc.transport.OutgoingData;
-import com.offbynull.p2prpc.transport.UdpTransport;
+import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -15,13 +15,13 @@ import java.util.concurrent.TimeoutException;
 
 public final class UdpClient implements Client<InetSocketAddress> {
 
-    private PacketSender querier;
+    private MessageSender querier;
     private ReceiveNotifier notifier;
     private PacketIdGenerator pidGenerator;
 
-    public UdpClient(UdpTransport base, PacketIdGenerator pidGenerator) {
-        querier = base.getPacketSender();
-        notifier = base.getReceiveNotifier();
+    public UdpClient(UdpTransport transport, PacketIdGenerator pidGenerator) {
+        querier = transport.getMessageSender();
+        notifier = transport.getReceiveNotifier();
         this.pidGenerator = pidGenerator;
     }
 
@@ -30,10 +30,10 @@ public final class UdpClient implements Client<InetSocketAddress> {
         final PacketId pid = pidGenerator.generate();
         final Exchanger<byte[]> exchanger = new Exchanger<>();
         
-        PacketReceiver<InetSocketAddress> recvHandler = new PacketReceiver<InetSocketAddress>() {
+        MessageReceiver<InetSocketAddress> recvHandler = new MessageReceiver<InetSocketAddress>() {
 
             @Override
-            public boolean packetArrived(IncomingData<InetSocketAddress> packet) {
+            public boolean messageArrived(IncomingData<InetSocketAddress> packet) {
                 ByteBuffer recvData = packet.getData();
                 PacketId incomingPid = PacketId.extractPrependedId(recvData);
                 
@@ -58,7 +58,7 @@ public final class UdpClient implements Client<InetSocketAddress> {
         
         byte []sendData = pid.prependId(data);
         OutgoingData<InetSocketAddress> outgoingPacket = new OutgoingData<>(to, sendData);
-        querier.sendPacket(outgoingPacket);
+        querier.sendMessage(outgoingPacket);
         
         try {
             byte[] recvData = exchanger.exchange(null, timeout, TimeUnit.MILLISECONDS);

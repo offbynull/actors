@@ -1,91 +1,65 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.StreamIoBuffers;
-import com.offbynull.p2prpc.transport.StreamIoBuffers.Mode;
+import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.SessionedTransport.RequestController;
+import com.offbynull.p2prpc.transport.SessionedTransport.RequestSender;
+import com.offbynull.p2prpc.transport.SessionedTransport.ResponseReceiver;
+import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import org.apache.commons.io.IOUtils;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-public final class TcpClient implements Client<SocketAddress> {
+public final class TcpClient implements Client<InetSocketAddress> {
+    private RequestSender<InetSocketAddress> requestSender;
+
+    public TcpClient(TcpTransport transport) {
+        requestSender = transport.getRequestSender();
+    }
 
     @Override
-    public byte[] send(SocketAddress address, byte[] data, long timeout)
-            throws IOException {
+    public byte[] send(InetSocketAddress address, byte[] data, long timeout) throws IOException, InterruptedException {
+        final Exchanger<byte[]> exchanger = new Exchanger<>();
+        
+        ResponseReceiver<InetSocketAddress> responseReceiver = new ResponseReceiver<InetSocketAddress>() {
 
-        ByteBuffer buffer = ByteBuffer.allocate(8192);
-        StreamIoBuffers buffers = new StreamIoBuffers(Mode.WRITE_FIRST);
-        buffers.startWriting(data);
-
-        // IO
-        try (Selector selector = Selector.open();
-                SocketChannel channel = SocketChannel.open();) {
-            channel.configureBlocking(false);
-            channel.socket().setKeepAlive(true);
-            channel.socket().setReuseAddress(true);
-            channel.socket().setSoLinger(false, 0);
-            channel.socket().setSoTimeout(0);
-            channel.socket().setTcpNoDelay(true);
-            channel.connect(address);
-            SelectionKey selectionKey = channel.register(selector,
-                    SelectionKey.OP_CONNECT);
-
-
-            long currentTime = System.currentTimeMillis();
-            long endTime = currentTime + timeout;
-            while (currentTime < endTime) {
-                selector.select(endTime - currentTime);
-
-                Iterator keys = selector.selectedKeys().iterator();
-                while (keys.hasNext()) {
-                    SelectionKey key = (SelectionKey) keys.next();
-                    keys.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    if (key.isReadable()) {
-                        buffer.clear();
-                        if (channel.read(buffer) == -1) {
-                            IOUtils.closeQuietly(channel);
-                            return buffers.finishReading();
-                        } else {
-                            buffers.addReadBlock(buffer);
-                        }
-                    } else if (key.isWritable()) {
-                        buffer.clear();
-                        buffers.getWriteBlock(buffer);
-
-                        if (buffer.limit()== 0) {
-                            selectionKey.interestOps(SelectionKey.OP_READ);
-                            channel.shutdownOutput();
-                            buffers.finishWriting();
-                            buffers.startReading();
-                        } else {
-                            int amountWritten = channel.write(buffer);
-                            buffers.adjustWritePointer(amountWritten);
-                        }
-                    } else if (key.isConnectable()) {
-                        channel.finishConnect();
-                        selectionKey.interestOps(SelectionKey.OP_WRITE);
-                    }
+            @Override
+            public void responseArrived(IncomingData<InetSocketAddress> data) {
+                ByteBuffer recvData = data.getData();
+                                    
+                byte[] recvDataBytes = new byte[recvData.limit()];
+                recvData.get(recvDataBytes);
+                
+                try {
+                    exchanger.exchange(recvDataBytes, 0, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException | TimeoutException te) {
+                    // Do nothing. The IE will have to be handled elsewhere. The TE should be gobbled.
                 }
-
-                currentTime = System.currentTimeMillis();
             }
 
-            IOUtils.closeQuietly(channel);
-            
-            if (currentTime >= endTime) {
-                throw new IOException("Timed out");
+            @Override
+            public void communicationFailed() {
+                try {
+                    exchanger.exchange(null, 0, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException | TimeoutException te) {
+                    // Do nothing. The IE will have to be handled elsewhere. The TE should be gobbled.
+                }
             }
+        };
+        
+        OutgoingData<InetSocketAddress> outgoingData = new OutgoingData<>(address, data);
+        RequestController controller = requestSender.sendRequest(outgoingData, responseReceiver);
 
-            throw new IOException("Unknown error");
+        try {
+            byte[] recvData = exchanger.exchange(null, timeout, TimeUnit.MILLISECONDS);
+            return recvData;
+        } catch (TimeoutException te) {
+            return null;
+        } finally {
+            controller.killCommunication();
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.offbynull.p2prpc.transport;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * Interface for transports that are non-sessioned (e.g. UDP).
@@ -11,18 +10,18 @@ public interface NonSessionedTransport<A> {
     void start() throws IOException;
     void stop() throws IOException;
     ReceiveNotifier<A> getReceiveNotifier();
-    PacketSender<A> getPacketSender();
+    MessageSender<A> getMessageSender();
     
     public interface ReceiveNotifier<A> {
-        void add(PacketReceiver<A> e);
-        void remove(PacketReceiver<A> e);
+        void add(MessageReceiver<A> e);
+        void remove(MessageReceiver<A> e);
     };
     
-    public interface PacketSender<A> {
-        void sendPacket(OutgoingData<A> data);
+    public interface MessageSender<A> {
+        void sendMessage(OutgoingData<A> data);
     }
     
-    public interface PacketReceiver<A> {
-        boolean packetArrived(IncomingData<A> data);
+    public interface MessageReceiver<A> {
+        boolean messageArrived(IncomingData<A> data);
     }
 }

@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
  * 
  * @param <A> address type
  */
-public interface StreamTransport<A> {
+public interface SessionedTransport<A> {
     void start() throws IOException;
     void stop() throws IOException;
     RequestNotifier<A> getRequestNotifier();

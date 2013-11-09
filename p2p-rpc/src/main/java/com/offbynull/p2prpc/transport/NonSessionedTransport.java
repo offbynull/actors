@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
  * it at a higher layer.
  * @param <A> address type
  */
-public interface PacketTransport<A> {
+public interface NonSessionedTransport<A> {
     void start() throws IOException;
     void stop() throws IOException;
     ReceiveNotifier<A> getReceiveNotifier();

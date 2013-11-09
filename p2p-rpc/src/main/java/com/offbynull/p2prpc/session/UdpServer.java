@@ -1,10 +1,10 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.PacketTransport.IncomingPacket;
-import com.offbynull.p2prpc.transport.PacketTransport.OutgoingPacket;
-import com.offbynull.p2prpc.transport.PacketTransport.PacketReceiver;
-import com.offbynull.p2prpc.transport.PacketTransport.ReceiveNotifier;
-import com.offbynull.p2prpc.transport.PacketTransport.PacketSender;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.IncomingPacket;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.OutgoingPacket;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketReceiver;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.ReceiveNotifier;
+import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketSender;
 import com.offbynull.p2prpc.transport.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;

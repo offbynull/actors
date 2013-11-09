@@ -14,7 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
 
-public final class UdpTransport implements PacketTransport<InetSocketAddress> {
+public final class UdpTransport implements NonSessionedTransport<InetSocketAddress> {
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
     private int bufferSize;

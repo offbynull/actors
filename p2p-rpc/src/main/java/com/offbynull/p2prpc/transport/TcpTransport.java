@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.IOUtils;
 
-public final class TcpTransport implements StreamTransport<InetSocketAddress> {
+public final class TcpTransport implements SessionedTransport<InetSocketAddress> {
 
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
@@ -97,8 +97,6 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
 
         @Override
         protected void startUp() throws Exception {
-            Thread.currentThread().setDaemon(false);
-            
             channelParametersMap = new HashMap<>();
             stop = new AtomicBoolean(false);
             try {
@@ -715,5 +713,28 @@ public final class TcpTransport implements StreamTransport<InetSocketAddress> {
     private enum ClientChannelType {
         REMOTE_INITIATED,
         LOCAL_INITIATED
+    }
+    
+    public static void main(String[] args) throws Throwable {
+        TcpTransport transport = new TcpTransport(12345);
+        transport.start();
+        
+        RequestSender<InetSocketAddress> sender = transport.getRequestSender();
+        sender.sendRequest(new OutgoingData<>(new InetSocketAddress("www.google.com", 80), "GET /\r\n\r\n".getBytes("US-ASCII")),
+                new ResponseReceiver<InetSocketAddress>() {
+
+            @Override
+            public void responseArrived(IncomingData<InetSocketAddress> data) {
+                System.out.println(data.getData().toString());
+            }
+
+            @Override
+            public void communicationFailed() {
+                System.out.println("HI");
+            }
+        });
+        
+        
+        Thread.sleep(5000);
     }
 }

@@ -9,6 +9,7 @@ import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -28,7 +29,8 @@ public final class UdpClient implements Client<InetSocketAddress> {
     @Override
     public byte[] send(InetSocketAddress to, byte[] data, long timeout) throws IOException, InterruptedException {
         final PacketId pid = pidGenerator.generate();
-        final Exchanger<byte[]> exchanger = new Exchanger<>();
+        final ArrayBlockingQueue<byte[]> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
+                                                                                  // to potential of recvHandler getting blocked
         
         MessageReceiver<InetSocketAddress> recvHandler = new MessageReceiver<InetSocketAddress>() {
 
@@ -39,15 +41,8 @@ public final class UdpClient implements Client<InetSocketAddress> {
                 
                 if (incomingPid.equals(pid)) {
                     byte[] recvDataWithoutPid = PacketId.removePrependedId(recvData);
-                    
-                    try {
-                        exchanger.exchange(recvDataWithoutPid, 0, TimeUnit.MILLISECONDS);
-                        return true;
-                    } catch (InterruptedException | TimeoutException te) {
-                        // Do nothing. The IE will have to be handled elsewhere. The TE should be gobbled.
-                    } finally {
-                        notifier.remove(this);
-                    }
+                    exchanger.add(recvDataWithoutPid);
+                    return true;
                 }
                 
                 return false;
@@ -61,10 +56,13 @@ public final class UdpClient implements Client<InetSocketAddress> {
         querier.sendMessage(outgoingPacket);
         
         try {
-            byte[] recvData = exchanger.exchange(null, timeout, TimeUnit.MILLISECONDS);
+            byte[] recvData = exchanger.poll(timeout, TimeUnit.MILLISECONDS);
+            
+            if (recvData == null) {
+                throw new IOException("Communcation failed");
+            }
+            
             return recvData;
-        } catch (TimeoutException te) {
-            return null;
         } finally {
             notifier.remove(recvHandler);
         }

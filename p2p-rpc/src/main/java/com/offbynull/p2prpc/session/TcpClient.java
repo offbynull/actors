@@ -9,9 +9,8 @@ import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.concurrent.Exchanger;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public final class TcpClient implements Client<InetSocketAddress> {
     private RequestSender<InetSocketAddress> requestSender;
@@ -22,7 +21,8 @@ public final class TcpClient implements Client<InetSocketAddress> {
 
     @Override
     public byte[] send(InetSocketAddress address, byte[] data, long timeout) throws IOException, InterruptedException {
-        final Exchanger<byte[]> exchanger = new Exchanger<>();
+        final ArrayBlockingQueue<byte[]> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
+                                                                                  // to potential of responseReceiver getting blocked
         
         ResponseReceiver<InetSocketAddress> responseReceiver = new ResponseReceiver<InetSocketAddress>() {
 
@@ -33,20 +33,12 @@ public final class TcpClient implements Client<InetSocketAddress> {
                 byte[] recvDataBytes = new byte[recvData.limit()];
                 recvData.get(recvDataBytes);
                 
-                try {
-                    exchanger.exchange(recvDataBytes, 0, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException | TimeoutException te) {
-                    // Do nothing. The IE will have to be handled elsewhere. The TE should be gobbled.
-                }
+                exchanger.add(recvDataBytes);
             }
 
             @Override
             public void communicationFailed() {
-                try {
-                    exchanger.exchange(null, 0, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException | TimeoutException te) {
-                    // Do nothing. The IE will have to be handled elsewhere. The TE should be gobbled.
-                }
+                exchanger.add(null);
             }
         };
         
@@ -54,12 +46,15 @@ public final class TcpClient implements Client<InetSocketAddress> {
         RequestController controller = requestSender.sendRequest(outgoingData, responseReceiver);
 
         try {
-            byte[] recvData = exchanger.exchange(null, timeout, TimeUnit.MILLISECONDS);
+            byte[] recvData = exchanger.poll(timeout, TimeUnit.MILLISECONDS);
+            
+            if (recvData == null) {
+                throw new IOException("Communcation failed");
+            }
+            
             return recvData;
-        } catch (TimeoutException te) {
-            return null;
         } finally {
-            controller.killCommunication();
+            controller.killCommunication(); // just incase
         }
     }
 }

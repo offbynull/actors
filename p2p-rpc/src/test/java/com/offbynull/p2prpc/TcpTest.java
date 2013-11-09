@@ -1,12 +1,10 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.session.PacketIdGenerator;
 import com.offbynull.p2prpc.session.ServerMessageCallback;
 import com.offbynull.p2prpc.session.ServerResponseCallback;
-import com.offbynull.p2prpc.transport.udp.UdpTransport;
-import com.offbynull.p2prpc.session.UdpClient;
-import com.offbynull.p2prpc.session.UdpServer;
-import java.io.IOException;
+import com.offbynull.p2prpc.session.TcpClient;
+import com.offbynull.p2prpc.session.TcpServer;
+import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.net.InetSocketAddress;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -15,10 +13,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
+import org.mockito.verification.VerificationMode;
 
-public class UdpTest {
+public class TcpTest {
     
-    public UdpTest() {
+    public TcpTest() {
     }
     
     @BeforeClass
@@ -38,12 +37,12 @@ public class UdpTest {
     }
 
     @Test
-    public void selfUdpTest() throws Throwable {
-        UdpTransport base = new UdpTransport(12345);
+    public void selfTcpTest() throws Throwable {
+        TcpTransport base = new TcpTransport(12345);
         base.start();
         
-        UdpServer server = new UdpServer(base);
-        UdpClient client = new UdpClient(base, new PacketIdGenerator());
+        TcpServer server = new TcpServer(base);
+        TcpClient client = new TcpClient(base);
         
         ServerMessageCallback<InetSocketAddress> mockedCallback = Mockito.mock(ServerMessageCallback.class);
         server.start(mockedCallback);
@@ -58,21 +57,21 @@ public class UdpTest {
         server.stop();
         base.stop();
     }
-    
-    @Test(expected = IOException.class)
-    public void noResponseUdpTest() throws Throwable {
-        UdpTransport base = new UdpTransport(12345);
+
+    @Test
+    public void unconnectableTcpTest() throws Throwable {
+        TcpTransport base = new TcpTransport(12345);
         base.start();
         
-        UdpServer server = new UdpServer(base);
-        UdpClient client = new UdpClient(base, new PacketIdGenerator());
+        TcpServer server = new TcpServer(base);
+        TcpClient client = new TcpClient(base);
         
         ServerMessageCallback<InetSocketAddress> mockedCallback = Mockito.mock(ServerMessageCallback.class);
         server.start(mockedCallback);
         
-        client.send(new InetSocketAddress("asdawfaawacwavew", 12345), "HIEVERYBODY! :)".getBytes(), 500L);
+        client.send(new InetSocketAddress("34h93hfouehf", 12345), "HIEVERYBODY! :)".getBytes(), 500L);
         
-        Mockito.verify(mockedCallback).messageArrived(
+        Mockito.verify(mockedCallback, Mockito.never()).messageArrived(
                 Matchers.any(InetSocketAddress.class),
                 Matchers.any(byte[].class),
                 Matchers.any(ServerResponseCallback.class));

@@ -101,8 +101,6 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
         
         @Override
         protected void startUp() throws IOException {
-            Thread.currentThread().setDaemon(false);
-            
             stop = new AtomicBoolean(false);
             try {
                 channel.configureBlocking(false);

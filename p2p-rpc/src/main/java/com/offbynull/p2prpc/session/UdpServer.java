@@ -1,10 +1,10 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.NonSessionedTransport.IncomingPacket;
-import com.offbynull.p2prpc.transport.NonSessionedTransport.OutgoingPacket;
+import com.offbynull.p2prpc.transport.IncomingData;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketReceiver;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.ReceiveNotifier;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketSender;
+import com.offbynull.p2prpc.transport.OutgoingData;
 import com.offbynull.p2prpc.transport.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -41,7 +41,7 @@ public final class UdpServer implements Server<SocketAddress> {
     private final class UdpPacketTranslator implements PacketReceiver<InetSocketAddress> {
 
         @Override
-        public boolean packetArrived(IncomingPacket<InetSocketAddress> packet) {
+        public boolean packetArrived(IncomingData<InetSocketAddress> packet) {
             InetSocketAddress from = packet.getFrom();
             ByteBuffer recvData = packet.getData();
             
@@ -73,7 +73,7 @@ public final class UdpServer implements Server<SocketAddress> {
             long time = System.currentTimeMillis();
             if (time - savedTime < timeout) {
                 byte[] dataWithPid = packetId.prependId(data);
-                OutgoingPacket<InetSocketAddress> outgoingPacket = new OutgoingPacket<>(requester, dataWithPid);
+                OutgoingData<InetSocketAddress> outgoingPacket = new OutgoingData<>(requester, dataWithPid);
                 querier.sendPacket(outgoingPacket);
             }
         }

@@ -127,8 +127,8 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
             ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
             int selectionKey = SelectionKey.OP_READ;
-            LinkedList<OutgoingPacket<InetSocketAddress>> pendingOutgoingPackets = new LinkedList<>();
-            LinkedList<IncomingPacket<InetSocketAddress>> pendingIncomingPackets = new LinkedList<>();
+            LinkedList<OutgoingData<InetSocketAddress>> pendingOutgoingPackets = new LinkedList<>();
+            LinkedList<IncomingData<InetSocketAddress>> pendingIncomingPackets = new LinkedList<>();
             while (true) {
                 // get outgoing data
                 packetSender.drainTo(pendingOutgoingPackets);
@@ -173,10 +173,10 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
                         buffer.get(inData);
                         buffer.clear();
                         
-                        IncomingPacket<InetSocketAddress> packet = new IncomingPacket<>(from, inData, currentTime);
+                        IncomingData<InetSocketAddress> packet = new IncomingData<>(from, inData, currentTime);
                         pendingIncomingPackets.addLast(packet);
                     } else if (key.isWritable()) { // ready for outgoing data
-                        OutgoingPacket<InetSocketAddress> packet = pendingOutgoingPackets.poll();
+                        OutgoingData<InetSocketAddress> packet = pendingOutgoingPackets.poll();
                         
                         if (packet != null) {
                             channel.send(packet.getData(), packet.getTo());
@@ -224,10 +224,10 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
             handlers.remove(e);
         }
 
-        private void notify(Collection<IncomingPacket<InetSocketAddress>> packets) {
+        private void notify(Collection<IncomingData<InetSocketAddress>> packets) {
             PacketReceiver[] handlersArray = handlers.toArray(new PacketReceiver[0]);
             
-            for (IncomingPacket<InetSocketAddress> packet : packets) {
+            for (IncomingData<InetSocketAddress> packet : packets) {
                 for (PacketReceiver<InetSocketAddress> handler : handlersArray) { // to array to avoid locks
                     if (handler.packetArrived(packet)) {
                         break;
@@ -239,7 +239,7 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
     
     public static final class UdpPacketSender implements PacketSender<InetSocketAddress> {
         private Selector selector;
-        private LinkedBlockingQueue<OutgoingPacket<InetSocketAddress>> outgoingPackets;
+        private LinkedBlockingQueue<OutgoingData<InetSocketAddress>> outgoingPackets;
 
         private UdpPacketSender(Selector selector) {
             this.selector = selector;
@@ -247,12 +247,12 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
         }
         
         @Override
-        public void sendPacket(OutgoingPacket<InetSocketAddress> packet) {
+        public void sendPacket(OutgoingData<InetSocketAddress> packet) {
             outgoingPackets.add(packet);
             selector.wakeup();
         }
         
-        private void drainTo(Collection<OutgoingPacket<InetSocketAddress>> destination) {
+        private void drainTo(Collection<OutgoingData<InetSocketAddress>> destination) {
             outgoingPackets.drainTo(destination);
         }
     }

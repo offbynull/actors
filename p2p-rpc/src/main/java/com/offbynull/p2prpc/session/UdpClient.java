@@ -1,10 +1,10 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.NonSessionedTransport.IncomingPacket;
-import com.offbynull.p2prpc.transport.NonSessionedTransport.OutgoingPacket;
+import com.offbynull.p2prpc.transport.IncomingData;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketReceiver;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.ReceiveNotifier;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.PacketSender;
+import com.offbynull.p2prpc.transport.OutgoingData;
 import com.offbynull.p2prpc.transport.UdpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -33,7 +33,7 @@ public final class UdpClient implements Client<InetSocketAddress> {
         PacketReceiver<InetSocketAddress> recvHandler = new PacketReceiver<InetSocketAddress>() {
 
             @Override
-            public boolean packetArrived(IncomingPacket<InetSocketAddress> packet) {
+            public boolean packetArrived(IncomingData<InetSocketAddress> packet) {
                 ByteBuffer recvData = packet.getData();
                 PacketId incomingPid = PacketId.extractPrependedId(recvData);
                 
@@ -57,7 +57,7 @@ public final class UdpClient implements Client<InetSocketAddress> {
         notifier.add(recvHandler);
         
         byte []sendData = pid.prependId(data);
-        OutgoingPacket<InetSocketAddress> outgoingPacket = new OutgoingPacket<>(to, sendData);
+        OutgoingData<InetSocketAddress> outgoingPacket = new OutgoingData<>(to, sendData);
         querier.sendPacket(outgoingPacket);
         
         try {

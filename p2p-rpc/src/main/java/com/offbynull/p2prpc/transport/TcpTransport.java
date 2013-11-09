@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.IOUtils;
 
 public final class TcpTransport implements SessionedTransport<InetSocketAddress> {
@@ -98,6 +97,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
         @Override
         protected void startUp() throws Exception {
             channelParametersMap = new HashMap<>();
+            sendQueueIdMap = new HashMap<>();
             stop = new AtomicBoolean(false);
             try {
                 serverChannel.configureBlocking(false);
@@ -126,11 +126,13 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             LinkedList<OutgoingRequest> pendingRequestData = new LinkedList<>();
             LinkedList<OutgoingResponse> pendingResponseData = new LinkedList<>();
             while (true) {
+                System.out.println("Loop started");
                 // get current time
                 long currentTime = System.currentTimeMillis();
                 
                 
                 // get requests waiting to go out, create socket for each request
+                System.out.println("Getting requests");
                 requestSender.drainTo(pendingRequestData);
 
                 for (OutgoingRequest queuedRequest : pendingRequestData) {
@@ -153,6 +155,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 
                 
                 // get responses waiting to go out
+                System.out.println("Getting responses");
                 requestNotifier.drainResponsesTo(pendingResponseData);
 
                 for (OutgoingResponse queuedResponse : pendingResponseData) {
@@ -195,6 +198,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 
                 
                 // select
+                System.out.println("Selecting");
                 try {
                     selector.select();
                 } catch (IOException ioe) {
@@ -202,27 +206,33 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 }
 
                 // stop if signalled
+                System.out.println("Checking if stopped");
                 if (stop.get()) {
                     return;
                 }
 
                 // go through selected keys
+                System.out.println("Looping through keys");
                 Iterator keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
+                    System.out.println("Getting key");
                     SelectionKey key = (SelectionKey) keys.next();
                     keys.remove();
 
                     if (!key.isValid()) {
+                        System.out.println("Key invalid");
                         continue;
                     }
 
                     if (key.isAcceptable()) {
+                        System.out.println("Key is acceptable");
                         try {
                             acceptAndInitializeIncomingSocket();
                         } catch (RuntimeException | IOException e) {
                             // do nothing
                         }
                     } else if (key.isConnectable()) {
+                        System.out.println("Key is connectable");
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         
                         try {
@@ -248,6 +258,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                             killSocket(key, clientChannel, true);
                         }
                     } else if (key.isReadable()) {
+                        System.out.println("Key is readable");
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         
                         try {
@@ -284,6 +295,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                             killSocket(key, clientChannel, true);
                         }
                     } else if (key.isWritable()) {
+                        System.out.println("Key is writable");
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         
                         try {
@@ -314,6 +326,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                 }
                             }
                         } catch (RuntimeException | IOException e) {
+                            System.out.println(e);
                             killSocket(key, clientChannel, true);
                         }
                     }

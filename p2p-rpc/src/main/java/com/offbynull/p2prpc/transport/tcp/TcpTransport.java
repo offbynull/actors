@@ -276,6 +276,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                     case REMOTE_INITIATED: {
                                         IncomingRequest request = new IncomingRequest(incomingData, selector, clientChannel);
                                         pendingIncomingData.add(request);
+                                        key.interestOps(0); // don't need to read anymore, when we get a response, we register op_write
                                         break;
                                     }
                                     default:

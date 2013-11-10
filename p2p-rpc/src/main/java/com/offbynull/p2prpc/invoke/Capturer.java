@@ -47,8 +47,7 @@ public final class Capturer<T> {
         
         return  (T) Enhancer.create(cls, new MethodInterceptor() {
             @Override
-            public Object intercept(Object obj, Method method, Object[] args,
-                    MethodProxy proxy) throws Throwable {
+            public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
                 String name = method.getName();
                 Class<?>[] paramTypes = method.getParameterTypes();
 

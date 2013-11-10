@@ -31,6 +31,7 @@ public final class NonSessionedClient<A> implements Client<A> {
     public byte[] send(A to, byte[] data, long timeout) throws IOException, InterruptedException {
         Validate.notNull(to);
         Validate.notNull(data);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
         final PacketId pid = pidGenerator.generate();
         final ArrayBlockingQueue<byte[]> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due

@@ -20,6 +20,7 @@ public final class SessionedServer<A> implements Server<A> {
 
     public SessionedServer(TcpTransport transport, long timeout) {
         Validate.notNull(transport);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
         notifier = transport.getRequestNotifier();
         this.timeout = timeout;

@@ -21,6 +21,7 @@ public final class NonSessionedServer<A> implements Server<A> {
 
     public NonSessionedServer(NonSessionedTransport<A> transport, long timeout) {
         Validate.notNull(transport);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
         querier = transport.getMessageSender();
         notifier = transport.getReceiveNotifier();

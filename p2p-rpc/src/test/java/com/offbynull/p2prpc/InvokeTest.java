@@ -12,7 +12,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 public final class InvokeTest {

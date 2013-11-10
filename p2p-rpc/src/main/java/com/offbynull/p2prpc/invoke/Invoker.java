@@ -71,7 +71,7 @@ public final class Invoker implements Closeable {
                     }
                     
                     Deserializer.DeserializerResult dr =
-                            deserializer.deserialize(data);
+                            deserializer.deserialize(inData);
                     
                     if (dr.getType() != SerializationType.METHOD_CALL) {
                         throw new IOException("Expected "
@@ -103,7 +103,7 @@ public final class Invoker implements Closeable {
                 // Filter output
                 try {
                     for (Filter filter : outFilters) {
-                        outData = filter.unmodify(outData);
+                        outData = filter.modify(outData);
                     }
                 } catch (IOException ioe) {
                     callback.invokationFailed(ioe);

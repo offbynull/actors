@@ -17,28 +17,21 @@ public class XStreamBinarySerializerDeserializer implements Serializer,
 
     @Override
     public byte[] serializeMethodCall(InvokeData invokeData) {
-        Validate.notNull(invokeData);
-        
         return serialize(SerializationType.METHOD_CALL, invokeData);
     }
 
     @Override
     public byte[] serializeMethodReturn(Object ret) {
-        Validate.notNull(ret);
-        
         return serialize(SerializationType.METHOD_RETURN, ret);
     }
 
     @Override
     public byte[] serializeMethodThrow(Throwable err) {
-        Validate.notNull(err);
-        
         return serialize(SerializationType.METHOD_THROW, err);
     }
     
     private byte[] serialize(SerializationType type, Object obj) {
         Validate.notNull(type);
-        Validate.notNull(obj);
         
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.write(type.ordinal());
@@ -48,8 +41,6 @@ public class XStreamBinarySerializerDeserializer implements Serializer,
     
     @Override
     public DeserializerResult deserialize(byte[] data) {
-        Validate.notNull(data);
-        
         ByteArrayInputStream is = new ByteArrayInputStream(data);
         int ordinal = is.read();
         SerializationType type = SerializationType.values()[ordinal];

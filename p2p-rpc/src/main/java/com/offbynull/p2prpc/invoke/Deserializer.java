@@ -11,7 +11,6 @@ public interface Deserializer {
 
         public DeserializerResult(SerializationType type, Object result) {
             Validate.notNull(type);
-            Validate.notNull(result);
             
             this.type = type;
             this.result = result;

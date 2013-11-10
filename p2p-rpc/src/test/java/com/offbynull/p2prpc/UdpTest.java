@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class UdpTest {
+public final class UdpTest {
 
     private static final long TIMEOUT = 500;
 

@@ -60,7 +60,7 @@ public final class Capturer<T> {
                     inData = serializer.serializeMethodCall(invokeData);
                     
                     for (Filter filter : inFilters) {
-                        inData = filter.unmodify(inData);
+                        inData = filter.modify(inData);
                     }
                 } catch (IOException ioe) {
                     callback.invokationFailed(ioe);

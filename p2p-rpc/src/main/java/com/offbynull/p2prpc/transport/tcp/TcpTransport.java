@@ -383,6 +383,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 channelParametersMap.put(clientChannel, params);
             } catch (IOException | RuntimeException e) {
                 killSocket(selectionKey, clientChannel, true);
+                throw e;
             }
         }
 
@@ -459,7 +460,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             Validate.notNull(buffers);
             Validate.notNull(type);
             Validate.notNull(selectionKey);
-            Validate.notNull(receiver);
+            //Validate.notNull(receiver); // may be null
             //Validate.notNull(sendRequestId); // may be null
             
             this.buffers = buffers;

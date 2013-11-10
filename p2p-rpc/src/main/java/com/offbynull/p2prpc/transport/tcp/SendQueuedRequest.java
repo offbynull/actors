@@ -2,7 +2,6 @@ package com.offbynull.p2prpc.transport.tcp;
 
 import com.offbynull.p2prpc.transport.OutgoingData;
 import com.offbynull.p2prpc.transport.SessionedTransport;
-import com.offbynull.p2prpc.transport.StreamIoBuffers;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 

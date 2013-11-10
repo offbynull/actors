@@ -1,18 +1,18 @@
-package com.offbynull.p2prpc.transport;
+package com.offbynull.p2prpc.transport.tcp;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-public final class StreamIoBuffers {
+final class StreamIoBuffers {
 
     private State state = State.INIT;
     private Mode mode;
     private ByteArrayOutputStream readOs;
     private ByteArrayInputStream writeIs;
 
-    public StreamIoBuffers(Mode mode) {
+    StreamIoBuffers(Mode mode) {
         Validate.notNull(mode);
         
         this.mode = mode;

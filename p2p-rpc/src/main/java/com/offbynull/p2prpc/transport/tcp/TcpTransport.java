@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.offbynull.p2prpc.transport.IncomingData;
 import com.offbynull.p2prpc.transport.OutgoingData;
 import com.offbynull.p2prpc.transport.SessionedTransport;
-import com.offbynull.p2prpc.transport.StreamIoBuffers;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;

@@ -44,14 +44,19 @@ public final class NonSessionedServer<A> implements Server<A> {
             A from = packet.getFrom();
             ByteBuffer recvData = packet.getData();
             
+            if (!RequestResponseMarker.isRequest(recvData)) {
+                return false;
+            }
+            
+            recvData.position(recvData.position() + 1);
+            
             PacketId pid = PacketId.extractPrependedId(recvData);
             byte[] data = PacketId.removePrependedId(recvData);
             
             long time = System.currentTimeMillis();
             callback.messageArrived(packet.getFrom(), data, new ResponseCallback(time, pid, from));
             
-            return false; // return false here, because we have no way of knowing if this is a server request or a response to a client
-                          // that wrapped the same UdpBase
+            return false;
         }
     }
     
@@ -71,8 +76,11 @@ public final class NonSessionedServer<A> implements Server<A> {
         public void responseReady(byte[] data) {
             long time = System.currentTimeMillis();
             if (time - savedTime < timeout) {
-                byte[] dataWithPid = packetId.prependId(data);
-                OutgoingData<A> outgoingPacket = new OutgoingData<>(requester, dataWithPid);
+                byte[] ammendedData;
+                ammendedData = packetId.prependId(data);
+                ammendedData = RequestResponseMarker.prependResponseMarker(ammendedData);
+                
+                OutgoingData<A> outgoingPacket = new OutgoingData<>(requester, ammendedData);
                 querier.sendMessage(outgoingPacket);
             }
         }

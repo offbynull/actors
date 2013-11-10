@@ -12,6 +12,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public final class SessionedClient<A> implements Client<A> {
+    private static final Object FAIL_MARKER = new Object();
     private RequestSender<A> requestSender;
 
     public SessionedClient(SessionedTransport<A> transport) {
@@ -20,7 +21,7 @@ public final class SessionedClient<A> implements Client<A> {
 
     @Override
     public byte[] send(A address, byte[] data, long timeout) throws IOException, InterruptedException {
-        final ArrayBlockingQueue<byte[]> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
+        final ArrayBlockingQueue<Object> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
                                                                                   // to potential of responseReceiver getting blocked
         
         ResponseReceiver<A> responseReceiver = new ResponseReceiver<A>() {
@@ -37,7 +38,7 @@ public final class SessionedClient<A> implements Client<A> {
 
             @Override
             public void communicationFailed() {
-                exchanger.add(null);
+                exchanger.add(FAIL_MARKER);
             }
         };
         
@@ -45,13 +46,13 @@ public final class SessionedClient<A> implements Client<A> {
         RequestController controller = requestSender.sendRequest(outgoingData, responseReceiver);
 
         try {
-            byte[] recvData = exchanger.poll(timeout, TimeUnit.MILLISECONDS);
+            Object recvData = exchanger.poll(timeout, TimeUnit.MILLISECONDS);
             
-            if (recvData == null) {
+            if (recvData == null || recvData == FAIL_MARKER) {
                 throw new IOException("Communcation failed");
             }
             
-            return recvData;
+            return (byte[]) recvData;
         } finally {
             controller.killCommunication(); // just incase
         }

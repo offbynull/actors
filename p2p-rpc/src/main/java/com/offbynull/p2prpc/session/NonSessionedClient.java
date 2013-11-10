@@ -34,21 +34,29 @@ public final class NonSessionedClient<A> implements Client<A> {
             @Override
             public boolean messageArrived(IncomingData<A> packet) {
                 ByteBuffer recvData = packet.getData();
-                PacketId incomingPid = PacketId.extractPrependedId(recvData);
                 
-                if (incomingPid.equals(pid)) {
-                    byte[] recvDataWithoutPid = PacketId.removePrependedId(recvData);
-                    exchanger.add(recvDataWithoutPid);
-                    return true;
+                if (!RequestResponseMarker.isResponse(recvData)) {
+                    return false;
                 }
                 
-                return false;
+                recvData.position(recvData.position() + 1);
+                PacketId incomingPid = PacketId.extractPrependedId(recvData);
+                
+                if (!incomingPid.equals(pid)) {
+                    return false;
+                }
+                
+                byte[] recvDataWithoutPid = PacketId.removePrependedId(recvData);
+                exchanger.add(recvDataWithoutPid);
+                return true;
             }
         };
         
         notifier.add(recvHandler);
         
-        byte []sendData = pid.prependId(data);
+        byte []sendData;
+        sendData = pid.prependId(data);
+        sendData = RequestResponseMarker.prependRequestMarker(sendData);
         OutgoingData<A> outgoingPacket = new OutgoingData<>(to, sendData);
         querier.sendMessage(outgoingPacket);
         

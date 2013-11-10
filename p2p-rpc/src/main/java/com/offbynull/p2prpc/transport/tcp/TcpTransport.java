@@ -220,6 +220,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                         try {
                             acceptAndInitializeIncomingSocket();
                         } catch (RuntimeException | IOException e) {
+                            e.printStackTrace();
                             // do nothing
                         }
                     } else if (key.isConnectable()) {
@@ -238,13 +239,12 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                     key.interestOps(SelectionKey.OP_WRITE);
                                     break;
                                 case REMOTE_INITIATED:
-                                    // if this is an incoming message, first thing we want to do is read
-                                    key.interestOps(SelectionKey.OP_READ);
-                                    break;
+                                    // should never happen
                                 default:
                                     throw new IllegalStateException();
                             }
                         } catch (RuntimeException | IOException e) {
+                            e.printStackTrace();
                             killSocket(key, clientChannel, true);
                         }
                     } else if (key.isReadable()) {
@@ -281,6 +281,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                 }
                             }
                         } catch (RuntimeException | IOException e) {
+                            e.printStackTrace();
                             killSocket(key, clientChannel, true);
                         }
                     } else if (key.isWritable()) {
@@ -296,25 +297,28 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                             if (tempBuffer.limit() != 0) {
                                 int amountWritten = clientChannel.write(tempBuffer);
                                 buffers.adjustWritePointer(amountWritten);
-                            } else {
-                                clientChannel.shutdownOutput();
-                                buffers.finishWriting();
                                 
-                                switch (params.getType()) {
-                                    case LOCAL_INITIATED: {
-                                        key.interestOps(SelectionKey.OP_READ);
-                                        break;
+                                if (buffers.isEndOfWrite()) {
+                                    clientChannel.shutdownOutput();
+                                    buffers.finishWriting();
+
+                                    switch (params.getType()) {
+                                        case LOCAL_INITIATED: {
+                                            buffers.startReading();
+                                            key.interestOps(SelectionKey.OP_READ);
+                                            break;
+                                        }
+                                        case REMOTE_INITIATED: {
+                                            killSocket(key, clientChannel, false);
+                                            break;
+                                        }
+                                        default:
+                                            throw new IllegalStateException();
                                     }
-                                    case REMOTE_INITIATED: {
-                                        killSocket(key, clientChannel, false);
-                                        break;
-                                    }
-                                    default:
-                                        throw new IllegalStateException();
                                 }
                             }
                         } catch (RuntimeException | IOException e) {
-                            System.out.println(e);
+                            e.printStackTrace();
                             killSocket(key, clientChannel, true);
                         }
                     }
@@ -362,9 +366,9 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 clientChannel.socket().setReuseAddress(true);
                 clientChannel.socket().setSoLinger(false, 0);
                 clientChannel.socket().setSoTimeout(0);
-                clientChannel.socket().setTcpNoDelay(false);
+                clientChannel.socket().setTcpNoDelay(true);
 
-                selectionKey = clientChannel.register(selector, SelectionKey.OP_CONNECT);
+                selectionKey = clientChannel.register(selector, SelectionKey.OP_READ); // no need to OP_CONNECT
                 StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.READ_FIRST);
                 buffers.startReading();
 

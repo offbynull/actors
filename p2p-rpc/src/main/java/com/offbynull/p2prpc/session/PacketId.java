@@ -40,10 +40,10 @@ public final class PacketId {
     }
     
     public static byte[] removePrependedId(ByteBuffer buffer) {
-        byte[] extractedData = new byte[buffer.limit() - 16];
+        byte[] extractedData = new byte[buffer.remaining() - 16];
         
         buffer.mark();
-        buffer.position(16);
+        buffer.position(buffer.position() + 16);
         buffer.get(extractedData);
         buffer.reset();
         

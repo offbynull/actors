@@ -15,31 +15,29 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
 
 public class UdpTest {
-    
+
     private static final long TIMEOUT = 500;
-    
+
     private UdpTransport transport1;
     private UdpTransport transport2;
     private int port1;
     private int port2;
     private static AtomicInteger nextPort;
-    
+
     public UdpTest() {
     }
-    
+
     @BeforeClass
     public static void setUpClass() {
-        nextPort = new AtomicInteger(12345);
+        nextPort = new AtomicInteger(12000);
     }
-    
+
     @AfterClass
     public static void tearDownClass() {
     }
-    
+
     @Before
     public void setUp() throws IOException {
         port1 = nextPort.getAndIncrement();
@@ -49,7 +47,7 @@ public class UdpTest {
         transport1.start();
         transport2.start();
     }
-    
+
     @After
     public void tearDown() throws IOException {
         transport1.stop();
@@ -59,20 +57,28 @@ public class UdpTest {
     @Test
     public void selfUdpTest() throws Throwable {
         NonSessionedServer server = null;
-        
+
         try {
             server = new NonSessionedServer(transport1, TIMEOUT);
             NonSessionedClient client = new NonSessionedClient(transport1, new PacketIdGenerator());
 
-            ServerMessageCallback<InetSocketAddress> mockedCallback = Mockito.mock(ServerMessageCallback.class);
-            server.start(mockedCallback);
+            ServerMessageCallback callback = new ServerMessageCallback() {
 
-            client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
+                @Override
+                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                    if (new String(data).equals("HIEVERYBODY! :)")) {
+                        responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
+                    } else {
+                        responseCallback.terminate();
+                    }
+                }
+            };
 
-            Mockito.verify(mockedCallback).messageArrived(
-                    Matchers.any(InetSocketAddress.class),
-                    Matchers.eq("HIEVERYBODY! :)".getBytes()),
-                    Matchers.any(ServerResponseCallback.class));
+            server.start(callback);
+
+            byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
+            
+            Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
         } finally {
             if (server != null) {
                 server.stop();
@@ -83,25 +89,24 @@ public class UdpTest {
     @Test
     public void normalUdpTest() throws Throwable {
         NonSessionedServer server = null;
-        
+
         try {
             server = new NonSessionedServer(transport1, TIMEOUT);
-
             ServerMessageCallback callback = new ServerMessageCallback() {
 
                 @Override
                 public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
-                    responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
+                    if (new String(data).equals("HIEVERYBODY! :)")) {
+                        responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
+                    } else {
+                        responseCallback.terminate();
+                    }
                 }
             };
             server.start(callback);
 
-
             NonSessionedClient client = new NonSessionedClient(transport2, new PacketIdGenerator());
-
             byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
-
-
 
             Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
         } finally {
@@ -114,7 +119,7 @@ public class UdpTest {
     @Test(expected = IOException.class)
     public void noResponseUdpTest() throws Throwable {
         NonSessionedClient client = new NonSessionedClient(transport2, new PacketIdGenerator());
-        
+
         client.send(new InetSocketAddress("www.microsoft.com", 12345), "HIEVERYBODY! :)".getBytes(), 500L);
     }
 }

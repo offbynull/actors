@@ -68,7 +68,7 @@ public final class SessionedServer<A> implements Server<A> {
         @Override
         public void responseReady(byte[] data) {
             long time = System.currentTimeMillis();
-            if (time - savedTime < timeout) {
+            if (time - savedTime < timeout && data != null) {
                 OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);
                 responder.sendResponse(outgoingData);
             } else {

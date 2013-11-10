@@ -7,78 +7,122 @@ import com.offbynull.p2prpc.session.SessionedServer;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
 
 public class TcpTest {
 
+    private static final long TIMEOUT = 500;
+
+    private TcpTransport transport1;
+    private TcpTransport transport2;
+    private int port1;
+    private int port2;
+    private static AtomicInteger nextPort;
+
     public TcpTest() {
     }
-    
+
     @BeforeClass
     public static void setUpClass() {
+        nextPort = new AtomicInteger(13000);
     }
-    
+
     @AfterClass
     public static void tearDownClass() {
     }
-    
+
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
+        port1 = nextPort.getAndIncrement();
+        port2 = nextPort.getAndIncrement();
+        transport1 = new TcpTransport(port1);
+        transport2 = new TcpTransport(port2);
+        transport1.start();
+        transport2.start();
     }
-    
+
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
+        transport1.stop();
+        transport2.stop();
     }
 
     @Test
     public void selfTcpTest() throws Throwable {
-        int port = 12346;
-        TcpTransport base = new TcpTransport(port);
-        base.start();
-        
-        SessionedServer server = new SessionedServer(base);
-        SessionedClient client = new SessionedClient(base);
-        
-        ServerMessageCallback<InetSocketAddress> mockedCallback = Mockito.mock(ServerMessageCallback.class);
-        server.start(mockedCallback);
-        
-        client.send(new InetSocketAddress("localhost", port), "HIEVERYBODY! :)".getBytes(), 500L);
-        
-        Mockito.verify(mockedCallback).messageArrived(
-                Matchers.any(InetSocketAddress.class),
-                Matchers.eq("HIEVERYBODY! :)".getBytes()),
-                Matchers.any(ServerResponseCallback.class));
-        
-        server.stop();
-        base.stop();
+        SessionedServer server = null;
+
+        try {
+            server = new SessionedServer(transport1, TIMEOUT);
+            SessionedClient client = new SessionedClient(transport1);
+
+            ServerMessageCallback callback = new ServerMessageCallback() {
+
+                @Override
+                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                    if (new String(data).equals("HIEVERYBODY! :)")) {
+                        responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
+                    } else {
+                        responseCallback.terminate();
+                    }
+                }
+            };
+
+            server.start(callback);
+
+            byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
+
+            Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
+        } finally {
+            if (server != null) {
+                server.stop();
+            }
+        }
+    }
+
+    @Test
+    public void normalTcpTest() throws Throwable {
+        SessionedServer server = null;
+
+        try {
+            server = new SessionedServer(transport1, TIMEOUT);
+            SessionedClient client = new SessionedClient(transport2);
+
+            ServerMessageCallback callback = new ServerMessageCallback() {
+
+                @Override
+                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                    if (new String(data).equals("HIEVERYBODY! :)")) {
+                        responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
+                    } else {
+                        responseCallback.terminate();
+                    }
+                }
+            };
+
+            server.start(callback);
+
+            byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
+
+            Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
+
+            server.stop();
+        } finally {
+            if (server != null) {
+                server.stop();
+            }
+        }
     }
 
     @Test(expected = IOException.class)
-    public void unconnectableTcpTest() throws Throwable {
-        int port = 12345;
-        TcpTransport base = new TcpTransport(port);
-        base.start();
-        
-        SessionedServer server = new SessionedServer(base);
-        SessionedClient client = new SessionedClient(base);
-        
-        ServerMessageCallback<InetSocketAddress> mockedCallback = Mockito.mock(ServerMessageCallback.class);
-        server.start(mockedCallback);
-        
-        client.send(new InetSocketAddress("34h93hfouehf", port), "HIEVERYBODY! :)".getBytes(), 500L);
-        
-        Mockito.verify(mockedCallback, Mockito.never()).messageArrived(
-                Matchers.any(InetSocketAddress.class),
-                Matchers.any(byte[].class),
-                Matchers.any(ServerResponseCallback.class));
-        
-        server.stop();
-        base.stop();
+    public void noResponseTcpTest() throws Throwable {
+        SessionedClient client = new SessionedClient(transport2);
+
+        client.send(new InetSocketAddress("www.microsoft.com", 12345), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
     }
 }

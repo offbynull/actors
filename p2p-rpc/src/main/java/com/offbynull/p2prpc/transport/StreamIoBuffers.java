@@ -115,6 +115,13 @@ public final class StreamIoBuffers {
         return state == State.WRITE;
     }
     
+    public boolean isEndOfWrite() {
+        if (state != State.WRITE) {
+            throw new IllegalStateException();
+        }
+        
+        return writeIs.available() == 0;
+    }
 
     public enum Mode {
         WRITE_FIRST,

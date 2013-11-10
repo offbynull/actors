@@ -6,13 +6,11 @@ import java.net.InetSocketAddress;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 final class TcpResponseSender implements SessionedTransport.ResponseSender<InetSocketAddress> {
     private LinkedBlockingQueue<OutgoingResponse> queue;
     private Selector selector;
     private SocketChannel channel;
-    private AtomicBoolean consumed;
 
     TcpResponseSender(LinkedBlockingQueue<OutgoingResponse> queue, Selector selector, SocketChannel channel) {
         this.queue = queue;

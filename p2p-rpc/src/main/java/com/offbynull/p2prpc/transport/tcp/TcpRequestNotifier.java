@@ -7,6 +7,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.apache.commons.lang3.Validate;
 
 final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<InetSocketAddress> {
     private LinkedBlockingQueue<SessionedTransport.RequestReceiver> handlers;
@@ -19,15 +20,19 @@ final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<Ine
 
     @Override
     public void add(SessionedTransport.RequestReceiver<InetSocketAddress> e) {
+        Validate.notNull(e);
         handlers.add(e);
     }
 
     @Override
     public void remove(SessionedTransport.RequestReceiver<InetSocketAddress> e) {
+        Validate.notNull(e);
         handlers.remove(e);
     }
 
     void notify(Collection<IncomingRequest> dataCollection) {
+        Validate.noNullElements(dataCollection);
+        
         SessionedTransport.RequestReceiver[] handlersArray = handlers.toArray(new SessionedTransport.RequestReceiver[0]);
         for (IncomingRequest incomingRequest : dataCollection) {
             for (SessionedTransport.RequestReceiver<InetSocketAddress> handler : handlersArray) {
@@ -44,6 +49,7 @@ final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<Ine
     }
 
     void drainResponsesTo(Collection<OutgoingResponse> destination) {
+        Validate.notNull(destination);
         queuedResponses.drainTo(destination);
     }
     

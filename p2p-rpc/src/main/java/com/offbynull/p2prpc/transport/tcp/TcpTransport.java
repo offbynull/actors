@@ -18,6 +18,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.Validate;
 
 public final class TcpTransport implements SessionedTransport<InetSocketAddress> {
 
@@ -29,6 +30,8 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
     }
 
     public TcpTransport(InetSocketAddress listenAddress) {
+        Validate.notNull(listenAddress);
+        
         this.listenAddress = listenAddress;
     }
     
@@ -341,6 +344,9 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
         }
         
         private void killSocket(SelectionKey key, SocketChannel channel, boolean triggerFailure) {
+            Validate.notNull(key);
+            Validate.notNull(channel);
+            
             if (channel != null) {
                 IOUtils.closeQuietly(channel);
                 ChannelParameters params = channelParametersMap.remove(channel);
@@ -381,6 +387,8 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
         }
 
         private void createAndInitializeOutgoingSocket(SendQueuedRequest queuedRequest) throws IOException {
+            Validate.notNull(queuedRequest);
+            
             SocketChannel clientChannel = null;
             SelectionKey selectionKey = null;
             
@@ -448,6 +456,12 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
 
         public ChannelParameters(StreamIoBuffers buffers, ClientChannelType type, SelectionKey selectionKey,
                 ResponseReceiver<InetSocketAddress> receiver, Long sendRequestId) {
+            Validate.notNull(buffers);
+            Validate.notNull(type);
+            Validate.notNull(selectionKey);
+            Validate.notNull(receiver);
+            //Validate.notNull(sendRequestId); // may be null
+            
             this.buffers = buffers;
             this.type = type;
             this.selectionKey = selectionKey;

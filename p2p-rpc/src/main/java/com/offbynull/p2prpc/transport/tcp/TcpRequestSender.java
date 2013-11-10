@@ -9,6 +9,7 @@ import java.nio.channels.Selector;
 import java.util.Collection;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.Validate;
 
 final class TcpRequestSender implements RequestSender<InetSocketAddress> {
     private Selector selector;
@@ -16,6 +17,8 @@ final class TcpRequestSender implements RequestSender<InetSocketAddress> {
     private AtomicLong nextId;
 
     TcpRequestSender(Selector selector) {
+        Validate.notNull(selector);
+        
         this.selector = selector;
         this.outgoingData = new LinkedBlockingQueue<>();
         nextId = new AtomicLong();
@@ -23,6 +26,9 @@ final class TcpRequestSender implements RequestSender<InetSocketAddress> {
 
     @Override
     public RequestController sendRequest(OutgoingData<InetSocketAddress> data, ResponseReceiver<InetSocketAddress> receiver) {
+        Validate.notNull(data);
+        Validate.notNull(receiver);
+        
         // TO FIX THIS FUNCTION...
         // assign an unique id to outgoingdata
         // pass that uniqueid to tcprequestcontroller

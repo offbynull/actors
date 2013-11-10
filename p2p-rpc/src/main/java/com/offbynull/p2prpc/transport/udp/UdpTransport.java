@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.Validate;
 
 public final class UdpTransport implements NonSessionedTransport<InetSocketAddress> {
     private InetSocketAddress listenAddress;
@@ -25,6 +26,9 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
     }
 
     public UdpTransport(InetSocketAddress listenAddress, int bufferSize) {
+        Validate.notNull(listenAddress);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, bufferSize);
+
         this.listenAddress = listenAddress;
         this.bufferSize = bufferSize;
     }

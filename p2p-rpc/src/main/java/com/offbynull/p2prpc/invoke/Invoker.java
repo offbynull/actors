@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 public final class Invoker implements Closeable {
@@ -39,6 +40,12 @@ public final class Invoker implements Closeable {
     public Invoker(Object object, ExecutorService executor,
             Serializer serializer, Deserializer deserializer,
             Filter[] inFilters, Filter[] outFilters) {
+        Validate.notNull(object);
+        Validate.notNull(serializer);
+        Validate.notNull(deserializer);
+        Validate.noNullElements(inFilters);
+        Validate.noNullElements(outFilters);
+        
         this.object = object;
         this.executor = executor;
         this.serializer = serializer;
@@ -48,6 +55,9 @@ public final class Invoker implements Closeable {
     }
     
     public void invoke(final byte[] data, final InvokerCallback callback) {
+        Validate.notNull(data);
+        Validate.notNull(callback);
+        
         Runnable r = new Runnable() {
             @Override
             public void run() {

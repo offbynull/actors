@@ -1,5 +1,7 @@
 package com.offbynull.p2prpc.invoke;
 
+import org.apache.commons.lang3.Validate;
+
 public interface Deserializer {
     DeserializerResult deserialize(byte[] data);
     
@@ -8,6 +10,9 @@ public interface Deserializer {
         private Object result;
 
         public DeserializerResult(SerializationType type, Object result) {
+            Validate.notNull(type);
+            Validate.notNull(result);
+            
             this.type = type;
             this.result = result;
         }

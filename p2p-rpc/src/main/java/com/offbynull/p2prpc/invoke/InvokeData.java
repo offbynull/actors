@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc.invoke;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -9,19 +10,10 @@ public final class InvokeData {
 
     public InvokeData(String methodName, Object[] arguments,
             Class<?>[] paramTypes) {
-        if (methodName == null || arguments == null || paramTypes == null) {
-            throw new NullPointerException();
-        }
-        
-        for (Class<?> paramType : paramTypes) {
-            if (paramType == null) {
-                throw new NullPointerException();
-            }
-        }
-        
-        if (arguments.length != paramTypes.length) {
-            throw new IllegalArgumentException();
-        }
+        Validate.notNull(methodName);
+        Validate.noNullElements(arguments);
+        Validate.noNullElements(paramTypes);
+        Validate.isTrue(arguments.length == paramTypes.length);
         
         this.arguments = new Pair[arguments.length];
         for (int i = 0; i < arguments.length; i++) {

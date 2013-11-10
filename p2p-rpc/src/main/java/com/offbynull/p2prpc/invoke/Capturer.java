@@ -9,6 +9,7 @@ import java.util.List;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
+import org.apache.commons.lang3.Validate;
 
 public final class Capturer<T> {
     private Class<T> cls;
@@ -28,6 +29,12 @@ public final class Capturer<T> {
     public Capturer(Class<T> cls,
             Serializer serializer, Deserializer deserializer,
             Filter[] inFilters, Filter[] outFilters) {
+        Validate.notNull(cls);
+        Validate.notNull(serializer);
+        Validate.notNull(deserializer);
+        Validate.noNullElements(inFilters);
+        Validate.noNullElements(outFilters);
+        
         this.cls = cls;
         this.serializer = serializer;
         this.deserializer = deserializer;
@@ -36,6 +43,8 @@ public final class Capturer<T> {
     }
     
     public T createInstance(final CapturerCallback callback) {
+        Validate.notNull(callback);
+        
         return  (T) Enhancer.create(cls, new MethodInterceptor() {
             @Override
             public Object intercept(Object obj, Method method, Object[] args,

@@ -1,6 +1,7 @@
 package com.offbynull.p2prpc.transport;
 
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 public final class IncomingData<A> {
     private A from;
@@ -8,6 +9,9 @@ public final class IncomingData<A> {
     private long arriveTime;
 
     public IncomingData(A from, byte[] data, long arriveTime) {
+        Validate.notNull(from);
+        Validate.notNull(data);
+        
         this.from = from;
         this.data = ByteBuffer.allocate(data.length).put(data);
         this.arriveTime = arriveTime;

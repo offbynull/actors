@@ -1,12 +1,16 @@
 package com.offbynull.p2prpc.transport;
 
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 public final class OutgoingData<A> {
     private A to;
     private ByteBuffer data;
 
     public OutgoingData(A to, byte[] data) {
+        Validate.notNull(to);
+        Validate.notNull(data);
+        
         this.to = to;
         this.data = ByteBuffer.allocate(data.length).put(data);
         this.data.flip();

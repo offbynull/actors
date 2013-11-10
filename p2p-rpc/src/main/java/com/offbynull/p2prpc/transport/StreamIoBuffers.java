@@ -3,6 +3,7 @@ package com.offbynull.p2prpc.transport;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 public final class StreamIoBuffers {
 
@@ -12,6 +13,8 @@ public final class StreamIoBuffers {
     private ByteArrayInputStream writeIs;
 
     public StreamIoBuffers(Mode mode) {
+        Validate.notNull(mode);
+        
         this.mode = mode;
     }
     
@@ -26,6 +29,8 @@ public final class StreamIoBuffers {
     }
 
     public void addReadBlock(ByteBuffer buffer) {
+        Validate.notNull(buffer);
+        
         if (state != State.READ) {
             throw new IllegalStateException();
         }
@@ -45,6 +50,8 @@ public final class StreamIoBuffers {
     }
 
     public void startWriting(ByteBuffer data) {
+        Validate.notNull(data);
+        
         if ((mode == Mode.READ_FIRST && state != State.READ_DONE)
                 || (mode == Mode.WRITE_FIRST && state != State.INIT)) {
             throw new IllegalStateException();
@@ -60,10 +67,14 @@ public final class StreamIoBuffers {
     }
     
     public void startWriting(byte[] data) {
+        Validate.notNull(data);
+        
         startWriting(ByteBuffer.wrap(data));
     }
 
     public void getWriteBlock(ByteBuffer buffer) {
+        Validate.notNull(buffer);
+        
         if (state != State.WRITE) {
             throw new IllegalStateException();
         }
@@ -79,6 +90,8 @@ public final class StreamIoBuffers {
     }
     
     public void adjustWritePointer(int amountWritten) {
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, amountWritten);
+        
         if (state != State.WRITE) {
             throw new IllegalStateException();
         }

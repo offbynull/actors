@@ -8,6 +8,7 @@ import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageSender;
 import com.offbynull.p2prpc.transport.OutgoingData;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 public final class NonSessionedServer<A> implements Server<A> {
 
@@ -19,6 +20,8 @@ public final class NonSessionedServer<A> implements Server<A> {
     private UdpPacketTranslator udpPacketTranslator;
 
     public NonSessionedServer(NonSessionedTransport<A> transport, long timeout) {
+        Validate.notNull(transport);
+        
         querier = transport.getMessageSender();
         notifier = transport.getReceiveNotifier();
         this.timeout = timeout;
@@ -26,6 +29,8 @@ public final class NonSessionedServer<A> implements Server<A> {
 
     @Override
     public void start(ServerMessageCallback<A> callback) throws IOException {
+        Validate.notNull(callback);
+        
         this.callback = callback;
         udpPacketTranslator = new UdpPacketTranslator();
         
@@ -41,6 +46,8 @@ public final class NonSessionedServer<A> implements Server<A> {
 
         @Override
         public boolean messageArrived(IncomingData<A> packet) {
+            Validate.notNull(packet);
+            
             A from = packet.getFrom();
             ByteBuffer recvData = packet.getData();
             
@@ -67,6 +74,9 @@ public final class NonSessionedServer<A> implements Server<A> {
         private long savedTime;
 
         public ResponseCallback(long time, PacketId packetId, A requester) {
+            Validate.notNull(packetId);
+            Validate.notNull(requester);
+            
             this.requester = requester;
             this.packetId = packetId;
             this.savedTime = time;
@@ -74,6 +84,8 @@ public final class NonSessionedServer<A> implements Server<A> {
 
         @Override
         public void responseReady(byte[] data) {
+            Validate.notNull(data);
+            
             long time = System.currentTimeMillis();
             if (time - savedTime < timeout) {
                 byte[] ammendedData;

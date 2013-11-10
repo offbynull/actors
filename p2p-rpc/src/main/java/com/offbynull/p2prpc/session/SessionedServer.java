@@ -8,6 +8,7 @@ import com.offbynull.p2prpc.transport.SessionedTransport.ResponseSender;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 public final class SessionedServer<A> implements Server<A> {
 
@@ -18,12 +19,16 @@ public final class SessionedServer<A> implements Server<A> {
     private TcpRequestReceiver tcpRequestReceiver;
 
     public SessionedServer(TcpTransport transport, long timeout) {
+        Validate.notNull(transport);
+        
         notifier = transport.getRequestNotifier();
         this.timeout = timeout;
     }
 
     @Override
     public void start(ServerMessageCallback<A> callback) throws IOException {
+        Validate.notNull(callback);
+        
         this.callback = callback;
         tcpRequestReceiver = new TcpRequestReceiver();
         
@@ -39,6 +44,9 @@ public final class SessionedServer<A> implements Server<A> {
 
         @Override
         public boolean requestArrived(IncomingData<A> data, ResponseSender<A> responder) {
+            Validate.notNull(data);
+            Validate.notNull(responder);
+            
             A from = data.getFrom();
             ByteBuffer recvData = data.getData();
             
@@ -60,6 +68,9 @@ public final class SessionedServer<A> implements Server<A> {
         private long savedTime;
 
         public ResponseCallback(long time, ResponseSender<A> responder, A requester) {
+            Validate.notNull(responder);
+            Validate.notNull(requester);
+            
             this.requester = requester;
             this.responder = responder;
             this.savedTime = time;
@@ -67,6 +78,8 @@ public final class SessionedServer<A> implements Server<A> {
 
         @Override
         public void responseReady(byte[] data) {
+            Validate.notNull(data);
+            
             long time = System.currentTimeMillis();
             if (time - savedTime < timeout && data != null) {
                 OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);

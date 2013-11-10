@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.Validate;
 
 public final class NonSessionedClient<A> implements Client<A> {
 
@@ -18,6 +19,9 @@ public final class NonSessionedClient<A> implements Client<A> {
     private PacketIdGenerator pidGenerator;
 
     public NonSessionedClient(NonSessionedTransport<A> transport, PacketIdGenerator pidGenerator) {
+        Validate.notNull(transport);
+        Validate.notNull(pidGenerator);
+        
         querier = transport.getMessageSender();
         notifier = transport.getReceiveNotifier();
         this.pidGenerator = pidGenerator;
@@ -25,6 +29,9 @@ public final class NonSessionedClient<A> implements Client<A> {
 
     @Override
     public byte[] send(A to, byte[] data, long timeout) throws IOException, InterruptedException {
+        Validate.notNull(to);
+        Validate.notNull(data);
+        
         final PacketId pid = pidGenerator.generate();
         final ArrayBlockingQueue<byte[]> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
                                                                                   // to potential of recvHandler getting blocked

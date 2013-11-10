@@ -10,17 +10,23 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.Validate;
 
 public final class SessionedClient<A> implements Client<A> {
     private static final Object FAIL_MARKER = new Object();
     private RequestSender<A> requestSender;
 
     public SessionedClient(SessionedTransport<A> transport) {
+        Validate.notNull(transport);
+        
         requestSender = transport.getRequestSender();
     }
 
     @Override
     public byte[] send(A address, byte[] data, long timeout) throws IOException, InterruptedException {
+        Validate.notNull(address);
+        Validate.notNull(data);
+        
         final ArrayBlockingQueue<Object> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
                                                                                   // to potential of responseReceiver getting blocked
         

@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc.service;
+package com.offbynull.p2prpc;
 
 import com.offbynull.p2prpc.invoke.Invoker;
 import com.offbynull.p2prpc.invoke.InvokerCallback;
@@ -73,11 +73,12 @@ public final class ServiceServer<A> {
     }
     
     public void addService(int id, Object object) {
-        Validate.isTrue(id == 0, "Reserved id");
+        Validate.isTrue(id != 0, "Reserved id");
         
         lock.writeLock().lock();
         try {
             Validate.validState(state == State.STARTED);
+            Validate.isTrue(!invokerMap.containsKey(id));
             invokerMap.put(id, new ServiceEntry(id, object));
             listedServices.add(id);
         } finally {
@@ -86,7 +87,7 @@ public final class ServiceServer<A> {
     }
     
     public void removeService(int id) {
-        Validate.isTrue(id == 0, "Reserved id");
+        Validate.isTrue(id != 0, "Reserved id");
         
         lock.writeLock().lock();
         try {

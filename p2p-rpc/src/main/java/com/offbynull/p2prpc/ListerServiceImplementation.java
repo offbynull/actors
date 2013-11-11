@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc.service;
+package com.offbynull.p2prpc;
 
 import java.util.ArrayList;
 import java.util.List;

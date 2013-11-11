@@ -1,9 +1,6 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.service.ListerService;
-import com.offbynull.p2prpc.service.ListerService.Response;
-import com.offbynull.p2prpc.service.ServiceAccessor;
-import com.offbynull.p2prpc.service.ServiceServer;
+import com.offbynull.p2prpc.ListerService.Response;
 import com.offbynull.p2prpc.session.Client;
 import com.offbynull.p2prpc.session.Server;
 import com.offbynull.p2prpc.session.SessionedClient;
@@ -42,7 +39,7 @@ public final class ServiceTest {
 
     @BeforeClass
     public static void setUpClass() {
-        nextPort = new AtomicInteger(13000);
+        nextPort = new AtomicInteger(14000);
     }
 
     @AfterClass

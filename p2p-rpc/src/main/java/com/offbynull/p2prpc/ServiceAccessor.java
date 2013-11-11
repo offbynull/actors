@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc.service;
+package com.offbynull.p2prpc;
 
 import com.offbynull.p2prpc.invoke.Capturer;
 import com.offbynull.p2prpc.invoke.CapturerCallback;

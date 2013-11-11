@@ -2,24 +2,28 @@ package com.offbynull.p2prpc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
 final class ListerServiceImplementation implements ListerService {
     private ReadWriteLock lock;
-    private SortedSet<Integer> serviceSet;
+    private SortedSet<Integer> serviceIdSet;
+    private Map<Integer, String> serviceNameMap;
 
-    public ListerServiceImplementation(ReadWriteLock lock, SortedSet<Integer> serviceSet) {
+    public ListerServiceImplementation(ReadWriteLock lock, SortedSet<Integer> serviceIdSet, Map<Integer, String> serviceNameMap) {
         Validate.notNull(lock);
-        Validate.notNull(serviceSet);
+        Validate.notNull(serviceIdSet);
+        Validate.notNull(serviceNameMap);
         
         this.lock = lock;
-        this.serviceSet = serviceSet;
+        this.serviceIdSet = serviceIdSet;
+        this.serviceNameMap = serviceNameMap;
     }
 
     @Override
-    public Response query(int from, int to) {
+    public Services listServices(int from, int to) {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, from);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, to);
         Validate.isTrue(from <= to);
@@ -27,7 +31,7 @@ final class ListerServiceImplementation implements ListerService {
         lock.readLock().lock();
         
         try {
-            List<Integer> list = new ArrayList<>(serviceSet);
+            List<Integer> list = new ArrayList<>(serviceIdSet);
             int total = list.size();
             
             from = Math.min(from, total);
@@ -35,7 +39,18 @@ final class ListerServiceImplementation implements ListerService {
             
             list.subList(from, to);
             
-            return new Response(total, list);
+            return new Services(total, list);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public String getServiceName(int id) {
+        lock.readLock().lock();
+        
+        try {
+            return serviceNameMap.get(id);
         } finally {
             lock.readLock().unlock();
         }

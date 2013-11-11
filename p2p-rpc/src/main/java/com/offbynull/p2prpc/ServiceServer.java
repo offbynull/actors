@@ -7,6 +7,8 @@ import com.offbynull.p2prpc.session.ServerMessageCallback;
 import com.offbynull.p2prpc.session.ServerResponseCallback;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
@@ -21,7 +23,8 @@ public final class ServiceServer<A> {
     
     private ReadWriteLock lock;
     
-    private SortedSet<Integer> listedServices;
+    private SortedSet<Integer> listedServiceSet;
+    private Map<Integer, String> serviceNameMap;
     private ListerService listerService;
     
     private Server<A> server;
@@ -46,10 +49,16 @@ public final class ServiceServer<A> {
             Validate.validState(state == State.UNKNOWN);
             
             invokerMap = new HashMap<>();
+
+            listedServiceSet = new TreeSet<>();
+            serviceNameMap = new HashMap<>();
             
-            listedServices = new TreeSet<>();
-            listedServices.add(LISTER_SERVICE_ID);
-            listerService = new ListerServiceImplementation(lock, listedServices);
+            listerService = new ListerServiceImplementation(lock, Collections.unmodifiableSortedSet(listedServiceSet),
+                    Collections.unmodifiableMap(serviceNameMap));
+            
+            listedServiceSet.add(LISTER_SERVICE_ID);
+            serviceNameMap.put(LISTER_SERVICE_ID, ListerServiceImplementation.class.getName());
+
             invokerMap.put(LISTER_SERVICE_ID, new ServiceEntry(LISTER_SERVICE_ID, listerService));
             
             server.start(new ServerMessageToInvokeCallback());
@@ -74,13 +83,15 @@ public final class ServiceServer<A> {
     
     public void addService(int id, Object object) {
         Validate.isTrue(id != 0, "Reserved id");
+        Validate.notNull(object);
         
         lock.writeLock().lock();
         try {
             Validate.validState(state == State.STARTED);
             Validate.isTrue(!invokerMap.containsKey(id));
             invokerMap.put(id, new ServiceEntry(id, object));
-            listedServices.add(id);
+            serviceNameMap.put(id, object.getClass().getName());
+            listedServiceSet.add(id);
         } finally {
             lock.writeLock().unlock();
         }
@@ -93,7 +104,8 @@ public final class ServiceServer<A> {
         try {
             Validate.validState(state == State.STARTED);
             invokerMap.remove(id);
-            listedServices.remove(id);
+            serviceNameMap.remove(id);
+            listedServiceSet.remove(id);
         } finally {
             lock.writeLock().unlock();
         }

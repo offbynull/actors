@@ -5,14 +5,15 @@ import java.util.List;
 
 public interface ListerService {
 
-    Response query(int from, int to);
+    Services listServices(int from, int to);
+    String getServiceName(int id);
     
     
-    public static final class Response {
+    public static final class Services {
         private int total;
         private List<Integer> list;
 
-        public Response(int total, List<Integer> list) {
+        public Services(int total, List<Integer> list) {
             this.total = total;
             this.list = list;
         }

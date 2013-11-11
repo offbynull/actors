@@ -1,6 +1,6 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.ListerService.Response;
+import com.offbynull.p2prpc.ListerService.Services;
 import com.offbynull.p2prpc.session.Client;
 import com.offbynull.p2prpc.session.Server;
 import com.offbynull.p2prpc.session.SessionedClient;
@@ -77,7 +77,7 @@ public final class ServiceTest {
     public void simpleServiceTest() throws Throwable {
         ListerService listerService = serviceAccessor.accessService(new InetSocketAddress(serverPort), 0, ListerService.class);
         
-        Response response = listerService.query(0, Integer.MAX_VALUE);
+        Services response = listerService.listServices(0, Integer.MAX_VALUE);
         
         Assert.assertEquals(Arrays.asList(0), response.getList());
         Assert.assertEquals(1, response.getTotal());

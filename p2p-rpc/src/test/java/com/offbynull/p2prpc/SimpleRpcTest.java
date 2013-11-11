@@ -38,7 +38,7 @@ public class SimpleRpcTest {
     public void listerServiceTest() {
         ListerService listerService = rpcSystem.accessService(new InetSocketAddress("localhost", 15000), 0, ListerService.class);
 
-        ListerService.Response response = listerService.query(0, Integer.MAX_VALUE);
+        ListerService.Services response = listerService.listServices(0, Integer.MAX_VALUE);
 
         Assert.assertEquals(Arrays.asList(0), response.getList());
         Assert.assertEquals(1, response.getTotal());

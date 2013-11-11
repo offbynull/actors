@@ -23,15 +23,21 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
 
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
+    private int readLimit;
+    private int writeLimit;
     
-    public TcpTransport(int port) {
-        this(new InetSocketAddress(port));
+    public TcpTransport(int port, int readLimit, int writeLimit) {
+        this(new InetSocketAddress(port), readLimit, writeLimit);
     }
 
-    public TcpTransport(InetSocketAddress listenAddress) {
+    public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit) {
         Validate.notNull(listenAddress);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
         
         this.listenAddress = listenAddress;
+        this.readLimit = readLimit;
+        this.writeLimit = writeLimit;
     }
     
     @Override
@@ -375,7 +381,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 clientChannel.socket().setTcpNoDelay(true);
 
                 selectionKey = clientChannel.register(selector, SelectionKey.OP_READ); // no need to OP_CONNECT
-                StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.READ_FIRST);
+                StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.READ_FIRST, readLimit, writeLimit);
                 buffers.startReading();
 
                 ChannelParameters params = new ChannelParameters(buffers, ClientChannelType.REMOTE_INITIATED, selectionKey, null, null);
@@ -404,9 +410,12 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 clientChannel.socket().setTcpNoDelay(false);
 
                 selectionKey = clientChannel.register(selector, SelectionKey.OP_CONNECT);
-                StreamIoBuffers buffers = queuedRequest.getBuffers();
-
+                
+                ByteBuffer data = queuedRequest.getData();
                 InetSocketAddress destinationAddress = queuedRequest.getDestination();
+                
+                StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.WRITE_FIRST, readLimit, writeLimit);
+                buffers.startWriting(data);
 
                 long id = queuedRequest.getId();
                 

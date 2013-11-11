@@ -49,7 +49,7 @@ public final class ServiceTest {
     @Before
     public void setUp() throws IOException {
         serverPort = nextPort.getAndIncrement();
-        serverTransport = new TcpTransport(serverPort);
+        serverTransport = new TcpTransport(serverPort, 65535, 65535);
         serverTransport.start();
         
         server = new SessionedServer<>(serverTransport, TIMEOUT);
@@ -58,7 +58,7 @@ public final class ServiceTest {
         
         
         clientPort = nextPort.getAndIncrement();
-        clientTransport = new TcpTransport(clientPort);
+        clientTransport = new TcpTransport(clientPort, 65535, 65535);
         clientTransport.start();
 
         client = new SessionedClient<>(clientTransport);

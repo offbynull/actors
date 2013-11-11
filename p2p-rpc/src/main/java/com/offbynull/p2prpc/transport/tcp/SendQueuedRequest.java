@@ -3,11 +3,12 @@ package com.offbynull.p2prpc.transport.tcp;
 import com.offbynull.p2prpc.transport.OutgoingData;
 import com.offbynull.p2prpc.transport.SessionedTransport;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 final class SendQueuedRequest implements OutgoingRequest {
     private InetSocketAddress destination;
-    private StreamIoBuffers buffers;
+    private ByteBuffer data;
     private SessionedTransport.ResponseReceiver<InetSocketAddress> receiver;
     private long id;
 
@@ -16,9 +17,7 @@ final class SendQueuedRequest implements OutgoingRequest {
         Validate.notNull(receiver);
         
         this.destination = data.getTo();
-        StreamIoBuffers streamIoBuffers = new StreamIoBuffers(StreamIoBuffers.Mode.WRITE_FIRST);
-        streamIoBuffers.startWriting(data.getData());
-        this.buffers = streamIoBuffers;
+        this.data = data.getData();
         this.receiver = receiver;
         this.id = id;
     }
@@ -27,8 +26,8 @@ final class SendQueuedRequest implements OutgoingRequest {
         return destination;
     }
 
-    public StreamIoBuffers getBuffers() {
-        return buffers;
+    public ByteBuffer getData() {
+        return data;
     }
 
     public SessionedTransport.ResponseReceiver<InetSocketAddress> getReceiver() {

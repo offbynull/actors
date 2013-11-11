@@ -9,13 +9,19 @@ final class StreamIoBuffers {
 
     private State state = State.INIT;
     private Mode mode;
-    private ByteArrayOutputStream readOs;
-    private ByteArrayInputStream writeIs;
+    private int readLimit;
+    private int writeLimit;
+    private CustomByteArrayOutputStream readOs;
+    private CustomByteArrayInputStream writeIs;
 
-    StreamIoBuffers(Mode mode) {
+    StreamIoBuffers(Mode mode, int readLimit, int writeLimit) {
         Validate.notNull(mode);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
         
         this.mode = mode;
+        this.readLimit = readLimit;
+        this.writeLimit = writeLimit;
     }
     
     public void startReading() {
@@ -25,7 +31,7 @@ final class StreamIoBuffers {
         }
         
         state = State.READ;
-        readOs = new ByteArrayOutputStream();
+        readOs = new CustomByteArrayOutputStream();
     }
 
     public void addReadBlock(ByteBuffer buffer) {
@@ -63,7 +69,7 @@ final class StreamIoBuffers {
         data.get(dataCopy);
         data.reset();
 
-        writeIs = new ByteArrayInputStream(dataCopy);        
+        writeIs = new CustomByteArrayInputStream(dataCopy);        
     }
     
     public void startWriting(byte[] data) {
@@ -147,5 +153,39 @@ final class StreamIoBuffers {
         READ_DONE,
         WRITE,
         WRITE_DONE
+    }
+    
+    private final class CustomByteArrayOutputStream extends ByteArrayOutputStream {
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+            Validate.isTrue(this.count + len <= readLimit, "Read limit exceeded");
+
+            super.write(b, off, len);
+        }
+
+        @Override
+        public void write(int b) {
+            Validate.isTrue(this.count + 1 <= readLimit, "Read limit exceeded");
+            
+            super.write(b);
+        }
+        
+    }
+    
+    private final class CustomByteArrayInputStream extends ByteArrayInputStream {
+
+        public CustomByteArrayInputStream(byte[] buf) {
+            super(buf);
+            
+            Validate.isTrue(buf.length <= writeLimit, "Write limit exceeded");
+        }
+
+        public CustomByteArrayInputStream(byte[] buf, int offset, int length) {
+            super(buf, offset, length);
+            
+            Validate.isTrue(length <= writeLimit, "Write limit exceeded");
+        }
+        
     }
 }

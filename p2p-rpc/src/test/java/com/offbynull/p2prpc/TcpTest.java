@@ -41,8 +41,8 @@ public final class TcpTest {
     public void setUp() throws IOException {
         port1 = nextPort.getAndIncrement();
         port2 = nextPort.getAndIncrement();
-        transport1 = new TcpTransport(port1);
-        transport2 = new TcpTransport(port2);
+        transport1 = new TcpTransport(port1, 65535, 65535);
+        transport2 = new TcpTransport(port2, 65535, 65535);
         transport1.start();
         transport2.start();
     }

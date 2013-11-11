@@ -48,7 +48,7 @@ public final class SimpleRpc implements Closeable {
         try {
             switch (transportType) {
                 case TCP: {
-                    TcpTransport tcpTransport = new TcpTransport(listenAddress);
+                    TcpTransport tcpTransport = new TcpTransport(listenAddress, 65535, 65535);
                     tcpTransport.start();
                     server = new SessionedServer<>(tcpTransport, 10000L);
                     client = new SessionedClient<>(tcpTransport);

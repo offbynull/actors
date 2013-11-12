@@ -47,7 +47,8 @@ public final class SessionedServer<A> implements Server<A> {
 
         @Override
         public boolean linkEstablished(A from, SessionedTransport.LinkController controller) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            // do nothing
+            return true;
         }
 
         @Override

@@ -2,6 +2,8 @@ package com.offbynull.p2prpc.session;
 
 import com.offbynull.p2prpc.transport.IncomingData;
 import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.SessionedTransport;
+import com.offbynull.p2prpc.transport.SessionedTransport.LinkController;
 import com.offbynull.p2prpc.transport.SessionedTransport.RequestNotifier;
 import com.offbynull.p2prpc.transport.SessionedTransport.RequestReceiver;
 import com.offbynull.p2prpc.transport.SessionedTransport.ResponseSender;
@@ -44,9 +46,15 @@ public final class SessionedServer<A> implements Server<A> {
     private final class TcpRequestReceiver implements RequestReceiver<A> {
 
         @Override
-        public boolean requestArrived(IncomingData<A> data, ResponseSender<A> responder) {
+        public boolean linkEstablished(A from, SessionedTransport.LinkController controller) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean requestArrived(IncomingData<A> data, ResponseSender<A> responder, SessionedTransport.LinkController controller) {
             Validate.notNull(data);
             Validate.notNull(responder);
+            Validate.notNull(controller);
             
             A from = data.getFrom();
             ByteBuffer recvData = data.getData();
@@ -56,7 +64,7 @@ public final class SessionedServer<A> implements Server<A> {
             
             long time = System.currentTimeMillis();
             
-            callback.messageArrived(from, recvDataArray, new ResponseCallback(time, responder, from));
+            callback.messageArrived(from, recvDataArray, new ResponseCallback(time, responder, controller, from));
             
             return true;
         }
@@ -66,14 +74,17 @@ public final class SessionedServer<A> implements Server<A> {
 
         private A requester;
         private ResponseSender<A> responder;
+        private LinkController controller;
         private long savedTime;
 
-        public ResponseCallback(long time, ResponseSender<A> responder, A requester) {
+        public ResponseCallback(long time, ResponseSender<A> responder, LinkController controller, A requester) {
             Validate.notNull(responder);
+            Validate.notNull(controller);
             Validate.notNull(requester);
             
             this.requester = requester;
             this.responder = responder;
+            this.controller = controller;
             this.savedTime = time;
         }
 
@@ -86,13 +97,13 @@ public final class SessionedServer<A> implements Server<A> {
                 OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);
                 responder.sendResponse(outgoingData);
             } else {
-                responder.killConnection();
+                controller.kill();
             }
         }
 
         @Override
         public void terminate() {
-            responder.killConnection();
+            controller.kill();
         }
     }
 }

@@ -9,16 +9,16 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.lang3.Validate;
 
 final class TcpResponseSender implements SessionedTransport.ResponseSender<InetSocketAddress> {
-    private LinkedBlockingQueue<OutgoingResponse> queue;
+    private LinkedBlockingQueue<Command> commandQueue;
     private Selector selector;
     private SocketChannel channel;
 
-    TcpResponseSender(LinkedBlockingQueue<OutgoingResponse> queue, Selector selector, SocketChannel channel) {
-        Validate.notNull(queue);
+    TcpResponseSender(LinkedBlockingQueue<Command> commandQueue, Selector selector, SocketChannel channel) {
+        Validate.notNull(commandQueue);
         Validate.notNull(selector);
         Validate.notNull(channel);
         
-        this.queue = queue;
+        this.commandQueue = commandQueue;
         this.selector = selector;
         this.channel = channel;
     }
@@ -27,14 +27,7 @@ final class TcpResponseSender implements SessionedTransport.ResponseSender<InetS
     public void sendResponse(OutgoingData<InetSocketAddress> data) {
         Validate.notNull(data);
         
-        queue.add(new SendQueuedResponse(channel, data));
+        commandQueue.add(new CommandSendResponse(channel, data));
         selector.wakeup();
     }
-
-    @Override
-    public void killConnection() {
-        queue.add(new KillQueuedResponse(channel));
-        selector.wakeup();
-    }
-    
 }

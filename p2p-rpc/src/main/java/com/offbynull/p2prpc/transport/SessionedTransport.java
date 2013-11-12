@@ -18,24 +18,24 @@ public interface SessionedTransport<A> {
     }
     
     public interface RequestReceiver<A> {
-        boolean requestArrived(IncomingData<A> data, ResponseSender<A> responseSender);
+        boolean linkEstablished(A from, LinkController controller);
+        boolean requestArrived(IncomingData<A> data, ResponseSender<A> responseSender, LinkController controller);
     };
 
     public interface ResponseSender<A> {
         void sendResponse(OutgoingData<A> data);
-        void killConnection();
     };
 
     public interface RequestSender<A> {
-        RequestController sendRequest(OutgoingData<A> data, ResponseReceiver<A> responseReceiver);
+        LinkController sendRequest(OutgoingData<A> data, ResponseReceiver<A> responseReceiver);
     }
     
-    public interface RequestController {
-        void killCommunication();
+    public interface LinkController {
+        void kill();
     }
     
     public interface ResponseReceiver<A> {
         void responseArrived(IncomingData<A> data);
-        void communicationFailed();
+        void internalFailure(Throwable t);
     }
 }

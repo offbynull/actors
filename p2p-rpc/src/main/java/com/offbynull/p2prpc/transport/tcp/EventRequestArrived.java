@@ -6,12 +6,12 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import org.apache.commons.lang3.Validate;
 
-final class IncomingRequest {
+final class EventRequestArrived implements Event {
     private IncomingData<InetSocketAddress> request;
     private Selector selector;
     private SocketChannel channel;
 
-    IncomingRequest(IncomingData<InetSocketAddress> request, Selector selector, SocketChannel channel) {
+    EventRequestArrived(IncomingData<InetSocketAddress> request, Selector selector, SocketChannel channel) {
         Validate.notNull(request);
         Validate.notNull(selector);
         Validate.notNull(channel);

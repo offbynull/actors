@@ -6,13 +6,13 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-final class SendQueuedRequest implements OutgoingRequest {
+final class CommandSendRequest implements Command {
     private InetSocketAddress destination;
     private ByteBuffer data;
     private SessionedTransport.ResponseReceiver<InetSocketAddress> receiver;
     private long id;
 
-    SendQueuedRequest(OutgoingData<InetSocketAddress> data, SessionedTransport.ResponseReceiver<InetSocketAddress> receiver, long id) {
+    CommandSendRequest(OutgoingData<InetSocketAddress> data, SessionedTransport.ResponseReceiver<InetSocketAddress> receiver, long id) {
         Validate.notNull(data);
         Validate.notNull(receiver);
         

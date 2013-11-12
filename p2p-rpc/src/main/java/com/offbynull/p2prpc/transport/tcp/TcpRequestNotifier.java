@@ -10,12 +10,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.lang3.Validate;
 
 final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<InetSocketAddress> {
-    private LinkedBlockingQueue<SessionedTransport.RequestReceiver> handlers;
-    private LinkedBlockingQueue<OutgoingResponse> queuedResponses;
 
-    TcpRequestNotifier() {
+    private LinkedBlockingQueue<SessionedTransport.RequestReceiver> handlers;
+    private LinkedBlockingQueue<Command> commandQueue;
+
+    TcpRequestNotifier(LinkedBlockingQueue<Command> commandQueue) {
         handlers = new LinkedBlockingQueue<>();
-        queuedResponses = new LinkedBlockingQueue<>();
+        this.commandQueue = commandQueue;
     }
 
     @Override
@@ -30,27 +31,41 @@ final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<Ine
         handlers.remove(e);
     }
 
-    void notify(Collection<IncomingRequest> dataCollection) {
-        Validate.noNullElements(dataCollection);
-        
+    void notify(Collection<Event> events) {
+        Validate.noNullElements(events);
+
         SessionedTransport.RequestReceiver[] handlersArray = handlers.toArray(new SessionedTransport.RequestReceiver[0]);
-        for (IncomingRequest incomingRequest : dataCollection) {
-            for (SessionedTransport.RequestReceiver<InetSocketAddress> handler : handlersArray) {
-                // to array to avoid locks
-                IncomingData<InetSocketAddress> data = incomingRequest.getRequest();
-                Selector selector = incomingRequest.getSelector();
-                SocketChannel channel = incomingRequest.getChannel();
-                TcpResponseSender responseSender = new TcpResponseSender(queuedResponses, selector, channel);
-                if (handler.requestArrived(data, responseSender)) {
-                    break;
+        for (Event event : events) {
+            if (event instanceof EventRequestArrived) {
+                EventRequestArrived request = (EventRequestArrived) event;
+                
+                for (SessionedTransport.RequestReceiver<InetSocketAddress> handler : handlersArray) {
+                    IncomingData<InetSocketAddress> data = request.getRequest();
+                    Selector selector = request.getSelector();
+                    SocketChannel channel = request.getChannel();
+                    
+                    TcpResponseSender responseSender = new TcpResponseSender(commandQueue, selector, channel);
+                    TcpLinkController controller = new TcpLinkController(channel, selector, commandQueue);
+
+                    if (handler.requestArrived(data, responseSender, controller)) {
+                        break;
+                    }
+                }
+            } else if (event instanceof EventLinkEstablished) {
+                EventLinkEstablished newLink = (EventLinkEstablished) event;
+
+                for (SessionedTransport.RequestReceiver<InetSocketAddress> handler : handlersArray) {
+                    InetSocketAddress from = newLink.getFrom();
+                    SocketChannel channel = newLink.getChannel();
+                    Selector selector = newLink.getSelector();
+
+                    TcpLinkController controller = new TcpLinkController(channel, selector, commandQueue);
+
+                    if (handler.linkEstablished(from, controller)) {
+                        break;
+                    }
                 }
             }
         }
     }
-
-    void drainResponsesTo(Collection<OutgoingResponse> destination) {
-        Validate.notNull(destination);
-        queuedResponses.drainTo(destination);
-    }
-    
 }

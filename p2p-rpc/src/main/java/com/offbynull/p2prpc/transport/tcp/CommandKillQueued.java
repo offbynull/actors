@@ -1,9 +1,9 @@
 package com.offbynull.p2prpc.transport.tcp;
 
-final class KillQueuedRequest implements OutgoingRequest {
+final class CommandKillQueued implements Command {
     private long id;
 
-    KillQueuedRequest(long id) {
+    CommandKillQueued(long id) {
         this.id = id;
     }
 

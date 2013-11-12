@@ -9,16 +9,16 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class SimpleRpcTest {
+public class RpcTest {
 
-    private static SimpleRpc rpcSystem;
+    private static Rpc rpcSystem;
 
-    public SimpleRpcTest() {
+    public RpcTest() {
     }
 
     @BeforeClass
     public static void setUpClass() throws Throwable {
-        rpcSystem = new SimpleRpc(15000);
+        rpcSystem = new Rpc();
     }
 
     @AfterClass

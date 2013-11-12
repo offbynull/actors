@@ -12,11 +12,9 @@ import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.Validate;
 
-public final class SimpleRpc implements Closeable {
+public final class Rpc implements Closeable {
 
     private boolean closed;
     
@@ -27,38 +25,28 @@ public final class SimpleRpc implements Closeable {
     private ServiceServer<InetSocketAddress> serviceServer;
     private ServiceAccessor<InetSocketAddress> serviceAccessor;
 
-    public SimpleRpc(int listenPort) throws IOException {
-        this(TransportType.TCP, new InetSocketAddress(listenPort), Integer.MAX_VALUE);
+    public Rpc() throws IOException {
+        this(new RpcConfig());
     }
 
-    public SimpleRpc(TransportType transportType, int listenPort) throws IOException {
-        this(transportType, new InetSocketAddress(listenPort), Integer.MAX_VALUE);
-    }
-
-    public SimpleRpc(TransportType transportType, InetSocketAddress listenAddress) throws IOException {
-        this(transportType, listenAddress, Integer.MAX_VALUE);
-    }
-
-    public SimpleRpc(TransportType transportType, int listenPort, int maxThreadCount) throws IOException {
-        this(transportType, new InetSocketAddress(listenPort), maxThreadCount);
-    }
-
-    public SimpleRpc(TransportType transportType, InetSocketAddress listenAddress, int maxThreadCount) throws IOException {
+    public Rpc(RpcConfig conf) throws IOException {
+        Validate.notNull(conf);
 
         try {
-            switch (transportType) {
+            switch (conf.getType()) {
                 case TCP: {
-                    TcpTransport tcpTransport = new TcpTransport(listenAddress, 65535, 65535);
+                    TcpTransport tcpTransport = new TcpTransport(conf.getTcpListenAddress(), conf.getTcpReadLimit(),
+                            conf.getTcpWriteLimit());
                     tcpTransport.start();
-                    server = new SessionedServer<>(tcpTransport, 10000L);
+                    server = new SessionedServer<>(tcpTransport, conf.getSessionServerTimeout());
                     client = new SessionedClient<>(tcpTransport);
                     transport = tcpTransport;
                     break;
                 }
                 case UDP: {
-                    UdpTransport udpTransport = new UdpTransport(listenAddress, 65535);
+                    UdpTransport udpTransport = new UdpTransport(conf.getUdpListenAddress(), conf.getUdpBufferSize());
                     udpTransport.start();
-                    server = new NonSessionedServer<>(udpTransport, 10000L);
+                    server = new NonSessionedServer<>(udpTransport, conf.getSessionServerTimeout());
                     client = new NonSessionedClient<>(udpTransport, new PacketIdGenerator());
                     transport = udpTransport;
                     break;
@@ -67,8 +55,7 @@ public final class SimpleRpc implements Closeable {
                     throw new IllegalArgumentException();
             }
 
-            serviceServer = new ServiceServer<>(server, new ThreadPoolExecutor(0, maxThreadCount, 1000L, TimeUnit.MILLISECONDS,
-                    new LinkedBlockingQueue<Runnable>()));
+            serviceServer = new ServiceServer<>(server, conf.getInvokerExecutorService());
             serviceAccessor = new ServiceAccessor<>(client);
             
             serviceServer.start();
@@ -147,11 +134,5 @@ public final class SimpleRpc implements Closeable {
         }
         
         return serviceAccessor.accessService(address, serviceId, type, timeout, throwOnCommFailure, throwOnInvokeFailure);
-    }
-
-    public enum TransportType {
-
-        TCP,
-        UDP
     }
 }

@@ -35,6 +35,12 @@ final class TcpRequestSender implements RequestSender<InetSocketAddress> {
         commandQueue.add(new CommandSendRequest(data, receiver, id));
         selector.wakeup();
         
+        /*
+        Don't need to worry about race conditions or anything like that by passing the id. The CommandSendRequest will always happen before
+        any kill request by the link controller. It was added in above, but for the kill command to be put in to the queue, the user has to
+        trigger the link controller being returned below -- which will add a kill command on to the queue.
+        */
+        
         return new TcpLinkController(id, selector, commandQueue);
     }
 }

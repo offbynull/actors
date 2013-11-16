@@ -33,8 +33,12 @@ final class UdpReceiveNotifier implements NonSessionedTransport.ReceiveNotifier<
         for (IncomingData<InetSocketAddress> packet : packets) {
             for (NonSessionedTransport.MessageReceiver<InetSocketAddress> handler : handlersArray) {
                 // to array to avoid locks
-                if (handler.messageArrived(packet)) {
-                    break;
+                try {
+                    if (handler.messageArrived(packet)) {
+                        break;
+                    }
+                } catch (RuntimeException re) {
+                    // do nothing
                 }
             }
         }

@@ -13,19 +13,27 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
 public final class NonSessionedServer<A> implements Server<A> {
+    private MessageIdCache<A> idCache; // prevents dupe messages/packets
 
     private MessageSender<A> querier;
     private ReceiveNotifier<A> notifier;
     private MessageListener<A> callback;
     private long timeout;
     
-    private UdpPacketTranslator udpPacketTranslator;
+    private volatile UdpPacketTranslator udpPacketTranslator;
     
     private Lock startStopLock;
 
     public NonSessionedServer(NonSessionedTransport<A> transport, long timeout) {
+        this(transport, timeout, 4096);
+    }
+    
+    public NonSessionedServer(NonSessionedTransport<A> transport, long timeout, int idCacheCapacity) {
         Validate.notNull(transport);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, idCacheCapacity);
+        
+        idCache = new MessageIdCache<>(idCacheCapacity);
         
         querier = transport.getMessageSender();
         notifier = transport.getReceiveNotifier();
@@ -74,11 +82,14 @@ public final class NonSessionedServer<A> implements Server<A> {
             
             recvData.position(recvData.position() + 1);
             
-            PacketId pid = PacketId.extractPrependedId(recvData);
-            byte[] data = PacketId.removePrependedId(recvData);
+            MessageId id = MessageId.extractPrependedId(recvData);
+            
+            idCache.add(from, id);
+            
+            byte[] data = MessageId.removePrependedId(recvData);
             
             long time = System.currentTimeMillis();
-            callback.messageArrived(packet.getFrom(), data, new ResponseCallback(time, pid, from));
+            callback.messageArrived(packet.getFrom(), data, new ResponseCallback(time, id, from));
             
             return false;
         }
@@ -86,11 +97,11 @@ public final class NonSessionedServer<A> implements Server<A> {
     
     private final class ResponseCallback implements ResponseHandler {
 
-        private PacketId packetId;
+        private MessageId packetId;
         private A requester;
         private long savedTime;
 
-        public ResponseCallback(long time, PacketId packetId, A requester) {
+        public ResponseCallback(long time, MessageId packetId, A requester) {
             Validate.notNull(packetId);
             Validate.notNull(requester);
             

@@ -4,10 +4,10 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class PacketId {
+public final class MessageId {
     private byte[] id;
 
-    public PacketId(byte[] id) {
+    public MessageId(byte[] id) {
         Validate.isTrue(id.length == 16);
         
         this.id = Arrays.copyOf(id, id.length);
@@ -23,13 +23,13 @@ public final class PacketId {
         return ret.array();
     }
 
-    public static PacketId extractPrependedId(byte[] buffer) {
+    public static MessageId extractPrependedId(byte[] buffer) {
         Validate.notNull(buffer);
         
         return extractPrependedId(ByteBuffer.wrap(buffer));
     }
 
-    public static PacketId extractPrependedId(ByteBuffer buffer) {
+    public static MessageId extractPrependedId(ByteBuffer buffer) {
         Validate.notNull(buffer);
         
         byte[] extractedId = new byte[16];
@@ -37,7 +37,7 @@ public final class PacketId {
         buffer.get(extractedId);
         buffer.reset();
         
-        return new PacketId(extractedId);
+        return new MessageId(extractedId);
     }
 
     public static byte[] removePrependedId(byte[] buffer) {
@@ -74,7 +74,7 @@ public final class PacketId {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final PacketId other = (PacketId) obj;
+        final MessageId other = (MessageId) obj;
         if (!Arrays.equals(this.id, other.id)) {
             return false;
         }

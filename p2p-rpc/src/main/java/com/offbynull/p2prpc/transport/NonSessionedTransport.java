@@ -3,7 +3,7 @@ package com.offbynull.p2prpc.transport;
 import java.io.IOException;
 
 /**
- * Interface for transports that are non-sessioned (e.g. UDP). Implementations must be thread-safe.
+ * Interface for transports that are non-sessioned and may be unreliable (e.g. UDP). Implementations must be thread-safe.
  * @param <A> address type
  */
 public interface NonSessionedTransport<A> {

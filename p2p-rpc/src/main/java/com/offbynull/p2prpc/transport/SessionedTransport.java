@@ -3,7 +3,7 @@ package com.offbynull.p2prpc.transport;
 import java.io.IOException;
 
 /**
- * Interface for transports that are sessioned (e.g. TCP). Implementations must be thread-safe.
+ * Interface for transports that are sessioned and reliable (e.g. TCP). Implementations must be thread-safe.
  * @param <A> address type
  */
 public interface SessionedTransport<A> {

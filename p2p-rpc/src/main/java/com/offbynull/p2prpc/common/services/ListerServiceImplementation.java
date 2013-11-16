@@ -1,4 +1,4 @@
-package com.offbynull.p2prpc;
+package com.offbynull.p2prpc.common.services;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.SortedSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
-final class ListerServiceImplementation implements ListerService {
+public final class ListerServiceImplementation implements ListerService {
     private ReadWriteLock lock;
     private SortedSet<Integer> serviceIdSet;
     private Map<Integer, String> serviceNameMap;

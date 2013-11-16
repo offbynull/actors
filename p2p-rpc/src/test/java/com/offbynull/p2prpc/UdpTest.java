@@ -1,7 +1,7 @@
 package com.offbynull.p2prpc;
 
 import com.offbynull.p2prpc.session.MessageListener;
-import com.offbynull.p2prpc.session.PacketIdGenerator;
+import com.offbynull.p2prpc.session.MessageIdGenerator;
 import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import com.offbynull.p2prpc.session.NonSessionedClient;
 import com.offbynull.p2prpc.session.NonSessionedServer;
@@ -60,7 +60,7 @@ public final class UdpTest {
 
         try {
             server = new NonSessionedServer(transport1, TIMEOUT);
-            NonSessionedClient client = new NonSessionedClient(transport1, new PacketIdGenerator());
+            NonSessionedClient client = new NonSessionedClient(transport1, new MessageIdGenerator());
 
             MessageListener callback = new MessageListener() {
 
@@ -105,7 +105,7 @@ public final class UdpTest {
             };
             server.start(callback);
 
-            NonSessionedClient client = new NonSessionedClient(transport2, new PacketIdGenerator());
+            NonSessionedClient client = new NonSessionedClient(transport2, new MessageIdGenerator());
             byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
 
             Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
@@ -118,7 +118,7 @@ public final class UdpTest {
 
     @Test(expected = IOException.class)
     public void noResponseUdpTest() throws Throwable {
-        NonSessionedClient client = new NonSessionedClient(transport2, new PacketIdGenerator());
+        NonSessionedClient client = new NonSessionedClient(transport2, new MessageIdGenerator());
 
         client.send(new InetSocketAddress("www.microsoft.com", 12345), "HIEVERYBODY! :)".getBytes(), 500L);
     }

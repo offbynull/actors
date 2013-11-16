@@ -24,7 +24,7 @@ public final class SessionedServer<A> implements Server<A> {
     
     private Timer killTimer;
     
-    private TcpRequestReceiver tcpRequestReceiver;
+    private volatile TcpRequestReceiver tcpRequestReceiver;
     
     private Lock startStopLock;
 

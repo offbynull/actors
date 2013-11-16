@@ -16,9 +16,9 @@ public final class NonSessionedClient<A> implements Client<A> {
 
     private MessageSender<A> querier;
     private ReceiveNotifier<A> notifier;
-    private PacketIdGenerator pidGenerator;
+    private MessageIdGenerator pidGenerator;
 
-    public NonSessionedClient(NonSessionedTransport<A> transport, PacketIdGenerator pidGenerator) {
+    public NonSessionedClient(NonSessionedTransport<A> transport, MessageIdGenerator pidGenerator) {
         Validate.notNull(transport);
         Validate.notNull(pidGenerator);
         
@@ -33,7 +33,7 @@ public final class NonSessionedClient<A> implements Client<A> {
         Validate.notNull(data);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
-        final PacketId pid = pidGenerator.generate();
+        final MessageId pid = pidGenerator.generate();
         final ArrayBlockingQueue<byte[]> exchanger = new ArrayBlockingQueue<>(1); // exchanger/synchronousqueue shouldn't be used here due
                                                                                   // to potential of recvHandler getting blocked
         
@@ -48,13 +48,13 @@ public final class NonSessionedClient<A> implements Client<A> {
                 }
                 
                 recvData.position(recvData.position() + 1);
-                PacketId incomingPid = PacketId.extractPrependedId(recvData);
+                MessageId incomingPid = MessageId.extractPrependedId(recvData);
                 
                 if (!incomingPid.equals(pid)) {
                     return false;
                 }
                 
-                byte[] recvDataWithoutPid = PacketId.removePrependedId(recvData);
+                byte[] recvDataWithoutPid = MessageId.removePrependedId(recvData);
                 exchanger.add(recvDataWithoutPid);
                 return true;
             }

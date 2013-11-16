@@ -1,6 +1,7 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.ListerService.Services;
+import com.offbynull.p2prpc.common.services.ListerService;
+import com.offbynull.p2prpc.common.services.ListerService.Services;
 import com.offbynull.p2prpc.session.Client;
 import com.offbynull.p2prpc.session.Server;
 import com.offbynull.p2prpc.session.SessionedClient;

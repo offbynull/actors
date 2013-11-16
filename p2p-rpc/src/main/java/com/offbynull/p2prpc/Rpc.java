@@ -3,7 +3,7 @@ package com.offbynull.p2prpc;
 import com.offbynull.p2prpc.session.Client;
 import com.offbynull.p2prpc.session.NonSessionedClient;
 import com.offbynull.p2prpc.session.NonSessionedServer;
-import com.offbynull.p2prpc.session.PacketIdGenerator;
+import com.offbynull.p2prpc.session.MessageIdGenerator;
 import com.offbynull.p2prpc.session.Server;
 import com.offbynull.p2prpc.session.SessionedClient;
 import com.offbynull.p2prpc.session.SessionedServer;
@@ -47,7 +47,7 @@ public final class Rpc implements Closeable {
                     UdpTransport udpTransport = new UdpTransport(conf.getUdpListenAddress(), conf.getUdpBufferSize());
                     udpTransport.start();
                     server = new NonSessionedServer<>(udpTransport, conf.getSessionServerTimeout());
-                    client = new NonSessionedClient<>(udpTransport, new PacketIdGenerator());
+                    client = new NonSessionedClient<>(udpTransport, new MessageIdGenerator());
                     transport = udpTransport;
                     break;
                 }

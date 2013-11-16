@@ -10,6 +10,8 @@ import com.offbynull.p2prpc.transport.SessionedTransport.ResponseSender;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
@@ -19,6 +21,8 @@ public final class SessionedServer<A> implements Server<A> {
     private RequestNotifier notifier;
     private ServerMessageCallback<A> callback;
     private long timeout;
+    
+    private Timer killTimer;
     
     private TcpRequestReceiver tcpRequestReceiver;
     
@@ -40,6 +44,8 @@ public final class SessionedServer<A> implements Server<A> {
         
         startStopLock.lock();
         try {
+            killTimer = new Timer(getClass().getSimpleName() + " Kill Timer", true);
+            
             this.callback = callback;
             tcpRequestReceiver = new TcpRequestReceiver();
         
@@ -53,6 +59,7 @@ public final class SessionedServer<A> implements Server<A> {
     public void stop() throws IOException {
         startStopLock.lock();
         try {
+            killTimer.cancel();
             notifier.remove(tcpRequestReceiver);
         } finally {
             startStopLock.unlock();
@@ -62,7 +69,14 @@ public final class SessionedServer<A> implements Server<A> {
     private final class TcpRequestReceiver implements RequestReceiver<A> {
 
         @Override
-        public boolean linkEstablished(A from, SessionedTransport.LinkController controller) {
+        public boolean linkEstablished(A from, final SessionedTransport.LinkController controller) {
+            killTimer.schedule(new TimerTask() {
+
+                @Override
+                public void run() {
+                    controller.kill();
+                }
+            }, timeout);
             // do nothing
             return true;
         }
@@ -79,9 +93,7 @@ public final class SessionedServer<A> implements Server<A> {
             byte[] recvDataArray = new byte[recvData.limit()];
             recvData.get(recvDataArray);
             
-            long time = System.currentTimeMillis();
-            
-            callback.messageArrived(from, recvDataArray, new ResponseCallback(time, responder, controller, from));
+            callback.messageArrived(from, recvDataArray, new ResponseCallback(responder, controller, from));
             
             return true;
         }
@@ -92,9 +104,8 @@ public final class SessionedServer<A> implements Server<A> {
         private A requester;
         private ResponseSender<A> responder;
         private LinkController controller;
-        private long savedTime;
 
-        public ResponseCallback(long time, ResponseSender<A> responder, LinkController controller, A requester) {
+        public ResponseCallback(ResponseSender<A> responder, LinkController controller, A requester) {
             Validate.notNull(responder);
             Validate.notNull(controller);
             Validate.notNull(requester);
@@ -102,20 +113,14 @@ public final class SessionedServer<A> implements Server<A> {
             this.requester = requester;
             this.responder = responder;
             this.controller = controller;
-            this.savedTime = time;
         }
 
         @Override
         public void responseReady(byte[] data) {
             Validate.notNull(data);
             
-            long time = System.currentTimeMillis();
-            if (time - savedTime < timeout && data != null) {
-                OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);
-                responder.sendResponse(outgoingData);
-            } else {
-                controller.kill();
-            }
+            OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);
+            responder.sendResponse(outgoingData);
         }
 
         @Override

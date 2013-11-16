@@ -16,7 +16,7 @@ public final class NonSessionedServer<A> implements Server<A> {
 
     private MessageSender<A> querier;
     private ReceiveNotifier<A> notifier;
-    private ServerMessageCallback<A> callback;
+    private MessageListener<A> callback;
     private long timeout;
     
     private UdpPacketTranslator udpPacketTranslator;
@@ -35,7 +35,7 @@ public final class NonSessionedServer<A> implements Server<A> {
     }
 
     @Override
-    public void start(ServerMessageCallback<A> callback) throws IOException {
+    public void start(MessageListener<A> callback) throws IOException {
         Validate.notNull(callback);
         
         startStopLock.lock();
@@ -84,7 +84,7 @@ public final class NonSessionedServer<A> implements Server<A> {
         }
     }
     
-    private final class ResponseCallback implements ServerResponseCallback {
+    private final class ResponseCallback implements ResponseHandler {
 
         private PacketId packetId;
         private A requester;

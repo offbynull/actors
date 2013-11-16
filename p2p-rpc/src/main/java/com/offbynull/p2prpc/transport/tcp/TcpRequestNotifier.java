@@ -47,8 +47,12 @@ final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<Ine
                     TcpResponseSender responseSender = new TcpResponseSender(commandQueue, selector, channel);
                     TcpLinkController controller = new TcpLinkController(channel, selector, commandQueue);
 
-                    if (handler.requestArrived(data, responseSender, controller)) {
-                        break;
+                    try {
+                        if (handler.requestArrived(data, responseSender, controller)) {
+                            break;
+                        }
+                    } catch (RuntimeException re) {
+                        controller.kill();
                     }
                 }
             } else if (event instanceof EventLinkEstablished) {
@@ -61,8 +65,12 @@ final class TcpRequestNotifier implements SessionedTransport.RequestNotifier<Ine
 
                     TcpLinkController controller = new TcpLinkController(channel, selector, commandQueue);
 
-                    if (handler.linkEstablished(from, controller)) {
-                        break;
+                    try {
+                        if (handler.linkEstablished(from, controller)) {
+                            break;
+                        }
+                    } catch (RuntimeException re) {
+                        controller.kill();
                     }
                 }
             }

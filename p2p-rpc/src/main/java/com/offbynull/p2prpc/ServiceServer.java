@@ -3,8 +3,8 @@ package com.offbynull.p2prpc;
 import com.offbynull.p2prpc.invoke.Invoker;
 import com.offbynull.p2prpc.invoke.InvokerCallback;
 import com.offbynull.p2prpc.session.Server;
-import com.offbynull.p2prpc.session.ServerMessageCallback;
-import com.offbynull.p2prpc.session.ServerResponseCallback;
+import com.offbynull.p2prpc.session.MessageListener;
+import com.offbynull.p2prpc.session.ResponseHandler;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -134,10 +134,10 @@ public final class ServiceServer<A> {
         }
     }
     
-    private final class ServerMessageToInvokeCallback implements ServerMessageCallback<A> {
+    private final class ServerMessageToInvokeCallback implements MessageListener<A> {
 
         @Override
-        public void messageArrived(A from, byte[] data, ServerResponseCallback responseCallback) {
+        public void messageArrived(A from, byte[] data, ResponseHandler responseCallback) {
             ByteBuffer buffer = ByteBuffer.wrap(data);
             
             int id = buffer.getInt();
@@ -169,9 +169,9 @@ public final class ServiceServer<A> {
     
     private final class InvokeResponseToServerResponseCallback implements InvokerCallback {
         
-        private ServerResponseCallback serverCallback;
+        private ResponseHandler serverCallback;
 
-        public InvokeResponseToServerResponseCallback(ServerResponseCallback serverCallback) {
+        public InvokeResponseToServerResponseCallback(ResponseHandler serverCallback) {
             Validate.notNull(serverCallback);
             
             this.serverCallback = serverCallback;

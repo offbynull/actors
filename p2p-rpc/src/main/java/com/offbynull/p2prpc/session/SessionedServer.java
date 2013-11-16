@@ -19,7 +19,7 @@ import org.apache.commons.lang3.Validate;
 public final class SessionedServer<A> implements Server<A> {
 
     private RequestNotifier notifier;
-    private ServerMessageCallback<A> callback;
+    private MessageListener<A> callback;
     private long timeout;
     
     private Timer killTimer;
@@ -39,7 +39,7 @@ public final class SessionedServer<A> implements Server<A> {
     }
 
     @Override
-    public void start(ServerMessageCallback<A> callback) throws IOException {
+    public void start(MessageListener<A> callback) throws IOException {
         Validate.notNull(callback);
         
         startStopLock.lock();
@@ -99,7 +99,7 @@ public final class SessionedServer<A> implements Server<A> {
         }
     }
     
-    private final class ResponseCallback implements ServerResponseCallback {
+    private final class ResponseCallback implements ResponseHandler {
 
         private A requester;
         private ResponseSender<A> responder;

@@ -1,7 +1,7 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.session.ServerMessageCallback;
-import com.offbynull.p2prpc.session.ServerResponseCallback;
+import com.offbynull.p2prpc.session.MessageListener;
+import com.offbynull.p2prpc.session.ResponseHandler;
 import com.offbynull.p2prpc.session.SessionedClient;
 import com.offbynull.p2prpc.session.SessionedServer;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
@@ -61,10 +61,10 @@ public final class TcpTest {
             server = new SessionedServer(transport1, TIMEOUT);
             SessionedClient client = new SessionedClient(transport1);
 
-            ServerMessageCallback callback = new ServerMessageCallback() {
+            MessageListener callback = new MessageListener() {
 
                 @Override
-                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                public void messageArrived(Object from, byte[] data, ResponseHandler responseCallback) {
                     if (new String(data).equals("HIEVERYBODY! :)")) {
                         responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
                     } else {
@@ -93,10 +93,10 @@ public final class TcpTest {
             server = new SessionedServer(transport1, TIMEOUT);
             SessionedClient client = new SessionedClient(transport2);
 
-            ServerMessageCallback callback = new ServerMessageCallback() {
+            MessageListener callback = new MessageListener() {
 
                 @Override
-                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                public void messageArrived(Object from, byte[] data, ResponseHandler responseCallback) {
                     if (new String(data).equals("HIEVERYBODY! :)")) {
                         responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
                     } else {

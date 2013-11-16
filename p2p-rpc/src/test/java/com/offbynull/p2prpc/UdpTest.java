@@ -1,11 +1,11 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.session.MessageListener;
 import com.offbynull.p2prpc.session.PacketIdGenerator;
-import com.offbynull.p2prpc.session.ServerMessageCallback;
-import com.offbynull.p2prpc.session.ServerResponseCallback;
 import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import com.offbynull.p2prpc.session.NonSessionedClient;
 import com.offbynull.p2prpc.session.NonSessionedServer;
+import com.offbynull.p2prpc.session.ResponseHandler;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,10 +62,10 @@ public final class UdpTest {
             server = new NonSessionedServer(transport1, TIMEOUT);
             NonSessionedClient client = new NonSessionedClient(transport1, new PacketIdGenerator());
 
-            ServerMessageCallback callback = new ServerMessageCallback() {
+            MessageListener callback = new MessageListener() {
 
                 @Override
-                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                public void messageArrived(Object from, byte[] data, ResponseHandler responseCallback) {
                     if (new String(data).equals("HIEVERYBODY! :)")) {
                         responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
                     } else {
@@ -92,10 +92,10 @@ public final class UdpTest {
 
         try {
             server = new NonSessionedServer(transport1, TIMEOUT);
-            ServerMessageCallback callback = new ServerMessageCallback() {
+            MessageListener callback = new MessageListener() {
 
                 @Override
-                public void messageArrived(Object from, byte[] data, ServerResponseCallback responseCallback) {
+                public void messageArrived(Object from, byte[] data, ResponseHandler responseCallback) {
                     if (new String(data).equals("HIEVERYBODY! :)")) {
                         responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
                     } else {

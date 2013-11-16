@@ -10,6 +10,8 @@ import com.offbynull.p2prpc.transport.SessionedTransport.ResponseSender;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
 public final class SessionedServer<A> implements Server<A> {
@@ -19,6 +21,8 @@ public final class SessionedServer<A> implements Server<A> {
     private long timeout;
     
     private TcpRequestReceiver tcpRequestReceiver;
+    
+    private Lock startStopLock;
 
     public SessionedServer(TcpTransport transport, long timeout) {
         Validate.notNull(transport);
@@ -26,21 +30,33 @@ public final class SessionedServer<A> implements Server<A> {
         
         notifier = transport.getRequestNotifier();
         this.timeout = timeout;
+        
+        startStopLock = new ReentrantLock();
     }
 
     @Override
     public void start(ServerMessageCallback<A> callback) throws IOException {
         Validate.notNull(callback);
         
-        this.callback = callback;
-        tcpRequestReceiver = new TcpRequestReceiver();
+        startStopLock.lock();
+        try {
+            this.callback = callback;
+            tcpRequestReceiver = new TcpRequestReceiver();
         
-        notifier.add(tcpRequestReceiver);
+            notifier.add(tcpRequestReceiver);
+        } finally {
+            startStopLock.unlock();
+        }
     }
 
     @Override
     public void stop() throws IOException {
-        notifier.remove(tcpRequestReceiver);
+        startStopLock.lock();
+        try {
+            notifier.remove(tcpRequestReceiver);
+        } finally {
+            startStopLock.unlock();
+        }
     }
 
     private final class TcpRequestReceiver implements RequestReceiver<A> {

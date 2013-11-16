@@ -8,6 +8,8 @@ import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageSender;
 import com.offbynull.p2prpc.transport.OutgoingData;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
 public final class NonSessionedServer<A> implements Server<A> {
@@ -18,6 +20,8 @@ public final class NonSessionedServer<A> implements Server<A> {
     private long timeout;
     
     private UdpPacketTranslator udpPacketTranslator;
+    
+    private Lock startStopLock;
 
     public NonSessionedServer(NonSessionedTransport<A> transport, long timeout) {
         Validate.notNull(transport);
@@ -26,21 +30,33 @@ public final class NonSessionedServer<A> implements Server<A> {
         querier = transport.getMessageSender();
         notifier = transport.getReceiveNotifier();
         this.timeout = timeout;
+        
+        startStopLock = new ReentrantLock();
     }
 
     @Override
     public void start(ServerMessageCallback<A> callback) throws IOException {
         Validate.notNull(callback);
         
-        this.callback = callback;
-        udpPacketTranslator = new UdpPacketTranslator();
-        
-        notifier.add(udpPacketTranslator);
+        startStopLock.lock();
+        try {
+            this.callback = callback;
+            udpPacketTranslator = new UdpPacketTranslator();
+
+            notifier.add(udpPacketTranslator);
+        } finally {
+            startStopLock.unlock();
+        }
     }
 
     @Override
     public void stop() throws IOException {
-        notifier.remove(udpPacketTranslator);
+        startStopLock.lock();
+        try {
+            notifier.remove(udpPacketTranslator);
+        } finally {
+            startStopLock.unlock();
+        }
     }
 
     private final class UdpPacketTranslator implements MessageReceiver<A> {

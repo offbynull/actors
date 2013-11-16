@@ -2,8 +2,12 @@ package com.offbynull.p2prpc;
 
 import com.offbynull.p2prpc.invoke.Capturer;
 import com.offbynull.p2prpc.invoke.CapturerCallback;
+import com.offbynull.p2prpc.invoke.InvokeThreadInformation;
 import com.offbynull.p2prpc.invoke.Invoker;
 import com.offbynull.p2prpc.invoke.InvokerCallback;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
@@ -12,7 +16,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public final class InvokeTest {
 
@@ -40,11 +47,39 @@ public final class InvokeTest {
         AtomicBoolean failFlag = new AtomicBoolean();
         
         FakeObject server = Mockito.mock(FakeObject.class);
-        FakeObject client = generateStub(server, failFlag);
+        FakeObject client = generateStub(server, failFlag, Collections.emptyMap());
 
         client.fakeMethodCall();
         
         Assert.assertFalse(failFlag.get());
+    }
+
+    @Test
+    public void simpleInvokeWithInfoTest() {
+        AtomicBoolean failFlag = new AtomicBoolean();
+        
+        final Map<String, Object> info = new HashMap<>();
+        info.put("TestKey1", "TestValue1");
+        info.put("TestKey2", 2);
+        
+        FakeObject server = Mockito.mock(FakeObject.class);
+        FakeObject client = generateStub(server, failFlag, info);
+        
+        Mockito.when(server.fakeMethodCall(Matchers.anyString())).thenAnswer(new Answer<Integer>() {
+
+            @Override
+            public Integer answer(InvocationOnMock invocation) throws Throwable {
+                Map<String, Object> grabbedInfo = InvokeThreadInformation.getInfoMap();
+                Assert.assertEquals(info, grabbedInfo);
+                return 5;
+            }
+            
+        });
+
+        int ret = client.fakeMethodCall("");
+        
+        Assert.assertFalse(failFlag.get());
+        Assert.assertEquals(5, ret);
     }
 
     @Test
@@ -54,7 +89,7 @@ public final class InvokeTest {
         FakeObject server = Mockito.mock(FakeObject.class);
         Mockito.when(server.fakeMethodCall("req msg", 0)).thenReturn("resp msg");
         
-        FakeObject client = generateStub(server, failFlag);
+        FakeObject client = generateStub(server, failFlag, Collections.emptyMap());
 
         String resp = client.fakeMethodCall("req msg", 0);
 
@@ -69,7 +104,7 @@ public final class InvokeTest {
         FakeObject server = Mockito.mock(FakeObject.class);
         Mockito.when(server.fakeMethodCall("req msg", 0)).thenThrow(new IllegalArgumentException("bad!"));
         
-        FakeObject client = generateStub(server, failFlag);
+        FakeObject client = generateStub(server, failFlag, Collections.emptyMap());
 
         try {
             client.fakeMethodCall("req msg", 0);
@@ -78,7 +113,8 @@ public final class InvokeTest {
         }
     }
 
-    private FakeObject generateStub(FakeObject obj, final AtomicBoolean failFlag) {
+    private FakeObject generateStub(FakeObject obj, final AtomicBoolean failFlag,
+            final Map<? extends Object, ? extends Object> invokeInfo) {
         final Invoker invoker = new Invoker(obj, 1);
         Capturer<FakeObject> capturer = new Capturer<>(FakeObject.class);
         
@@ -104,7 +140,7 @@ public final class InvokeTest {
                             throw new RuntimeException(ex);
                         }
                     }
-                });
+                }, invokeInfo);
 
                 try {
                     byte[] ret = exchanger.exchange(null);

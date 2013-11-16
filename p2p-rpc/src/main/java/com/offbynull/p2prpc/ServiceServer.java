@@ -7,7 +7,6 @@ import com.offbynull.p2prpc.session.ServerMessageCallback;
 import com.offbynull.p2prpc.session.ServerResponseCallback;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -159,8 +158,11 @@ public final class ServiceServer<A> {
             byte[] dataWithoutId = new byte[buffer.remaining()];
             buffer.get(dataWithoutId);
             
+            Map<RpcInvokeKeys, Object> invokeInfo = new HashMap<>();
+            invokeInfo.put(RpcInvokeKeys.FROM_ADDRESS, from);
+            
             Invoker invoker = serviceEntry.getInvoker();
-            invoker.invoke(dataWithoutId, new InvokeResponseToServerResponseCallback(responseCallback));
+            invoker.invoke(dataWithoutId, new InvokeResponseToServerResponseCallback(responseCallback), invokeInfo);
         }
         
     }

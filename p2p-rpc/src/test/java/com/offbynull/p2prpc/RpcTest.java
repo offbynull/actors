@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.invoke.InvokeThreadInformation;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import org.junit.After;
@@ -127,6 +128,8 @@ public class RpcTest {
 
         @Override
         public String echo(String value) {
+            InetSocketAddress address = InvokeThreadInformation.getInfo(RpcInvokeKeys.FROM_ADDRESS);
+            Assert.assertArrayEquals(new byte[] { 0x7F, 0, 0, 1 }, address.getAddress().getAddress());
             return value;
         }
 

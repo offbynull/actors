@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -55,8 +58,15 @@ public final class Invoker implements Closeable {
     }
     
     public void invoke(final byte[] data, final InvokerCallback callback) {
+        invoke(data, callback, Collections.emptyMap());
+    }
+    
+    public void invoke(final byte[] data, final InvokerCallback callback, Map<? extends Object, ? extends Object> info) {
         Validate.notNull(data);
         Validate.notNull(callback);
+        Validate.notNull(info);
+        
+        final Map<Object, Object> sharedDataCopy = new HashMap<>(info);
         
         Runnable r = new Runnable() {
             @Override
@@ -85,6 +95,9 @@ public final class Invoker implements Closeable {
                     return;
                 }
 
+                // Set shared data map
+                InvokeThreadInformation.setInvokeThreadInfo(sharedDataCopy);
+                
                 // Call and serialize
                 byte[] outData;
                 try {
@@ -98,6 +111,8 @@ public final class Invoker implements Closeable {
                     return;
                 } catch (InvocationTargetException ex) {
                     outData = serializer.serializeMethodThrow(ex.getCause());
+                } finally {
+                    InvokeThreadInformation.removeInvokeThreadInfo();
                 }
                 
                 // Filter output

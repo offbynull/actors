@@ -13,6 +13,8 @@ import java.nio.channels.Selector;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -20,6 +22,7 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
     private InetSocketAddress listenAddress;
     private EventLoop eventLoop;
     private int bufferSize;
+    private Lock accessLock;
 
     public UdpTransport(int port, int bufferSize) {
         this(new InetSocketAddress(port), bufferSize);
@@ -31,43 +34,64 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
 
         this.listenAddress = listenAddress;
         this.bufferSize = bufferSize;
+        accessLock = new ReentrantLock();
     }
     
     @Override
     public void start() throws IOException {
-        if (eventLoop != null) {
-            throw new IllegalStateException();
-        }
+        accessLock.lock();
+        try {
+            if (eventLoop != null) {
+                throw new IllegalStateException();
+            }
 
-        eventLoop = new EventLoop();
-        eventLoop.startAndWait();
+            eventLoop = new EventLoop();
+            eventLoop.startAndWait();
+        } finally {
+            accessLock.unlock();
+        }
     }
 
     @Override
     public void stop() throws IOException {
-        if (eventLoop == null || !eventLoop.isRunning()) {
-            throw new IllegalStateException();
-        }
+        accessLock.lock();
+        try {
+            if (eventLoop == null || !eventLoop.isRunning()) {
+                throw new IllegalStateException();
+            }
 
-        eventLoop.stopAndWait();
+            eventLoop.stopAndWait();
+        } finally {
+            accessLock.unlock();
+        }
     }
 
     @Override
     public ReceiveNotifier getReceiveNotifier() {
-        if (eventLoop == null || !eventLoop.isRunning()) {
-            throw new IllegalStateException();
+        accessLock.lock();
+        try {
+            if (eventLoop == null || !eventLoop.isRunning()) {
+                throw new IllegalStateException();
+            }
+
+            return eventLoop.getReceiveNotifier();
+        } finally {
+            accessLock.unlock();
         }
-        
-        return eventLoop.getReceiveNotifier();
     }
 
     @Override
     public MessageSender getMessageSender() {
-        if (eventLoop == null || !eventLoop.isRunning()) {
-            throw new IllegalStateException();
+        accessLock.lock();
+        try {
+            if (eventLoop == null || !eventLoop.isRunning()) {
+                throw new IllegalStateException();
+            }
+
+            return eventLoop.getPacketSender();
+        } finally {
+            accessLock.unlock();
         }
-        
-        return eventLoop.getPacketSender();
     }
 
     private final class EventLoop extends AbstractExecutionThreadService {

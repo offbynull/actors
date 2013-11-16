@@ -17,6 +17,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -26,56 +28,82 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
     private EventLoop eventLoop;
     private int readLimit;
     private int writeLimit;
+    private Lock accessLock;
+
+    public TcpTransport(int readLimit, int writeLimit) {
+        this(null, readLimit, writeLimit);
+    }
 
     public TcpTransport(int port, int readLimit, int writeLimit) {
         this(new InetSocketAddress(port), readLimit, writeLimit);
     }
 
     public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit) {
-        Validate.notNull(listenAddress);
+        //Validate.notNull(listenAddress); // null = no server
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
 
         this.listenAddress = listenAddress;
         this.readLimit = readLimit;
         this.writeLimit = writeLimit;
+        accessLock = new ReentrantLock();
     }
 
     @Override
     public void start() throws IOException {
-        if (eventLoop != null) {
-            throw new IllegalStateException();
-        }
+        accessLock.lock();
+        try {
+            if (eventLoop != null) {
+                throw new IllegalStateException();
+            }
 
-        eventLoop = new EventLoop();
-        eventLoop.startAndWait();
+            eventLoop = new EventLoop();
+            eventLoop.startAndWait();
+        } finally {
+            accessLock.unlock();
+        }
     }
 
     @Override
     public void stop() throws IOException {
-        if (eventLoop == null || !eventLoop.isRunning()) {
-            throw new IllegalStateException();
-        }
+        accessLock.lock();
+        try {
+            if (eventLoop == null || !eventLoop.isRunning()) {
+                throw new IllegalStateException();
+            }
 
-        eventLoop.stopAndWait();
+            eventLoop.stopAndWait();
+        } finally {
+            accessLock.unlock();
+        }
     }
 
     @Override
     public RequestNotifier<InetSocketAddress> getRequestNotifier() {
-        if (eventLoop == null || !eventLoop.isRunning()) {
-            throw new IllegalStateException();
-        }
+        accessLock.lock();
+        try {
+            if (eventLoop == null || !eventLoop.isRunning()) {
+                throw new IllegalStateException();
+            }
 
-        return eventLoop.getRequestNotifier();
+            return eventLoop.getRequestNotifier();
+        } finally {
+            accessLock.unlock();
+        }
     }
 
     @Override
     public RequestSender<InetSocketAddress> getRequestSender() {
-        if (eventLoop == null || !eventLoop.isRunning()) {
-            throw new IllegalStateException();
-        }
+        accessLock.lock();
+        try {
+            if (eventLoop == null || !eventLoop.isRunning()) {
+                throw new IllegalStateException();
+            }
 
-        return eventLoop.getRequestSender();
+            return eventLoop.getRequestSender();
+        } finally {
+            accessLock.unlock();
+        }
     }
 
     private final class EventLoop extends AbstractExecutionThreadService {
@@ -94,7 +122,9 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
         public EventLoop() throws IOException {
             try {
                 selector = Selector.open();
-                serverChannel = ServerSocketChannel.open();
+                if (listenAddress != null) {
+                    serverChannel = ServerSocketChannel.open();
+                }
             } catch (RuntimeException | IOException e) {
                 IOUtils.closeQuietly(selector);
                 IOUtils.closeQuietly(serverChannel);
@@ -113,9 +143,11 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             sendQueueIdInfoMap = new HashMap<>();
             stop = new AtomicBoolean(false);
             try {
-                serverChannel.configureBlocking(false);
-                serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-                serverChannel.socket().bind(listenAddress);
+                if (listenAddress != null) {
+                    serverChannel.configureBlocking(false);
+                    serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+                    serverChannel.socket().bind(listenAddress);
+                }
             } catch (RuntimeException | IOException e) {
                 IOUtils.closeQuietly(selector);
                 IOUtils.closeQuietly(serverChannel);
@@ -200,7 +232,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                     if (key.isAcceptable()) {
                         try {
                             ChannelInfo info = acceptAndInitializeIncomingSocket();
-                            
+
                             SocketChannel channel = info.getChannel();
                             InetSocketAddress from = (InetSocketAddress) channel.getRemoteAddress();
 
@@ -323,7 +355,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             if (info == null) {
                 return;
             }
-            
+
             killSocket(channel, null);
         }
 
@@ -333,7 +365,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             if (info == null) {
                 return;
             }
-            
+
             SocketChannel channel = info.getChannel();
             killSocket(channel, null);
         }
@@ -345,15 +377,15 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             if (info == null) {
                 return;
             }
-            
+
             Long id = info.getSendRequestId();
             if (id != null) {
                 sendQueueIdInfoMap.remove(id);
             }
-            
+
             SelectionKey key = info.getSelectionKey();
             key.cancel();
-            
+
             IOUtils.closeQuietly(channel);
             if (info.receiver != null && error != null) {
                 info.receiver.internalFailure(error);
@@ -381,7 +413,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                         null, null);
 
                 channelInfoMap.put(clientChannel, info);
-                
+
                 return info;
             } catch (IOException | RuntimeException e) {
                 if (clientChannel != null) {
@@ -445,7 +477,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
 
         @Override
         protected String serviceName() {
-            return TcpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
+            return TcpTransport.class.getSimpleName() + " Event Loop (" + (listenAddress == null ? "N/A" : listenAddress) + ")";
         }
 
         @Override

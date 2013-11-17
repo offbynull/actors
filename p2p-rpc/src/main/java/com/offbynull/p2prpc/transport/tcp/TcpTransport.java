@@ -102,6 +102,10 @@ public final class TcpTransport implements Transport {
 
     @Override
     public void sendMessage(OutgoingMessage message, OutgoingMessageResponseListener listener) {
+        Validate.notNull(message);
+        Validate.notNull(listener);
+        Validate.validState(eventLoop != null && eventLoop.isRunning());
+        
         commandQueue.add(new CommandSendRequest(message, listener));
         selector.wakeup();
     }
@@ -109,12 +113,16 @@ public final class TcpTransport implements Transport {
     @Override
     public void addMessageListener(IncomingMessageListener listener) {
         Validate.notNull(listener);
+        Validate.validState(eventLoop != null && eventLoop.isRunning());
+        
         incomingMessageListeners.add(listener);
     }
 
     @Override
     public void removeMessageListener(IncomingMessageListener listener) {
         Validate.notNull(listener);
+        Validate.validState(eventLoop != null && eventLoop.isRunning());
+        
         incomingMessageListeners.remove(listener);
     }
     

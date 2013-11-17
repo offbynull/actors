@@ -7,6 +7,15 @@ public final class OutgoingMessage<A> {
     private A to;
     private ByteBuffer data;
 
+    public OutgoingMessage(A to, ByteBuffer data) {
+        Validate.notNull(to);
+        Validate.notNull(data);
+        
+        this.to = to;
+        this.data = ByteBuffer.allocate(data.remaining()).put(data);
+        this.data.flip();
+    }
+    
     public OutgoingMessage(A to, byte[] data) {
         Validate.notNull(to);
         Validate.notNull(data);

@@ -2,18 +2,20 @@ package com.offbynull.p2prpc;
 
 import com.offbynull.p2prpc.invoke.Capturer;
 import com.offbynull.p2prpc.invoke.CapturerCallback;
-import com.offbynull.p2prpc.session.Client;
-import java.io.IOException;
+import com.offbynull.p2prpc.transport.IncomingResponse;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
+import com.offbynull.p2prpc.transport.Transport;
+import com.offbynull.p2prpc.transport.TransportHelper;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 public final class ServiceAccessor<A> {
-    private Client<A> client;
+    private Transport<A> transport;
 
-    public ServiceAccessor(Client<A> client) {
-        Validate.notNull(client);
+    public ServiceAccessor(Transport<A> transport) {
+        Validate.notNull(transport);
         
-        this.client = client;
+        this.transport = transport;
     }
 
     public <T> T accessService(A address, int serviceId, Class<T> type) {
@@ -43,11 +45,18 @@ public final class ServiceAccessor<A> {
                     ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
                     buffer.putInt(serviceId);
                     buffer.put(data);
+                    buffer.position(0);
                     
-                    byte[] response = client.send(address, buffer.array(), timeout);
-                    return response;
-                } catch (IOException | InterruptedException ex) {
-                    Thread.interrupted(); // ignore interrupt
+                    OutgoingMessage<A> message = new OutgoingMessage<>(address, buffer);
+                    
+                    IncomingResponse<A> response = TransportHelper.sendAndWait(transport, message);
+                    ByteBuffer resp = response.getData();
+                    byte[] respArray = new byte[resp.remaining()];
+                    resp.get(respArray);
+                    
+                    return respArray;
+                } catch (Exception ex) {
+                    Thread.interrupted(); // ignore interrupt, if it's interrupted
                     throw throwOnCommFailure;
                 }
             }

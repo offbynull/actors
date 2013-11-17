@@ -4,9 +4,11 @@ import com.offbynull.p2prpc.common.services.ListerService;
 import com.offbynull.p2prpc.common.services.ListerServiceImplementation;
 import com.offbynull.p2prpc.invoke.Invoker;
 import com.offbynull.p2prpc.invoke.InvokerCallback;
-import com.offbynull.p2prpc.session.Server;
-import com.offbynull.p2prpc.session.MessageListener;
-import com.offbynull.p2prpc.session.ResponseHandler;
+import com.offbynull.p2prpc.transport.IncomingMessage;
+import com.offbynull.p2prpc.transport.IncomingMessageListener;
+import com.offbynull.p2prpc.transport.IncomingMessageResponseHandler;
+import com.offbynull.p2prpc.transport.OutgoingResponse;
+import com.offbynull.p2prpc.transport.Transport;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -28,17 +30,19 @@ public final class ServiceServer<A> {
     private Map<Integer, String> serviceNameMap;
     private ListerService listerService;
     
-    private Server<A> server;
+    private Transport<A> transport;
+    private ServerMessageToInvokeCallback messageListener;
+    
     private Map<Integer, ServiceEntry> invokerMap;
     private ExecutorService executorService;
     
     private State state = State.UNKNOWN;
 
-    public ServiceServer(Server<A> server, ExecutorService executorService) {
-        Validate.notNull(server);
+    public ServiceServer(Transport<A> transport, ExecutorService executorService) {
+        Validate.notNull(transport);
         Validate.notNull(executorService);
         
-        this.server = server;
+        this.transport = transport;
         this.executorService = executorService;
         lock = new ReentrantReadWriteLock();
     }
@@ -61,8 +65,9 @@ public final class ServiceServer<A> {
             serviceNameMap.put(LISTER_SERVICE_ID, ListerServiceImplementation.class.getName());
 
             invokerMap.put(LISTER_SERVICE_ID, new ServiceEntry(LISTER_SERVICE_ID, listerService));
-            
-            server.start(new ServerMessageToInvokeCallback());
+    
+            messageListener = new ServerMessageToInvokeCallback();
+            transport.addMessageListener(messageListener);
         } finally {
             state = State.STARTED;
             lock.writeLock().unlock();
@@ -75,7 +80,7 @@ public final class ServiceServer<A> {
         
         try {
             Validate.validState(state == State.STARTED);
-            server.stop();
+            transport.removeMessageListener(messageListener);
         } finally {
             state = State.STOPPED;
             lock.writeLock().unlock();
@@ -136,11 +141,12 @@ public final class ServiceServer<A> {
         }
     }
     
-    private final class ServerMessageToInvokeCallback implements MessageListener<A> {
+    private final class ServerMessageToInvokeCallback implements IncomingMessageListener<A> {
 
         @Override
-        public void messageArrived(A from, byte[] data, ResponseHandler responseCallback) {
-            ByteBuffer buffer = ByteBuffer.wrap(data);
+        public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {
+            ByteBuffer buffer = message.getData();
+            A from = message.getFrom();
             
             int id = buffer.getInt();
             
@@ -171,9 +177,9 @@ public final class ServiceServer<A> {
     
     private final class InvokeResponseToServerResponseCallback implements InvokerCallback {
         
-        private ResponseHandler serverCallback;
+        private IncomingMessageResponseHandler serverCallback;
 
-        public InvokeResponseToServerResponseCallback(ResponseHandler serverCallback) {
+        public InvokeResponseToServerResponseCallback(IncomingMessageResponseHandler serverCallback) {
             Validate.notNull(serverCallback);
             
             this.serverCallback = serverCallback;
@@ -186,7 +192,8 @@ public final class ServiceServer<A> {
 
         @Override
         public void invokationFinised(byte[] data) {
-            serverCallback.responseReady(data);
+            OutgoingResponse response = new OutgoingResponse(data);
+            serverCallback.responseReady(response);
         }
     }
     

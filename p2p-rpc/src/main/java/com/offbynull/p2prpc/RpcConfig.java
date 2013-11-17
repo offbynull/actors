@@ -12,12 +12,14 @@ public class RpcConfig {
     private TransportType type = TransportType.TCP;
     private int tcpReadLimit = 65535;
     private int tcpWriteLimit = 65535;
+    private long tcpTimeout = 10000L; 
     private InetSocketAddress tcpListenAddress = new InetSocketAddress(15000);
     private int udpBufferSize = 65535;
+    private long udpTimeout = 10000L; 
     private InetSocketAddress udpListenAddress = new InetSocketAddress(15000);
     private ExecutorService invokerExecutorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1, TimeUnit.SECONDS,
             new LinkedBlockingQueue<Runnable>());
-    private long sessionServerTimeout = 10000L; 
+    
 
     public TransportType getType() {
         return type;
@@ -83,13 +85,22 @@ public class RpcConfig {
         this.invokerExecutorService = invokerExecutorService;
     }
 
-    public long getSessionServerTimeout() {
-        return sessionServerTimeout;
+    public long getTcpTimeout() {
+        return tcpTimeout;
     }
 
-    public void setSessionServerTimeout(long sessionServerTimeout) {
-        Validate.inclusiveBetween(0L, Long.MAX_VALUE, sessionServerTimeout);
-        this.sessionServerTimeout = sessionServerTimeout;
+    public void setTcpTimeout(long tcpTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, tcpTimeout);
+        this.tcpTimeout = tcpTimeout;
+    }
+
+    public long getUdpTimeout() {
+        return udpTimeout;
+    }
+
+    public void setUdpTimeout(long udpTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, udpTimeout);
+        this.udpTimeout = udpTimeout;
     }
     
     public enum TransportType {

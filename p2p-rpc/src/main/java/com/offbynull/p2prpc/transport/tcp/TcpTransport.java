@@ -341,12 +341,12 @@ public final class TcpTransport implements Transport {
                     }
                 }
 
-                notifyEventListeners(internalEventQueue);
+                processEvents(internalEventQueue);
                 internalEventQueue.clear();
             }
         }
 
-        private void notifyEventListeners(LinkedList<Event> internalEventQueue) {
+        private void processEvents(LinkedList<Event> internalEventQueue) {
             IncomingMessageListener[] handlersArray = incomingMessageListeners.toArray(new IncomingMessageListener[0]);
             
             for (Event event : internalEventQueue) {

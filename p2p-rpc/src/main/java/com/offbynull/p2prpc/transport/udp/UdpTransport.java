@@ -121,12 +121,12 @@ public final class UdpTransport implements Transport {
         private AtomicBoolean stop;
         
         private MessageIdGenerator idGenerator;
-        private RequestManager<InetSocketAddress> requestManager;
+        private RequestManager requestManager;
         
 
         public EventLoop() throws IOException {
             idGenerator = new MessageIdGenerator();
-            requestManager = new RequestManager<>(timeout);
+            requestManager = new RequestManager(timeout);
             
             try {
                 channel = DatagramChannel.open();
@@ -181,19 +181,31 @@ public final class UdpTransport implements Transport {
                     }
                 }
                 
-                // select
+                // get timed out channels + max amount of time to wait till next timeout
                 Result timeoutRes = requestManager.evaluate(currentTime);
                 long waitDuration = timeoutRes.getWaitDuration();
+
+                // go through receivers requestManager has removed for timing out and add timeout events for each of them
+                boolean timeoutEventAdded = false;
+                for (OutgoingMessageResponseListener<InetSocketAddress> receiver : timeoutRes.getTimedOutReceivers()) {
+                    internalEventQueue.add(new EventResponseTimedOut(receiver));
+                    
+                    timeoutEventAdded = true;
+                }
+                
+                // select
                 try {
-                    selector.select(waitDuration);
+                    // if timeout event was added then don't wait, because we need to process those events
+                    if (timeoutEventAdded) {
+                        selector.selectNow();
+                    } else {
+                        selector.select(waitDuration);
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
 
-                // go through receivers requestManager has removed for timing out and add timeout events for each of them
-                for (OutgoingMessageResponseListener<InetSocketAddress> receiver :  timeoutRes.getTimedOutReceivers()) {
-                    internalEventQueue.add(new EventResponseTimedOut(receiver));
-                }
+
                 
                 // stop if signalled
                 if (stop.get()) {
@@ -219,8 +231,8 @@ public final class UdpTransport implements Transport {
 
                             buffer.flip();
 
-                            if (RequestResponseMarker.isRequest(buffer)) {
-                                RequestResponseMarker.skipOver(buffer);
+                            if (MessageMarker.isRequest(buffer)) {
+                                MessageMarker.skipOver(buffer);
 
                                 MessageId id = MessageId.extractPrependedId(buffer);
                                 MessageId.skipOver(buffer);
@@ -229,8 +241,8 @@ public final class UdpTransport implements Transport {
 
                                 EventRequestArrived eventRa = new EventRequestArrived(request, selector, id);
                                 internalEventQueue.add(eventRa);
-                            } else if (RequestResponseMarker.isResponse(buffer)) {
-                                RequestResponseMarker.skipOver(buffer);
+                            } else if (MessageMarker.isResponse(buffer)) {
+                                MessageMarker.skipOver(buffer);
 
                                 MessageId id = MessageId.extractPrependedId(buffer);
                                 MessageId.skipOver(buffer);
@@ -263,7 +275,7 @@ public final class UdpTransport implements Transport {
 
                                 buffer.clear();
 
-                                RequestResponseMarker.writeRequestMarker(buffer);
+                                MessageMarker.writeRequestMarker(buffer);
                                 id.writeId(buffer);
 
                                 buffer.put(request.getData());
@@ -282,7 +294,7 @@ public final class UdpTransport implements Transport {
 
                                 buffer.clear();
 
-                                RequestResponseMarker.writeResponseMarker(buffer);
+                                MessageMarker.writeResponseMarker(buffer);
                                 id.writeId(buffer);
 
                                 buffer.put(response.getData());
@@ -348,6 +360,10 @@ public final class UdpTransport implements Transport {
         protected void shutDown() throws Exception {
             IOUtils.closeQuietly(selector);
             IOUtils.closeQuietly(channel);
+            
+            for (OutgoingMessageResponseListener receiver : requestManager.pending().getTimedOutReceivers()) {
+                receiver.internalErrorOccurred(null);
+            }
         }
 
         @Override

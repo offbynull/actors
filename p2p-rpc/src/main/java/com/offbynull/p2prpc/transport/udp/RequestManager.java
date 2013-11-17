@@ -2,16 +2,16 @@ package com.offbynull.p2prpc.transport.udp;
 
 import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-final class RequestManager<A> {
+final class RequestManager {
     private long timeout;
-    private HashMap<MessageIdInstance<A>, Entity> messageIdSet;
+    private HashMap<MessageIdInstance, Entity> messageIdSet;
     private LinkedList<Entity> idQueue;
 
     public RequestManager(long timeout) {
@@ -22,24 +22,45 @@ final class RequestManager<A> {
         idQueue = new LinkedList<>();
     }
     
-    public void addRequestId(A dest, MessageId id, OutgoingMessageResponseListener<InetSocketAddress> receiver, long currentTime) {
-        MessageIdInstance<A> idInstance = new MessageIdInstance<>(dest, id);
+    public void addRequestId(InetSocketAddress dest, MessageId id, OutgoingMessageResponseListener<InetSocketAddress> receiver,
+            long currentTime) {
+        Validate.notNull(dest);
+        Validate.notNull(id);
+        Validate.notNull(receiver);
+        
+        MessageIdInstance idInstance = new MessageIdInstance(dest, id);
+        
+        Validate.isTrue(!messageIdSet.containsKey(idInstance));
+        
         Entity entity = new Entity(currentTime + timeout, idInstance, receiver);
         
         messageIdSet.put(idInstance, entity);
         idQueue.addLast(entity);
     }
 
-    public OutgoingMessageResponseListener<InetSocketAddress> getReceiver(A dest, MessageId id) {
-        MessageIdInstance<A> idInstance = new MessageIdInstance<>(dest, id);
+    public OutgoingMessageResponseListener<InetSocketAddress> getReceiver(InetSocketAddress dest, MessageId id) {
+        Validate.notNull(dest);
+        Validate.notNull(id);
+        
+        MessageIdInstance idInstance = new MessageIdInstance(dest, id);
         
         Entity entity = messageIdSet.get(idInstance);
         
         return entity == null ? null : entity.getReceiver();
     }
     
+    public Result pending() {
+        Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers = new HashSet<>();
+        
+        for (Entity entity : idQueue) {
+            timedOutReceivers.add(entity.getReceiver());
+        }
+        
+        return new Result(timedOutReceivers, 0L);
+    }
+    
     public Result evaluate(long currentTime) {
-        List<OutgoingMessageResponseListener<InetSocketAddress>> timedOutIds = new LinkedList<>();
+        Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers = new HashSet<>();
         long waitDuration = 0L;
         
         while (true) {
@@ -50,7 +71,7 @@ final class RequestManager<A> {
             }
             
             if (currentTime >= entity.getTimeoutTimestamp()) {
-                timedOutIds.add(entity.getReceiver());
+                timedOutReceivers.add(entity.getReceiver());
                 idQueue.pollFirst();
             } else {
                 waitDuration = entity.getTimeoutTimestamp() - currentTime;
@@ -60,20 +81,20 @@ final class RequestManager<A> {
             }
         }
         
-        return new Result(timedOutIds, waitDuration);
+        return new Result(timedOutReceivers, waitDuration);
     }
     
-    public static final class Result {
-        private Collection<OutgoingMessageResponseListener<InetSocketAddress>> timedOutIds;
+    static final class Result {
+        private Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers;
         private long waitDuration;
 
-        public Result(Collection<OutgoingMessageResponseListener<InetSocketAddress>> timedOutIds, long waitDuration) {
-            this.timedOutIds = Collections.unmodifiableCollection(timedOutIds);
+        public Result(Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers, long waitDuration) {
+            this.timedOutReceivers = Collections.unmodifiableSet(timedOutReceivers);
             this.waitDuration = waitDuration;
         }
 
-        public Collection<OutgoingMessageResponseListener<InetSocketAddress>> getTimedOutReceivers() {
-            return timedOutIds;
+        public Set<OutgoingMessageResponseListener<InetSocketAddress>> getTimedOutReceivers() {
+            return timedOutReceivers;
         }
 
         public long getWaitDuration() {

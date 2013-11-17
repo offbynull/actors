@@ -1,20 +1,21 @@
 package com.offbynull.p2prpc.transport.udp;
 
+import java.net.InetSocketAddress;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-final class MessageIdInstance<A> {
-    private A from;
+final class MessageIdInstance {
+    private InetSocketAddress from;
     private MessageId id;
 
-    public MessageIdInstance(A from, MessageId id) {
+    public MessageIdInstance(InetSocketAddress from, MessageId id) {
         Validate.notNull(from);
         Validate.notNull(id);
         this.from = from;
         this.id = id;
     }
 
-    public A getFrom() {
+    public InetSocketAddress getFrom() {
         return from;
     }
 

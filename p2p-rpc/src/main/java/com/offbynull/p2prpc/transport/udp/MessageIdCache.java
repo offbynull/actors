@@ -1,10 +1,11 @@
 package com.offbynull.p2prpc.transport.udp;
 
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
-final class MessageIdCache<A> {
+final class MessageIdCache {
 
     private int capacity;
     private LinkedList<MessageIdInstance> queue;
@@ -18,7 +19,7 @@ final class MessageIdCache<A> {
         this.set = new HashSet<>(capacity);
     }
 
-    public boolean add(A from, MessageId id) {
+    public boolean add(InetSocketAddress from, MessageId id) {
         MessageIdInstance idInstance = new MessageIdInstance(from, id);
 
         if (set.contains(idInstance)) {

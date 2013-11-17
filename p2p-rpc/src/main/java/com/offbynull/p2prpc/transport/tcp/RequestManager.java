@@ -61,6 +61,7 @@ final class RequestManager {
                 if (waitDuration <= 0L) {
                     waitDuration = 1L;
                 }
+                break;
             }
         }
         

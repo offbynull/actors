@@ -1,26 +1,33 @@
 package com.offbynull.p2prpc.transport.udp;
 
 import com.offbynull.p2prpc.transport.OutgoingResponse;
-import java.nio.channels.SocketChannel;
+import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
 final class CommandSendResponse implements Command {
-    private SocketChannel channel;
+    private MessageId messageId;
+    private InetSocketAddress address;
     private OutgoingResponse response;
 
-    CommandSendResponse(SocketChannel channel, OutgoingResponse response) {
-        Validate.notNull(channel);
+    CommandSendResponse(MessageId messageId, InetSocketAddress address, OutgoingResponse response) {
+        Validate.notNull(messageId);
+        Validate.notNull(address);
         Validate.notNull(response);
         
-        this.channel = channel;
+        this.messageId = messageId;
+        this.address = address;
         this.response = response;
     }
 
-    public SocketChannel getChannel() {
-        return channel;
+    public MessageId getMessageId() {
+        return messageId;
     }
 
-    public OutgoingResponse getData() {
+    public InetSocketAddress getAddress() {
+        return address;
+    }
+
+    public OutgoingResponse getResponse() {
         return response;
     }
     

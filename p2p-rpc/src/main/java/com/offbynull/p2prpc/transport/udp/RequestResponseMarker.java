@@ -4,6 +4,20 @@ import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 public final class RequestResponseMarker {
+    public static void writeRequestMarker(ByteBuffer data) {
+        Validate.notNull(data);
+        Validate.isTrue(data.remaining() >= 1);
+        
+        data.put((byte) 0);
+    }
+    
+    public static void writeResponseMarker(ByteBuffer data) {
+        Validate.notNull(data);
+        Validate.isTrue(data.remaining() >= 1);
+        
+        data.put((byte) 1);
+    }
+    
     public static byte[] prependRequestMarker(byte[] data) {
         Validate.notNull(data);
         

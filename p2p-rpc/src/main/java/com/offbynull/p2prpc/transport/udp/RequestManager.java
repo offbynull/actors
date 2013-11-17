@@ -3,6 +3,7 @@ package com.offbynull.p2prpc.transport.udp;
 import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +39,7 @@ final class RequestManager<A> {
     }
     
     public Result evaluate(long currentTime) {
-        List<MessageId> timedOutIds = new LinkedList<>();
+        List<OutgoingMessageResponseListener<InetSocketAddress>> timedOutIds = new LinkedList<>();
         long waitDuration = 0L;
         
         while (true) {
@@ -49,7 +50,7 @@ final class RequestManager<A> {
             }
             
             if (currentTime >= entity.getTimeoutTimestamp()) {
-                timedOutIds.add(entity.getInstance().getId());
+                timedOutIds.add(entity.getReceiver());
                 idQueue.pollFirst();
             } else {
                 waitDuration = entity.getTimeoutTimestamp() - currentTime;
@@ -63,15 +64,15 @@ final class RequestManager<A> {
     }
     
     public static final class Result {
-        private Collection<MessageId> timedOutIds;
+        private Collection<OutgoingMessageResponseListener<InetSocketAddress>> timedOutIds;
         private long waitDuration;
 
-        public Result(Collection<MessageId> timedOutIds, long waitDuration) {
-            this.timedOutIds = timedOutIds;
+        public Result(Collection<OutgoingMessageResponseListener<InetSocketAddress>> timedOutIds, long waitDuration) {
+            this.timedOutIds = Collections.unmodifiableCollection(timedOutIds);
             this.waitDuration = waitDuration;
         }
 
-        public Collection<MessageId> getTimedOutIds() {
+        public Collection<OutgoingMessageResponseListener<InetSocketAddress>> getTimedOutReceivers() {
             return timedOutIds;
         }
 

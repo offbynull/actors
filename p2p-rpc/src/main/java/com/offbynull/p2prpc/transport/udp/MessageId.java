@@ -22,6 +22,13 @@ final class MessageId {
         
         return ret.array();
     }
+    
+    public void writeId(ByteBuffer buffer) {
+        Validate.notNull(buffer);
+        Validate.isTrue(buffer.remaining() >= 16);
+        
+        buffer.put(id);
+    }
 
     public static MessageId extractPrependedId(byte[] buffer) {
         Validate.notNull(buffer);

@@ -124,6 +124,30 @@ public final class UdpTest {
     }
 
     @Test
+    public void terminatedUdpTest() throws Throwable {
+        IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(IncomingMessage<InetSocketAddress> message, IncomingMessageResponseHandler responseCallback) {
+                responseCallback.terminate();
+            }
+        };
+
+        try {
+            transport2.addMessageListener(listener);
+
+            InetSocketAddress to = new InetSocketAddress("localhost", port2);
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
+            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport1, outgoingMessage);
+
+            Assert.assertNull(incomingResponse);
+        } finally {
+            transport2.removeMessageListener(listener);
+        }
+    }
+
+    @Test
     public void noResponseUdpTest() throws Throwable {
         InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
         byte[] data = "HIEVERYBODY! :)".getBytes();

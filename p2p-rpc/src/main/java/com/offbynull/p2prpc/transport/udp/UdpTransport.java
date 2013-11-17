@@ -333,8 +333,7 @@ public final class UdpTransport implements Transport {
                         // do nothing
                     }
                 } else if (event instanceof EventResponseTimedOut) {
-                    EventResponseArrived response = (EventResponseArrived) event;
-                    IncomingResponse<InetSocketAddress> data = response.getResponse();
+                    EventResponseTimedOut response = (EventResponseTimedOut) event;
 
                     try {
                         response.getReceiver().timedOut();

@@ -8,6 +8,16 @@ public final class IncomingMessage<A> {
     private ByteBuffer data;
     private long arriveTime;
 
+    public IncomingMessage(A from, ByteBuffer data, long arriveTime) {
+        Validate.notNull(from);
+        Validate.notNull(data);
+        
+        this.from = from;
+        this.data = ByteBuffer.allocate(data.remaining()).put(data);
+        this.arriveTime = arriveTime;
+        this.data.flip();
+    }
+
     public IncomingMessage(A from, byte[] data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);

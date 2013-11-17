@@ -184,7 +184,9 @@ public final class TcpTransport implements Transport {
                 for (Command command : dumpedCommandQueue) {
                     try {
                         if (command instanceof CommandSendRequest) {
-                            createAndInitializeOutgoingSocket(internalEventQueue, (CommandSendRequest) command);
+                            ChannelInfo info = createAndInitializeOutgoingSocket(internalEventQueue, (CommandSendRequest) command);
+                            SocketChannel clientChannel = info.getChannel();
+                            requestManager.addRequestId(clientChannel, currentTime);
                         } else if (command instanceof CommandSendResponse) {
                             CommandSendResponse commandSr = (CommandSendResponse) command;
 
@@ -283,7 +285,6 @@ public final class TcpTransport implements Transport {
 
                         try {
                             ChannelInfo info = channelInfoMap.get(clientChannel);
-                            requestManager.addRequestId(clientChannel, currentTime);
 
                             if (!clientChannel.finishConnect()) {
                                 throw new RuntimeException();
@@ -491,8 +492,8 @@ public final class TcpTransport implements Transport {
             }
         }
 
-        private void createAndInitializeOutgoingSocket(LinkedList<Event> internalEventQueue,
-                CommandSendRequest queuedRequest) throws IOException {
+        private ChannelInfo createAndInitializeOutgoingSocket(LinkedList<Event> internalEventQueue, CommandSendRequest queuedRequest)
+                throws IOException {
             Validate.notNull(queuedRequest);
             Validate.notNull(internalEventQueue);
 
@@ -523,6 +524,8 @@ public final class TcpTransport implements Transport {
                 channelInfoMap.put(clientChannel, info);
 
                 clientChannel.connect(destinationAddress);
+                
+                return info;
             } catch (IOException | RuntimeException e) {
                 if (clientChannel != null) {
                     killSocketDueToError(clientChannel, internalEventQueue, e);

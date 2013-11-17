@@ -216,6 +216,9 @@ public final class TcpTransport implements Transport {
                     return;
                 }
 
+                // update current time
+                currentTime = System.currentTimeMillis();
+                
                 // go through selected keys
                 Iterator keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {

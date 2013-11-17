@@ -8,6 +8,7 @@ import com.offbynull.p2prpc.transport.OutgoingMessage;
 import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.p2prpc.transport.OutgoingResponse;
 import com.offbynull.p2prpc.transport.Transport;
+import com.offbynull.p2prpc.transport.tcp.RequestManager.Result;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -131,8 +132,12 @@ public final class TcpTransport implements Transport {
         private ServerSocketChannel serverChannel;
         private Map<SocketChannel, ChannelInfo> channelInfoMap;
         private AtomicBoolean stop;
+        
+        private RequestManager requestManager;
 
         public EventLoop() throws IOException {
+            requestManager = new RequestManager(timeout);
+            
             try {
                 if (listenAddress != null) {
                     serverChannel = ServerSocketChannel.open();
@@ -212,12 +217,39 @@ public final class TcpTransport implements Transport {
                 }
                 dumpedCommandQueue.clear();
 
+                // get timed out channels + max amount of time to wait till next timeout
+                Result timeoutRes = requestManager.evaluate(currentTime);
+                long waitDuration = timeoutRes.getWaitDuration();
+
+                // go through timedout connections and add timeout events for each of them + kill them
+                boolean timeoutEventAdded = false;
+                for (SocketChannel channel : timeoutRes.getTimedOutChannels()) {
+                    ChannelInfo info = channelInfoMap.get(channel);
+                    
+                    killSocketSilently(channel);
+                    
+                    // if it was an outgoing message, we need to inform the response handler that the connection's dead
+                    if (info == null || !(info instanceof OutgoingMessageChannelInfo)) {
+                        continue;
+                    }
+                    
+                    internalEventQueue.add(new EventResponseTimedOut(((OutgoingMessageChannelInfo) info).getResponseHandler()));
+                    timeoutEventAdded = true;
+                }
+                
                 // select
                 try {
-                    selector.select();
+                    // if timeout event was added then don't wait, because we need to process those events
+                    if (timeoutEventAdded) {
+                        selector.selectNow();
+                    } else {
+                        selector.select(waitDuration);
+                    }
                 } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                 }
+
+
 
                 // stop if signalled
                 if (stop.get()) {
@@ -239,7 +271,9 @@ public final class TcpTransport implements Transport {
 
                     if (key.isAcceptable()) {
                         try {
-                            acceptAndInitializeIncomingSocket(internalEventQueue);
+                            ChannelInfo info = acceptAndInitializeIncomingSocket(internalEventQueue);
+                            SocketChannel clientChannel = info.getChannel();
+                            requestManager.addRequestId(clientChannel, currentTime);
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
                             // do nothing
@@ -248,13 +282,14 @@ public final class TcpTransport implements Transport {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
 
                         try {
-                            ChannelInfo params = channelInfoMap.get(clientChannel);
+                            ChannelInfo info = channelInfoMap.get(clientChannel);
+                            requestManager.addRequestId(clientChannel, currentTime);
 
                             if (!clientChannel.finishConnect()) {
                                 throw new RuntimeException();
                             }
 
-                            if (params instanceof OutgoingMessageChannelInfo) {
+                            if (info instanceof OutgoingMessageChannelInfo) {
                                 // if this is an outgoing message, first thing we want to do is write
                                 key.interestOps(SelectionKey.OP_WRITE);
                             } else {
@@ -269,8 +304,8 @@ public final class TcpTransport implements Transport {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
 
                         try {
-                            ChannelInfo params = channelInfoMap.get(clientChannel);
-                            StreamIoBuffers buffers = params.getBuffers();
+                            ChannelInfo info = channelInfoMap.get(clientChannel);
+                            StreamIoBuffers buffers = info.getBuffers();
 
                             tempBuffer.clear();
                             if (clientChannel.read(tempBuffer) != -1) {
@@ -281,9 +316,9 @@ public final class TcpTransport implements Transport {
 
                                 InetSocketAddress from = (InetSocketAddress) clientChannel.getRemoteAddress();
                                 
-                                if (params instanceof OutgoingMessageChannelInfo) {
+                                if (info instanceof OutgoingMessageChannelInfo) {
                                     OutgoingMessageResponseListener<InetSocketAddress> receiver =
-                                            ((OutgoingMessageChannelInfo) params).getResponseHandler();
+                                            ((OutgoingMessageChannelInfo) info).getResponseHandler();
                                     IncomingResponse<InetSocketAddress> incomingResponse = new IncomingResponse<>(from, inData,
                                             currentTime);
                                     
@@ -291,7 +326,7 @@ public final class TcpTransport implements Transport {
                                     internalEventQueue.add(eventRa);
                                     
                                     killSocketSilently(clientChannel);
-                                } else if (params instanceof IncomingMessageChannelInfo) {
+                                } else if (info instanceof IncomingMessageChannelInfo) {
                                     IncomingMessage<InetSocketAddress> incomingMessage = new IncomingMessage<>(from, inData, currentTime);
                                     
                                     EventRequestArrived eventRa = new EventRequestArrived(incomingMessage, selector, clientChannel);
@@ -310,8 +345,8 @@ public final class TcpTransport implements Transport {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
 
                         try {
-                            ChannelInfo params = channelInfoMap.get(clientChannel);
-                            StreamIoBuffers buffers = params.getBuffers();
+                            ChannelInfo info = channelInfoMap.get(clientChannel);
+                            StreamIoBuffers buffers = info.getBuffers();
 
                             tempBuffer.clear();
                             buffers.getWriteBlock(tempBuffer);
@@ -324,10 +359,10 @@ public final class TcpTransport implements Transport {
                                     clientChannel.shutdownOutput();
                                     buffers.finishWriting();
 
-                                    if (params instanceof OutgoingMessageChannelInfo) {
+                                    if (info instanceof OutgoingMessageChannelInfo) {
                                         buffers.startReading();
                                         key.interestOps(SelectionKey.OP_READ);
-                                    } else if (params instanceof IncomingMessageChannelInfo) {
+                                    } else if (info instanceof IncomingMessageChannelInfo) {
                                         killSocketSilently(clientChannel);
                                     } else {
                                         throw new IllegalStateException();
@@ -383,6 +418,14 @@ public final class TcpTransport implements Transport {
 
                     try {
                         response.getReceiver().internalErrorOccurred(error);
+                    } catch (RuntimeException re) {
+                        // do nothing
+                    }
+                } else if (event instanceof EventResponseTimedOut) {
+                    EventResponseTimedOut response = (EventResponseTimedOut) event;
+
+                    try {
+                        response.getReceiver().timedOut();
                     } catch (RuntimeException re) {
                         // do nothing
                     }
@@ -493,6 +536,12 @@ public final class TcpTransport implements Transport {
             for (Map.Entry<SocketChannel, ChannelInfo> e
                     : channelInfoMap.entrySet()) {
                 IOUtils.closeQuietly(e.getKey());
+                
+                ChannelInfo info = e.getValue();
+                
+                if (info instanceof OutgoingMessageChannelInfo) {
+                    ((OutgoingMessageChannelInfo) info).getResponseHandler().internalErrorOccurred(null);
+                }
             }
 
             IOUtils.closeQuietly(selector);

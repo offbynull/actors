@@ -1,6 +1,6 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.transport.tcp.TcpTransport;
+import com.offbynull.p2prpc.transport.udp.UdpTransport;
 import com.offbynull.p2prpc.transport.IncomingMessage;
 import com.offbynull.p2prpc.transport.IncomingMessageListener;
 import com.offbynull.p2prpc.transport.IncomingMessageResponseHandler;
@@ -19,23 +19,23 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public final class TcpTest {
+public final class UdpTransportTest {
 
     private static final long TIMEOUT_DURATION = 500;
     private static final int BUFFER_SIZE = 500;
 
-    private TcpTransport transport1;
-    private TcpTransport transport2;
+    private UdpTransport transport1;
+    private UdpTransport transport2;
     private int port1;
     private int port2;
     private static AtomicInteger nextPort;
 
-    public TcpTest() {
+    public UdpTransportTest() {
     }
 
     @BeforeClass
     public static void setUpClass() {
-        nextPort = new AtomicInteger(13000);
+        nextPort = new AtomicInteger(12000);
     }
 
     @AfterClass
@@ -45,10 +45,11 @@ public final class TcpTest {
     @Before
     public void setUp() throws IOException {
         port1 = nextPort.getAndIncrement();
-        port2 = nextPort.getAndIncrement();
-        transport1 = new TcpTransport(port1, BUFFER_SIZE, BUFFER_SIZE, TIMEOUT_DURATION);
-        transport2 = new TcpTransport(port2, BUFFER_SIZE, BUFFER_SIZE, TIMEOUT_DURATION);
+        transport1 = new UdpTransport(port1, BUFFER_SIZE, TIMEOUT_DURATION);
         transport1.start();
+        
+        port2 = nextPort.getAndIncrement();
+        transport2 = new UdpTransport(port2, BUFFER_SIZE, TIMEOUT_DURATION);
         transport2.start();
     }
 
@@ -59,7 +60,7 @@ public final class TcpTest {
     }
 
     @Test
-    public void selfTcpTest() throws Throwable {
+    public void selfUdpTest() throws Throwable {
         IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
 
             @Override
@@ -91,7 +92,7 @@ public final class TcpTest {
     }
 
     @Test
-    public void normalTcpTest() throws Throwable {
+    public void normalUdpTest() throws Throwable {
         IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
 
             @Override
@@ -109,21 +110,21 @@ public final class TcpTest {
         };
 
         try {
-            transport1.addMessageListener(listener);
+            transport2.addMessageListener(listener);
 
-            InetSocketAddress to = new InetSocketAddress("localhost", port1);
+            InetSocketAddress to = new InetSocketAddress("localhost", port2);
             byte[] data = "HIEVERYBODY! :)".getBytes();
             OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
-            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport2, outgoingMessage);
+            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport1, outgoingMessage);
 
             Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse.getData());
         } finally {
-            transport1.removeMessageListener(listener);
+            transport2.removeMessageListener(listener);
         }
     }
 
     @Test
-    public void terminatedTcpTest() throws Throwable {
+    public void terminatedUdpTest() throws Throwable {
         IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
 
             @Override
@@ -147,7 +148,7 @@ public final class TcpTest {
     }
 
     @Test
-    public void noResponseTcpTest() throws Throwable {
+    public void noResponseUdpTest() throws Throwable {
         InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
         byte[] data = "HIEVERYBODY! :)".getBytes();
         OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);

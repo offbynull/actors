@@ -353,7 +353,7 @@ public final class NewUdpTransport implements Transport {
 
         @Override
         protected String serviceName() {
-            return UdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
+            return NewUdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
         }
 
         @Override

@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class NewUdpTransport implements Transport {
+public final class UdpTransport implements Transport {
     
     private InetSocketAddress listenAddress;
     private Selector selector;
@@ -39,11 +39,11 @@ public final class NewUdpTransport implements Transport {
     private EventLoop eventLoop;
     private Lock accessLock;
 
-    public NewUdpTransport(int port, int bufferSize, long timeout) throws IOException {
+    public UdpTransport(int port, int bufferSize, long timeout) throws IOException {
         this(new InetSocketAddress(port), bufferSize, timeout);
     }
 
-    public NewUdpTransport(InetSocketAddress listenAddress, int bufferSize, long timeout) throws IOException {
+    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, long timeout) throws IOException {
         Validate.notNull(listenAddress);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, bufferSize);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
@@ -353,7 +353,7 @@ public final class NewUdpTransport implements Transport {
 
         @Override
         protected String serviceName() {
-            return NewUdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
+            return UdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
         }
 
         @Override

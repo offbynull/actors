@@ -36,7 +36,6 @@ public final class TcpTransport implements Transport {
     private long connectionTimeout;
     
     private LinkedBlockingQueue<Command> commandQueue;
-    private LinkedBlockingQueue<Event> eventQueue;
     private LinkedBlockingQueue<IncomingMessageListener> incomingMessageListeners;
     
     
@@ -67,7 +66,6 @@ public final class TcpTransport implements Transport {
         this.connectionTimeout = connectionTimeout;
         
         this.commandQueue = new LinkedBlockingQueue<>();
-        this.eventQueue = new LinkedBlockingQueue<>();
         this.incomingMessageListeners = new LinkedBlockingQueue<>();
         
         accessLock = new ReentrantLock();
@@ -155,14 +153,13 @@ public final class TcpTransport implements Transport {
             }
             
             commandQueue.clear();
-            eventQueue.clear();
         }
 
         @Override
         protected void run() {
             ByteBuffer tempBuffer = ByteBuffer.allocate(65535);
 
-            LinkedList<Event> eventQueue = new LinkedList<>();
+            LinkedList<Event> internalEventQueue = new LinkedList<>();
             LinkedList<Command> dumpedCommandQueue = new LinkedList<>();
             while (true) {
                 // get current time
@@ -174,7 +171,7 @@ public final class TcpTransport implements Transport {
                 for (Command command : dumpedCommandQueue) {
                     try {
                         if (command instanceof CommandSendRequest) {
-                            createAndInitializeOutgoingSocket((CommandSendRequest) command);
+                            createAndInitializeOutgoingSocket(internalEventQueue, (CommandSendRequest) command);
                         } else if (command instanceof CommandSendResponse) {
                             CommandSendResponse commandSr = (CommandSendResponse) command;
 
@@ -189,9 +186,20 @@ public final class TcpTransport implements Transport {
                                 buffers.startWriting(data.getData());
                                 key.interestOps(SelectionKey.OP_WRITE);
                             }
+                        } else if (command instanceof CommandKillEstablished) {
+                            CommandKillEstablished commandKe = (CommandKillEstablished) command;
+                            
+                            SocketChannel channel = commandKe.getChannel();
+                            ChannelInfo info = channelInfoMap.get(channel);
+                            
+                            if (info != null) {
+                                killSocketSilently(info.getChannel());
+                            }
+                        } else {
+                            throw new IllegalStateException("Unknown command " + command);
                         }
                     } catch (IOException | RuntimeException e) {
-                        // do nothing
+                        e.printStackTrace();
                     }
                 }
                 dumpedCommandQueue.clear();
@@ -220,13 +228,7 @@ public final class TcpTransport implements Transport {
 
                     if (key.isAcceptable()) {
                         try {
-                            ChannelInfo info = acceptAndInitializeIncomingSocket();
-
-                            SocketChannel channel = info.getChannel();
-                            InetSocketAddress from = (InetSocketAddress) channel.getRemoteAddress();
-
-                            EventLinkEstablished eventLe = new EventLinkEstablished(from, selector, channel);
-                            eventQueue.add(eventLe);
+                            acceptAndInitializeIncomingSocket(internalEventQueue);
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
                             // do nothing
@@ -250,7 +252,7 @@ public final class TcpTransport implements Transport {
                             }
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
-                            killSocket(clientChannel, e);
+                            killSocketDueToError(clientChannel, internalEventQueue, e);
                         }
                     } else if (key.isReadable()) {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
@@ -271,17 +273,18 @@ public final class TcpTransport implements Transport {
                                 if (params instanceof OutgoingMessageChannelInfo) {
                                     OutgoingMessageResponseListener<InetSocketAddress> receiver =
                                             ((OutgoingMessageChannelInfo) params).getResponseHandler();
-                                    
                                     IncomingResponse<InetSocketAddress> incomingResponse = new IncomingResponse<>(from, inData,
                                             currentTime);
-                                    receiver.responseArrived(incomingResponse);
                                     
-                                    killSocketByChannel(clientChannel);
+                                    EventResponseArrived eventRa = new EventResponseArrived(incomingResponse, receiver);
+                                    internalEventQueue.add(eventRa);
+                                    
+                                    killSocketSilently(clientChannel);
                                 } else if (params instanceof IncomingMessageChannelInfo) {
                                     IncomingMessage<InetSocketAddress> incomingMessage = new IncomingMessage<>(from, inData, currentTime);
                                     
                                     EventRequestArrived eventRa = new EventRequestArrived(incomingMessage, selector, clientChannel);
-                                    eventQueue.add(eventRa);
+                                    internalEventQueue.add(eventRa);
                                     
                                     key.interestOps(0); // don't need to read anymore, when we get a response, we register op_write
                                 } else {
@@ -290,7 +293,7 @@ public final class TcpTransport implements Transport {
                             }
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
-                            killSocket(clientChannel, e);
+                            killSocketDueToError(clientChannel, internalEventQueue, e);
                         }
                     } else if (key.isWritable()) {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
@@ -314,7 +317,7 @@ public final class TcpTransport implements Transport {
                                         buffers.startReading();
                                         key.interestOps(SelectionKey.OP_READ);
                                     } else if (params instanceof IncomingMessageChannelInfo) {
-                                        killSocketByChannel(clientChannel);
+                                        killSocketSilently(clientChannel);
                                     } else {
                                         throw new IllegalStateException();
                                     }
@@ -322,19 +325,20 @@ public final class TcpTransport implements Transport {
                             }
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
-                            killSocket(clientChannel, e);
+                            killSocketDueToError(clientChannel, internalEventQueue, e);
                         }
                     }
                 }
 
-                notifyEventListeners(eventQueue);
-                eventQueue.clear();
+                notifyEventListeners(internalEventQueue);
+                internalEventQueue.clear();
             }
         }
 
-        private void notifyEventListeners(LinkedList<Event> events) {
+        private void notifyEventListeners(LinkedList<Event> internalEventQueue) {
             IncomingMessageListener[] handlersArray = incomingMessageListeners.toArray(new IncomingMessageListener[0]);
-            for (Event event : events) {
+            
+            for (Event event : internalEventQueue) {
                 if (event instanceof EventRequestArrived) {
                     EventRequestArrived request = (EventRequestArrived) event;
 
@@ -349,42 +353,61 @@ public final class TcpTransport implements Transport {
                             handler.messageArrived(data, responseSender);
                         } catch (RuntimeException re) {
                             // kill the socket, don't bother notifying the others
-                            killSocketByChannel(channel);
+                            killSocketSilently(channel);
                             break;
                         }
+                    }
+                } else if (event instanceof EventResponseArrived) {
+                    EventResponseArrived response = (EventResponseArrived) event;
+                    IncomingResponse<InetSocketAddress> data = response.getResponse();
+
+                    try {
+                        response.getReceiver().responseArrived(data);
+                    } catch (RuntimeException re) {
+                        // do nothing
+                    }
+                } else if (event instanceof EventResponseErrored) {
+                    EventResponseErrored response = (EventResponseErrored) event;
+                    Throwable error = response.getError();
+
+                    try {
+                        response.getReceiver().internalErrorOccurred(error);
+                    } catch (RuntimeException re) {
+                        // do nothing
                     }
                 }
             }
         }
         
-        private void killSocketByChannel(SocketChannel channel) {
-            ChannelInfo info = channelInfoMap.get(channel);
-
-            if (info == null) {
-                return;
-            }
-
-            killSocket(channel, null);
-        }
-
-        private void killSocket(SocketChannel channel, Throwable error) {
+        private void killSocketSilently(SocketChannel channel) {
             Validate.notNull(channel);
-
+            
             ChannelInfo info = channelInfoMap.remove(channel);
-            if (info == null) {
-                return;
+            if (info != null) {
+                SelectionKey key = info.getSelectionKey();
+                key.cancel();
             }
-
-            SelectionKey key = info.getSelectionKey();
-            key.cancel();
 
             IOUtils.closeQuietly(channel);
+        }
+
+        private void killSocketDueToError(SocketChannel channel, LinkedList<Event> internalEventQueue, Throwable error) {
+            Validate.notNull(channel);
+            Validate.isTrue(!(internalEventQueue == null ^ error == null)); // if one is set but the other isn't, crap out
+            
+            ChannelInfo info = channelInfoMap.get(channel);
+            killSocketSilently(channel);
+            
             if (info instanceof OutgoingMessageChannelInfo && error != null) {
-                ((OutgoingMessageChannelInfo) info).getResponseHandler().internalErrorOccurred(error);
+                OutgoingMessageResponseListener<InetSocketAddress> receiver = ((OutgoingMessageChannelInfo) info).getResponseHandler();
+                EventResponseErrored eventRea = new EventResponseErrored(error, receiver);
+                internalEventQueue.add(eventRea);
             }
         }
 
-        private ChannelInfo acceptAndInitializeIncomingSocket() throws IOException {
+        private ChannelInfo acceptAndInitializeIncomingSocket(LinkedList<Event> internalEventQueue) throws IOException {
+            Validate.notNull(internalEventQueue);
+            
             SocketChannel clientChannel = null;
             SelectionKey selectionKey;
 
@@ -408,14 +431,16 @@ public final class TcpTransport implements Transport {
                 return info;
             } catch (IOException | RuntimeException e) {
                 if (clientChannel != null) {
-                    killSocket(clientChannel, e);
+                    killSocketDueToError(clientChannel, internalEventQueue, e);
                 }
                 throw e;
             }
         }
 
-        private void createAndInitializeOutgoingSocket(CommandSendRequest queuedRequest) throws IOException {
+        private void createAndInitializeOutgoingSocket(LinkedList<Event> internalEventQueue,
+                CommandSendRequest queuedRequest) throws IOException {
             Validate.notNull(queuedRequest);
+            Validate.notNull(internalEventQueue);
 
             SocketChannel clientChannel = null;
             SelectionKey selectionKey;
@@ -446,7 +471,7 @@ public final class TcpTransport implements Transport {
                 clientChannel.connect(destinationAddress);
             } catch (IOException | RuntimeException e) {
                 if (clientChannel != null) {
-                    killSocket(clientChannel, e);
+                    killSocketDueToError(clientChannel, internalEventQueue, e);
                 }
                 throw e;
             }

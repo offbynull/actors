@@ -1,7 +1,7 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.IncomingData;
-import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.IncomingMessage;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
 import com.offbynull.p2prpc.transport.SessionedTransport;
 import com.offbynull.p2prpc.transport.SessionedTransport.LinkController;
 import com.offbynull.p2prpc.transport.SessionedTransport.RequestSender;
@@ -34,7 +34,7 @@ public final class SessionedClient<A> implements Client<A> {
         ResponseReceiver<A> responseReceiver = new ResponseReceiver<A>() {
 
             @Override
-            public void responseArrived(IncomingData<A> data) {
+            public void responseArrived(IncomingMessage<A> data) {
                 ByteBuffer recvData = data.getData();
                                     
                 byte[] recvDataBytes = new byte[recvData.limit()];
@@ -49,7 +49,7 @@ public final class SessionedClient<A> implements Client<A> {
             }
         };
         
-        OutgoingData<A> outgoingData = new OutgoingData<>(address, data);
+        OutgoingMessage<A> outgoingData = new OutgoingMessage<>(address, data);
         LinkController controller = requestSender.sendRequest(outgoingData, responseReceiver);
 
         try {

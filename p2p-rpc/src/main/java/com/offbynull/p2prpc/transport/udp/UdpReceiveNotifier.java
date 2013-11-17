@@ -1,6 +1,6 @@
 package com.offbynull.p2prpc.transport.udp;
 
-import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.IncomingMessage;
 import com.offbynull.p2prpc.transport.NonSessionedTransport;
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -26,11 +26,11 @@ final class UdpReceiveNotifier implements NonSessionedTransport.ReceiveNotifier<
         handlers.remove(e);
     }
 
-    void notify(Collection<IncomingData<InetSocketAddress>> packets) {
+    void notify(Collection<IncomingMessage<InetSocketAddress>> packets) {
         Validate.noNullElements(packets);
         
         NonSessionedTransport.MessageReceiver[] handlersArray = handlers.toArray(new NonSessionedTransport.MessageReceiver[0]);
-        for (IncomingData<InetSocketAddress> packet : packets) {
+        for (IncomingMessage<InetSocketAddress> packet : packets) {
             for (NonSessionedTransport.MessageReceiver<InetSocketAddress> handler : handlersArray) {
                 // to array to avoid locks
                 try {

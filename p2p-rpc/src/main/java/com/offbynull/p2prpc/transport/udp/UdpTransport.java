@@ -1,9 +1,9 @@
 package com.offbynull.p2prpc.transport.udp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.IncomingMessage;
 import com.offbynull.p2prpc.transport.NonSessionedTransport;
-import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -145,8 +145,8 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
             ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
             int selectionKey = SelectionKey.OP_READ;
-            LinkedList<OutgoingData<InetSocketAddress>> pendingOutgoingPackets = new LinkedList<>();
-            LinkedList<IncomingData<InetSocketAddress>> pendingIncomingPackets = new LinkedList<>();
+            LinkedList<OutgoingMessage<InetSocketAddress>> pendingOutgoingPackets = new LinkedList<>();
+            LinkedList<IncomingMessage<InetSocketAddress>> pendingIncomingPackets = new LinkedList<>();
             while (true) {
                 // get outgoing data
                 packetSender.drainTo(pendingOutgoingPackets);
@@ -191,10 +191,10 @@ public final class UdpTransport implements NonSessionedTransport<InetSocketAddre
                         buffer.get(inData);
                         buffer.clear();
                         
-                        IncomingData<InetSocketAddress> packet = new IncomingData<>(from, inData, currentTime);
+                        IncomingMessage<InetSocketAddress> packet = new IncomingMessage<>(from, inData, currentTime);
                         pendingIncomingPackets.addLast(packet);
                     } else if (key.isWritable()) { // ready for outgoing data
-                        OutgoingData<InetSocketAddress> packet = pendingOutgoingPackets.poll();
+                        OutgoingMessage<InetSocketAddress> packet = pendingOutgoingPackets.poll();
                         
                         if (packet != null) {
                             channel.send(packet.getData(), packet.getTo());

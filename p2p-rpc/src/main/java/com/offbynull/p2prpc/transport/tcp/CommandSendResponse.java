@@ -1,28 +1,27 @@
 package com.offbynull.p2prpc.transport.tcp;
 
-import com.offbynull.p2prpc.transport.OutgoingData;
-import java.net.InetSocketAddress;
+import com.offbynull.p2prpc.transport.OutgoingResponse;
 import java.nio.channels.SocketChannel;
 import org.apache.commons.lang3.Validate;
 
 final class CommandSendResponse implements Command {
     private SocketChannel channel;
-    private OutgoingData<InetSocketAddress> data;
+    private OutgoingResponse response;
 
-    CommandSendResponse(SocketChannel channel, OutgoingData<InetSocketAddress> data) {
+    CommandSendResponse(SocketChannel channel, OutgoingResponse response) {
         Validate.notNull(channel);
-        Validate.notNull(data);
+        Validate.notNull(response);
         
         this.channel = channel;
-        this.data = data;
+        this.response = response;
     }
 
     public SocketChannel getChannel() {
         return channel;
     }
 
-    public OutgoingData<InetSocketAddress> getData() {
-        return data;
+    public OutgoingResponse getData() {
+        return response;
     }
     
 }

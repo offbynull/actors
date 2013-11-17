@@ -1,17 +1,17 @@
 package com.offbynull.p2prpc.transport.tcp;
 
-import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.IncomingMessage;
 import java.net.InetSocketAddress;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import org.apache.commons.lang3.Validate;
 
 final class EventRequestArrived implements Event {
-    private IncomingData<InetSocketAddress> request;
+    private IncomingMessage<InetSocketAddress> request;
     private Selector selector;
     private SocketChannel channel;
 
-    EventRequestArrived(IncomingData<InetSocketAddress> request, Selector selector, SocketChannel channel) {
+    EventRequestArrived(IncomingMessage<InetSocketAddress> request, Selector selector, SocketChannel channel) {
         Validate.notNull(request);
         Validate.notNull(selector);
         Validate.notNull(channel);
@@ -21,7 +21,7 @@ final class EventRequestArrived implements Event {
         this.channel = channel;
     }
 
-    public IncomingData<InetSocketAddress> getRequest() {
+    public IncomingMessage<InetSocketAddress> getRequest() {
         return request;
     }
 

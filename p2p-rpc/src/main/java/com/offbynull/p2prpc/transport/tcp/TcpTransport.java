@@ -1,9 +1,13 @@
 package com.offbynull.p2prpc.transport.tcp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.offbynull.p2prpc.transport.IncomingData;
-import com.offbynull.p2prpc.transport.OutgoingData;
-import com.offbynull.p2prpc.transport.SessionedTransport;
+import com.offbynull.p2prpc.transport.IncomingMessage;
+import com.offbynull.p2prpc.transport.IncomingMessageListener;
+import com.offbynull.p2prpc.transport.IncomingResponse;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
+import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
+import com.offbynull.p2prpc.transport.OutgoingResponse;
+import com.offbynull.p2prpc.transport.Transport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -22,30 +26,50 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class TcpTransport implements SessionedTransport<InetSocketAddress> {
+public final class TcpTransport implements Transport {
 
     private InetSocketAddress listenAddress;
-    private EventLoop eventLoop;
+    private Selector selector;
+
     private int readLimit;
     private int writeLimit;
+    private long connectionTimeout;
+    
+    private LinkedBlockingQueue<Command> commandQueue;
+    private LinkedBlockingQueue<Event> eventQueue;
+    private LinkedBlockingQueue<IncomingMessageListener> incomingMessageListeners;
+    
+    
+    
+    private EventLoop eventLoop;
+
     private Lock accessLock;
 
-    public TcpTransport(int readLimit, int writeLimit) {
-        this(null, readLimit, writeLimit);
+    public TcpTransport(int readLimit, int writeLimit, long connectionTimeout) throws IOException {
+        this(null, readLimit, writeLimit, connectionTimeout);
     }
 
-    public TcpTransport(int port, int readLimit, int writeLimit) {
-        this(new InetSocketAddress(port), readLimit, writeLimit);
+    public TcpTransport(int port, int readLimit, int writeLimit, long connectionTimeout) throws IOException {
+        this(new InetSocketAddress(port), readLimit, writeLimit, connectionTimeout);
     }
 
-    public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit) {
+    public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit, long connectionTimeout) throws IOException {
         //Validate.notNull(listenAddress); // null = no server
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, connectionTimeout);
 
         this.listenAddress = listenAddress;
+        this.selector = Selector.open();
+        
         this.readLimit = readLimit;
         this.writeLimit = writeLimit;
+        this.connectionTimeout = connectionTimeout;
+        
+        this.commandQueue = new LinkedBlockingQueue<>();
+        this.eventQueue = new LinkedBlockingQueue<>();
+        this.incomingMessageListeners = new LinkedBlockingQueue<>();
+        
         accessLock = new ReentrantLock();
     }
 
@@ -79,49 +103,31 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
     }
 
     @Override
-    public RequestNotifier<InetSocketAddress> getRequestNotifier() {
-        accessLock.lock();
-        try {
-            if (eventLoop == null || !eventLoop.isRunning()) {
-                throw new IllegalStateException();
-            }
-
-            return eventLoop.getRequestNotifier();
-        } finally {
-            accessLock.unlock();
-        }
+    public void sendMessage(OutgoingMessage message, OutgoingMessageResponseListener listener) {
+        commandQueue.add(new CommandSendRequest(message, listener));
+        selector.wakeup();
     }
 
     @Override
-    public RequestSender<InetSocketAddress> getRequestSender() {
-        accessLock.lock();
-        try {
-            if (eventLoop == null || !eventLoop.isRunning()) {
-                throw new IllegalStateException();
-            }
-
-            return eventLoop.getRequestSender();
-        } finally {
-            accessLock.unlock();
-        }
+    public void addMessageListener(IncomingMessageListener listener) {
+        Validate.notNull(listener);
+        incomingMessageListeners.add(listener);
     }
 
+    @Override
+    public void removeMessageListener(IncomingMessageListener listener) {
+        Validate.notNull(listener);
+        incomingMessageListeners.remove(listener);
+    }
+    
     private final class EventLoop extends AbstractExecutionThreadService {
-
-        private TcpRequestNotifier requestNotifier;
-        private TcpRequestSender requestSender;
-
-        private Selector selector;
+        
         private ServerSocketChannel serverChannel;
         private Map<SocketChannel, ChannelInfo> channelInfoMap;
-        private Map<Long, ChannelInfo> sendQueueIdInfoMap;
         private AtomicBoolean stop;
-
-        LinkedBlockingQueue<Command> commandQueue;
 
         public EventLoop() throws IOException {
             try {
-                selector = Selector.open();
                 if (listenAddress != null) {
                     serverChannel = ServerSocketChannel.open();
                 }
@@ -130,17 +136,11 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 IOUtils.closeQuietly(serverChannel);
                 throw e;
             }
-
-            commandQueue = new LinkedBlockingQueue<>();
-
-            requestNotifier = new TcpRequestNotifier(commandQueue);
-            requestSender = new TcpRequestSender(selector, commandQueue);
         }
 
         @Override
         protected void startUp() throws Exception {
             channelInfoMap = new HashMap<>();
-            sendQueueIdInfoMap = new HashMap<>();
             stop = new AtomicBoolean(false);
             try {
                 if (listenAddress != null) {
@@ -153,14 +153,9 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 IOUtils.closeQuietly(serverChannel);
                 throw e;
             }
-        }
-
-        public TcpRequestNotifier getRequestNotifier() {
-            return requestNotifier;
-        }
-
-        public TcpRequestSender getRequestSender() {
-            return requestSender;
+            
+            commandQueue.clear();
+            eventQueue.clear();
         }
 
         @Override
@@ -180,17 +175,11 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                     try {
                         if (command instanceof CommandSendRequest) {
                             createAndInitializeOutgoingSocket((CommandSendRequest) command);
-                        } else if (command instanceof CommandKillQueued) {
-                            CommandKillQueued commandKq = (CommandKillQueued) command;
-                            killSocketBySendQueueId(commandKq.getId());
-                        } else if (command instanceof CommandKillEstablished) {
-                            CommandKillEstablished commandKe = (CommandKillEstablished) command;
-                            killSocketByChannel(commandKe.getChannel());
                         } else if (command instanceof CommandSendResponse) {
                             CommandSendResponse commandSr = (CommandSendResponse) command;
 
                             SocketChannel channel = commandSr.getChannel();
-                            OutgoingData<InetSocketAddress> data = commandSr.getData();
+                            OutgoingResponse data = commandSr.getData();
                             ChannelInfo info = channelInfoMap.get(channel);
 
                             if (info != null) {
@@ -252,15 +241,12 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                 throw new RuntimeException();
                             }
 
-                            switch (params.getType()) {
-                                case LOCAL_INITIATED:
-                                    // if this is an outgoing message, first thing we want to do is write
-                                    key.interestOps(SelectionKey.OP_WRITE);
-                                    break;
-                                case REMOTE_INITIATED:
+                            if (params instanceof OutgoingMessageChannelInfo) {
+                                // if this is an outgoing message, first thing we want to do is write
+                                key.interestOps(SelectionKey.OP_WRITE);
+                            } else {
                                 // should never happen
-                                default:
-                                    throw new IllegalStateException();
+                                throw new IllegalStateException();
                             }
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
@@ -280,24 +266,26 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                 clientChannel.shutdownInput();
                                 byte[] inData = buffers.finishReading();
 
-                                ResponseReceiver<InetSocketAddress> receiver = params.getReceiver();
                                 InetSocketAddress from = (InetSocketAddress) clientChannel.getRemoteAddress();
-                                IncomingData<InetSocketAddress> incomingData = new IncomingData<>(from, inData, currentTime);
-
-                                switch (params.getType()) {
-                                    case LOCAL_INITIATED: {
-                                        receiver.responseArrived(incomingData);
-                                        killSocketByChannel(clientChannel);
-                                        break;
-                                    }
-                                    case REMOTE_INITIATED: {
-                                        EventRequestArrived eventRa = new EventRequestArrived(incomingData, selector, clientChannel);
-                                        eventQueue.add(eventRa);
-                                        key.interestOps(0); // don't need to read anymore, when we get a response, we register op_write
-                                        break;
-                                    }
-                                    default:
-                                        throw new IllegalStateException();
+                                
+                                if (params instanceof OutgoingMessageChannelInfo) {
+                                    OutgoingMessageResponseListener<InetSocketAddress> receiver =
+                                            ((OutgoingMessageChannelInfo) params).getResponseHandler();
+                                    
+                                    IncomingResponse<InetSocketAddress> incomingResponse = new IncomingResponse<>(from, inData,
+                                            currentTime);
+                                    receiver.responseArrived(incomingResponse);
+                                    
+                                    killSocketByChannel(clientChannel);
+                                } else if (params instanceof IncomingMessageChannelInfo) {
+                                    IncomingMessage<InetSocketAddress> incomingMessage = new IncomingMessage<>(from, inData, currentTime);
+                                    
+                                    EventRequestArrived eventRa = new EventRequestArrived(incomingMessage, selector, clientChannel);
+                                    eventQueue.add(eventRa);
+                                    
+                                    key.interestOps(0); // don't need to read anymore, when we get a response, we register op_write
+                                } else {
+                                    throw new IllegalStateException();
                                 }
                             }
                         } catch (RuntimeException | IOException e) {
@@ -322,18 +310,13 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                                     clientChannel.shutdownOutput();
                                     buffers.finishWriting();
 
-                                    switch (params.getType()) {
-                                        case LOCAL_INITIATED: {
-                                            buffers.startReading();
-                                            key.interestOps(SelectionKey.OP_READ);
-                                            break;
-                                        }
-                                        case REMOTE_INITIATED: {
-                                            killSocketByChannel(clientChannel);
-                                            break;
-                                        }
-                                        default:
-                                            throw new IllegalStateException();
+                                    if (params instanceof OutgoingMessageChannelInfo) {
+                                        buffers.startReading();
+                                        key.interestOps(SelectionKey.OP_READ);
+                                    } else if (params instanceof IncomingMessageChannelInfo) {
+                                        killSocketByChannel(clientChannel);
+                                    } else {
+                                        throw new IllegalStateException();
                                     }
                                 }
                             }
@@ -344,11 +327,36 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                     }
                 }
 
-                requestNotifier.notify(eventQueue);
+                notifyEventListeners(eventQueue);
                 eventQueue.clear();
             }
         }
 
+        private void notifyEventListeners(LinkedList<Event> events) {
+            IncomingMessageListener[] handlersArray = incomingMessageListeners.toArray(new IncomingMessageListener[0]);
+            for (Event event : events) {
+                if (event instanceof EventRequestArrived) {
+                    EventRequestArrived request = (EventRequestArrived) event;
+
+                    for (IncomingMessageListener handler : handlersArray) {
+                        IncomingMessage<InetSocketAddress> data = request.getRequest();
+                        Selector selector = request.getSelector();
+                        SocketChannel channel = request.getChannel();
+
+                        TcpIncomingMessageResponseHandler responseSender = new TcpIncomingMessageResponseHandler(commandQueue, selector, channel);
+
+                        try {
+                            handler.messageArrived(data, responseSender);
+                        } catch (RuntimeException re) {
+                            // kill the socket, don't bother notifying the others
+                            killSocketByChannel(channel);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         private void killSocketByChannel(SocketChannel channel) {
             ChannelInfo info = channelInfoMap.get(channel);
 
@@ -356,17 +364,6 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 return;
             }
 
-            killSocket(channel, null);
-        }
-
-        private void killSocketBySendQueueId(long id) {
-            ChannelInfo info = sendQueueIdInfoMap.get(id);
-
-            if (info == null) {
-                return;
-            }
-
-            SocketChannel channel = info.getChannel();
             killSocket(channel, null);
         }
 
@@ -378,17 +375,12 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 return;
             }
 
-            Long id = info.getSendRequestId();
-            if (id != null) {
-                sendQueueIdInfoMap.remove(id);
-            }
-
             SelectionKey key = info.getSelectionKey();
             key.cancel();
 
             IOUtils.closeQuietly(channel);
-            if (info.receiver != null && error != null) {
-                info.receiver.internalFailure(error);
+            if (info instanceof OutgoingMessageChannelInfo && error != null) {
+                ((OutgoingMessageChannelInfo) info).getResponseHandler().internalErrorOccurred(error);
             }
         }
 
@@ -409,8 +401,7 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
                 StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.READ_FIRST, readLimit, writeLimit);
                 buffers.startReading();
 
-                ChannelInfo info = new ChannelInfo(clientChannel, buffers, ClientChannelType.REMOTE_INITIATED, selectionKey,
-                        null, null);
+                ChannelInfo info = new IncomingMessageChannelInfo(clientChannel, buffers, selectionKey);
 
                 channelInfoMap.put(clientChannel, info);
 
@@ -441,18 +432,15 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
 
                 selectionKey = clientChannel.register(selector, SelectionKey.OP_CONNECT);
 
-                ByteBuffer data = queuedRequest.getData();
-                InetSocketAddress destinationAddress = queuedRequest.getDestination();
+                OutgoingMessage<InetSocketAddress> message = queuedRequest.getMessage();
+                InetSocketAddress destinationAddress = message.getTo();
 
                 StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.WRITE_FIRST, readLimit, writeLimit);
-                buffers.startWriting(data);
+                buffers.startWriting(message.getData());
 
-                long id = queuedRequest.getId();
+                ChannelInfo info = new OutgoingMessageChannelInfo(clientChannel, buffers, selectionKey,
+                        queuedRequest.getResponseListener());
 
-                ChannelInfo info = new ChannelInfo(clientChannel, buffers, ClientChannelType.LOCAL_INITIATED, selectionKey,
-                        queuedRequest.getReceiver(), id);
-
-                sendQueueIdInfoMap.put(id, info);
                 channelInfoMap.put(clientChannel, info);
 
                 clientChannel.connect(destinationAddress);
@@ -485,63 +473,5 @@ public final class TcpTransport implements SessionedTransport<InetSocketAddress>
             stop.set(true);
             selector.wakeup();
         }
-    }
-
-    private static final class ChannelInfo {
-
-        private SocketChannel channel;
-        private StreamIoBuffers buffers;
-        private ClientChannelType type;
-        private SelectionKey selectionKey;
-        private ResponseReceiver<InetSocketAddress> receiver;
-        private Long sendRequestId;
-
-        public ChannelInfo(SocketChannel channel, StreamIoBuffers buffers, ClientChannelType type, SelectionKey selectionKey,
-                ResponseReceiver<InetSocketAddress> receiver, Long sendRequestId) {
-            Validate.notNull(channel);
-            Validate.notNull(buffers);
-            Validate.notNull(type);
-            Validate.notNull(selectionKey);
-            //Validate.notNull(receiver); // may be null
-            //Validate.notNull(sendRequestId); // may be null
-
-            this.channel = channel;
-            this.buffers = buffers;
-            this.type = type;
-            this.selectionKey = selectionKey;
-            this.receiver = receiver;
-            this.sendRequestId = sendRequestId;
-        }
-
-        public SocketChannel getChannel() {
-            return channel;
-        }
-
-        public StreamIoBuffers getBuffers() {
-            return buffers;
-        }
-
-        public ClientChannelType getType() {
-            return type;
-        }
-
-        public SelectionKey getSelectionKey() {
-            return selectionKey;
-        }
-
-        public ResponseReceiver<InetSocketAddress> getReceiver() {
-            return receiver;
-        }
-
-        public Long getSendRequestId() {
-            return sendRequestId;
-        }
-
-    }
-
-    private enum ClientChannelType {
-
-        REMOTE_INITIATED,
-        LOCAL_INITIATED
     }
 }

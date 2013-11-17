@@ -1,41 +1,28 @@
 package com.offbynull.p2prpc.transport.tcp;
 
-import com.offbynull.p2prpc.transport.OutgoingData;
-import com.offbynull.p2prpc.transport.SessionedTransport;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
+import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 final class CommandSendRequest implements Command {
-    private InetSocketAddress destination;
-    private ByteBuffer data;
-    private SessionedTransport.ResponseReceiver<InetSocketAddress> receiver;
-    private long id;
+    private OutgoingMessage<InetSocketAddress> message;
+    private OutgoingMessageResponseListener<InetSocketAddress> responseListener;
 
-    CommandSendRequest(OutgoingData<InetSocketAddress> data, SessionedTransport.ResponseReceiver<InetSocketAddress> receiver, long id) {
-        Validate.notNull(data);
-        Validate.notNull(receiver);
+    CommandSendRequest(OutgoingMessage<InetSocketAddress> message, OutgoingMessageResponseListener<InetSocketAddress> responseListener) {
+        Validate.notNull(message);
+        Validate.notNull(responseListener);
         
-        this.destination = data.getTo();
-        this.data = data.getData();
-        this.receiver = receiver;
-        this.id = id;
+        this.message = message;
+        this.responseListener = responseListener;
     }
 
-    public InetSocketAddress getDestination() {
-        return destination;
+    public OutgoingMessage<InetSocketAddress> getMessage() {
+        return message;
     }
 
-    public ByteBuffer getData() {
-        return data;
+    public OutgoingMessageResponseListener<InetSocketAddress> getResponseListener() {
+        return responseListener;
     }
 
-    public SessionedTransport.ResponseReceiver<InetSocketAddress> getReceiver() {
-        return receiver;
-    }
-
-    public long getId() {
-        return id;
-    }
-    
 }

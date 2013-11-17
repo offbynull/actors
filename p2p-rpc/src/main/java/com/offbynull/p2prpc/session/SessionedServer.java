@@ -1,7 +1,7 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.IncomingData;
-import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.IncomingMessage;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
 import com.offbynull.p2prpc.transport.SessionedTransport;
 import com.offbynull.p2prpc.transport.SessionedTransport.LinkController;
 import com.offbynull.p2prpc.transport.SessionedTransport.RequestNotifier;
@@ -82,7 +82,7 @@ public final class SessionedServer<A> implements Server<A> {
         }
 
         @Override
-        public boolean requestArrived(IncomingData<A> data, ResponseSender<A> responder, SessionedTransport.LinkController controller) {
+        public boolean requestArrived(IncomingMessage<A> data, ResponseSender<A> responder, SessionedTransport.LinkController controller) {
             Validate.notNull(data);
             Validate.notNull(responder);
             Validate.notNull(controller);
@@ -119,7 +119,7 @@ public final class SessionedServer<A> implements Server<A> {
         public void responseReady(byte[] data) {
             Validate.notNull(data);
             
-            OutgoingData<A> outgoingData = new OutgoingData<>(requester, data);
+            OutgoingMessage<A> outgoingData = new OutgoingMessage<>(requester, data);
             responder.sendResponse(outgoingData);
         }
 

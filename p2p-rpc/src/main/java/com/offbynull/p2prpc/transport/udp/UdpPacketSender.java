@@ -1,7 +1,7 @@
 package com.offbynull.p2prpc.transport.udp;
 
 import com.offbynull.p2prpc.transport.NonSessionedTransport;
-import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
 import java.net.InetSocketAddress;
 import java.nio.channels.Selector;
 import java.util.Collection;
@@ -10,7 +10,7 @@ import org.apache.commons.lang3.Validate;
 
 final class UdpPacketSender implements NonSessionedTransport.MessageSender<InetSocketAddress> {
     private Selector selector;
-    private LinkedBlockingQueue<OutgoingData<InetSocketAddress>> outgoingPackets;
+    private LinkedBlockingQueue<OutgoingMessage<InetSocketAddress>> outgoingPackets;
 
     UdpPacketSender(Selector selector) {
         Validate.notNull(selector);
@@ -19,13 +19,13 @@ final class UdpPacketSender implements NonSessionedTransport.MessageSender<InetS
     }
 
     @Override
-    public void sendMessage(OutgoingData<InetSocketAddress> packet) {
+    public void sendMessage(OutgoingMessage<InetSocketAddress> packet) {
         Validate.notNull(packet);
         outgoingPackets.add(packet);
         selector.wakeup();
     }
 
-    void drainTo(Collection<OutgoingData<InetSocketAddress>> destination) {
+    void drainTo(Collection<OutgoingMessage<InetSocketAddress>> destination) {
         Validate.notNull(destination);
         outgoingPackets.drainTo(destination);
     }

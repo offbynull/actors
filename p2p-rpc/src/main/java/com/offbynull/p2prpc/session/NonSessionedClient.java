@@ -1,11 +1,11 @@
 package com.offbynull.p2prpc.session;
 
-import com.offbynull.p2prpc.transport.IncomingData;
+import com.offbynull.p2prpc.transport.IncomingMessage;
 import com.offbynull.p2prpc.transport.NonSessionedTransport;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageReceiver;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.ReceiveNotifier;
 import com.offbynull.p2prpc.transport.NonSessionedTransport.MessageSender;
-import com.offbynull.p2prpc.transport.OutgoingData;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -40,7 +40,7 @@ public final class NonSessionedClient<A> implements Client<A> {
         MessageReceiver<A> recvHandler = new MessageReceiver<A>() {
 
             @Override
-            public boolean messageArrived(IncomingData<A> packet) {
+            public boolean messageArrived(IncomingMessage<A> packet) {
                 ByteBuffer recvData = packet.getData();
                 
                 if (!RequestResponseMarker.isResponse(recvData)) {
@@ -65,7 +65,7 @@ public final class NonSessionedClient<A> implements Client<A> {
         byte []sendData;
         sendData = pid.prependId(data);
         sendData = RequestResponseMarker.prependRequestMarker(sendData);
-        OutgoingData<A> outgoingPacket = new OutgoingData<>(to, sendData);
+        OutgoingMessage<A> outgoingPacket = new OutgoingMessage<>(to, sendData);
         querier.sendMessage(outgoingPacket);
         
         try {

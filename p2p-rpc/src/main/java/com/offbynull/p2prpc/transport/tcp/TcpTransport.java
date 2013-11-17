@@ -133,10 +133,10 @@ public final class TcpTransport implements Transport {
         private Map<SocketChannel, ChannelInfo> channelInfoMap;
         private AtomicBoolean stop;
         
-        private TimeoutManager requestManager;
+        private TimeoutManager timeoutManager;
 
         public EventLoop() throws IOException {
-            requestManager = new TimeoutManager(timeout);
+            timeoutManager = new TimeoutManager(timeout);
             
             try {
                 if (listenAddress != null) {
@@ -186,7 +186,7 @@ public final class TcpTransport implements Transport {
                         if (command instanceof CommandSendRequest) {
                             ChannelInfo info = createAndInitializeOutgoingSocket(internalEventQueue, (CommandSendRequest) command);
                             SocketChannel clientChannel = info.getChannel();
-                            requestManager.addChannel(clientChannel, currentTime);
+                            timeoutManager.addChannel(clientChannel, currentTime);
                         } else if (command instanceof CommandSendResponse) {
                             CommandSendResponse commandSr = (CommandSendResponse) command;
 
@@ -220,7 +220,7 @@ public final class TcpTransport implements Transport {
                 dumpedCommandQueue.clear();
 
                 // get timed out channels + max amount of time to wait till next timeout
-                Result timeoutRes = requestManager.evaluate(currentTime);
+                Result timeoutRes = timeoutManager.evaluate(currentTime);
                 long waitDuration = timeoutRes.getWaitDuration();
 
                 // go through timedout connections and add timeout events for each of them + kill them
@@ -275,7 +275,7 @@ public final class TcpTransport implements Transport {
                         try {
                             ChannelInfo info = acceptAndInitializeIncomingSocket(internalEventQueue);
                             SocketChannel clientChannel = info.getChannel();
-                            requestManager.addChannel(clientChannel, currentTime);
+                            timeoutManager.addChannel(clientChannel, currentTime);
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
                             // do nothing

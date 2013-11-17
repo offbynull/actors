@@ -121,12 +121,12 @@ public final class UdpTransport implements Transport {
         private AtomicBoolean stop;
         
         private MessageIdGenerator idGenerator;
-        private TimeoutManager requestManager;
+        private TimeoutManager timeoutManager;
         
 
         public EventLoop() throws IOException {
             idGenerator = new MessageIdGenerator();
-            requestManager = new TimeoutManager(timeout);
+            timeoutManager = new TimeoutManager(timeout);
             
             try {
                 channel = DatagramChannel.open();
@@ -182,7 +182,7 @@ public final class UdpTransport implements Transport {
                 }
                 
                 // get timed out channels + max amount of time to wait till next timeout
-                Result timeoutRes = requestManager.evaluate(currentTime);
+                Result timeoutRes = timeoutManager.evaluate(currentTime);
                 long waitDuration = timeoutRes.getWaitDuration();
 
                 // go through receivers requestManager has removed for timing out and add timeout events for each of them
@@ -248,7 +248,7 @@ public final class UdpTransport implements Transport {
                                 MessageId id = MessageId.extractPrependedId(buffer);
                                 MessageId.skipOver(buffer);
 
-                                OutgoingMessageResponseListener<InetSocketAddress> receiver = requestManager.getReceiver(from, id);
+                                OutgoingMessageResponseListener<InetSocketAddress> receiver = timeoutManager.getReceiver(from, id);
 
                                 if (receiver != null) { // timeout may have lapsed already, don't do anything if it did
                                     IncomingResponse<InetSocketAddress> response = new IncomingResponse<>(from, buffer, currentTime);
@@ -284,7 +284,7 @@ public final class UdpTransport implements Transport {
 
                                 InetSocketAddress to = request.getTo();
 
-                                requestManager.addRequestId(to, id, receiver, currentTime);
+                                timeoutManager.addRequestId(to, id, receiver, currentTime);
                                 
                                 channel.send(buffer, to);
                             } else if (command instanceof CommandSendResponse) {
@@ -363,7 +363,7 @@ public final class UdpTransport implements Transport {
             IOUtils.closeQuietly(selector);
             IOUtils.closeQuietly(channel);
             
-            for (OutgoingMessageResponseListener receiver : requestManager.pending().getTimedOutReceivers()) {
+            for (OutgoingMessageResponseListener receiver : timeoutManager.pending().getTimedOutReceivers()) {
                 receiver.internalErrorOccurred(null);
             }
         }

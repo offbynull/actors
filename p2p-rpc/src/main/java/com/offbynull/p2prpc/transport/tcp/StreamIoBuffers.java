@@ -51,8 +51,17 @@ final class StreamIoBuffers {
 
         state = State.READ_DONE;
         byte[] data = readOs.toByteArray();
+        
+        ByteBuffer dataBuffer = ByteBuffer.wrap(data);
+        int size = dataBuffer.getInt();
+        
+        byte[] pureData = new byte[size];
+        dataBuffer.get(pureData);
+        
+        Validate.isTrue(!dataBuffer.hasRemaining());
+        
         readOs = null;
-        return data;
+        return pureData;
     }
 
     public void startWriting(ByteBuffer data) {
@@ -64,12 +73,18 @@ final class StreamIoBuffers {
         }
         
         state = State.WRITE;
-        byte[] dataCopy = new byte[data.limit()];
+        
+        int size = data.remaining();
+        
+        ByteBuffer dataCopy = ByteBuffer.allocate(4 + size);
+        dataCopy.putInt(size);
+        byte[] dataCopyArr = dataCopy.array();
+        
         data.mark();
-        data.get(dataCopy);
+        data.get(dataCopyArr, 4, size);
         data.reset();
 
-        writeIs = new CustomByteArrayInputStream(dataCopy);        
+        writeIs = new CustomByteArrayInputStream(dataCopyArr);        
     }
     
     public void startWriting(byte[] data) {

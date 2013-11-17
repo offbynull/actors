@@ -9,12 +9,12 @@ import java.util.LinkedList;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-final class RequestManager {
+final class TimeoutManager {
     private long timeout;
     private HashMap<MessageIdInstance, Entity> messageIdSet;
     private LinkedList<Entity> idQueue;
 
-    public RequestManager(long timeout) {
+    public TimeoutManager(long timeout) {
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
         this.timeout = timeout;

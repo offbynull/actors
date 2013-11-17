@@ -8,7 +8,7 @@ import com.offbynull.p2prpc.transport.OutgoingMessage;
 import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.p2prpc.transport.OutgoingResponse;
 import com.offbynull.p2prpc.transport.Transport;
-import com.offbynull.p2prpc.transport.tcp.RequestManager.Result;
+import com.offbynull.p2prpc.transport.tcp.TimeoutManager.Result;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -133,10 +133,10 @@ public final class TcpTransport implements Transport {
         private Map<SocketChannel, ChannelInfo> channelInfoMap;
         private AtomicBoolean stop;
         
-        private RequestManager requestManager;
+        private TimeoutManager requestManager;
 
         public EventLoop() throws IOException {
-            requestManager = new RequestManager(timeout);
+            requestManager = new TimeoutManager(timeout);
             
             try {
                 if (listenAddress != null) {
@@ -186,7 +186,7 @@ public final class TcpTransport implements Transport {
                         if (command instanceof CommandSendRequest) {
                             ChannelInfo info = createAndInitializeOutgoingSocket(internalEventQueue, (CommandSendRequest) command);
                             SocketChannel clientChannel = info.getChannel();
-                            requestManager.addRequestId(clientChannel, currentTime);
+                            requestManager.addChannel(clientChannel, currentTime);
                         } else if (command instanceof CommandSendResponse) {
                             CommandSendResponse commandSr = (CommandSendResponse) command;
 
@@ -275,7 +275,7 @@ public final class TcpTransport implements Transport {
                         try {
                             ChannelInfo info = acceptAndInitializeIncomingSocket(internalEventQueue);
                             SocketChannel clientChannel = info.getChannel();
-                            requestManager.addRequestId(clientChannel, currentTime);
+                            requestManager.addChannel(clientChannel, currentTime);
                         } catch (RuntimeException | IOException e) {
                             e.printStackTrace();
                             // do nothing
@@ -352,7 +352,7 @@ public final class TcpTransport implements Transport {
                             tempBuffer.clear();
                             buffers.getWriteBlock(tempBuffer);
 
-                            if (tempBuffer.limit() != 0) {
+                            if (tempBuffer.hasRemaining()) {
                                 int amountWritten = clientChannel.write(tempBuffer);
                                 buffers.adjustWritePointer(amountWritten);
 

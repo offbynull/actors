@@ -9,12 +9,12 @@ import java.util.LinkedList;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-final class RequestManager {
+final class TimeoutManager {
     private long timeout;
     private HashMap<SocketChannel, Entity> channelSet;
     private LinkedList<Entity> channelQueue;
 
-    public RequestManager(long timeout) {
+    public TimeoutManager(long timeout) {
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
         this.timeout = timeout;
@@ -22,7 +22,7 @@ final class RequestManager {
         channelQueue = new LinkedList<>();
     }
     
-    public void addRequestId(SocketChannel channel, long currentTime) {
+    public void addChannel(SocketChannel channel, long currentTime) {
         Validate.notNull(channel);
         Validate.isTrue(!channelSet.containsKey(channel));
         

@@ -8,7 +8,7 @@ import com.offbynull.p2prpc.transport.OutgoingMessage;
 import com.offbynull.p2prpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.p2prpc.transport.OutgoingResponse;
 import com.offbynull.p2prpc.transport.Transport;
-import com.offbynull.p2prpc.transport.udp.RequestManager.Result;
+import com.offbynull.p2prpc.transport.udp.TimeoutManager.Result;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -121,12 +121,12 @@ public final class UdpTransport implements Transport {
         private AtomicBoolean stop;
         
         private MessageIdGenerator idGenerator;
-        private RequestManager requestManager;
+        private TimeoutManager requestManager;
         
 
         public EventLoop() throws IOException {
             idGenerator = new MessageIdGenerator();
-            requestManager = new RequestManager(timeout);
+            requestManager = new TimeoutManager(timeout);
             
             try {
                 channel = DatagramChannel.open();

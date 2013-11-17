@@ -33,7 +33,7 @@ public final class TcpTransport implements Transport {
 
     private int readLimit;
     private int writeLimit;
-    private long connectionTimeout;
+    private long timeout;
     
     private LinkedBlockingQueue<Command> commandQueue;
     private LinkedBlockingQueue<IncomingMessageListener> incomingMessageListeners;
@@ -52,18 +52,18 @@ public final class TcpTransport implements Transport {
         this(new InetSocketAddress(port), readLimit, writeLimit, connectionTimeout);
     }
 
-    public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit, long connectionTimeout) throws IOException {
+    public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit, long timeout) throws IOException {
         //Validate.notNull(listenAddress); // null = no server
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, connectionTimeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
 
         this.listenAddress = listenAddress;
         this.selector = Selector.open();
         
         this.readLimit = readLimit;
         this.writeLimit = writeLimit;
-        this.connectionTimeout = connectionTimeout;
+        this.timeout = timeout;
         
         this.commandQueue = new LinkedBlockingQueue<>();
         this.incomingMessageListeners = new LinkedBlockingQueue<>();

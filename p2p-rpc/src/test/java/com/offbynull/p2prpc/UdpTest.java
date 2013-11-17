@@ -1,13 +1,16 @@
 package com.offbynull.p2prpc;
 
-import com.offbynull.p2prpc.session.MessageListener;
-import com.offbynull.p2prpc.session.MessageIdGenerator;
 import com.offbynull.p2prpc.transport.udp.UdpTransport;
-import com.offbynull.p2prpc.session.NonSessionedClient;
-import com.offbynull.p2prpc.session.NonSessionedServer;
-import com.offbynull.p2prpc.session.ResponseHandler;
+import com.offbynull.p2prpc.transport.IncomingMessage;
+import com.offbynull.p2prpc.transport.IncomingMessageListener;
+import com.offbynull.p2prpc.transport.IncomingMessageResponseHandler;
+import com.offbynull.p2prpc.transport.IncomingResponse;
+import com.offbynull.p2prpc.transport.OutgoingMessage;
+import com.offbynull.p2prpc.transport.OutgoingResponse;
+import com.offbynull.p2prpc.transport.TransportHelper;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -18,7 +21,8 @@ import org.junit.Test;
 
 public final class UdpTest {
 
-    private static final long TIMEOUT = 500;
+    private static final long TIMEOUT_DURATION = 500;
+    private static final int BUFFER_SIZE = 500;
 
     private UdpTransport transport1;
     private UdpTransport transport2;
@@ -41,10 +45,11 @@ public final class UdpTest {
     @Before
     public void setUp() throws IOException {
         port1 = nextPort.getAndIncrement();
-        port2 = nextPort.getAndIncrement();
-        transport1 = new UdpTransport(port1, 65535);
-        transport2 = new UdpTransport(port2, 65535);
+        transport1 = new UdpTransport(port1, BUFFER_SIZE, TIMEOUT_DURATION);
         transport1.start();
+        
+        port2 = nextPort.getAndIncrement();
+        transport2 = new UdpTransport(port2, BUFFER_SIZE, TIMEOUT_DURATION);
         transport2.start();
     }
 
@@ -56,70 +61,76 @@ public final class UdpTest {
 
     @Test
     public void selfUdpTest() throws Throwable {
-        NonSessionedServer server = null;
+        IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(IncomingMessage<InetSocketAddress> message, IncomingMessageResponseHandler responseCallback) {
+                ByteBuffer buffer = message.getData();
+                byte[] data = new byte[buffer.remaining()];
+                buffer.get(data);
+
+                if (new String(data).equals("HIEVERYBODY! :)")) {
+                    responseCallback.responseReady(new OutgoingResponse("THIS IS THE RESPONSE".getBytes()));
+                } else {
+                    responseCallback.terminate();
+                }
+            }
+        };
 
         try {
-            server = new NonSessionedServer(transport1, TIMEOUT);
-            NonSessionedClient client = new NonSessionedClient(transport1, new MessageIdGenerator());
+            transport1.addMessageListener(listener);
 
-            MessageListener callback = new MessageListener() {
+            InetSocketAddress to = new InetSocketAddress("localhost", port1);
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
+            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport1, outgoingMessage);
 
-                @Override
-                public void messageArrived(Object from, byte[] data, ResponseHandler responseCallback) {
-                    if (new String(data).equals("HIEVERYBODY! :)")) {
-                        responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
-                    } else {
-                        responseCallback.terminate();
-                    }
-                }
-            };
-
-            server.start(callback);
-
-            byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
-            
-            Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
+            Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse.getData());
         } finally {
-            if (server != null) {
-                server.stop();
-            }
+            transport1.removeMessageListener(listener);
         }
     }
 
     @Test
     public void normalUdpTest() throws Throwable {
-        NonSessionedServer server = null;
+        IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(IncomingMessage<InetSocketAddress> message, IncomingMessageResponseHandler responseCallback) {
+                ByteBuffer buffer = message.getData();
+                byte[] data = new byte[buffer.remaining()];
+                buffer.get(data);
+
+                if (new String(data).equals("HIEVERYBODY! :)")) {
+                    responseCallback.responseReady(new OutgoingResponse("THIS IS THE RESPONSE".getBytes()));
+                } else {
+                    responseCallback.terminate();
+                }
+            }
+        };
 
         try {
-            server = new NonSessionedServer(transport1, TIMEOUT);
-            MessageListener callback = new MessageListener() {
+            transport2.addMessageListener(listener);
 
-                @Override
-                public void messageArrived(Object from, byte[] data, ResponseHandler responseCallback) {
-                    if (new String(data).equals("HIEVERYBODY! :)")) {
-                        responseCallback.responseReady("THIS IS THE RESPONSE".getBytes());
-                    } else {
-                        responseCallback.terminate();
-                    }
-                }
-            };
-            server.start(callback);
+            InetSocketAddress to = new InetSocketAddress("localhost", port2);
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
+            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport1, outgoingMessage);
 
-            NonSessionedClient client = new NonSessionedClient(transport2, new MessageIdGenerator());
-            byte[] response = client.send(new InetSocketAddress("localhost", port1), "HIEVERYBODY! :)".getBytes(), TIMEOUT);
-
-            Assert.assertArrayEquals("THIS IS THE RESPONSE".getBytes(), response);
+            Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse.getData());
         } finally {
-            if (server != null) {
-                server.stop();
-            }
+            transport2.removeMessageListener(listener);
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void noResponseUdpTest() throws Throwable {
-        NonSessionedClient client = new NonSessionedClient(transport2, new MessageIdGenerator());
+        InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
+        byte[] data = "HIEVERYBODY! :)".getBytes();
+        OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
 
-        client.send(new InetSocketAddress("www.microsoft.com", 12345), "HIEVERYBODY! :)".getBytes(), 500L);
+        IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport2, outgoingMessage);
+        
+        Assert.assertNull(incomingResponse);
     }
 }

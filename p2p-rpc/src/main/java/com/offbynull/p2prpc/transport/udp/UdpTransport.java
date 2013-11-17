@@ -227,8 +227,9 @@ public final class UdpTransport implements Transport {
 
                     if (key.isReadable()) { // incoming data available
                         try {
+                            buffer.clear();
+                            
                             InetSocketAddress from = (InetSocketAddress) channel.receive(buffer);
-
                             buffer.flip();
 
                             if (MessageMarker.isRequest(buffer)) {
@@ -277,29 +278,31 @@ public final class UdpTransport implements Transport {
 
                                 MessageMarker.writeRequestMarker(buffer);
                                 id.writeId(buffer);
-
                                 buffer.put(request.getData());
+                                
+                                buffer.flip();
 
-                                InetSocketAddress dest = request.getTo();
+                                InetSocketAddress to = request.getTo();
 
-                                requestManager.addRequestId(dest, id, receiver, currentTime);
-
-                                channel.send(buffer, dest);
+                                requestManager.addRequestId(to, id, receiver, currentTime);
+                                
+                                channel.send(buffer, to);
                             } else if (command instanceof CommandSendResponse) {
                                 CommandSendResponse commandSr = (CommandSendResponse) command;
 
                                 OutgoingResponse response = commandSr.getResponse();
-                                InetSocketAddress dest = commandSr.getAddress();
+                                InetSocketAddress to = commandSr.getAddress();
                                 MessageId id = commandSr.getMessageId();
 
                                 buffer.clear();
 
                                 MessageMarker.writeResponseMarker(buffer);
                                 id.writeId(buffer);
-
                                 buffer.put(response.getData());
-
-                                channel.send(buffer, dest);                        
+                                
+                                buffer.flip();
+                                
+                                channel.send(buffer, to);                        
                             } else {
                                 throw new IllegalStateException();
                             }
@@ -308,7 +311,6 @@ public final class UdpTransport implements Transport {
                         }
                     }
                 }
-                
                 processEvents(internalEventQueue);
                 internalEventQueue.clear();
             }

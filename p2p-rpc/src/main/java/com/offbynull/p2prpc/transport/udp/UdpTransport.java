@@ -31,6 +31,7 @@ public final class UdpTransport implements Transport {
     private Selector selector;
     
     private int bufferSize;
+    private int cacheSize;
     private long timeout;
     
     private LinkedBlockingQueue<Command> commandQueue;
@@ -39,19 +40,21 @@ public final class UdpTransport implements Transport {
     private EventLoop eventLoop;
     private Lock accessLock;
 
-    public UdpTransport(int port, int bufferSize, long timeout) throws IOException {
-        this(new InetSocketAddress(port), bufferSize, timeout);
+    public UdpTransport(int port, int bufferSize, int cacheSize, long timeout) throws IOException {
+        this(new InetSocketAddress(port), bufferSize, cacheSize, timeout);
     }
 
-    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, long timeout) throws IOException {
+    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long timeout) throws IOException {
         Validate.notNull(listenAddress);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, bufferSize);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
 
         this.listenAddress = listenAddress;
         this.selector = Selector.open();
         
         this.bufferSize = bufferSize;
+        this.cacheSize = cacheSize;
         this.timeout = timeout;
         
         this.commandQueue = new LinkedBlockingQueue<>();
@@ -121,11 +124,13 @@ public final class UdpTransport implements Transport {
         private AtomicBoolean stop;
         
         private MessageIdGenerator idGenerator;
+        private MessageIdCache idCache;
         private TimeoutManager timeoutManager;
         
 
         public EventLoop() throws IOException {
             idGenerator = new MessageIdGenerator();
+            idCache = new MessageIdCache(cacheSize);
             timeoutManager = new TimeoutManager(timeout);
             
             try {
@@ -237,6 +242,10 @@ public final class UdpTransport implements Transport {
 
                                 MessageId id = MessageId.extractPrependedId(buffer);
                                 MessageId.skipOver(buffer);
+                                
+                                if (!idCache.add(from, id, PacketType.REQUEST)) {
+                                    throw new RuntimeException("Duplicate messageid encountered");
+                                }
 
                                 IncomingMessage<InetSocketAddress> request = new IncomingMessage<>(from, buffer, currentTime);
 
@@ -247,6 +256,10 @@ public final class UdpTransport implements Transport {
 
                                 MessageId id = MessageId.extractPrependedId(buffer);
                                 MessageId.skipOver(buffer);
+                                
+                                if (!idCache.add(from, id, PacketType.RESPONSE)) {
+                                    throw new RuntimeException("Duplicate messageid encountered");
+                                }
 
                                 OutgoingMessageResponseListener<InetSocketAddress> receiver = timeoutManager.getReceiver(from, id);
 

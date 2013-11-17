@@ -16,6 +16,7 @@ public class RpcConfig {
     private InetSocketAddress tcpListenAddress = new InetSocketAddress(15000);
     private int udpBufferSize = 65535;
     private long udpTimeout = 10000L; 
+    private int udpIdCache = 2048; 
     private InetSocketAddress udpListenAddress = new InetSocketAddress(15000);
     private ExecutorService invokerExecutorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1, TimeUnit.SECONDS,
             new LinkedBlockingQueue<Runnable>());
@@ -64,6 +65,15 @@ public class RpcConfig {
     public void setUdpBufferSize(int udpBufferSize) {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, udpBufferSize);
         this.udpBufferSize = udpBufferSize;
+    }
+
+    public int getUdpIdCache() {
+        return udpIdCache;
+    }
+
+    public void setUdpIdCache(int udpIdCache) {
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, udpIdCache);
+        this.udpIdCache = udpIdCache;
     }
 
     public InetSocketAddress getUdpListenAddress() {

@@ -19,8 +19,8 @@ final class MessageIdCache {
         this.set = new HashSet<>(capacity);
     }
 
-    public boolean add(InetSocketAddress from, MessageId id) {
-        MessageIdInstance idInstance = new MessageIdInstance(from, id);
+    public boolean add(InetSocketAddress from, MessageId id, PacketType type) {
+        MessageIdInstance idInstance = new MessageIdInstance(from, id, type);
 
         if (set.contains(idInstance)) {
             return false;

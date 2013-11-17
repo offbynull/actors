@@ -34,7 +34,8 @@ public final class Rpc implements Closeable {
                     break;
                 }
                 case UDP: {
-                    UdpTransport udpTransport = new UdpTransport(conf.getUdpListenAddress(), conf.getUdpBufferSize(), conf.getUdpTimeout());
+                    UdpTransport udpTransport = new UdpTransport(conf.getUdpListenAddress(), conf.getUdpBufferSize(), conf.getUdpIdCache(),
+                            conf.getUdpTimeout());
                     udpTransport.start();
                     transport = udpTransport;
                     break;

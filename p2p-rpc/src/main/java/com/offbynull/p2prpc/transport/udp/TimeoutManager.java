@@ -28,7 +28,7 @@ final class TimeoutManager {
         Validate.notNull(id);
         Validate.notNull(receiver);
         
-        MessageIdInstance idInstance = new MessageIdInstance(dest, id);
+        MessageIdInstance idInstance = new MessageIdInstance(dest, id, PacketType.REQUEST);
         
         Validate.isTrue(!messageIdSet.containsKey(idInstance));
         
@@ -42,7 +42,7 @@ final class TimeoutManager {
         Validate.notNull(dest);
         Validate.notNull(id);
         
-        MessageIdInstance idInstance = new MessageIdInstance(dest, id);
+        MessageIdInstance idInstance = new MessageIdInstance(dest, id, PacketType.REQUEST);
         
         Entity entity = messageIdSet.get(idInstance);
         

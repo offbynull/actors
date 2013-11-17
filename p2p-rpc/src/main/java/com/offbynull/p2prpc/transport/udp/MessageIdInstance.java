@@ -7,12 +7,15 @@ import org.apache.commons.lang3.Validate;
 final class MessageIdInstance {
     private InetSocketAddress from;
     private MessageId id;
+    private PacketType type;
 
-    public MessageIdInstance(InetSocketAddress from, MessageId id) {
+    public MessageIdInstance(InetSocketAddress from, MessageId id, PacketType type) {
         Validate.notNull(from);
         Validate.notNull(id);
+        Validate.notNull(type);
         this.from = from;
         this.id = id;
+        this.type = type;
     }
 
     public InetSocketAddress getFrom() {
@@ -23,11 +26,16 @@ final class MessageIdInstance {
         return id;
     }
 
+    public PacketType getType() {
+        return type;
+    }
+
     @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 23 * hash + Objects.hashCode(this.from);
-        hash = 23 * hash + Objects.hashCode(this.id);
+        int hash = 5;
+        hash = 59 * hash + Objects.hashCode(this.from);
+        hash = 59 * hash + Objects.hashCode(this.id);
+        hash = 59 * hash + Objects.hashCode(this.type);
         return hash;
     }
 
@@ -46,7 +54,9 @@ final class MessageIdInstance {
         if (!Objects.equals(this.id, other.id)) {
             return false;
         }
+        if (this.type != other.type) {
+            return false;
+        }
         return true;
     }
-    
 }

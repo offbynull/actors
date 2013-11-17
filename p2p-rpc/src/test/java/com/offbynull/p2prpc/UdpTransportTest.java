@@ -23,6 +23,7 @@ public final class UdpTransportTest {
 
     private static final long TIMEOUT_DURATION = 500;
     private static final int BUFFER_SIZE = 500;
+    private static final int ID_CACHE_SIZE = 1024;
 
     private UdpTransport transport1;
     private UdpTransport transport2;
@@ -45,11 +46,11 @@ public final class UdpTransportTest {
     @Before
     public void setUp() throws IOException {
         port1 = nextPort.getAndIncrement();
-        transport1 = new UdpTransport(port1, BUFFER_SIZE, TIMEOUT_DURATION);
+        transport1 = new UdpTransport(port1, BUFFER_SIZE, ID_CACHE_SIZE, TIMEOUT_DURATION);
         transport1.start();
         
         port2 = nextPort.getAndIncrement();
-        transport2 = new UdpTransport(port2, BUFFER_SIZE, TIMEOUT_DURATION);
+        transport2 = new UdpTransport(port2, BUFFER_SIZE, ID_CACHE_SIZE, TIMEOUT_DURATION);
         transport2.start();
     }
 

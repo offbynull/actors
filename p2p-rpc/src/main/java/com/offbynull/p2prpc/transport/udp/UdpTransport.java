@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class UdpTransport implements Transport {
+public final class UdpTransport implements Transport<InetSocketAddress> {
     
     private InetSocketAddress listenAddress;
     private Selector selector;
@@ -35,7 +35,6 @@ public final class UdpTransport implements Transport {
     private long timeout;
     
     private LinkedBlockingQueue<Command> commandQueue;
-    private LinkedBlockingQueue<IncomingMessageListener> incomingMessageListeners;
     
     private EventLoop eventLoop;
     private Lock accessLock;
@@ -58,20 +57,19 @@ public final class UdpTransport implements Transport {
         this.timeout = timeout;
         
         this.commandQueue = new LinkedBlockingQueue<>();
-        this.incomingMessageListeners = new LinkedBlockingQueue<>();
         
         accessLock = new ReentrantLock();
     }
     
     @Override
-    public void start() throws IOException {
+    public void start(IncomingMessageListener<InetSocketAddress> incomingMessageListener) throws IOException {
         accessLock.lock();
         try {
             if (eventLoop != null) {
                 throw new IllegalStateException();
             }
 
-            eventLoop = new EventLoop();
+            eventLoop = new EventLoop(incomingMessageListener);
             eventLoop.startAndWait();
         } finally {
             accessLock.unlock();
@@ -101,22 +99,6 @@ public final class UdpTransport implements Transport {
         commandQueue.add(new CommandSendRequest(message, listener));
         selector.wakeup();
     }
-
-    @Override
-    public void addMessageListener(IncomingMessageListener listener) {
-        Validate.notNull(listener);
-        Validate.validState(eventLoop != null && eventLoop.isRunning());
-        
-        incomingMessageListeners.add(listener);
-    }
-
-    @Override
-    public void removeMessageListener(IncomingMessageListener listener) {
-        Validate.notNull(listener);
-        Validate.validState(eventLoop != null && eventLoop.isRunning());
-        
-        incomingMessageListeners.remove(listener);
-    }
     
     private final class EventLoop extends AbstractExecutionThreadService {
 
@@ -127,8 +109,10 @@ public final class UdpTransport implements Transport {
         private MessageIdCache idCache;
         private TimeoutManager timeoutManager;
         
+        private IncomingMessageListener<InetSocketAddress> handler;
 
-        public EventLoop() throws IOException {
+        public EventLoop(IncomingMessageListener<InetSocketAddress> incomingMessageListener) throws IOException {
+            this.handler = incomingMessageListener;
             idGenerator = new MessageIdGenerator();
             idCache = new MessageIdCache(cacheSize);
             timeoutManager = new TimeoutManager(timeout);
@@ -330,8 +314,6 @@ public final class UdpTransport implements Transport {
         }
 
         private void processEvents(LinkedList<Event> internalEventQueue) {
-            IncomingMessageListener[] handlersArray = incomingMessageListeners.toArray(new IncomingMessageListener[0]);
-            
             for (Event event : internalEventQueue) {
                 if (event instanceof EventRequestArrived) {
                     EventRequestArrived request = (EventRequestArrived) event;
@@ -342,13 +324,11 @@ public final class UdpTransport implements Transport {
                     UdpIncomingMessageResponseHandler responseSender = new UdpIncomingMessageResponseHandler(commandQueue, selector, id,
                             data.getFrom());
 
-                    for (IncomingMessageListener handler : handlersArray) {
-                        try {
-                            handler.messageArrived(data, responseSender);
-                        } catch (RuntimeException re) {
-                            // don't bother notifying the others
-                            break;
-                        }
+                    try {
+                        handler.messageArrived(data, responseSender);
+                    } catch (RuntimeException re) {
+                        // don't bother notifying the others
+                        break;
                     }
                 } else if (event instanceof EventResponseArrived) {
                     EventResponseArrived response = (EventResponseArrived) event;

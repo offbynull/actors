@@ -10,12 +10,17 @@ import java.io.IOException;
 public interface Transport<A> {
     /**
      * Starts the transport.
+     * @param listener listener for incoming messages
      * @throws IOException on error
+     * @throws IllegalStateException if already started or stopped
+     * @throws NullPointerException if {@code listener == null}
      */
-    void start() throws IOException;
+    void start(IncomingMessageListener<A> listener) throws IOException;
+
     /**
      * Stops the transport. Cannot be restarted once stopped.
      * @throws IOException on error
+     * @throws IllegalStateException if not started
      */
     void stop() throws IOException;
     
@@ -25,16 +30,4 @@ public interface Transport<A> {
      * @param listener handles message responses
      */
     void sendMessage(OutgoingMessage<A> message, OutgoingMessageResponseListener<A> listener);
-    
-    /**
-     * Adds a listener to listen for and respond to incoming messages.
-     * @param listener listener that listens for incoming messages
-     */
-    void addMessageListener(IncomingMessageListener<A> listener);
-    
-    /**
-     * Removes a listener that listens for and respond to incoming messages.
-     * @param listener listener that listens for incoming messages
-     */
-    void removeMessageListener(IncomingMessageListener<A> listener);
 }

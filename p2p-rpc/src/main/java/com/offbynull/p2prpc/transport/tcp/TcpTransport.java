@@ -27,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class TcpTransport implements Transport {
+public final class TcpTransport implements Transport<InetSocketAddress> {
 
     private InetSocketAddress listenAddress;
     private Selector selector;
@@ -37,7 +37,6 @@ public final class TcpTransport implements Transport {
     private long timeout;
     
     private LinkedBlockingQueue<Command> commandQueue;
-    private LinkedBlockingQueue<IncomingMessageListener> incomingMessageListeners;
     
     
     
@@ -67,20 +66,21 @@ public final class TcpTransport implements Transport {
         this.timeout = timeout;
         
         this.commandQueue = new LinkedBlockingQueue<>();
-        this.incomingMessageListeners = new LinkedBlockingQueue<>();
         
         accessLock = new ReentrantLock();
     }
 
     @Override
-    public void start() throws IOException {
+    public void start(IncomingMessageListener<InetSocketAddress> listener) throws IOException {
+        Validate.notNull(listener);
+        
         accessLock.lock();
         try {
             if (eventLoop != null) {
                 throw new IllegalStateException();
             }
 
-            eventLoop = new EventLoop();
+            eventLoop = new EventLoop(listener);
             eventLoop.startAndWait();
         } finally {
             accessLock.unlock();
@@ -110,22 +110,6 @@ public final class TcpTransport implements Transport {
         commandQueue.add(new CommandSendRequest(message, listener));
         selector.wakeup();
     }
-
-    @Override
-    public void addMessageListener(IncomingMessageListener listener) {
-        Validate.notNull(listener);
-        Validate.validState(eventLoop != null && eventLoop.isRunning());
-        
-        incomingMessageListeners.add(listener);
-    }
-
-    @Override
-    public void removeMessageListener(IncomingMessageListener listener) {
-        Validate.notNull(listener);
-        Validate.validState(eventLoop != null && eventLoop.isRunning());
-        
-        incomingMessageListeners.remove(listener);
-    }
     
     private final class EventLoop extends AbstractExecutionThreadService {
         
@@ -134,8 +118,11 @@ public final class TcpTransport implements Transport {
         private AtomicBoolean stop;
         
         private TimeoutManager timeoutManager;
+        
+        private IncomingMessageListener<InetSocketAddress> handler;
 
-        public EventLoop() throws IOException {
+        public EventLoop(IncomingMessageListener<InetSocketAddress> incomingMessageListener) throws IOException {
+            this.handler = incomingMessageListener;
             timeoutManager = new TimeoutManager(timeout);
             
             try {
@@ -383,26 +370,22 @@ public final class TcpTransport implements Transport {
         }
 
         private void processEvents(LinkedList<Event> internalEventQueue) {
-            IncomingMessageListener[] handlersArray = incomingMessageListeners.toArray(new IncomingMessageListener[0]);
-            
             for (Event event : internalEventQueue) {
                 if (event instanceof EventRequestArrived) {
                     EventRequestArrived request = (EventRequestArrived) event;
 
-                    for (IncomingMessageListener handler : handlersArray) {
-                        IncomingMessage<InetSocketAddress> data = request.getRequest();
-                        Selector selector = request.getSelector();
-                        SocketChannel channel = request.getChannel();
+                    IncomingMessage<InetSocketAddress> data = request.getRequest();
+                    Selector selector = request.getSelector();
+                    SocketChannel channel = request.getChannel();
 
-                        TcpIncomingMessageResponseHandler responseSender = new TcpIncomingMessageResponseHandler(commandQueue, selector, channel);
+                    TcpIncomingMessageResponseHandler responseSender = new TcpIncomingMessageResponseHandler(commandQueue, selector, channel);
 
-                        try {
-                            handler.messageArrived(data, responseSender);
-                        } catch (RuntimeException re) {
-                            // kill the socket, don't bother notifying the others
-                            killSocketSilently(channel);
-                            break;
-                        }
+                    try {
+                        handler.messageArrived(data, responseSender);
+                    } catch (RuntimeException re) {
+                        // kill the socket, don't bother notifying the others
+                        killSocketSilently(channel);
+                        break;
                     }
                 } else if (event instanceof EventResponseArrived) {
                     EventResponseArrived response = (EventResponseArrived) event;

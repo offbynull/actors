@@ -7,6 +7,7 @@ import com.offbynull.p2prpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.p2prpc.transport.IncomingResponse;
 import com.offbynull.p2prpc.transport.OutgoingMessage;
 import com.offbynull.p2prpc.transport.OutgoingResponse;
+import com.offbynull.p2prpc.transport.TerminateIncomingMessageListener;
 import com.offbynull.p2prpc.transport.TransportHelper;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -47,11 +48,9 @@ public final class UdpTransportTest {
     public void setUp() throws IOException {
         port1 = nextPort.getAndIncrement();
         transport1 = new UdpTransport(port1, BUFFER_SIZE, ID_CACHE_SIZE, TIMEOUT_DURATION);
-        transport1.start();
         
         port2 = nextPort.getAndIncrement();
         transport2 = new UdpTransport(port2, BUFFER_SIZE, ID_CACHE_SIZE, TIMEOUT_DURATION);
-        transport2.start();
     }
 
     @After
@@ -79,7 +78,7 @@ public final class UdpTransportTest {
         };
 
         try {
-            transport1.addMessageListener(listener);
+            transport1.start(listener);
 
             InetSocketAddress to = new InetSocketAddress("localhost", port1);
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -88,7 +87,7 @@ public final class UdpTransportTest {
 
             Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse.getData());
         } finally {
-            transport1.removeMessageListener(listener);
+            transport1.stop();
         }
     }
 
@@ -111,16 +110,18 @@ public final class UdpTransportTest {
         };
 
         try {
-            transport2.addMessageListener(listener);
+            transport1.start(listener);
+            transport2.start(new TerminateIncomingMessageListener<InetSocketAddress>());
 
-            InetSocketAddress to = new InetSocketAddress("localhost", port2);
+            InetSocketAddress to = new InetSocketAddress("localhost", port1);
             byte[] data = "HIEVERYBODY! :)".getBytes();
             OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
-            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport1, outgoingMessage);
+            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport2, outgoingMessage);
 
             Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse.getData());
         } finally {
-            transport2.removeMessageListener(listener);
+            transport1.stop();
+            transport2.stop();
         }
     }
 
@@ -135,7 +136,8 @@ public final class UdpTransportTest {
         };
 
         try {
-            transport2.addMessageListener(listener);
+            transport1.start(new TerminateIncomingMessageListener<InetSocketAddress>());
+            transport2.start(new TerminateIncomingMessageListener<InetSocketAddress>());
 
             InetSocketAddress to = new InetSocketAddress("localhost", port2);
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -144,7 +146,8 @@ public final class UdpTransportTest {
 
             Assert.assertNull(incomingResponse);
         } finally {
-            transport2.removeMessageListener(listener);
+            transport1.stop();
+            transport2.stop();
         }
     }
 

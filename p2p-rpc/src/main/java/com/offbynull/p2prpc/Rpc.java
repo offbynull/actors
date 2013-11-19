@@ -1,5 +1,6 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.transport.IncomingMessageListener;
 import com.offbynull.p2prpc.transport.Transport;
 import com.offbynull.p2prpc.transport.tcp.TcpTransport;
 import com.offbynull.p2prpc.transport.udp.UdpTransport;
@@ -14,7 +15,7 @@ public final class Rpc implements Closeable {
     
     private Transport<InetSocketAddress> transport;
 
-    private ServiceServer<InetSocketAddress> serviceServer;
+    private ServiceRouter<InetSocketAddress> serviceRouter;
     private ServiceAccessor<InetSocketAddress> serviceAccessor;
 
     public Rpc() throws IOException {
@@ -27,27 +28,24 @@ public final class Rpc implements Closeable {
         try {
             switch (conf.getType()) {
                 case TCP: {
-                    TcpTransport tcpTransport = new TcpTransport(conf.getTcpListenAddress(), conf.getTcpReadLimit(),
+                    transport = new TcpTransport(conf.getTcpListenAddress(), conf.getTcpReadLimit(),
                             conf.getTcpWriteLimit(), conf.getTcpTimeout());
-                    tcpTransport.start();
-                    transport = tcpTransport;
                     break;
                 }
                 case UDP: {
-                    UdpTransport udpTransport = new UdpTransport(conf.getUdpListenAddress(), conf.getUdpBufferSize(), conf.getUdpIdCache(),
+                    transport = new UdpTransport(conf.getUdpListenAddress(), conf.getUdpBufferSize(), conf.getUdpIdCache(),
                             conf.getUdpTimeout());
-                    udpTransport.start();
-                    transport = udpTransport;
                     break;
                 }
                 default:
                     throw new IllegalArgumentException();
             }
 
-            serviceServer = new ServiceServer<>(transport, conf.getInvokerExecutorService());
+            serviceRouter = new ServiceRouter<>(conf.getInvokerExecutorService());
             serviceAccessor = new ServiceAccessor<>(transport);
             
-            serviceServer.start();
+            IncomingMessageListener<InetSocketAddress> listener = serviceRouter.getIncomingMessageListener();
+            transport.start(listener);
             
             closed = false;
         } catch (IOException | RuntimeException ex) {
@@ -57,28 +55,12 @@ public final class Rpc implements Closeable {
         }
     }
 
-    private void stopTransport() throws IOException {
-        if (transport instanceof TcpTransport) {
-            ((TcpTransport) transport).stop();
-        } else if (transport instanceof UdpTransport) {
-            ((UdpTransport) transport).stop();
-        } else {
-            throw new IllegalStateException();
-        }
-    }
-
     @Override
     public void close() {
         closed = true;
-        
-        try {
-            serviceServer.stop();
-        } catch (Exception ex) {
-            // do nothing
-        }
 
         try {
-            stopTransport();
+            transport.stop();
         } catch (Exception ex) {
             // do nothing
         }
@@ -89,7 +71,7 @@ public final class Rpc implements Closeable {
             throw new IllegalStateException();
         }
         
-        serviceServer.addService(id, object);
+        serviceRouter.addService(id, object);
     }
 
     public void removeService(int id) {
@@ -97,7 +79,7 @@ public final class Rpc implements Closeable {
             throw new IllegalStateException();
         }
         
-        serviceServer.removeService(id);
+        serviceRouter.removeService(id);
     }
 
     public <T> T accessService(InetSocketAddress address, int serviceId, Class<T> type) {

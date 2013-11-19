@@ -8,8 +8,6 @@ import com.offbynull.p2prpc.transport.IncomingMessage;
 import com.offbynull.p2prpc.transport.IncomingMessageListener;
 import com.offbynull.p2prpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.p2prpc.transport.OutgoingResponse;
-import com.offbynull.p2prpc.transport.Transport;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,7 +19,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
-public final class ServiceServer<A> {
+public final class ServiceRouter<A> {
     private static final int LISTER_SERVICE_ID = 0;
     
     private ReadWriteLock lock;
@@ -30,61 +28,32 @@ public final class ServiceServer<A> {
     private Map<Integer, String> serviceNameMap;
     private ListerService listerService;
     
-    private Transport<A> transport;
     private ServerMessageToInvokeCallback messageListener;
     
     private Map<Integer, ServiceEntry> invokerMap;
     private ExecutorService executorService;
-    
-    private State state = State.UNKNOWN;
 
-    public ServiceServer(Transport<A> transport, ExecutorService executorService) {
-        Validate.notNull(transport);
+    public ServiceRouter(ExecutorService executorService) {
         Validate.notNull(executorService);
-        
-        this.transport = transport;
+    
         this.executorService = executorService;
         lock = new ReentrantReadWriteLock();
-    }
-    
-    public void start() throws IOException {
-        lock.writeLock().lock();
-        
-        try {
-            Validate.validState(state == State.UNKNOWN);
-            
-            invokerMap = new HashMap<>();
 
-            listedServiceSet = new TreeSet<>();
-            serviceNameMap = new HashMap<>();
-            
-            listerService = new ListerServiceImplementation(lock, Collections.unmodifiableSortedSet(listedServiceSet),
-                    Collections.unmodifiableMap(serviceNameMap));
-            
-            listedServiceSet.add(LISTER_SERVICE_ID);
-            serviceNameMap.put(LISTER_SERVICE_ID, ListerServiceImplementation.class.getName());
-
-            invokerMap.put(LISTER_SERVICE_ID, new ServiceEntry(LISTER_SERVICE_ID, listerService));
-    
-            messageListener = new ServerMessageToInvokeCallback();
-            transport.addMessageListener(messageListener);
-        } finally {
-            state = State.STARTED;
-            lock.writeLock().unlock();
-        }
-    }
-    
-    
-    public void stop() throws IOException {
-        lock.writeLock().lock();
         
-        try {
-            Validate.validState(state == State.STARTED);
-            transport.removeMessageListener(messageListener);
-        } finally {
-            state = State.STOPPED;
-            lock.writeLock().unlock();
-        }        
+        invokerMap = new HashMap<>();
+
+        listedServiceSet = new TreeSet<>();
+        serviceNameMap = new HashMap<>();
+
+        listerService = new ListerServiceImplementation(lock, Collections.unmodifiableSortedSet(listedServiceSet),
+                Collections.unmodifiableMap(serviceNameMap));
+
+        listedServiceSet.add(LISTER_SERVICE_ID);
+        serviceNameMap.put(LISTER_SERVICE_ID, ListerServiceImplementation.class.getName());
+
+        invokerMap.put(LISTER_SERVICE_ID, new ServiceEntry(LISTER_SERVICE_ID, listerService));
+
+        messageListener = new ServerMessageToInvokeCallback();
     }
     
     public void addService(int id, Object object) {
@@ -93,7 +62,6 @@ public final class ServiceServer<A> {
         
         lock.writeLock().lock();
         try {
-            Validate.validState(state == State.STARTED);
             Validate.isTrue(!invokerMap.containsKey(id));
             invokerMap.put(id, new ServiceEntry(id, object));
             serviceNameMap.put(id, object.getClass().getName());
@@ -108,13 +76,16 @@ public final class ServiceServer<A> {
         
         lock.writeLock().lock();
         try {
-            Validate.validState(state == State.STARTED);
             invokerMap.remove(id);
             serviceNameMap.remove(id);
             listedServiceSet.remove(id);
         } finally {
             lock.writeLock().unlock();
         }
+    }
+    
+    IncomingMessageListener<A> getIncomingMessageListener() {
+        return messageListener;
     }
     
     private final class ServiceEntry {
@@ -195,11 +166,5 @@ public final class ServiceServer<A> {
             OutgoingResponse response = new OutgoingResponse(data);
             serverCallback.responseReady(response);
         }
-    }
-    
-    private enum State {
-        UNKNOWN,
-        STARTED,
-        STOPPED
     }
 }

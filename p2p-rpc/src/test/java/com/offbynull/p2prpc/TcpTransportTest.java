@@ -54,8 +54,6 @@ public final class TcpTransportTest {
 
     @After
     public void tearDown() throws IOException {
-        transport1.stop();
-        transport2.stop();
     }
 
     @Test
@@ -144,12 +142,17 @@ public final class TcpTransportTest {
 
     @Test
     public void noResponseTcpTest() throws Throwable {
-        InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
-        byte[] data = "HIEVERYBODY! :)".getBytes();
-        OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
+        try {
+            transport2.start(new TerminateIncomingMessageListener<InetSocketAddress>());
+            InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);
 
-        IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport2, outgoingMessage);
-        
-        Assert.assertNull(incomingResponse);
+            IncomingResponse<InetSocketAddress> incomingResponse = TransportHelper.sendAndWait(transport2, outgoingMessage);
+
+            Assert.assertNull(incomingResponse);
+        } finally {
+            transport2.stop();
+        }
     }
 }

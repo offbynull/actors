@@ -44,12 +44,12 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
 
     private Lock accessLock;
 
-    public TcpTransport(int readLimit, int writeLimit, long connectionTimeout) throws IOException {
-        this(null, readLimit, writeLimit, connectionTimeout);
+    public TcpTransport(int readLimit, int writeLimit, long timeout) throws IOException {
+        this(null, readLimit, writeLimit, timeout);
     }
 
-    public TcpTransport(int port, int readLimit, int writeLimit, long connectionTimeout) throws IOException {
-        this(new InetSocketAddress(port), readLimit, writeLimit, connectionTimeout);
+    public TcpTransport(int port, int readLimit, int writeLimit, long timeout) throws IOException {
+        this(new InetSocketAddress(port), readLimit, writeLimit, timeout);
     }
 
     public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit, long timeout) throws IOException {

@@ -13,14 +13,14 @@ import org.junit.Test;
 
 public class RpcTest {
 
-    private static Rpc rpcSystem;
+    private static Rpc<InetSocketAddress> rpcSystem;
 
     public RpcTest() {
     }
 
     @BeforeClass
     public static void setUpClass() throws Throwable {
-        rpcSystem = new Rpc();
+        rpcSystem = new Rpc<>(new TcpTransportFactory());
     }
 
     @AfterClass

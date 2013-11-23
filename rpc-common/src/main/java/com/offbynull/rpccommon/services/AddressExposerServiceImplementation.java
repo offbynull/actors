@@ -1,4 +1,4 @@
-package com.offbynull.rpc.common.services;
+package com.offbynull.rpccommon.services;
 
 import com.offbynull.rpc.RpcInvokeKeys;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;

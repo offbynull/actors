@@ -1,4 +1,4 @@
-package com.offbynull.rpc.common.services;
+package com.offbynull.rpc;
 
 import java.util.Collections;
 import java.util.List;

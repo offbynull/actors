@@ -1,4 +1,4 @@
-package com.offbynull.rpc.common.services;
+package com.offbynull.rpc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.SortedSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
-public final class ListerServiceImplementation implements ListerService {
+final class ListerServiceImplementation implements ListerService {
     private ReadWriteLock lock;
     private SortedSet<Integer> serviceIdSet;
     private Map<Integer, String> serviceNameMap;

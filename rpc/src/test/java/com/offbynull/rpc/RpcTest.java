@@ -3,7 +3,6 @@ package com.offbynull.rpc;
 import com.offbynull.rpc.Rpc;
 import com.offbynull.rpc.TcpTransportFactory;
 import com.offbynull.rpc.RpcInvokeKeys;
-import com.offbynull.rpc.common.services.ListerService;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;
 import java.net.InetSocketAddress;
 import java.util.Arrays;

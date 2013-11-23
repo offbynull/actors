@@ -1,4 +1,4 @@
-package com.offbynull.rpc.common.services;
+package com.offbynull.rpccommon.services;
 
 public interface AddressExposerService {
     String getCallingAddress();

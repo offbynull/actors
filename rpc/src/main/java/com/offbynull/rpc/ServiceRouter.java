@@ -1,7 +1,5 @@
 package com.offbynull.rpc;
 
-import com.offbynull.rpc.common.services.ListerService;
-import com.offbynull.rpc.common.services.ListerServiceImplementation;
 import com.offbynull.rpc.invoke.Invoker;
 import com.offbynull.rpc.invoke.InvokerCallback;
 import com.offbynull.rpc.transport.IncomingMessage;

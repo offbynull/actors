@@ -35,7 +35,7 @@ public class BlacklistIncomingMessageListenerTest {
     }
 
     @Test(expected = AddressInBlacklistException.class)
-    public void constructorBlacklistTest() {
+    public void constructorTest() {
         HashSet<Integer> initialBanList = new HashSet<>();
         initialBanList.add(5);
         
@@ -48,7 +48,7 @@ public class BlacklistIncomingMessageListenerTest {
     }
     
     @Test(expected = AddressInBlacklistException.class)
-    public void addedBlacklistTest() {
+    public void addedTest() {
         BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
         IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
         
@@ -60,7 +60,7 @@ public class BlacklistIncomingMessageListenerTest {
     }
 
     @Test
-    public void addedThenRemovedBlacklistTest() {
+    public void addedThenRemovedTest() {
         BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
         IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
         
@@ -73,7 +73,20 @@ public class BlacklistIncomingMessageListenerTest {
     }
 
     @Test
-    public void neverAddedBlacklistTest() {
+    public void addedThenClearedTest() {
+        BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
+        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        
+        blacklistFilter.addAddress(5);
+        blacklistFilter.clear();
+        
+        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
+        
+        blacklistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+    }
+
+    @Test
+    public void neverAddedTest() {
         BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
         IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
         

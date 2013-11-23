@@ -8,9 +8,9 @@
     <name>peernetic</name>
     
     <modules>
-        <module>p2p-tools</module>
+    <module>p2p-tools</module>
     <module>basic-chord</module>
-    <module>p2p-rpc</module>
+    <module>rpc</module>
   </modules>
     
     <dependencyManagement>

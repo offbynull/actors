@@ -19,7 +19,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
-public final class ServiceRouter<A> {
+final class ServiceRouter<A> {
     private static final int LISTER_SERVICE_ID = 0;
     
     private ReadWriteLock lock;
@@ -31,12 +31,23 @@ public final class ServiceRouter<A> {
     private ServerMessageToInvokeCallback messageListener;
     
     private Map<Integer, ServiceEntry> invokerMap;
+    
     private ExecutorService executorService;
+    private Map<? extends Object, ? extends Object> extraInvokeInfo;
+    private Rpc rpc;
+    
 
-    public ServiceRouter(ExecutorService executorService) {
+    public ServiceRouter(ExecutorService executorService, Rpc<A> rpc, Map<? extends Object, ? extends Object> extraInvokeDataMap) {
         Validate.notNull(executorService);
+        Validate.notNull(rpc);
+        Validate.notNull(extraInvokeDataMap);
     
         this.executorService = executorService;
+        this.rpc = rpc;
+        this.extraInvokeInfo = extraInvokeDataMap;
+        
+        
+        
         lock = new ReentrantReadWriteLock();
 
         
@@ -137,8 +148,10 @@ public final class ServiceRouter<A> {
             byte[] dataWithoutId = new byte[buffer.remaining()];
             buffer.get(dataWithoutId);
             
-            Map<RpcInvokeKeys, Object> invokeInfo = new HashMap<>();
+            Map<Object, Object> invokeInfo = new HashMap<>();
             invokeInfo.put(RpcInvokeKeys.FROM_ADDRESS, from);
+            invokeInfo.put(RpcInvokeKeys.RPC, rpc);
+            invokeInfo.putAll(extraInvokeInfo);
             
             Invoker invoker = serviceEntry.getInvoker();
             invoker.invoke(dataWithoutId, new InvokeResponseToServerResponseCallback(responseCallback), invokeInfo);

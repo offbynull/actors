@@ -9,16 +9,16 @@ import org.apache.commons.lang3.Validate;
 public final class Rpc<A> implements Closeable {
 
     private boolean closed;
-    
+
     private Transport<A> transport;
 
     private ServiceRouter<A> serviceRouter;
     private ServiceAccessor<A> serviceAccessor;
-
+    
     public Rpc(TransportFactory<A> transportFactory) throws IOException {
         this(transportFactory, new RpcConfig<A>());
     }
-    
+
     public Rpc(TransportFactory<A> transportFactory, RpcConfig<A> conf) throws IOException {
         Validate.notNull(conf);
         Validate.notNull(transportFactory);
@@ -26,9 +26,9 @@ public final class Rpc<A> implements Closeable {
         try {
             transport = transportFactory.createTransport();
 
-            serviceRouter = new ServiceRouter<>(conf.getInvokerExecutorService());
+            serviceRouter = new ServiceRouter<>(conf.getInvokerExecutorService(), this, conf.getExtraInvokeInfo());
             serviceAccessor = new ServiceAccessor<>(transport);
-            
+
             IncomingMessageListener<A> listener = serviceRouter.getIncomingMessageListener();
             transport.start(listener);
             
@@ -55,7 +55,7 @@ public final class Rpc<A> implements Closeable {
         if (closed) {
             throw new IllegalStateException();
         }
-        
+
         serviceRouter.addService(id, object);
     }
 
@@ -63,7 +63,7 @@ public final class Rpc<A> implements Closeable {
         if (closed) {
             throw new IllegalStateException();
         }
-        
+
         serviceRouter.removeService(id);
     }
 
@@ -71,7 +71,7 @@ public final class Rpc<A> implements Closeable {
         if (closed) {
             throw new IllegalStateException();
         }
-        
+
         return serviceAccessor.accessService(address, serviceId, type);
     }
 
@@ -79,7 +79,7 @@ public final class Rpc<A> implements Closeable {
         if (closed) {
             throw new IllegalStateException();
         }
-        
+
         return serviceAccessor.accessService(address, serviceId, type, timeout);
     }
 
@@ -88,7 +88,7 @@ public final class Rpc<A> implements Closeable {
         if (closed) {
             throw new IllegalStateException();
         }
-        
+
         return serviceAccessor.accessService(address, serviceId, type, timeout, throwOnCommFailure, throwOnInvokeFailure);
     }
 }

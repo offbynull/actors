@@ -9,7 +9,7 @@ import com.offbynull.p2prpc.transport.TransportHelper;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-public final class ServiceAccessor<A> {
+final class ServiceAccessor<A> {
     private Transport<A> transport;
 
     public ServiceAccessor(Transport<A> transport) {

@@ -13,6 +13,10 @@ public final class WhitelistIncomingMessageListener<A> implements IncomingMessag
 
     private Set<A> allowedSet;
 
+    public WhitelistIncomingMessageListener() {
+        this(Collections.<A>emptySet());
+    }
+    
     public WhitelistIncomingMessageListener(Set<A> disallowedSet) {
         Validate.noNullElements(disallowedSet);
 

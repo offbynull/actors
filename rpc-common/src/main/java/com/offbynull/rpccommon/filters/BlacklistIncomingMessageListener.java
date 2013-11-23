@@ -12,6 +12,10 @@ import org.apache.commons.lang3.Validate;
 public final class BlacklistIncomingMessageListener<A> implements IncomingMessageListener<A> {
     private Set<A> disallowedSet;
 
+    public BlacklistIncomingMessageListener() {
+        this(Collections.<A>emptySet());
+    }
+    
     public BlacklistIncomingMessageListener(Set<A> disallowedSet) {
         Validate.noNullElements(disallowedSet);
         

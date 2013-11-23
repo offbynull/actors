@@ -11,6 +11,7 @@
     <module>p2p-tools</module>
     <module>basic-chord</module>
     <module>rpc</module>
+    <module>rpc-common</module>
   </modules>
     
     <dependencyManagement>

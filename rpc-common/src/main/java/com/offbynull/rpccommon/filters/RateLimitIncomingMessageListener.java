@@ -55,10 +55,11 @@ public final class RateLimitIncomingMessageListener<A> implements IncomingMessag
             }
 
             state.incrementHitCount();
-            if (state.getHitCount() >= maxHit) {
+            if (state.getHitCount() > maxHit) {
                 state.ignore();
                 addressLookup.remove(from);
                 bannedLookup.add(from);
+                throw new AddressBannedException();
             }
         } finally {
             lock.unlock();
@@ -78,7 +79,7 @@ public final class RateLimitIncomingMessageListener<A> implements IncomingMessag
     private void clearExceededDurations(long currentTime) {
         State<A> state;
         while ((state = durationQueue.peek()) != null) {
-            if (state.isIgnore() || state.getStartTime() + maxDuration >= currentTime) {
+            if (state.isIgnore() || state.getStartTime() + maxDuration <= currentTime) {
                 durationQueue.poll();
                 addressLookup.remove(state.getAddress());
             } else {

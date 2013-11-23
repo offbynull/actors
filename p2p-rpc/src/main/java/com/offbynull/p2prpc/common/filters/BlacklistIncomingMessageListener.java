@@ -34,6 +34,10 @@ public final class BlacklistIncomingMessageListener<A> implements IncomingMessag
     public void removeAddresses(Collection<? extends A> c) {
         disallowedSet.removeAll(c);
     }
+
+    public void clear() {
+        disallowedSet.clear();
+    }
     
     @Override
     public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {

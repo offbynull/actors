@@ -1,9 +1,12 @@
 package com.offbynull.p2prpc;
 
+import com.offbynull.p2prpc.transport.CompositeIncomingMessageListener;
 import com.offbynull.p2prpc.transport.IncomingMessageListener;
 import com.offbynull.p2prpc.transport.Transport;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class Rpc<A> implements Closeable {
@@ -29,7 +32,12 @@ public final class Rpc<A> implements Closeable {
             serviceRouter = new ServiceRouter<>(conf.getInvokerExecutorService(), this, conf.getExtraInvokeInfo());
             serviceAccessor = new ServiceAccessor<>(transport);
 
-            IncomingMessageListener<A> listener = serviceRouter.getIncomingMessageListener();
+            List<IncomingMessageListener<A>> incomingMessageListeners = new ArrayList<>();
+            incomingMessageListeners.addAll(conf.getPreIncomingMessageFilters());
+            incomingMessageListeners.add(serviceRouter.getIncomingMessageListener());
+            incomingMessageListeners.addAll(conf.getPostIncomingMessageFilters());
+            
+            IncomingMessageListener<A> listener = new CompositeIncomingMessageListener<>(incomingMessageListeners);
             transport.start(listener);
             
             closed = false;

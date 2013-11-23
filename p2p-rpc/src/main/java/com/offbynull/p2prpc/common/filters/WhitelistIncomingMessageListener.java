@@ -36,6 +36,10 @@ public final class WhitelistIncomingMessageListener<A> implements IncomingMessag
         allowedSet.removeAll(c);
     }
 
+    public void clear() {
+        allowedSet.clear();
+    }
+
     @Override
     public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {
         A from = message.getFrom();

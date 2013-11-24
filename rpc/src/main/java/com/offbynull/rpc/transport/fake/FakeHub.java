@@ -189,6 +189,8 @@ public final class FakeHub<A> {
                             // do nothing
                         }
                     }
+                    
+                    line.unqueue(packets);
                 }
                 
                 stoppedCondition.signal();
@@ -213,12 +215,5 @@ public final class FakeHub<A> {
         UNKNOWN,
         STARTED,
         STOPPED
-    }
-    
-    public static void main(String[] args) throws Throwable {
-        FakeHub<Integer> fakeHub = new FakeHub<>(new PerfectLine<Integer>());
-        fakeHub.start();
-        Thread.sleep(5000L);
-        fakeHub.stop();
     }
 }

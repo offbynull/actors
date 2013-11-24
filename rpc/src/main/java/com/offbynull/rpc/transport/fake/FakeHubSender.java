@@ -1,6 +1,7 @@
 package com.offbynull.rpc.transport.fake;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.concurrent.locks.Condition;
@@ -43,9 +44,9 @@ public final class FakeHubSender<A> {
                 return;
             }
             
-            LineResult result = line.process(from, to, data);
+            List<Packet<A>> result = line.queue(from, to, data);
             
-            transitPacketQueue.addAll(result.getPackets());
+            transitPacketQueue.addAll(result);
             condition.signal();
             System.out.println("signalled");
         } finally {

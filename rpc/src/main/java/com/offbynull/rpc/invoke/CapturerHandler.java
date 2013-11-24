@@ -2,7 +2,7 @@ package com.offbynull.rpc.invoke;
 
 /**
  * Interface called by methods of proxy objects generated through
- * {@link Capturer#createInstance(com.offbynull.rpc.invoke.CapturerCallback) }.
+ * {@link Capturer#createInstance(com.offbynull.rpc.invoke.CapturerHandler) }.
  * @author Kasra F
  */
 public interface CapturerHandler {

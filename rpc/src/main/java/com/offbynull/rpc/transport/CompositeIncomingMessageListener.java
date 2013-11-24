@@ -12,6 +12,10 @@ import org.apache.commons.lang3.Validate;
 public final class CompositeIncomingMessageListener<A> implements IncomingMessageListener<A> {
     private List<IncomingMessageListener<A>> listeners;
 
+    /**
+     * Constructs a {@link CompositeIncomingMessageListener}.
+     * @param listeners listener chain
+     */
     public CompositeIncomingMessageListener(List<IncomingMessageListener<A>> listeners) {
         Validate.noNullElements(listeners);
         

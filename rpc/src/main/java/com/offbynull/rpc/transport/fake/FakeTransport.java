@@ -18,6 +18,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A {@link Transport} used for testing. Backed by a {@link FakeHub}.
+ * @author User
+ * @param <A> 
+ */
 public final class FakeTransport<A> implements Transport<A> {
 
     private static final byte SEND_MARKER = 0;
@@ -35,6 +40,14 @@ public final class FakeTransport<A> implements Transport<A> {
     private Map<Integer, PendingResponse> responseIdMap;
     private long timeout;
 
+    /**
+     * Constructs a {@link FakeTransport} object.
+     * @param address this object's address
+     * @param hub hub to connect to
+     * @param timeout timeout
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code timeout < 1L} 
+     */
     public FakeTransport(A address, FakeHub<A> hub, long timeout) {
         Validate.notNull(address);
         Validate.notNull(hub);
@@ -143,7 +156,7 @@ public final class FakeTransport<A> implements Transport<A> {
     private final class CustomFakeHubReceiver implements FakeHubReceiver<A> {
 
         @Override
-        public void incoming(Packet<A> packet) {
+        public void incoming(Message<A> packet) {
             A from = packet.getFrom();
             ByteBuffer data = packet.getData();
             byte marker = data.get();

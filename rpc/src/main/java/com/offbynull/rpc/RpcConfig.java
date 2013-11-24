@@ -12,6 +12,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * RPC configuration.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class RpcConfig<A> {
     
     private ExecutorService invokerExecutorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1, TimeUnit.SECONDS,

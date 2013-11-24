@@ -8,6 +8,10 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A filter that compresses/uncompresses using gzip.
+ * @author Kasra F
+ */
 public class CompressionFilter implements Filter {
 
     @Override

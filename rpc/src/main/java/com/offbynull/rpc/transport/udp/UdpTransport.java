@@ -25,6 +25,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A UDP transport implementation.
+ * @author Kasra F
+ */
 public final class UdpTransport implements Transport<InetSocketAddress> {
     
     private InetSocketAddress listenAddress;
@@ -39,10 +43,29 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
     private EventLoop eventLoop;
     private Lock accessLock;
 
+    /**
+     * Constructs a {@link UdpTransport} object.
+     * @param port port to listen on
+     * @param bufferSize buffer size
+     * @param cacheSize number of packet ids to cache
+     * @param timeout timeout duration
+     * @throws IOException on error
+     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
+     */
     public UdpTransport(int port, int bufferSize, int cacheSize, long timeout) throws IOException {
         this(new InetSocketAddress(port), bufferSize, cacheSize, timeout);
     }
 
+    /**
+     * Constructs a {@link UdpTransport} object.
+     * @param listenAddress address to listen on
+     * @param bufferSize buffer size
+     * @param cacheSize number of packet ids to cache
+     * @param timeout timeout duration
+     * @throws IOException on error
+     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long timeout) throws IOException {
         Validate.notNull(listenAddress);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, bufferSize);

@@ -6,6 +6,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Creates a {@link TcpTransport} based on properties in this class.
+ * @author Kasra F
+ */
 public final class TcpTransportFactory implements TransportFactory<InetSocketAddress> {
     private int readLimit = 65535;
     private int writeLimit = 65535;

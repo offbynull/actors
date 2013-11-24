@@ -10,11 +10,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
+/**
+ * Invokes methods on an object based on serialized data. See {@link Capturer}.
+ * @author Kasra F
+ */
 public final class Invoker implements Closeable {
 
     private Object object;
@@ -24,14 +27,14 @@ public final class Invoker implements Closeable {
     private List<Filter> inFilters;
     private List<Filter> outFilters;
 
-    public Invoker(Object object) {
-        this(object, null);
-    }
 
-    public Invoker(Object object, int threadSize) {
-        this(object, Executors.newFixedThreadPool(threadSize));
-    }
-
+    /**
+     * Constructs an {@link Invoker} object with {@link XStreamBinarySerializerDeserializer} for serialization and {@link CompressionFilter}
+     * for filters.
+     * @param object object to invoke on
+     * @param executor executor to use for invokations
+     * @throws NullPointerException if {@code object} is {@code null}
+     */
     public Invoker(Object object, ExecutorService executor) {
         this(object, executor,
                 new XStreamBinarySerializerDeserializer(),
@@ -40,6 +43,17 @@ public final class Invoker implements Closeable {
                 new Filter[] { new CompressionFilter() });
     }
     
+    /**
+     * Constructs a {@link Invoker} object.
+     * @param object object to invoke on
+     * @param executor executor to use for invokations
+     * @param serializer serializer to use for invokation data
+     * @param deserializer serializer to use for result data
+     * @param inFilters filters serialized invokation data
+     * @param outFilters filters serialized result data
+     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any arrays/collections contain
+     * {@code null}
+     */
     public Invoker(Object object, ExecutorService executor,
             Serializer serializer, Deserializer deserializer,
             Filter[] inFilters, Filter[] outFilters) {
@@ -57,11 +71,24 @@ public final class Invoker implements Closeable {
         this.outFilters = new ArrayList<>(Arrays.asList(outFilters));
     }
     
-    public void invoke(final byte[] data, final InvokerCallback callback) {
+    /**
+     * Invoke a method.
+     * @param data serialized invokation data
+     * @param callback listener
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public void invoke(final byte[] data, final InvokerListener callback) {
         invoke(data, callback, Collections.emptyMap());
     }
     
-    public void invoke(final byte[] data, final InvokerCallback callback, Map<? extends Object, ? extends Object> info) {
+    /**
+     * Invoke a method.
+     * @param data serialized invokation data
+     * @param callback listener
+     * @param info extra information to pass in to invokation
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public void invoke(final byte[] data, final InvokerListener callback, Map<? extends Object, ? extends Object> info) {
         Validate.notNull(data);
         Validate.notNull(callback);
         Validate.notNull(info);

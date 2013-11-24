@@ -12,9 +12,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A hub that pipes messages between {@link FakeTransport}s.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class FakeHub<A> {
 
-    private PriorityQueue<Packet<A>> transitPacketQueue;
+    private PriorityQueue<Message<A>> transitPacketQueue;
     private Map<A, FakeEndpoint<A>> addressMap;
     private Line<A> line;
     
@@ -29,6 +34,11 @@ public final class FakeHub<A> {
     
     State state;
 
+    /**
+     * Construct a {@link FakeHub} object.
+     * @param line line to use
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public FakeHub(Line<A> line) {
         Validate.notNull(line);
 
@@ -47,6 +57,11 @@ public final class FakeHub<A> {
         state = State.UNKNOWN;
     }
 
+    /**
+     * Start.
+     * @throws IOException on error
+     * @throws IllegalStateException if already started
+     */
     public void start() throws IOException {
         lock.lock();
         try {
@@ -61,6 +76,10 @@ public final class FakeHub<A> {
         }
     }
 
+    /**
+     * Stop.
+     * @throws IllegalStateException if not started
+     */
     public void stop() {
         lock.lock();
         try {
@@ -75,7 +94,15 @@ public final class FakeHub<A> {
         }
     }
 
-    public FakeHubSender<A> addEndpoint(A address, FakeHubReceiver<A> receiver) {
+    /**
+     * Add an endpoint to the hub.
+     * @param address endpoint address
+     * @param receiver receiver that receives messages from the hub to {@code address}
+     * @return an object to send messages to the hub from {@code address}
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if not started
+     */
+    FakeHubSender<A> addEndpoint(A address, FakeHubReceiver<A> receiver) {
         Validate.notNull(address);
         Validate.notNull(receiver);
 
@@ -91,7 +118,13 @@ public final class FakeHub<A> {
         }
     }
 
-    public void removeEndpoint(A address) {
+    /**
+     * Remove an endpoint from the hub.
+     * @param address endpoint address
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if not started
+     */
+    void removeEndpoint(A address) {
         Validate.notNull(address);
 
         lock.lock();
@@ -103,6 +136,13 @@ public final class FakeHub<A> {
         }
     }
 
+    /**
+     * Activates an endpoint from the hub. Call this after adding.
+     * @param address endpoint address
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if not started
+     * @throws IllegalArgumentException if {@code address} does not exist as an endpoint on the hub
+     */
     void activateEndpoint(A address) {
         Validate.notNull(address);
 
@@ -134,7 +174,7 @@ public final class FakeHub<A> {
                     
                     long time = System.currentTimeMillis();
 
-                    List<Packet<A>> packets = new LinkedList<>();
+                    List<Message<A>> packets = new LinkedList<>();
                     FakeEndpoint<A> dest;
 
                     if (transitPacketQueue.isEmpty()) {
@@ -147,7 +187,7 @@ public final class FakeHub<A> {
                         System.out.println("work up " + stop);
                         continue;
                     } else {
-                        Packet<A> topPacket = transitPacketQueue.peek();
+                        Message<A> topPacket = transitPacketQueue.peek();
                         
                         long topClosestArriveTime = topPacket.getArriveTime();
                         long topWaitTime = topClosestArriveTime - time;
@@ -164,7 +204,7 @@ public final class FakeHub<A> {
                         }
                         
                         
-                        Packet<A> packet;
+                        Message<A> packet;
                         while ((packet = transitPacketQueue.peek()) != null) {
                             long closestArriveTime = packet.getArriveTime();
                             long waitTime = closestArriveTime - time;                            
@@ -177,7 +217,7 @@ public final class FakeHub<A> {
                     }
 
                     
-                    for (Packet<A> packet : packets) {
+                    for (Message<A> packet : packets) {
                         dest = addressMap.get(packet.getTo());
                         if (dest == null || !dest.isActive()) {
                             continue;

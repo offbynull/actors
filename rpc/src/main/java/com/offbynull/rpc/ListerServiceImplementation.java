@@ -7,11 +7,21 @@ import java.util.SortedSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * {@link ListerService} implementation.
+ * @author Kasra F
+ */
 final class ListerServiceImplementation implements ListerService {
     private ReadWriteLock lock;
     private SortedSet<Integer> serviceIdSet;
     private Map<Integer, String> serviceNameMap;
 
+    /**
+     * Constructs a {@link ListerServiceImplementation} object.
+     * @param lock lock to use for accessing {@code serviceIdSet} and {@code serviceNameMap}
+     * @param serviceIdSet ids of services available
+     * @param serviceNameMap names of services available (key = id)
+     */
     public ListerServiceImplementation(ReadWriteLock lock, SortedSet<Integer> serviceIdSet, Map<Integer, String> serviceNameMap) {
         Validate.notNull(lock);
         Validate.notNull(serviceIdSet);
@@ -24,10 +34,6 @@ final class ListerServiceImplementation implements ListerService {
 
     @Override
     public Services listServices(int from, int to) {
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, from);
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, to);
-        Validate.isTrue(from <= to);
-        
         lock.readLock().lock();
         
         try {
@@ -36,6 +42,9 @@ final class ListerServiceImplementation implements ListerService {
             
             from = Math.min(from, total);
             to = Math.min(to, total);
+
+            from = Math.max(from, 0);
+            to = Math.min(to, 0);
             
             list.subList(from, to);
             

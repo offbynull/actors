@@ -2,10 +2,10 @@ package com.offbynull.rpc.transport.fake;
 
 import java.util.Comparator;
 
-final class PacketArriveTimeComparator implements Comparator<Packet> {
+final class MessageArriveTimeComparator implements Comparator<Message> {
 
     @Override
-    public int compare(Packet o1, Packet o2) {
+    public int compare(Message o1, Message o2) {
         return Long.compare(o1.getArriveTime(), o2.getArriveTime());
     }
     

@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * An interface to send, receive, and reply to messages over a network. Implementations must be thread-safe.
  * @author Kasra F
- * @param <A> address
+ * @param <A> address type
  */
 public interface Transport<A> {
     /**
@@ -25,9 +25,11 @@ public interface Transport<A> {
     void stop() throws IOException;
     
     /**
-     * Queues a message to be sent out. The behaviour of this method is undefined if the transport isn't in a started state.
+     * Queues a message to be sent out. The behaviour of this method is undefined if the transport isn't in a started state. Implementations
+     * of this method must not block.
      * @param message message contents and recipient
      * @param listener handles message responses
+     * @throws NullPointerException if any arguments are {@code null}
      */
     void sendMessage(OutgoingMessage<A> message, OutgoingMessageResponseListener<A> listener);
 }

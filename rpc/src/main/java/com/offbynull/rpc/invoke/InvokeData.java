@@ -4,6 +4,10 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
+/**
+ * Method invokation details. Contains the method name, arguments, and parameter types of the method being invoked.
+ * @author Kasra F
+ */
 public final class InvokeData {
     private String methodName;
     private Pair<Object, String>[] arguments;

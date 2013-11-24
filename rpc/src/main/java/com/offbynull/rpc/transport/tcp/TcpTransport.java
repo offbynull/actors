@@ -27,6 +27,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A TCP transport implementation.
+ * @author Kasra F
+ */
 public final class TcpTransport implements Transport<InetSocketAddress> {
 
     private InetSocketAddress listenAddress;
@@ -44,18 +48,33 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
 
     private Lock accessLock;
 
-    public TcpTransport(int readLimit, int writeLimit, long timeout) throws IOException {
-        this(null, readLimit, writeLimit, timeout);
-    }
 
+    /**
+     * Constructs a {@link TcpTransport} object.
+     * @param port port to listen on
+     * @param readLimit read limit
+     * @param writeLimit write limit
+     * @param timeout timeout duration
+     * @throws IOException on error
+     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
+     */
     public TcpTransport(int port, int readLimit, int writeLimit, long timeout) throws IOException {
         this(new InetSocketAddress(port), readLimit, writeLimit, timeout);
     }
 
+    /**
+     * Constructs a {@link TcpTransport} object.
+     * @param listenAddress address to listen on
+     * @param readLimit read limit
+     * @param writeLimit write limit
+     * @param timeout timeout duration
+     * @throws IOException on error
+     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
+     */
     public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit, long timeout) throws IOException {
-        //Validate.notNull(listenAddress); // null = no server
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
+        Validate.notNull(listenAddress);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, readLimit);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, writeLimit);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
 
         this.listenAddress = listenAddress;
@@ -126,9 +145,7 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
             timeoutManager = new TimeoutManager(timeout);
             
             try {
-                if (listenAddress != null) {
-                    serverChannel = ServerSocketChannel.open();
-                }
+                serverChannel = ServerSocketChannel.open();
             } catch (RuntimeException | IOException e) {
                 IOUtils.closeQuietly(selector);
                 IOUtils.closeQuietly(serverChannel);
@@ -141,11 +158,9 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
             channelInfoMap = new HashMap<>();
             stop = new AtomicBoolean(false);
             try {
-                if (listenAddress != null) {
-                    serverChannel.configureBlocking(false);
-                    serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-                    serverChannel.socket().bind(listenAddress);
-                }
+                serverChannel.configureBlocking(false);
+                serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+                serverChannel.socket().bind(listenAddress);
             } catch (RuntimeException | IOException e) {
                 IOUtils.closeQuietly(selector);
                 IOUtils.closeQuietly(serverChannel);

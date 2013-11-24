@@ -1,14 +1,15 @@
 package com.offbynull.rpc;
 
 import com.offbynull.rpc.invoke.Capturer;
-import com.offbynull.rpc.invoke.CapturerCallback;
+import com.offbynull.rpc.invoke.CapturerHandler;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;
 import com.offbynull.rpc.invoke.Invoker;
-import com.offbynull.rpc.invoke.InvokerCallback;
+import com.offbynull.rpc.invoke.InvokerListener;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Exchanger;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -115,16 +116,16 @@ public final class InvokeTest {
 
     private FakeObject generateStub(FakeObject obj, final AtomicBoolean failFlag,
             final Map<? extends Object, ? extends Object> invokeInfo) {
-        final Invoker invoker = new Invoker(obj, 1);
+        final Invoker invoker = new Invoker(obj, Executors.newFixedThreadPool(1));
         Capturer<FakeObject> capturer = new Capturer<>(FakeObject.class);
         
-        FakeObject client = capturer.createInstance(new CapturerCallback() {
+        FakeObject client = capturer.createInstance(new CapturerHandler() {
 
             @Override
             public byte[] invokationTriggered(byte[] data) {
                 final Exchanger<byte[]> exchanger = new Exchanger<>();
 
-                invoker.invoke(data, new InvokerCallback() {
+                invoker.invoke(data, new InvokerListener() {
 
                     @Override
                     public void invokationFailed(Throwable t) {

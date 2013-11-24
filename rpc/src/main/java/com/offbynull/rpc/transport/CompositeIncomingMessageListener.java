@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A composite {@link IncomingMessageListener}.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class CompositeIncomingMessageListener<A> implements IncomingMessageListener<A> {
     private List<IncomingMessageListener<A>> listeners;
 

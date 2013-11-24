@@ -8,14 +8,14 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import org.apache.commons.lang3.Validate;
 
-public final class FakeHubSender<A> {
+final class FakeHubSender<A> {
     private Lock lock;
     private Condition condition;
-    private PriorityQueue<Packet<A>> transitPacketQueue;
+    private PriorityQueue<Message<A>> transitPacketQueue;
     private Map<A, FakeEndpoint<A>> addressMap;
     private Line<A> line;
 
-    FakeHubSender(Lock lock, Condition condition, PriorityQueue<Packet<A>> transitPacketQueue, Map<A, FakeEndpoint<A>> addressMap,
+    FakeHubSender(Lock lock, Condition condition, PriorityQueue<Message<A>> transitPacketQueue, Map<A, FakeEndpoint<A>> addressMap,
             Line<A> line) {
         Validate.notNull(lock);
         Validate.notNull(condition);
@@ -44,7 +44,7 @@ public final class FakeHubSender<A> {
                 return;
             }
             
-            List<Packet<A>> result = line.queue(from, to, data);
+            List<Message<A>> result = line.queue(from, to, data);
             
             transitPacketQueue.addAll(result);
             condition.signal();

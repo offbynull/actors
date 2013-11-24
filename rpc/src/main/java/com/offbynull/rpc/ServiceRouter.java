@@ -1,7 +1,7 @@
 package com.offbynull.rpc;
 
 import com.offbynull.rpc.invoke.Invoker;
-import com.offbynull.rpc.invoke.InvokerCallback;
+import com.offbynull.rpc.invoke.InvokerListener;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
@@ -157,7 +157,7 @@ final class ServiceRouter<A> {
         
     }
     
-    private final class InvokeResponseToServerResponseCallback implements InvokerCallback {
+    private final class InvokeResponseToServerResponseCallback implements InvokerListener {
         
         private IncomingMessageResponseHandler serverCallback;
 

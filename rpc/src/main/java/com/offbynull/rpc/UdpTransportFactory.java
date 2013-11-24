@@ -6,6 +6,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Creates a {@link UdpTransport} based on properties in this class.
+ * @author Kasra F
+ */
 public final class UdpTransportFactory implements TransportFactory<InetSocketAddress> {
     private int bufferSize = 65535;
     private int cacheSize = 4096;

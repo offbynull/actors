@@ -6,15 +6,20 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * A line implementation without any constraints or failures. Takes no time to transmit a message.
+ * @author User
+ * @param <A> 
+ */
 public final class PerfectLine<A> implements Line<A> {
 
     @Override
-    public List<Packet<A>> queue(A from, A to, ByteBuffer data) {
-        return new ArrayList<>(Arrays.asList(new Packet<>(from, to, data, 0L)));
+    public List<Message<A>> queue(A from, A to, ByteBuffer data) {
+        return new ArrayList<>(Arrays.asList(new Message<>(from, to, data, 0L)));
     }
 
     @Override
-    public void unqueue(Collection<Packet<A>> packets) {
+    public void unqueue(Collection<Message<A>> packets) {
     }
     
 }

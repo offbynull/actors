@@ -1,7 +1,7 @@
 package com.offbynull.rpc;
 
 import com.offbynull.rpc.invoke.Capturer;
-import com.offbynull.rpc.invoke.CapturerCallback;
+import com.offbynull.rpc.invoke.CapturerHandler;
 import com.offbynull.rpc.transport.IncomingResponse;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.Transport;
@@ -17,15 +17,6 @@ final class ServiceAccessor<A> {
         
         this.transport = transport;
     }
-
-    public <T> T accessService(A address, int serviceId, Class<T> type) {
-        return accessService(address, serviceId, type, 10000L);
-    }
-    
-    public <T> T accessService(A address, int serviceId, Class<T> type, long timeout) {
-        return accessService(address, serviceId, type, timeout, new RuntimeException("Comm failure"),
-                new RuntimeException("Invoke failure"));
-    }
     
     public <T> T accessService(final A address, final int serviceId, Class<T> type, final long timeout,
             final RuntimeException throwOnCommFailure, final RuntimeException throwOnInvokeFailure) {
@@ -37,7 +28,7 @@ final class ServiceAccessor<A> {
         
         
         Capturer<T> capturer = new Capturer<>(type);
-        T obj = capturer.createInstance(new CapturerCallback() {
+        T obj = capturer.createInstance(new CapturerHandler() {
 
             @Override
             public byte[] invokationTriggered(byte[] data) {

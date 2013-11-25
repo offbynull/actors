@@ -1,6 +1,10 @@
 package com.offbynull.rpc.transport;
 
+import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
@@ -59,5 +63,49 @@ public final class TransportHelper {
         }
         
         return (IncomingResponse<A>) resp;
+    }
+
+    /**
+     * Sends {@code message} through {@code transport} and closes {@code transport} when it finishes, times out, or an error occurs.
+     * @param <A> address type
+     * @param transport transport used to send {@code message}
+     * @param message message to send
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public static <A> void sendAndForget(final Transport<A> transport, OutgoingMessage<A> message) {
+        Validate.notNull(transport);
+        Validate.notNull(message);
+        
+        OutgoingMessageResponseListener<A> responseListener = new OutgoingMessageResponseListener<A>() {
+
+            @Override
+            public void responseArrived(IncomingResponse<A> response) {
+                try {
+                    transport.stop();
+                } catch (Exception e) {
+                    // do nothing
+                }
+            }
+
+            @Override
+            public void internalErrorOccurred(Throwable error) {
+                try {
+                    transport.stop();
+                } catch (Exception e) {
+                    // do nothing
+                }
+            }
+
+            @Override
+            public void timedOut() {
+                try {
+                    transport.stop();
+                } catch (Exception e) {
+                    // do nothing
+                }
+            }
+        };
+        
+        transport.sendMessage(message, responseListener);
     }
 }

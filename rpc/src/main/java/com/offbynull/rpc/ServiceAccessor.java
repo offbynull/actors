@@ -18,13 +18,12 @@ final class ServiceAccessor<A> {
         this.transport = transport;
     }
     
-    public <T> T accessService(final A address, final int serviceId, Class<T> type, final long timeout,
-            final RuntimeException throwOnCommFailure, final RuntimeException throwOnInvokeFailure) {
+    public <T> T accessService(final A address, final int serviceId, Class<T> type, final RuntimeException throwOnCommFailure,
+            final RuntimeException throwOnInvokeFailure) {
         Validate.notNull(address);
         Validate.notNull(type);
         Validate.notNull(throwOnCommFailure);
         Validate.notNull(throwOnInvokeFailure);
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
         
         Capturer<T> capturer = new Capturer<>(type);

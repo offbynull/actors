@@ -116,26 +116,7 @@ public final class Rpc<A> implements Closeable {
     public <T> T accessService(A address, int id, Class<T> type) {
         Validate.validState(!closed);
 
-        return serviceAccessor.accessService(address, id, type, 10000L, new RuntimeException("Comm failure"),
-                new RuntimeException("Invoke failure"));
-    }
-
-    /**
-     * Access a remote service. Throws a {@link RuntimeException} on communication/invokation failure.
-     * @param address destination address
-     * @param id service id
-     * @param type service type class
-     * @param timeout timeout
-     * @param <T> service type
-     * @return an object of type {@code type} that accesses the service at {@code id}
-     * @throws IllegalStateException if closed
-     * @throws IllegalArgumentException if {@code timeout < 1L} 
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    public <T> T accessService(A address, int id, Class<T> type, long timeout) {
-        Validate.validState(!closed);
-
-        return serviceAccessor.accessService(address, id, type, timeout, new RuntimeException("Comm failure"),
+        return serviceAccessor.accessService(address, id, type, new RuntimeException("Comm failure"),
                 new RuntimeException("Invoke failure"));
     }
 
@@ -144,7 +125,6 @@ public final class Rpc<A> implements Closeable {
      * @param address destination address
      * @param id service id
      * @param type service type class
-     * @param timeout timeout
      * @param throwOnCommFailure exception to throw on communication failure
      * @param throwOnInvokeFailure exception to throw on invokation failure
      * @param <T> service type
@@ -153,10 +133,10 @@ public final class Rpc<A> implements Closeable {
      * @throws IllegalArgumentException if {@code timeout < 1L} 
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public <T> T accessService(A address, int id, Class<T> type, long timeout,
-            RuntimeException throwOnCommFailure, RuntimeException throwOnInvokeFailure) {
+    public <T> T accessService(A address, int id, Class<T> type, RuntimeException throwOnCommFailure,
+            RuntimeException throwOnInvokeFailure) {
         Validate.validState(!closed);
 
-        return serviceAccessor.accessService(address, id, type, timeout, throwOnCommFailure, throwOnInvokeFailure);
+        return serviceAccessor.accessService(address, id, type, throwOnCommFailure, throwOnInvokeFailure);
     }
 }

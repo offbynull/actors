@@ -2,8 +2,8 @@ package com.offbynull.rpccommon;
 
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpccommon.filters.RateLimitIncomingMessageListener;
-import com.offbynull.rpccommon.filters.RateLimitIncomingMessageListener.AddressBannedException;
+import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingMessageListener;
+import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingMessageListener.AddressBannedException;
 import java.nio.ByteBuffer;
 import org.junit.After;
 import org.junit.AfterClass;

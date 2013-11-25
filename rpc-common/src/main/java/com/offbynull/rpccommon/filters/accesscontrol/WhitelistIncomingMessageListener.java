@@ -1,4 +1,4 @@
-package com.offbynull.rpccommon.filters;
+package com.offbynull.rpccommon.filters.accesscontrol;
 
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
@@ -9,49 +9,50 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.Validate;
 
-public final class BlacklistIncomingMessageListener<A> implements IncomingMessageListener<A> {
-    private Set<A> disallowedSet;
+public final class WhitelistIncomingMessageListener<A> implements IncomingMessageListener<A> {
 
-    public BlacklistIncomingMessageListener() {
+    private Set<A> allowedSet;
+
+    public WhitelistIncomingMessageListener() {
         this(Collections.<A>emptySet());
     }
     
-    public BlacklistIncomingMessageListener(Set<A> disallowedSet) {
+    public WhitelistIncomingMessageListener(Set<A> disallowedSet) {
         Validate.noNullElements(disallowedSet);
-        
-        this.disallowedSet = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
-        this.disallowedSet.addAll(disallowedSet);
+
+        this.allowedSet = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
+        this.allowedSet.addAll(disallowedSet);
     }
 
     public void addAddress(A e) {
-        disallowedSet.add(e);
+        allowedSet.add(e);
     }
 
     public void removeAddress(A e) {
-        disallowedSet.remove(e);
+        allowedSet.remove(e);
     }
 
     public void addAddresses(Collection<? extends A> c) {
-        disallowedSet.addAll(c);
+        allowedSet.addAll(c);
     }
 
     public void removeAddresses(Collection<? extends A> c) {
-        disallowedSet.removeAll(c);
+        allowedSet.removeAll(c);
     }
 
     public void clear() {
-        disallowedSet.clear();
+        allowedSet.clear();
     }
-    
+
     @Override
     public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {
         A from = message.getFrom();
-        
-        if (disallowedSet.contains(from)) {
-            throw new AddressInBlacklistException();
+
+        if (!allowedSet.contains(from)) {
+            throw new AddressNotInWhitelistException();
         }
     }
-    
-    public static class AddressInBlacklistException extends RuntimeException {
+
+    public static class AddressNotInWhitelistException extends RuntimeException {
     }
 }

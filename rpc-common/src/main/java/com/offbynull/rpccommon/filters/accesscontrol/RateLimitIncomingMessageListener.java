@@ -1,4 +1,4 @@
-package com.offbynull.rpccommon.filters;
+package com.offbynull.rpccommon.filters.accesscontrol;
 
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;

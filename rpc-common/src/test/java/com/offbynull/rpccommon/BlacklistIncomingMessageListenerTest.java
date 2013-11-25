@@ -2,8 +2,8 @@ package com.offbynull.rpccommon;
 
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpccommon.filters.BlacklistIncomingMessageListener;
-import com.offbynull.rpccommon.filters.BlacklistIncomingMessageListener.AddressInBlacklistException;
+import com.offbynull.rpccommon.filters.accesscontrol.BlacklistIncomingMessageListener;
+import com.offbynull.rpccommon.filters.accesscontrol.BlacklistIncomingMessageListener.AddressInBlacklistException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import org.junit.After;

@@ -2,7 +2,7 @@ package com.offbynull.rpccommon;
 
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpccommon.filters.WhitelistIncomingMessageListener;
+import com.offbynull.rpccommon.filters.accesscontrol.WhitelistIncomingMessageListener;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import org.junit.After;

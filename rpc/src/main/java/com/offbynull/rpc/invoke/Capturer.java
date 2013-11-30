@@ -23,8 +23,6 @@ public final class Capturer<T> {
     private Class<T> cls;
     private Serializer serializer;
     private Deserializer deserializer;
-    private List<Filter> inFilters;
-    private List<Filter> outFilters;
 
     /**
      * Constructs a {@link Capturer} object with {@link XStreamBinarySerializerDeserializer} for serialization and
@@ -35,9 +33,7 @@ public final class Capturer<T> {
     public Capturer(Class<T> cls) {
         this(cls,
                 new XStreamBinarySerializerDeserializer(),
-                new XStreamBinarySerializerDeserializer(),
-                new Filter[] { new CompressionFilter() },
-                new Filter[] { new CompressionFilter() });
+                new XStreamBinarySerializerDeserializer());
     }
 
     /**
@@ -45,24 +41,17 @@ public final class Capturer<T> {
      * @param cls class type to proxy
      * @param serializer serializer to use for invokation data
      * @param deserializer serializer to use for result data
-     * @param inFilters filters serialized invokation data
-     * @param outFilters filters serialized result data
-     * @throws NullPointerException if any arguments are {@code null}, or if any arrays/collections contain {@code null}
+     * @throws NullPointerException if any arguments are {@code null}
      */
     public Capturer(Class<T> cls,
-            Serializer serializer, Deserializer deserializer,
-            Filter[] inFilters, Filter[] outFilters) {
+            Serializer serializer, Deserializer deserializer) {
         Validate.notNull(cls);
         Validate.notNull(serializer);
         Validate.notNull(deserializer);
-        Validate.noNullElements(inFilters);
-        Validate.noNullElements(outFilters);
         
         this.cls = cls;
         this.serializer = serializer;
         this.deserializer = deserializer;
-        this.inFilters = new ArrayList<>(Arrays.asList(inFilters));
-        this.outFilters = new ArrayList<>(Arrays.asList(outFilters));
     }
     
     /**
@@ -82,33 +71,25 @@ public final class Capturer<T> {
 
                 InvokeData invokeData = new InvokeData(name, args, paramTypes);
 
-                // Serialize and filter input
+                // Serialize input
                 byte[] inData;
                 try {
                     inData = serializer.serializeMethodCall(invokeData);
-                    
-                    for (Filter filter : inFilters) {
-                        inData = filter.modify(inData);
-                    }
-                } catch (IOException ioe) {
-                    callback.invokationFailed(ioe);
-                    throw ioe;
+                } catch (RuntimeException e) {
+                    callback.invokationFailed(e);
+                    throw e;
                 }
                 
                 // Call
                 byte[] outData = callback.invokationTriggered(inData);
                 
-                // Filter and deserialize output
+                // Deserialize output
                 DeserializerResult dr;
                 try {
-                    for (Filter filter : outFilters) {
-                        outData = filter.unmodify(outData);
-                    }
-                    
                     dr = deserializer.deserialize(outData);
-                } catch (IOException ioe) {
-                    callback.invokationFailed(ioe);
-                    throw ioe;
+                } catch (RuntimeException e) {
+                    callback.invokationFailed(e);
+                    throw e;
                 }
 
                 if (dr.getType() == SerializationType.METHOD_RETURN) {

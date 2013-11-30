@@ -3,11 +3,8 @@ package com.offbynull.rpc.invoke;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,13 +21,10 @@ public final class Invoker implements Closeable {
     private ExecutorService executor;
     private Serializer serializer;
     private Deserializer deserializer;
-    private List<Filter> inFilters;
-    private List<Filter> outFilters;
 
 
     /**
-     * Constructs an {@link Invoker} object with {@link XStreamBinarySerializerDeserializer} for serialization and {@link CompressionFilter}
-     * for filters.
+     * Constructs an {@link Invoker} object with {@link XStreamBinarySerializerDeserializer} for serialization.
      * @param object object to invoke on
      * @param executor executor to use for invokations
      * @throws NullPointerException if {@code object} is {@code null}
@@ -38,9 +32,7 @@ public final class Invoker implements Closeable {
     public Invoker(Object object, ExecutorService executor) {
         this(object, executor,
                 new XStreamBinarySerializerDeserializer(),
-                new XStreamBinarySerializerDeserializer(),
-                new Filter[] { new CompressionFilter() },
-                new Filter[] { new CompressionFilter() });
+                new XStreamBinarySerializerDeserializer());
     }
     
     /**
@@ -49,26 +41,18 @@ public final class Invoker implements Closeable {
      * @param executor executor to use for invokations
      * @param serializer serializer to use for invokation data
      * @param deserializer serializer to use for result data
-     * @param inFilters filters serialized invokation data
-     * @param outFilters filters serialized result data
-     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any arrays/collections contain
-     * {@code null}
+     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}
      */
     public Invoker(Object object, ExecutorService executor,
-            Serializer serializer, Deserializer deserializer,
-            Filter[] inFilters, Filter[] outFilters) {
+            Serializer serializer, Deserializer deserializer) {
         Validate.notNull(object);
         Validate.notNull(serializer);
         Validate.notNull(deserializer);
-        Validate.noNullElements(inFilters);
-        Validate.noNullElements(outFilters);
         
         this.object = object;
         this.executor = executor;
         this.serializer = serializer;
         this.deserializer = deserializer;
-        this.inFilters = new ArrayList<>(Arrays.asList(inFilters));
-        this.outFilters = new ArrayList<>(Arrays.asList(outFilters));
     }
     
     /**
@@ -100,13 +84,9 @@ public final class Invoker implements Closeable {
             public void run() {
                 byte[] inData = data;
                 
-                // Filter and deserialize input
+                // Deserialize input
                 InvokeData invokeData;
                 try {
-                    for (Filter filter : inFilters) {
-                        inData = filter.unmodify(inData);
-                    }
-                    
                     Deserializer.DeserializerResult dr =
                             deserializer.deserialize(inData);
                     
@@ -140,16 +120,6 @@ public final class Invoker implements Closeable {
                     outData = serializer.serializeMethodThrow(ex.getCause());
                 } finally {
                     InvokeThreadInformation.removeInvokeThreadInfo();
-                }
-                
-                // Filter output
-                try {
-                    for (Filter filter : outFilters) {
-                        outData = filter.modify(outData);
-                    }
-                } catch (IOException ioe) {
-                    callback.invokationFailed(ioe);
-                    return;
                 }
                 
                 // Send

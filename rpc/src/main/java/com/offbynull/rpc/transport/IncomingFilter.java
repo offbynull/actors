@@ -12,6 +12,7 @@ public interface IncomingFilter<A> {
      * Modifies data.
      * @param from address the data is to/from
      * @param buffer data to be modified
+     * @throws NullPointerException if any arguments are {@code null}
      * @return modified data
      */
     ByteBuffer filter(A from, ByteBuffer buffer); 

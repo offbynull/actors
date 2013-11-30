@@ -1,7 +1,5 @@
 package com.offbynull.rpccommon;
 
-import com.offbynull.rpc.transport.IncomingMessage;
-import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingFilter;
 import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingFilter.AddressBannedException;
 import java.nio.ByteBuffer;
@@ -11,7 +9,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class RateLimitIncomingMessageListenerTest {
     

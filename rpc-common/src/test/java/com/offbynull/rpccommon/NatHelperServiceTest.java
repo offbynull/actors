@@ -9,8 +9,6 @@ package com.offbynull.rpccommon;
 import com.offbynull.rpc.Rpc;
 import com.offbynull.rpc.RpcConfig;
 import com.offbynull.rpc.TcpTransportFactory;
-import com.offbynull.rpc.transport.Transport;
-import com.offbynull.rpc.transport.tcp.TcpTransport;
 import com.offbynull.rpccommon.services.nat.NatHelperService;
 import com.offbynull.rpccommon.services.nat.NatHelperServiceImplementation;
 import com.offbynull.rpccommon.services.nat.NatTestCallable;
@@ -22,7 +20,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class NatHelperServiceTest {
     

@@ -4,9 +4,13 @@ import com.offbynull.rpc.Rpc;
 import com.offbynull.rpc.TcpTransportFactory;
 import com.offbynull.rpc.TransportFactory;
 import com.offbynull.rpc.UdpTransportFactory;
+import com.offbynull.rpc.transport.CompositeIncomingFilter;
+import com.offbynull.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.Transport;
 import com.offbynull.rpccommon.services.nat.NatHelperService.ConnectionType;
 import java.io.IOException;
@@ -17,6 +21,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Random;
@@ -28,6 +33,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
 public final class NatTestCallable implements Callable<NatTestResult> {
+    
+    private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
+            new CompositeIncomingFilter<>(Collections.<IncomingFilter<InetSocketAddress>>emptyList());
+    private static final OutgoingFilter<InetSocketAddress> EMPTY_OUTGOING_FILTER =
+            new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<InetSocketAddress>>emptyList());
     
     private static final int MIN_PORT = 10001;
     private static final int MAX_PORT = 65535;
@@ -96,14 +106,14 @@ public final class NatTestCallable implements Callable<NatTestResult> {
 
         try {
             final ArrayBlockingQueue<ByteBuffer> bufferHolder = new ArrayBlockingQueue<>(1);
-            transport.start(new IncomingMessageListener<InetSocketAddress>() {
+            transport.start(EMPTY_INCOMING_FILTER, new IncomingMessageListener<InetSocketAddress>() {
 
                 @Override
                 public void messageArrived(IncomingMessage<InetSocketAddress> message, IncomingMessageResponseHandler responseCallback) {
                     bufferHolder.add(message.getData());
                     responseCallback.terminate();
                 }
-            });
+            }, EMPTY_OUTGOING_FILTER);
 
             service.testPort(type, port, expected);
 

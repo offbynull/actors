@@ -2,6 +2,10 @@ package com.offbynull.rpccommon.services.nat;
 
 import com.offbynull.rpc.RpcInvokeKeys;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;
+import com.offbynull.rpc.transport.CompositeIncomingFilter;
+import com.offbynull.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.rpc.transport.IncomingFilter;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.TerminateIncomingMessageListener;
 import com.offbynull.rpc.transport.Transport;
@@ -9,9 +13,15 @@ import com.offbynull.rpc.transport.TransportHelper;
 import com.offbynull.rpc.transport.tcp.TcpTransport;
 import com.offbynull.rpc.transport.udp.UdpTransport;
 import java.net.InetSocketAddress;
+import java.util.Collections;
 
 public final class NatHelperServiceImplementation implements NatHelperService {
 
+    private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
+            new CompositeIncomingFilter<>(Collections.<IncomingFilter<InetSocketAddress>>emptyList());
+    private static final OutgoingFilter<InetSocketAddress> EMPTY_OUTGOING_FILTER =
+            new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<InetSocketAddress>>emptyList());
+    
     @Override
     public String getAddress() {
         Object from = InvokeThreadInformation.getInfo(RpcInvokeKeys.FROM_ADDRESS);
@@ -49,7 +59,7 @@ public final class NatHelperServiceImplementation implements NatHelperService {
                     return TestPortResult.ERROR;
             }
             
-            transport.start(new TerminateIncomingMessageListener<InetSocketAddress>());
+            transport.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<InetSocketAddress>(), EMPTY_OUTGOING_FILTER);
             
             InetSocketAddress inetTo = new InetSocketAddress(inetFrom.getAddress(), port);
             OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(inetTo, challenge);

@@ -17,11 +17,11 @@ public interface Line<A> {
      * @param data contents
      * @return list of {@link Message} objects
      */
-    List<Message<A>> queue(A from, A to, ByteBuffer data);
+    List<Message<A>> depart(A from, A to, ByteBuffer data);
     
     /**
      * Signals that {@link Message} objects that were created by this line have arrived.
      * @param messages {@link Message} objects that have arrived
      */
-    void unqueue(Collection<Message<A>> messages);
+    void arrive(Collection<Message<A>> messages);
 }

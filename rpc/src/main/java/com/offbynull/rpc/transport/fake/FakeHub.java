@@ -230,7 +230,7 @@ public final class FakeHub<A> {
                         }
                     }
                     
-                    line.unqueue(packets);
+                    line.arrive(packets);
                 }
                 
                 stoppedCondition.signal();

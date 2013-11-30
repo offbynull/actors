@@ -44,7 +44,7 @@ final class FakeHubSender<A> {
                 return;
             }
             
-            List<Message<A>> result = line.queue(from, to, data);
+            List<Message<A>> result = line.depart(from, to, data);
             
             transitPacketQueue.addAll(result);
             condition.signal();

@@ -8,18 +8,18 @@ import java.util.List;
 
 /**
  * A line implementation without any constraints or failures. Takes no time to transmit a message.
- * @author User
- * @param <A> 
+ * @author Kasra F
+ * @param <A> address type
  */
 public final class PerfectLine<A> implements Line<A> {
 
     @Override
-    public List<Message<A>> queue(A from, A to, ByteBuffer data) {
+    public List<Message<A>> depart(A from, A to, ByteBuffer data) {
         return new ArrayList<>(Arrays.asList(new Message<>(from, to, data, 0L)));
     }
 
     @Override
-    public void unqueue(Collection<Message<A>> packets) {
+    public void arrive(Collection<Message<A>> packets) {
     }
     
 }

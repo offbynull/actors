@@ -48,7 +48,7 @@ public final class RandomLine<A> implements Line<A> {
     
 
     @Override
-    public List<Message<A>> queue(A from, A to, ByteBuffer data) {
+    public List<Message<A>> depart(A from, A to, ByteBuffer data) {
         int len = data.remaining();
         
         double repeatRate = randomDoubleBetween(repeatRatePerByteRange) * len;
@@ -86,6 +86,6 @@ public final class RandomLine<A> implements Line<A> {
     }
     
     @Override
-    public void unqueue(Collection<Message<A>> packets) {
+    public void arrive(Collection<Message<A>> packets) {
     }
 }

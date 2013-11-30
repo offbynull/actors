@@ -1,9 +1,7 @@
 package com.offbynull.rpccommon;
 
-import com.offbynull.rpc.transport.IncomingMessage;
-import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpccommon.filters.accesscontrol.BlacklistIncomingMessageListener;
-import com.offbynull.rpccommon.filters.accesscontrol.BlacklistIncomingMessageListener.AddressInBlacklistException;
+import com.offbynull.rpccommon.filters.accesscontrol.BlacklistIncomingFilter;
+import com.offbynull.rpccommon.filters.accesscontrol.BlacklistIncomingFilter.AddressInBlacklistException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import org.junit.After;
@@ -11,7 +9,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class BlacklistIncomingMessageListenerTest {
     
@@ -39,59 +36,44 @@ public class BlacklistIncomingMessageListenerTest {
         HashSet<Integer> initialBanList = new HashSet<>();
         initialBanList.add(5);
         
-        BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>(initialBanList);
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        BlacklistIncomingFilter<Integer> blacklistFilter = new BlacklistIncomingFilter<>(initialBanList);
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        blacklistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        blacklistFilter.filter(5, ByteBuffer.allocate(0));
     }
     
     @Test(expected = AddressInBlacklistException.class)
     public void addedTest() {
-        BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        BlacklistIncomingFilter<Integer> blacklistFilter = new BlacklistIncomingFilter<>();
         
         blacklistFilter.addAddress(5);
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        blacklistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        blacklistFilter.filter(5, ByteBuffer.allocate(0));
     }
 
     @Test
     public void addedThenRemovedTest() {
-        BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        BlacklistIncomingFilter<Integer> blacklistFilter = new BlacklistIncomingFilter<>();
         
         blacklistFilter.addAddress(5);
         blacklistFilter.removeAddress(5);
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        blacklistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        blacklistFilter.filter(5, ByteBuffer.allocate(0));
     }
 
     @Test
     public void addedThenClearedTest() {
-        BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        BlacklistIncomingFilter<Integer> blacklistFilter = new BlacklistIncomingFilter<>();
         
         blacklistFilter.addAddress(5);
         blacklistFilter.clear();
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        blacklistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        blacklistFilter.filter(5, ByteBuffer.allocate(0));
     }
 
     @Test
     public void neverAddedTest() {
-        BlacklistIncomingMessageListener<Integer> blacklistFilter = new BlacklistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        BlacklistIncomingFilter<Integer> blacklistFilter = new BlacklistIncomingFilter<>();
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        blacklistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        blacklistFilter.filter(5, ByteBuffer.allocate(0));
     }
 }

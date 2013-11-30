@@ -2,8 +2,8 @@ package com.offbynull.rpccommon;
 
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingMessageListener;
-import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingMessageListener.AddressBannedException;
+import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingFilter;
+import com.offbynull.rpccommon.filters.accesscontrol.RateLimitIncomingFilter.AddressBannedException;
 import java.nio.ByteBuffer;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -36,56 +36,47 @@ public class RateLimitIncomingMessageListenerTest {
 
      @Test(expected = AddressBannedException.class)
      public void banTest() {
-         RateLimitIncomingMessageListener<Integer> filter = new RateLimitIncomingMessageListener<>(5, 10000L);
-         IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+         RateLimitIncomingFilter<Integer> filter = new RateLimitIncomingFilter<>(5, 10000L);
          
-         IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-         
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
      }
 
      @Test
      public void resetTest() throws InterruptedException {
-         RateLimitIncomingMessageListener<Integer> filter = new RateLimitIncomingMessageListener<>(3, 300L);
-         IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+         RateLimitIncomingFilter<Integer> filter = new RateLimitIncomingFilter<>(3, 300L);
          
-         IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-         
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
          Thread.sleep(350L); // +50L just to be safe
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
      }
 
      @Test
      public void clearBannedTest() throws InterruptedException {
-         RateLimitIncomingMessageListener<Integer> filter = new RateLimitIncomingMessageListener<>(3, 10000L);
-         IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+         RateLimitIncomingFilter<Integer> filter = new RateLimitIncomingFilter<>(3, 10000L);
          
-         IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-         
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
          boolean thrown = false;
          try {
-             filter.messageArrived(messageFrom5, mockedResponseHandler);
+             filter.filter(5, ByteBuffer.allocate(0));
          } catch (AddressBannedException e) {
              thrown = true;
          }
          Assert.assertTrue(thrown);
          
          filter.clearBanned();
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
-         filter.messageArrived(messageFrom5, mockedResponseHandler);
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
+         filter.filter(5, ByteBuffer.allocate(0));
      }
 }

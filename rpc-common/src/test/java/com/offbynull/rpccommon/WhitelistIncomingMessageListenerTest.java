@@ -1,8 +1,6 @@
 package com.offbynull.rpccommon;
 
-import com.offbynull.rpc.transport.IncomingMessage;
-import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpccommon.filters.accesscontrol.WhitelistIncomingMessageListener;
+import com.offbynull.rpccommon.filters.accesscontrol.WhitelistIncomingFilter;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import org.junit.After;
@@ -10,7 +8,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class WhitelistIncomingMessageListenerTest {
     
@@ -38,59 +35,44 @@ public class WhitelistIncomingMessageListenerTest {
         HashSet<Integer> initialAllowList = new HashSet<>();
         initialAllowList.add(5);
         
-        WhitelistIncomingMessageListener<Integer> whitelistFilter = new WhitelistIncomingMessageListener<>(initialAllowList);
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        WhitelistIncomingFilter<Integer> whitelistFilter = new WhitelistIncomingFilter<>(initialAllowList);
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        whitelistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        whitelistFilter.filter(5, ByteBuffer.allocate(0));
     }
     
     @Test
     public void addedTest() {
-        WhitelistIncomingMessageListener<Integer> whitelistFilter = new WhitelistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        WhitelistIncomingFilter<Integer> whitelistFilter = new WhitelistIncomingFilter<>();
         
         whitelistFilter.addAddress(5);
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        whitelistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        whitelistFilter.filter(5, ByteBuffer.allocate(0));
     }
 
-    @Test(expected = WhitelistIncomingMessageListener.AddressNotInWhitelistException.class)
+    @Test(expected = WhitelistIncomingFilter.AddressNotInWhitelistException.class)
     public void addedThenRemovedTest() {
-        WhitelistIncomingMessageListener<Integer> whitelistFilter = new WhitelistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        WhitelistIncomingFilter<Integer> whitelistFilter = new WhitelistIncomingFilter<>();
         
         whitelistFilter.addAddress(5);
         whitelistFilter.removeAddress(5);
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        whitelistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        whitelistFilter.filter(5, ByteBuffer.allocate(0));
     }
 
-    @Test(expected = WhitelistIncomingMessageListener.AddressNotInWhitelistException.class)
+    @Test(expected = WhitelistIncomingFilter.AddressNotInWhitelistException.class)
     public void addedThenClearedTest() {
-        WhitelistIncomingMessageListener<Integer> whitelistFilter = new WhitelistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        WhitelistIncomingFilter<Integer> whitelistFilter = new WhitelistIncomingFilter<>();
         
         whitelistFilter.addAddress(5);
         whitelistFilter.clear();
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        whitelistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        whitelistFilter.filter(5, ByteBuffer.allocate(0));
     }
 
-    @Test(expected = WhitelistIncomingMessageListener.AddressNotInWhitelistException.class)
+    @Test(expected = WhitelistIncomingFilter.AddressNotInWhitelistException.class)
     public void neverAddedTest() {
-        WhitelistIncomingMessageListener<Integer> whitelistFilter = new WhitelistIncomingMessageListener<>();
-        IncomingMessageResponseHandler mockedResponseHandler = Mockito.mock(IncomingMessageResponseHandler.class);
+        WhitelistIncomingFilter<Integer> whitelistFilter = new WhitelistIncomingFilter<>();
         
-        IncomingMessage<Integer> messageFrom5 = new IncomingMessage<>(5, ByteBuffer.allocate(0), 0L);
-        
-        whitelistFilter.messageArrived(messageFrom5, mockedResponseHandler);
+        whitelistFilter.filter(5, ByteBuffer.allocate(0));
     }
 }

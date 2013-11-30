@@ -1,8 +1,7 @@
 package com.offbynull.rpccommon.filters.accesscontrol;
 
-import com.offbynull.rpc.transport.IncomingMessage;
-import com.offbynull.rpc.transport.IncomingMessageListener;
-import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
+import com.offbynull.rpc.transport.IncomingFilter;
+import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,7 +10,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
-public final class RateLimitIncomingMessageListener<A> implements IncomingMessageListener<A> {
+public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
     private int maxHit;
     private long maxDuration;
     private HashSet<A> bannedLookup;
@@ -20,7 +19,7 @@ public final class RateLimitIncomingMessageListener<A> implements IncomingMessag
     
     private Lock lock;
 
-    public RateLimitIncomingMessageListener(int maxHit, long maxDuration) {
+    public RateLimitIncomingFilter(int maxHit, long maxDuration) {
         Validate.exclusiveBetween(1L, Long.MAX_VALUE, maxDuration);
         Validate.exclusiveBetween(1, Integer.MAX_VALUE, maxHit);
         this.maxHit = maxHit;
@@ -33,12 +32,10 @@ public final class RateLimitIncomingMessageListener<A> implements IncomingMessag
     }
 
     @Override
-    public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {
+    public ByteBuffer filter(A from, ByteBuffer buffer) {
         lock.lock();
         
         try {
-            A from = message.getFrom();
-
             if (bannedLookup.contains(from)) {
                 throw new AddressBannedException();
             }
@@ -61,6 +58,8 @@ public final class RateLimitIncomingMessageListener<A> implements IncomingMessag
                 bannedLookup.add(from);
                 throw new AddressBannedException();
             }
+            
+            return buffer;
         } finally {
             lock.unlock();
         }

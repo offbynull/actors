@@ -1,23 +1,22 @@
 package com.offbynull.rpccommon.filters.accesscontrol;
 
-import com.offbynull.rpc.transport.IncomingMessage;
-import com.offbynull.rpc.transport.IncomingMessageListener;
-import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
+import com.offbynull.rpc.transport.IncomingFilter;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.Validate;
 
-public final class WhitelistIncomingMessageListener<A> implements IncomingMessageListener<A> {
+public final class WhitelistIncomingFilter<A> implements IncomingFilter<A> {
 
     private Set<A> allowedSet;
 
-    public WhitelistIncomingMessageListener() {
+    public WhitelistIncomingFilter() {
         this(Collections.<A>emptySet());
     }
     
-    public WhitelistIncomingMessageListener(Set<A> disallowedSet) {
+    public WhitelistIncomingFilter(Set<A> disallowedSet) {
         Validate.noNullElements(disallowedSet);
 
         this.allowedSet = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
@@ -45,12 +44,12 @@ public final class WhitelistIncomingMessageListener<A> implements IncomingMessag
     }
 
     @Override
-    public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {
-        A from = message.getFrom();
-
+    public ByteBuffer filter(A from, ByteBuffer buffer) {
         if (!allowedSet.contains(from)) {
             throw new AddressNotInWhitelistException();
         }
+        
+        return buffer;
     }
 
     public static class AddressNotInWhitelistException extends RuntimeException {

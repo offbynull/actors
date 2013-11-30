@@ -1,9 +1,11 @@
 package com.offbynull.rpc.transport.udp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingResponse;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.rpc.transport.OutgoingResponse;
@@ -85,14 +87,19 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
     }
     
     @Override
-    public void start(IncomingMessageListener<InetSocketAddress> incomingMessageListener) throws IOException {
+    public void start(IncomingFilter<InetSocketAddress> incomingFilter, IncomingMessageListener<InetSocketAddress> incomingMessageListener,
+            OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
         accessLock.lock();
         try {
             if (eventLoop != null) {
                 throw new IllegalStateException();
             }
+            
+            Validate.notNull(incomingFilter);
+            Validate.notNull(outgoingFilter);
+            Validate.notNull(incomingMessageListener);
 
-            eventLoop = new EventLoop(incomingMessageListener);
+            eventLoop = new EventLoop(incomingFilter, incomingMessageListener, outgoingFilter);
             eventLoop.startAndWait();
         } finally {
             accessLock.unlock();
@@ -132,10 +139,16 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
         private MessageIdCache idCache;
         private TimeoutManager timeoutManager;
         
+        private IncomingFilter<InetSocketAddress> inFilter;
         private IncomingMessageListener<InetSocketAddress> handler;
+        private OutgoingFilter<InetSocketAddress> outFilter;
 
-        public EventLoop(IncomingMessageListener<InetSocketAddress> incomingMessageListener) throws IOException {
+        public EventLoop(IncomingFilter<InetSocketAddress> incomingFilter,
+                IncomingMessageListener<InetSocketAddress> incomingMessageListener,
+                OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
+            this.inFilter = incomingFilter;
             this.handler = incomingMessageListener;
+            this.outFilter = outgoingFilter;
             idGenerator = new MessageIdGenerator();
             idCache = new MessageIdCache(cacheSize);
             timeoutManager = new TimeoutManager(timeout);
@@ -244,25 +257,27 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
                             InetSocketAddress from = (InetSocketAddress) channel.receive(buffer);
                             buffer.flip();
 
-                            if (MessageMarker.isRequest(buffer)) {
-                                MessageMarker.skipOver(buffer);
+                            ByteBuffer tempBuffer = inFilter.filter(from, buffer);
+                            
+                            if (MessageMarker.isRequest(tempBuffer)) {
+                                MessageMarker.skipOver(tempBuffer);
 
-                                MessageId id = MessageId.extractPrependedId(buffer);
-                                MessageId.skipOver(buffer);
+                                MessageId id = MessageId.extractPrependedId(tempBuffer);
+                                MessageId.skipOver(tempBuffer);
                                 
                                 if (!idCache.add(from, id, PacketType.REQUEST)) {
                                     throw new RuntimeException("Duplicate messageid encountered");
                                 }
 
-                                IncomingMessage<InetSocketAddress> request = new IncomingMessage<>(from, buffer, currentTime);
+                                IncomingMessage<InetSocketAddress> request = new IncomingMessage<>(from, tempBuffer, currentTime);
 
                                 EventRequestArrived eventRa = new EventRequestArrived(request, selector, id);
                                 internalEventQueue.add(eventRa);
-                            } else if (MessageMarker.isResponse(buffer)) {
-                                MessageMarker.skipOver(buffer);
+                            } else if (MessageMarker.isResponse(tempBuffer)) {
+                                MessageMarker.skipOver(tempBuffer);
 
-                                MessageId id = MessageId.extractPrependedId(buffer);
-                                MessageId.skipOver(buffer);
+                                MessageId id = MessageId.extractPrependedId(tempBuffer);
+                                MessageId.skipOver(tempBuffer);
                                 
                                 if (!idCache.add(from, id, PacketType.RESPONSE)) {
                                     throw new RuntimeException("Duplicate messageid encountered");
@@ -271,7 +286,7 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
                                 OutgoingMessageResponseListener<InetSocketAddress> receiver = timeoutManager.getReceiver(from, id);
 
                                 if (receiver != null) { // timeout may have lapsed already, don't do anything if it did
-                                    IncomingResponse<InetSocketAddress> response = new IncomingResponse<>(from, buffer, currentTime);
+                                    IncomingResponse<InetSocketAddress> response = new IncomingResponse<>(from, tempBuffer, currentTime);
 
                                     EventResponseArrived eventRa = new EventResponseArrived(response, receiver);
                                     internalEventQueue.add(eventRa);
@@ -306,7 +321,9 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
 
                                 timeoutManager.addRequestId(to, id, receiver, currentTime);
                                 
-                                channel.send(buffer, to);
+                                ByteBuffer tempBuffer = outFilter.filter(to, buffer);
+                                
+                                channel.send(tempBuffer, to);
                             } else if (command instanceof CommandSendResponse) {
                                 CommandSendResponse commandSr = (CommandSendResponse) command;
 
@@ -322,7 +339,9 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
                                 
                                 buffer.flip();
                                 
-                                channel.send(buffer, to);                        
+                                ByteBuffer tempBuffer = outFilter.filter(to, buffer);
+                                
+                                channel.send(tempBuffer, to);                        
                             } else {
                                 throw new IllegalStateException();
                             }

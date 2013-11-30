@@ -1,9 +1,13 @@
 package com.offbynull.rpc;
 
+import com.offbynull.rpc.transport.CompositeIncomingFilter;
+import com.offbynull.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.rpc.transport.IncomingResponse;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.OutgoingResponse;
 import com.offbynull.rpc.transport.TerminateIncomingMessageListener;
@@ -14,6 +18,7 @@ import com.offbynull.rpc.transport.fake.Line;
 import com.offbynull.rpc.transport.fake.PerfectLine;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -22,6 +27,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public final class FakeTransportTest {
+    
+    private static final IncomingFilter<Integer> EMPTY_INCOMING_FILTER =
+            new CompositeIncomingFilter<>(Collections.<IncomingFilter<Integer>>emptyList());
+    private static final OutgoingFilter<Integer> EMPTY_OUTGOING_FILTER =
+            new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<Integer>>emptyList());
 
     private FakeHub<Integer> hub;
     private FakeTransport<Integer> transport1;
@@ -72,7 +82,7 @@ public final class FakeTransportTest {
         };
 
         try {
-            transport1.start(listener);
+            transport1.start(EMPTY_INCOMING_FILTER, listener, EMPTY_OUTGOING_FILTER);
 
             Integer to = 1;
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -104,8 +114,8 @@ public final class FakeTransportTest {
         };
 
         try {
-            transport1.start(listener);
-            transport2.start(new TerminateIncomingMessageListener<Integer>());
+            transport1.start(EMPTY_INCOMING_FILTER, listener, EMPTY_OUTGOING_FILTER);
+            transport2.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<Integer>(), EMPTY_OUTGOING_FILTER);
 
             Integer to = 1;
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -130,8 +140,8 @@ public final class FakeTransportTest {
         };
 
         try {
-            transport1.start(new TerminateIncomingMessageListener<Integer>());
-            transport2.start(new TerminateIncomingMessageListener<Integer>());
+            transport1.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<Integer>(), EMPTY_OUTGOING_FILTER);
+            transport2.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<Integer>(), EMPTY_OUTGOING_FILTER);
 
             Integer to = 2;
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -148,7 +158,7 @@ public final class FakeTransportTest {
     @Test
     public void noResponseFakeTest() throws Throwable {
         try {
-            transport2.start(new TerminateIncomingMessageListener<Integer>());
+            transport2.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<Integer>(), EMPTY_OUTGOING_FILTER);
             
             Integer to = 6;
             byte[] data = "HIEVERYBODY! :)".getBytes();

@@ -10,12 +10,14 @@ import java.io.IOException;
 public interface Transport<A> {
     /**
      * Starts the transport.
+     * @param incomingFilter incoming filter
      * @param listener listener for incoming messages
+     * @param outgoingFilter outgoing filter
      * @throws IOException on error
      * @throws IllegalStateException if already started or stopped
-     * @throws NullPointerException if {@code listener == null}
+     * @throws NullPointerException if any arguments are {@code null}
      */
-    void start(IncomingMessageListener<A> listener) throws IOException;
+    void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> listener, OutgoingFilter<A> outgoingFilter) throws IOException;
 
     /**
      * Stops the transport. Cannot be restarted once stopped.

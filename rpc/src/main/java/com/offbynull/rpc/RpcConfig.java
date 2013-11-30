@@ -1,6 +1,8 @@
 package com.offbynull.rpc;
 
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessageListener;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,8 +24,10 @@ public final class RpcConfig<A> {
     private ExecutorService invokerExecutorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1, TimeUnit.SECONDS,
             new LinkedBlockingQueue<Runnable>());
     private Map<? extends Object, ? extends Object> extraInvokeInfo = Collections.emptyMap();
-    private List<IncomingMessageListener<A>> preIncomingMessageFilters = Collections.emptyList();
-    private List<IncomingMessageListener<A>> postIncomingMessageFilters = Collections.emptyList();
+    private List<IncomingMessageListener<A>> preIncomingMessageListeners = Collections.emptyList();
+    private List<IncomingMessageListener<A>> postIncomingMessageListeners = Collections.emptyList();
+    private List<IncomingFilter<A>> incomingFilters = Collections.emptyList();
+    private List<OutgoingFilter<A>> outgoingFilters = Collections.emptyList();
 
     public ExecutorService getInvokerExecutorService() {
         return invokerExecutorService;
@@ -48,22 +52,40 @@ public final class RpcConfig<A> {
         this.extraInvokeInfo = Collections.unmodifiableMap(new HashMap<>(invokeDataMap));
     }
 
-    public List<IncomingMessageListener<A>> getPreIncomingMessageFilters() {
-        return preIncomingMessageFilters;
+    public List<IncomingMessageListener<A>> getPreIncomingMessageListeners() {
+        return preIncomingMessageListeners;
     }
 
-    public void setPreIncomingMessageFilters(List<IncomingMessageListener<A>> preIncomingMessageFilters) {
-        Validate.noNullElements(preIncomingMessageFilters);
-        this.preIncomingMessageFilters = Collections.unmodifiableList(new ArrayList<>(preIncomingMessageFilters));
+    public void setPreIncomingMessageListeners(List<IncomingMessageListener<A>> preIncomingMessageListeners) {
+        Validate.noNullElements(preIncomingMessageListeners);
+        this.preIncomingMessageListeners = Collections.unmodifiableList(new ArrayList<>(preIncomingMessageListeners));
     }
 
-    public List<IncomingMessageListener<A>> getPostIncomingMessageFilters() {
-        return postIncomingMessageFilters;
+    public List<IncomingMessageListener<A>> getPostIncomingMessageListeners() {
+        return postIncomingMessageListeners;
     }
 
-    public void setPostIncomingMessageFilters(List<IncomingMessageListener<A>> postIncomingMessageFilters) {
-        Validate.noNullElements(postIncomingMessageFilters);
-        this.postIncomingMessageFilters = Collections.unmodifiableList(new ArrayList<>(postIncomingMessageFilters));
+    public void setPostIncomingMessageListeners(List<IncomingMessageListener<A>> postIncomingMessageListeners) {
+        Validate.noNullElements(postIncomingMessageListeners);
+        this.postIncomingMessageListeners = Collections.unmodifiableList(new ArrayList<>(postIncomingMessageListeners));
+    }
+
+    public List<IncomingFilter<A>> getIncomingFilters() {
+        return incomingFilters;
+    }
+
+    public void setIncomingFilters(List<IncomingFilter<A>> incomingFilters) {
+        Validate.noNullElements(incomingFilters);
+        this.incomingFilters = Collections.unmodifiableList(new ArrayList<>(incomingFilters));
+    }
+
+    public List<OutgoingFilter<A>> getOutgoingFilters() {
+        return outgoingFilters;
+    }
+
+    public void setOutgoingFilters(List<OutgoingFilter<A>> outgoingFilters) {
+        Validate.noNullElements(outgoingFilters);
+        this.outgoingFilters = Collections.unmodifiableList(new ArrayList<>(outgoingFilters));
     }
     
 }

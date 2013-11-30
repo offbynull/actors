@@ -1,9 +1,11 @@
 package com.offbynull.rpc.transport.tcp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingResponse;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.rpc.transport.OutgoingResponse;
@@ -90,16 +92,19 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
     }
 
     @Override
-    public void start(IncomingMessageListener<InetSocketAddress> listener) throws IOException {
-        Validate.notNull(listener);
-        
+    public void start(IncomingFilter<InetSocketAddress> incomingFilter, IncomingMessageListener<InetSocketAddress> incomingMessageListener,
+            OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
         accessLock.lock();
         try {
             if (eventLoop != null) {
                 throw new IllegalStateException();
             }
 
-            eventLoop = new EventLoop(listener);
+            Validate.notNull(incomingFilter);
+            Validate.notNull(outgoingFilter);
+            Validate.notNull(incomingMessageListener);
+
+            eventLoop = new EventLoop(incomingFilter, incomingMessageListener, outgoingFilter);
             eventLoop.startAndWait();
         } finally {
             accessLock.unlock();
@@ -138,10 +143,16 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
         
         private TimeoutManager timeoutManager;
         
+        private IncomingFilter<InetSocketAddress> inFilter;
         private IncomingMessageListener<InetSocketAddress> handler;
+        private OutgoingFilter<InetSocketAddress> outFilter;
 
-        public EventLoop(IncomingMessageListener<InetSocketAddress> incomingMessageListener) throws IOException {
+        public EventLoop(IncomingFilter<InetSocketAddress> incomingFilter,
+                IncomingMessageListener<InetSocketAddress> incomingMessageListener,
+                OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
+            this.inFilter = incomingFilter;
             this.handler = incomingMessageListener;
+            this.outFilter = outgoingFilter;
             timeoutManager = new TimeoutManager(timeout);
             
             try {
@@ -199,8 +210,11 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                             if (info != null) {
                                 SelectionKey key = info.getSelectionKey();
                                 StreamIoBuffers buffers = info.getBuffers();
+                                
+                                ByteBuffer filteredOutData = outFilter.filter(
+                                        (InetSocketAddress) channel.getRemoteAddress(), data.getData());
 
-                                buffers.startWriting(data.getData());
+                                buffers.startWriting(filteredOutData);
                                 key.interestOps(SelectionKey.OP_WRITE);
                             }
                         } else if (command instanceof CommandKillEstablished) {
@@ -316,13 +330,14 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                             } else {
                                 clientChannel.shutdownInput();
                                 byte[] inData = buffers.finishReading();
-
                                 InetSocketAddress from = (InetSocketAddress) clientChannel.getRemoteAddress();
+                                
+                                ByteBuffer filteredInData = inFilter.filter(from, ByteBuffer.wrap(inData));
                                 
                                 if (info instanceof OutgoingMessageChannelInfo) {
                                     OutgoingMessageResponseListener<InetSocketAddress> receiver =
                                             ((OutgoingMessageChannelInfo) info).getResponseHandler();
-                                    IncomingResponse<InetSocketAddress> incomingResponse = new IncomingResponse<>(from, inData,
+                                    IncomingResponse<InetSocketAddress> incomingResponse = new IncomingResponse<>(from, filteredInData,
                                             currentTime);
                                     
                                     EventResponseArrived eventRa = new EventResponseArrived(incomingResponse, receiver);
@@ -330,7 +345,8 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                                     
                                     killSocketSilently(clientChannel);
                                 } else if (info instanceof IncomingMessageChannelInfo) {
-                                    IncomingMessage<InetSocketAddress> incomingMessage = new IncomingMessage<>(from, inData, currentTime);
+                                    IncomingMessage<InetSocketAddress> incomingMessage = new IncomingMessage<>(from, filteredInData,
+                                            currentTime);
                                     
                                     EventRequestArrived eventRa = new EventRequestArrived(incomingMessage, selector, clientChannel);
                                     internalEventQueue.add(eventRa);
@@ -514,7 +530,10 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                 InetSocketAddress destinationAddress = message.getTo();
 
                 StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.WRITE_FIRST, readLimit, writeLimit);
-                buffers.startWriting(message.getData());
+                
+                ByteBuffer filteredOutData = outFilter.filter(destinationAddress, message.getData());
+
+                buffers.startWriting(filteredOutData);
 
                 ChannelInfo info = new OutgoingMessageChannelInfo(clientChannel, buffers, selectionKey,
                         queuedRequest.getResponseListener());

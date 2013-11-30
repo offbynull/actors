@@ -1,10 +1,14 @@
 package com.offbynull.rpc;
 
+import com.offbynull.rpc.transport.CompositeIncomingFilter;
+import com.offbynull.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.tcp.TcpTransport;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.rpc.transport.IncomingResponse;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.OutgoingResponse;
 import com.offbynull.rpc.transport.TerminateIncomingMessageListener;
@@ -12,6 +16,7 @@ import com.offbynull.rpc.transport.TransportHelper;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -22,6 +27,11 @@ import org.junit.Test;
 
 public final class TcpTransportTest {
 
+    private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
+            new CompositeIncomingFilter<>(Collections.<IncomingFilter<InetSocketAddress>>emptyList());
+    private static final OutgoingFilter<InetSocketAddress> EMPTY_OUTGOING_FILTER =
+            new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<InetSocketAddress>>emptyList());
+    
     private static final long TIMEOUT_DURATION = 500;
     private static final int BUFFER_SIZE = 500;
 
@@ -75,7 +85,7 @@ public final class TcpTransportTest {
         };
 
         try {
-            transport1.start(listener);
+            transport1.start(EMPTY_INCOMING_FILTER, listener, EMPTY_OUTGOING_FILTER);
 
             InetSocketAddress to = new InetSocketAddress("localhost", port1);
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -107,8 +117,8 @@ public final class TcpTransportTest {
         };
 
         try {
-            transport1.start(listener);
-            transport2.start(new TerminateIncomingMessageListener<InetSocketAddress>());
+            transport1.start(EMPTY_INCOMING_FILTER, listener, EMPTY_OUTGOING_FILTER);
+            transport2.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<InetSocketAddress>(), EMPTY_OUTGOING_FILTER);
 
             InetSocketAddress to = new InetSocketAddress("localhost", port1);
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -125,8 +135,8 @@ public final class TcpTransportTest {
     @Test
     public void terminatedTcpTest() throws Throwable {
         try {
-            transport1.start(new TerminateIncomingMessageListener<InetSocketAddress>());
-            transport2.start(new TerminateIncomingMessageListener<InetSocketAddress>());
+            transport1.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<InetSocketAddress>(), EMPTY_OUTGOING_FILTER);
+            transport2.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<InetSocketAddress>(), EMPTY_OUTGOING_FILTER);
 
             InetSocketAddress to = new InetSocketAddress("localhost", port2);
             byte[] data = "HIEVERYBODY! :)".getBytes();
@@ -143,7 +153,7 @@ public final class TcpTransportTest {
     @Test
     public void noResponseTcpTest() throws Throwable {
         try {
-            transport2.start(new TerminateIncomingMessageListener<InetSocketAddress>());
+            transport2.start(EMPTY_INCOMING_FILTER, new TerminateIncomingMessageListener<InetSocketAddress>(), EMPTY_OUTGOING_FILTER);
             InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
             byte[] data = "HIEVERYBODY! :)".getBytes();
             OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(to, data);

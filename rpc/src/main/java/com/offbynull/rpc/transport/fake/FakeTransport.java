@@ -1,14 +1,17 @@
 package com.offbynull.rpc.transport.fake;
 
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessage;
 import com.offbynull.rpc.transport.IncomingMessageListener;
 import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.rpc.transport.IncomingResponse;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.OutgoingMessage;
 import com.offbynull.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.rpc.transport.OutgoingResponse;
 import com.offbynull.rpc.transport.Transport;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,8 +23,8 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A {@link Transport} used for testing. Backed by a {@link FakeHub}.
- * @author User
- * @param <A> 
+ * @author Kasra F
+ * @param <A> address type
  */
 public final class FakeTransport<A> implements Transport<A> {
 
@@ -30,6 +33,8 @@ public final class FakeTransport<A> implements Transport<A> {
     
     private Lock lock;
     private IncomingMessageListener<A> listener;
+    private IncomingFilter<A> inFilter;
+    private OutgoingFilter<A> outFilter;
     private State state = State.UNKNOWN;
     private int nextPacketId;
     private A address;
@@ -67,16 +72,21 @@ public final class FakeTransport<A> implements Transport<A> {
     }
 
     @Override
-    public void start(IncomingMessageListener<A> listener) throws IOException {
-        Validate.notNull(listener);
-        
+    public void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> incomingMessageListener,
+            OutgoingFilter<A> outgoingFilter) throws IOException {
         lock.lock();
         try {
             Validate.validState(state == State.UNKNOWN);
 
+            Validate.notNull(incomingFilter);
+            Validate.notNull(outgoingFilter);
+            Validate.notNull(incomingMessageListener);
+            
             timeoutTimer = new Timer();
             
-            this.listener = listener;
+            this.listener = incomingMessageListener;
+            this.inFilter = incomingFilter;
+            this.outFilter = outgoingFilter;
             hub.activateEndpoint(address);
 
             state = State.STARTED;
@@ -118,8 +128,10 @@ public final class FakeTransport<A> implements Transport<A> {
             newBuffer.putInt(packetId);
             newBuffer.put(buffer);
             newBuffer.position(0);
+            
+            ByteBuffer tempBuffer = outFilter.filter(to, newBuffer);
 
-            hubSender.send(address, to, newBuffer);
+            hubSender.send(address, to, tempBuffer);
             
             TimerTask timerTask = new TimerTask() {
 
@@ -166,9 +178,11 @@ public final class FakeTransport<A> implements Transport<A> {
             try {
                 Validate.validState(state == State.STARTED);
                 
+                ByteBuffer tempBuffer = outFilter.filter(from, data);
+                
                 switch (marker) {
                     case SEND_MARKER: {
-                        IncomingMessage<A> message = new IncomingMessage<>(from, data, System.currentTimeMillis());
+                        IncomingMessage<A> message = new IncomingMessage<>(from, tempBuffer, System.currentTimeMillis());
                         IncomingMessageResponseHandler handler = new CustomIncomingMessageResponseHandler(from, packetId);
                         listener.messageArrived(message, handler);
                         break;
@@ -181,7 +195,7 @@ public final class FakeTransport<A> implements Transport<A> {
                         }
                         
                         OutgoingMessageResponseListener<A> listener = pr.getListener();
-                        IncomingResponse<A> response = new IncomingResponse(from, data, System.currentTimeMillis());
+                        IncomingResponse<A> response = new IncomingResponse(from, tempBuffer, System.currentTimeMillis());
                         
                         listener.responseArrived(response);
                         break;

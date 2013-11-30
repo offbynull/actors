@@ -1,7 +1,11 @@
 package com.offbynull.rpc;
 
+import com.offbynull.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.rpc.transport.CompositeIncomingMessageListener;
+import com.offbynull.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.rpc.transport.IncomingFilter;
 import com.offbynull.rpc.transport.IncomingMessageListener;
+import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.Transport;
 import java.io.Closeable;
 import java.io.IOException;
@@ -51,12 +55,14 @@ public final class Rpc<A> implements Closeable {
             serviceAccessor = new ServiceAccessor<>(transport);
 
             List<IncomingMessageListener<A>> incomingMessageListeners = new ArrayList<>();
-            incomingMessageListeners.addAll(conf.getPreIncomingMessageFilters());
+            incomingMessageListeners.addAll(conf.getPreIncomingMessageListeners());
             incomingMessageListeners.add(serviceRouter.getIncomingMessageListener());
-            incomingMessageListeners.addAll(conf.getPostIncomingMessageFilters());
+            incomingMessageListeners.addAll(conf.getPostIncomingMessageListeners());
             
             IncomingMessageListener<A> listener = new CompositeIncomingMessageListener<>(incomingMessageListeners);
-            transport.start(listener);
+            IncomingFilter<A> inFilter = new CompositeIncomingFilter<>(conf.getIncomingFilters());
+            OutgoingFilter<A> outFilter = new CompositeOutgoingFilter<>(conf.getOutgoingFilters());
+            transport.start(inFilter, listener, outFilter);
             
             closed = false;
         } catch (IOException | RuntimeException ex) {

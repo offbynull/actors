@@ -3,8 +3,11 @@ package com.offbynull.rpc.invoke;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +24,7 @@ public final class Invoker implements Closeable {
     private ExecutorService executor;
     private Serializer serializer;
     private Deserializer deserializer;
+    private List<InvokeFilter> filters;
 
 
     /**
@@ -32,7 +36,8 @@ public final class Invoker implements Closeable {
     public Invoker(Object object, ExecutorService executor) {
         this(object, executor,
                 new XStreamBinarySerializerDeserializer(),
-                new XStreamBinarySerializerDeserializer());
+                new XStreamBinarySerializerDeserializer(),
+                new AvoidObjectInvokeFilter());
     }
     
     /**
@@ -41,18 +46,22 @@ public final class Invoker implements Closeable {
      * @param executor executor to use for invokations
      * @param serializer serializer to use for invokation data
      * @param deserializer serializer to use for result data
-     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}
+     * @param filters invoke filters
+     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any collection element is
+     * {@code null}
      */
     public Invoker(Object object, ExecutorService executor,
-            Serializer serializer, Deserializer deserializer) {
+            Serializer serializer, Deserializer deserializer, InvokeFilter ... filters) {
         Validate.notNull(object);
         Validate.notNull(serializer);
         Validate.notNull(deserializer);
+        Validate.noNullElements(filters);
         
         this.object = object;
         this.executor = executor;
         this.serializer = serializer;
         this.deserializer = deserializer;
+        this.filters = new ArrayList<>(Arrays.asList(filters));
     }
     
     /**
@@ -102,6 +111,11 @@ public final class Invoker implements Closeable {
                     return;
                 }
 
+                // Filter
+                for (InvokeFilter filter : filters) {
+                    invokeData = filter.filter(invokeData);
+                }
+                
                 // Set shared data map
                 InvokeThreadInformation.setInvokeThreadInfo(sharedDataCopy);
                 

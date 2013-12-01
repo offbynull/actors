@@ -3,10 +3,13 @@ package com.offbynull.overlay.unstructured;
 import com.offbynull.overlay.unstructured.OverlayListener.LinkType;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.lang3.Validate;
 
 public final class IncomingLinkMaintainer<A> {
     private Timer killTimer;
@@ -14,6 +17,7 @@ public final class IncomingLinkMaintainer<A> {
     private OverlayListener<A> overlayListener;
     private int slotCount;
     private Lock lock;
+    private State state = State.UNKNOWN;
 
     public IncomingLinkMaintainer(int maxJoin, OverlayListener<A> overlayListener) {
         this.slotCount = maxJoin;
@@ -25,13 +29,55 @@ public final class IncomingLinkMaintainer<A> {
     }
     
     public void start() {
+        lock.lock();
+        try {
+            Validate.validState(state == State.UNKNOWN);
+            
+            state = State.STARTED;
+        } finally {
+            lock.unlock();
+        }
     }
     
     public void stop() {
-        killTimer.cancel();
+        lock.lock();
+        try {
+            Validate.validState(state == State.STARTED);
+            
+            state = State.STOPPED;
+            
+            killTimer.cancel();
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    public Set<A> getLinks() {
+        lock.lock();
+        try {
+            Validate.validState(state == State.STARTED);
+
+            return new HashSet<>(addressToLinkMap.keySet());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean isRoomAvailable() {
+        lock.lock();
+        try {
+            Validate.validState(state == State.STARTED);
+
+            return slotCount > 0;
+        } finally {
+            lock.unlock();
+        }
     }
     
     public boolean createLink(A address, ByteBuffer secret) {
+        Validate.notNull(address);
+        Validate.notNull(secret);
+        
         lock.lock();
         try {
             if (slotCount == 0) {
@@ -53,6 +99,9 @@ public final class IncomingLinkMaintainer<A> {
     }
 
     public void destroyLink(A address, ByteBuffer secret) {
+        Validate.notNull(address);
+        Validate.notNull(secret);
+        
         lock.lock();
         try {
             Link link = addressToLinkMap.remove(address);
@@ -67,12 +116,15 @@ public final class IncomingLinkMaintainer<A> {
         overlayListener.linkBroken(address, LinkType.INCOMING);
     }
 
-    public void updateLink(A address, ByteBuffer secret) {
+    public boolean updateLink(A address, ByteBuffer secret) {
+        Validate.notNull(address);
+        Validate.notNull(secret);
+
         lock.lock();
         try {
             Link oldLink = addressToLinkMap.get(address);
             if (!oldLink.getSecret().equals(secret)) {
-                return;
+                return false;
             }
             
             oldLink.getTask().cancel();
@@ -82,6 +134,8 @@ public final class IncomingLinkMaintainer<A> {
 
             addressToLinkMap.put(address, newLink);
             killTimer.schedule(killTimerTask, 60000L);
+            
+            return true;
         } finally {
             lock.unlock();
         }
@@ -146,5 +200,11 @@ public final class IncomingLinkMaintainer<A> {
             return secret;
         }
         
+    }
+    
+    private enum State {
+        UNKNOWN,
+        STARTED,
+        STOPPED
     }
 }

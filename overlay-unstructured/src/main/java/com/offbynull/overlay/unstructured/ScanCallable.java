@@ -60,7 +60,9 @@ class ScanCallable<A> implements Callable<Void> {
                     continue;
                 }
 
-                Set<A> nodeNeighbours = info.getNeighbours();
+                Set<A> nodeNeighbours = new HashSet<>();
+                nodeNeighbours.addAll(info.getOutgoingLinks());
+                nodeNeighbours.addAll(info.getIncomingLinks());
 
                 nodeNeighbours.removeAll(oldAccumulated); // remove all nodes that we already have visisted last iteration
                 nodeNeighbours.removeAll(accumulated); // remove all nodes that we already have visited this iteration

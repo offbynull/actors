@@ -15,21 +15,27 @@ public interface OverlayService<A> {
 
     public static final class Information<A> {
 
-        private Set<A> neighbours;
-        private int maxNeighbours;
+        private Set<A> incomingLinks;
+        private Set<A> outgoingLinks;
+        private boolean incomingLinksFull;
 
-        public Information(Set<A> neighbours, int maxNeighbours) {
-            super();
-            this.neighbours = Collections.unmodifiableSet(new HashSet<>(neighbours));
-            this.maxNeighbours = maxNeighbours;
+        public Information(Set<A> incomingLinks, Set<A> outgoingLinks, boolean incomingLinksFull) {
+            this.incomingLinks = new HashSet<>(incomingLinks);
+            this.outgoingLinks = new HashSet<>(incomingLinks);
+            this.incomingLinksFull = incomingLinksFull;
         }
 
-        public Set<A> getNeighbours() {
-            return neighbours;
+        public Set<A> getIncomingLinks() {
+            return incomingLinks;
         }
 
-        public int getMaxNeighbours() {
-            return maxNeighbours;
+        public Set<A> getOutgoingLinks() {
+            return outgoingLinks;
         }
+
+        public boolean isIncomingLinksFull() {
+            return incomingLinksFull;
+        }
+
     }
 }

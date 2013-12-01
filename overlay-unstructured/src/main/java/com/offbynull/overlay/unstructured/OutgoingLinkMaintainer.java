@@ -3,7 +3,10 @@ package com.offbynull.overlay.unstructured;
 import com.offbynull.overlay.unstructured.OverlayListener.LinkType;
 import com.offbynull.rpc.Rpc;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -18,6 +21,7 @@ public final class OutgoingLinkMaintainer<A> {
     
     private ExecutorService executor;
     private AtomicInteger slotCount;
+    private Set<A> links;
     private Rpc<A> rpc;
     private A bootstrap;
     private OverlayListener<A> overlayListener;
@@ -32,6 +36,7 @@ public final class OutgoingLinkMaintainer<A> {
         
         slotCount = new AtomicInteger(maxJoin);
         executor = new ThreadPoolExecutor(1, maxJoin + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        links = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
         this.bootstrap = bootstrap;
         this.rpc = rpc;
         this.overlayListener = listener;
@@ -51,7 +56,18 @@ public final class OutgoingLinkMaintainer<A> {
             accessLock.unlock();
         }
     }
-    
+
+    public Set<A> getLinks() {
+        accessLock.lock();
+        try {
+            Validate.validState(state == State.STARTED);
+
+            return new HashSet<>(links);
+        } finally {
+            accessLock.unlock();
+        }
+    }
+
     public void stop() throws InterruptedException {
         accessLock.lock();
         try {
@@ -88,6 +104,8 @@ public final class OutgoingLinkMaintainer<A> {
 
         @Override
         public void joinComplete(A address, ByteBuffer secret) {
+            links.add(address);
+            
             overlayListener.linkEstablished(address, LinkType.OUTGOING);
             
             KeepAliveListener<A> listener = new CustomKeepAliveListener();
@@ -110,6 +128,8 @@ public final class OutgoingLinkMaintainer<A> {
 
         @Override
         public void keepAliveFailed(A address, FailReason reason) {
+            links.remove(address);
+            
             overlayListener.linkBroken(address, LinkType.OUTGOING);
             
             slotCount.incrementAndGet();

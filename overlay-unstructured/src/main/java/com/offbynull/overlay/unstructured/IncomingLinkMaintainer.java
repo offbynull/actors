@@ -80,6 +80,8 @@ public final class IncomingLinkMaintainer<A> {
         
         lock.lock();
         try {
+            Validate.validState(state == State.STARTED);
+            
             if (slotCount == 0) {
                 return false;
             }
@@ -104,6 +106,8 @@ public final class IncomingLinkMaintainer<A> {
         
         lock.lock();
         try {
+            Validate.validState(state == State.STARTED);
+            
             Link link = addressToLinkMap.remove(address);
             if (link == null || !link.getSecret().equals(secret)) {
                 return;
@@ -122,6 +126,8 @@ public final class IncomingLinkMaintainer<A> {
 
         lock.lock();
         try {
+            Validate.validState(state == State.STARTED);
+            
             Link oldLink = addressToLinkMap.get(address);
             if (!oldLink.getSecret().equals(secret)) {
                 return false;
@@ -153,6 +159,8 @@ public final class IncomingLinkMaintainer<A> {
         public void run() {
             lock.lock();
             try {
+                Validate.validState(state == State.STARTED);
+                
                 if (cancelled) {
                     return;
                 }

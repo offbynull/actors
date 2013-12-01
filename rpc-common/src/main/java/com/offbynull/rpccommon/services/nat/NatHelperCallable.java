@@ -13,6 +13,7 @@ import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.rpc.transport.OutgoingFilter;
 import com.offbynull.rpc.transport.Transport;
 import com.offbynull.rpccommon.services.nat.NatHelperService.ConnectionType;
+import com.offbynull.rpccommon.services.nat.NatHelperCallable.Result;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -32,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class NatTestCallable implements Callable<NatTestResult> {
+public final class NatHelperCallable implements Callable<Result> {
     
     private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
             new CompositeIncomingFilter<>(Collections.<IncomingFilter<InetSocketAddress>>emptyList());
@@ -47,7 +48,7 @@ public final class NatTestCallable implements Callable<NatTestResult> {
     private int mainRpcPort;
     private InetSocketAddress partnerAddress;
 
-    public NatTestCallable(Rpc<InetSocketAddress> mainRpc, int mainRpcPort, InetSocketAddress partnerAddress) {
+    public NatHelperCallable(Rpc<InetSocketAddress> mainRpc, int mainRpcPort, InetSocketAddress partnerAddress) {
         Validate.notNull(mainRpc);
         Validate.inclusiveBetween(1, 65535, mainRpcPort);
         Validate.notNull(partnerAddress);
@@ -59,7 +60,7 @@ public final class NatTestCallable implements Callable<NatTestResult> {
     
 
     @Override
-    public NatTestResult call() throws Exception {
+    public Result call() throws Exception {
         Rpc<InetSocketAddress> tcpTestRpc = null;
         Rpc<InetSocketAddress> udpTestRpc = null;
 
@@ -91,7 +92,7 @@ public final class NatTestCallable implements Callable<NatTestResult> {
             boolean tcpOpen = testServer(service, ConnectionType.TCP, tcpPort, tcpTransportFactory, challenge);
             boolean udpOpen = testServer(service, ConnectionType.UDP, udpPort, udpTransportFactory, challenge);
             
-            return new NatTestResult(inetSocketAddress, addressSameAsLocal, portSameAsLocal, udpOpen, tcpOpen);
+            return new Result(inetSocketAddress, addressSameAsLocal, portSameAsLocal, udpOpen, tcpOpen);
         } finally {
             IOUtils.closeQuietly(tcpTestRpc);
             IOUtils.closeQuietly(udpTestRpc);
@@ -185,5 +186,49 @@ public final class NatTestCallable implements Callable<NatTestResult> {
         }
         
         return ret;
+    }
+
+    public static final class Result {
+
+        private InetSocketAddress exposedAddress;
+        private boolean exposedAddressMatchesLocalAddress;
+        private boolean exposedPortMatchesRpcPort;
+        private boolean accessibleUdp;
+        private boolean accessibleTcp;
+
+        public Result(InetSocketAddress exposedAddress, boolean exposedAddressMatchesLocalAddress, boolean exposedPortMatchesRpcPort, boolean accessibleUdp, boolean accessibleTcp) {
+            super();
+            Validate.notNull(exposedAddress);
+            this.exposedAddress = exposedAddress;
+            this.exposedAddressMatchesLocalAddress = exposedAddressMatchesLocalAddress;
+            this.exposedPortMatchesRpcPort = exposedPortMatchesRpcPort;
+            this.accessibleUdp = accessibleUdp;
+            this.accessibleTcp = accessibleTcp;
+        }
+
+        public InetSocketAddress getExposedAddress() {
+            return exposedAddress;
+        }
+
+        public boolean isAccessibleUdp() {
+            return accessibleUdp;
+        }
+
+        public boolean isAccessibleTcp() {
+            return accessibleTcp;
+        }
+
+        public boolean isExposedAddressMatchesLocalAddress() {
+            return exposedAddressMatchesLocalAddress;
+        }
+
+        public boolean isExposedPortMatchesRpcPort() {
+            return exposedPortMatchesRpcPort; // this is totally worthless for tcp
+        }
+
+        @Override
+        public String toString() {
+            return "NatTestResult{" + "exposedAddress=" + exposedAddress + ", exposedAddressMatchesLocalAddress=" + exposedAddressMatchesLocalAddress + ", exposedPortMatchesRpcPort=" + exposedPortMatchesRpcPort + ", accessibleUdp=" + accessibleUdp + ", accessibleTcp=" + accessibleTcp + '}';
+        }
     }
 }

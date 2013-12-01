@@ -11,8 +11,7 @@ import com.offbynull.rpc.RpcConfig;
 import com.offbynull.rpc.TcpTransportFactory;
 import com.offbynull.rpccommon.services.nat.NatHelperService;
 import com.offbynull.rpccommon.services.nat.NatHelperServiceImplementation;
-import com.offbynull.rpccommon.services.nat.NatTestCallable;
-import com.offbynull.rpccommon.services.nat.NatTestResult;
+import com.offbynull.rpccommon.services.nat.NatHelperCallable;
 import java.net.InetSocketAddress;
 import junit.framework.Assert;
 import org.junit.After;
@@ -58,8 +57,8 @@ public class NatHelperServiceTest {
 
    @Test
    public void checkForNatTest() throws Throwable {
-       NatTestCallable callable = new NatTestCallable(client, 40990, new InetSocketAddress("localhost", 40991));
-       NatTestResult result = callable.call();
+       NatHelperCallable callable = new NatHelperCallable(client, 40990, new InetSocketAddress("localhost", 40991));
+        com.offbynull.rpccommon.services.nat.NatHelperCallable.Result result = callable.call();
        
        Assert.assertTrue(result.getExposedAddress().getAddress().isLoopbackAddress()); // this may not always be true, depends on system?
        Assert.assertTrue(result.isAccessibleTcp());

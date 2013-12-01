@@ -42,7 +42,7 @@ public final class FakeHub<A> {
     public FakeHub(Line<A> line) {
         Validate.notNull(line);
 
-        transitPacketQueue = new PriorityQueue<>();
+        transitPacketQueue = new PriorityQueue<>(11, new MessageArriveTimeComparator());
         addressMap = new HashMap<>();
         this.line = line;
 

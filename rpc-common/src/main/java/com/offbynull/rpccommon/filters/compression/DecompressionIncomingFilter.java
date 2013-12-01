@@ -14,7 +14,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra F
  * @param <A> address type
  */
-public class DecompressionFilter<A> implements IncomingFilter<A> {
+public class DecompressionIncomingFilter<A> implements IncomingFilter<A> {
 
     @Override
     public ByteBuffer filter(A from, ByteBuffer buffer) {

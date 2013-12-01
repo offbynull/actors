@@ -12,7 +12,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra F
  * @param <A> address type
  */
-public final class CompressionFilter<A> implements OutgoingFilter<A> {
+public final class CompressionOutgoingFilter<A> implements OutgoingFilter<A> {
 
     @Override
     public ByteBuffer filter(A to, ByteBuffer buffer) {

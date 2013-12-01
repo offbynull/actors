@@ -16,7 +16,7 @@ public final class AvoidObjectInvokeFilter implements InvokeFilter {
         Set<String> methodNames = new HashSet<>();
         
         for (Method method : Object.class.getMethods()) {
-            methodNames.add(method.getName());
+            methodNames.add(method.getName().toLowerCase());
         }
         
         OBJECT_METHOD_NAMES = Collections.unmodifiableSet(methodNames);
@@ -24,7 +24,7 @@ public final class AvoidObjectInvokeFilter implements InvokeFilter {
     
     @Override
     public InvokeData filter(InvokeData data) {
-        if (OBJECT_METHOD_NAMES.contains(data.getMethodName())) {
+        if (OBJECT_METHOD_NAMES.contains(data.getMethodName().toLowerCase())) {
             throw new RuntimeException("Method name of Object detected");
         }
         

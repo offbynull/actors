@@ -28,18 +28,18 @@ public final class OutgoingLinkMaintainer<A> {
     
     private State state = State.UNKNOWN;
     
-    public OutgoingLinkMaintainer(A bootstrap, Rpc<A> rpc, int maxJoin, OverlayListener<A> listener) {
+    public OutgoingLinkMaintainer(A bootstrap, Rpc<A> rpc, int maxJoin, OverlayListener<A> overlayListener) {
         Validate.notNull(bootstrap);
         Validate.notNull(rpc);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, maxJoin);
-        Validate.notNull(listener);
+        Validate.notNull(overlayListener);
         
         slotCount = new AtomicInteger(maxJoin);
         executor = new ThreadPoolExecutor(1, maxJoin + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         links = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
         this.bootstrap = bootstrap;
         this.rpc = rpc;
-        this.overlayListener = listener;
+        this.overlayListener = overlayListener;
     }
     
     public void start() {

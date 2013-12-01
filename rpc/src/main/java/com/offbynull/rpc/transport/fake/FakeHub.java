@@ -178,13 +178,11 @@ public final class FakeHub<A> {
                     FakeEndpoint<A> dest;
 
                     if (transitPacketQueue.isEmpty()) {
-                        System.out.println("wait 1");
                         try {
                             transitSleepCondition.await();
                         } catch (InterruptedException ex) {
                             break;
                         }
-                        System.out.println("work up " + stop);
                         continue;
                     } else {
                         Message<A> topPacket = transitPacketQueue.peek();
@@ -193,13 +191,11 @@ public final class FakeHub<A> {
                         long topWaitTime = topClosestArriveTime - time;
 
                         if (topWaitTime > 0L) {
-                            System.out.println("wait 2");
                             try {
                                 transitSleepCondition.await(topWaitTime, TimeUnit.MILLISECONDS);
                             } catch (InterruptedException ex) {
                                 break;
                             }
-                            System.out.println("work up " + stop);
                             continue;
                         }
                         
@@ -244,7 +240,6 @@ public final class FakeHub<A> {
             try {
                 stop = true;
                 transitSleepCondition.signal();
-                System.out.println("signalled");
             } finally {
                 lock.unlock();
             }

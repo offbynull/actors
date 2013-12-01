@@ -48,7 +48,6 @@ final class FakeHubSender<A> {
             
             transitPacketQueue.addAll(result);
             condition.signal();
-            System.out.println("signalled");
         } finally {
             lock.unlock();
         }

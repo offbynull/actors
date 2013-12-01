@@ -12,6 +12,7 @@
     <module>basic-chord</module>
     <module>rpc</module>
     <module>rpc-common</module>
+    <module>overlay-unstructured</module>
   </modules>
     
     <dependencyManagement>

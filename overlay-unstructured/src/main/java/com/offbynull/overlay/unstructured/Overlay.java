@@ -46,6 +46,7 @@ public final class Overlay<A> {
     }
     
     public void stop() throws InterruptedException {
+        lock.lock();
         try {
             Validate.validState(state == State.STARTED);
             

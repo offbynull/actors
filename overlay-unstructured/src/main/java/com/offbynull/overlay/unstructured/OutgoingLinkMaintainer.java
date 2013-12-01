@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +35,7 @@ public final class OutgoingLinkMaintainer<A> {
         Validate.notNull(overlayListener);
         
         slotCount = new AtomicInteger(maxJoin);
-        executor = new ThreadPoolExecutor(1, maxJoin + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        executor = new ThreadPoolExecutor(1, maxJoin + 1, 1000L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>());
         links = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
         this.bootstrap = bootstrap;
         this.rpc = rpc;
@@ -87,15 +87,15 @@ public final class OutgoingLinkMaintainer<A> {
         @Override
         public void scanIterationComplete(Set<A> nodes) {
             for (A address : nodes) {
-                int remainingOpenSlots = slotCount.getAndDecrement();
+                int remainingOpenSlots = slotCount.decrementAndGet();
+                if (remainingOpenSlots < 0) {
+                    slotCount.incrementAndGet();
+                    return;
+                }
                 
                 JoinListener<A> listener = new CustomJoinListener();
                 JoinCallable<A> joinner = new JoinCallable(address, rpc, listener, 3);
                 executor.submit(joinner);
-                
-                if (remainingOpenSlots == 0) {
-                    break;
-                }
             }
         }
     }

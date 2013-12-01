@@ -1,6 +1,6 @@
-package com.offbynull.overlay.unstructured.tasks;
+package com.offbynull.overlay.unstructured;
 
-import com.offbynull.overlay.unstructured.tasks.OverlayListener.LinkType;
+import com.offbynull.overlay.unstructured.OverlayListener.LinkType;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Timer;
@@ -8,7 +8,7 @@ import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-final class IncomingLinkMaintainer<A> {
+public final class IncomingLinkMaintainer<A> {
     private Timer killTimer;
     private HashMap<A, Link> addressToLinkMap;
     private OverlayListener<A> overlayListener;

@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured.tasks;
+package com.offbynull.overlay.unstructured;
 
 public interface OverlayListener<A> {
     void linkEstablished(A address, LinkType type);

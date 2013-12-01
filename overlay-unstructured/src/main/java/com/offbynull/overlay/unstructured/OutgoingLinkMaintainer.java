@@ -1,6 +1,6 @@
-package com.offbynull.overlay.unstructured.tasks;
+package com.offbynull.overlay.unstructured;
 
-import com.offbynull.overlay.unstructured.tasks.OverlayListener.LinkType;
+import com.offbynull.overlay.unstructured.OverlayListener.LinkType;
 import com.offbynull.rpc.Rpc;
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -13,7 +13,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
-final class OutgoingLinkMaintainer<A> {
+public final class OutgoingLinkMaintainer<A> {
     private Lock accessLock = new ReentrantLock();
     
     private ExecutorService executor;

@@ -1,7 +1,7 @@
-package com.offbynull.overlay.unstructured.tasks;
+package com.offbynull.overlay.unstructured;
 
-import com.offbynull.overlay.unstructured.services.OverlayService;
-import com.offbynull.overlay.unstructured.tasks.JoinListener.FailReason;
+import com.offbynull.overlay.unstructured.OverlayService;
+import com.offbynull.overlay.unstructured.JoinListener.FailReason;
 import com.offbynull.rpc.Rpc;
 import java.nio.ByteBuffer;
 import java.util.Random;

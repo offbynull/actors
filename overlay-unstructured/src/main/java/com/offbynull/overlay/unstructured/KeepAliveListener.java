@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured.tasks;
+package com.offbynull.overlay.unstructured;
 
 interface KeepAliveListener<A> {
     void keepAliveSuccessful(A address);

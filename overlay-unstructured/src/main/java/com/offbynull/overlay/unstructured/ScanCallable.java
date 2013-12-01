@@ -1,6 +1,5 @@
-package com.offbynull.overlay.unstructured.tasks;
+package com.offbynull.overlay.unstructured;
 
-import com.offbynull.overlay.unstructured.services.OverlayService;
 import com.offbynull.rpc.Rpc;
 import java.util.Collections;
 import java.util.HashSet;

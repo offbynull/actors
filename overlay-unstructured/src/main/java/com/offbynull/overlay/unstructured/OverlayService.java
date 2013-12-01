@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured.services;
+package com.offbynull.overlay.unstructured;
 
 import java.util.Collections;
 import java.util.HashSet;

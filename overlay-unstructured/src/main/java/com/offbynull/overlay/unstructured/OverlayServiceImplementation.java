@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured.services;
+package com.offbynull.overlay.unstructured;
 
 import com.offbynull.rpc.RpcInvokeKeys;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;

@@ -1,5 +1,6 @@
 package com.offbynull.rpc;
 
+import com.offbynull.rpc.invoke.AsyncResultListener;
 import com.offbynull.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.rpc.transport.CompositeIncomingMessageListener;
 import com.offbynull.rpc.transport.CompositeOutgoingFilter;
@@ -107,6 +108,48 @@ public final class Rpc<A> implements Closeable {
         Validate.validState(!closed);
 
         serviceRouter.removeService(id);
+    }
+
+    /**
+     * Access a remote service asynchronously. Throws a {@link RuntimeException} on communication/invokation failure. Must not block in
+     * {@link AsyncResultListener}.
+     * @param address destination address
+     * @param id service id
+     * @param type service type class
+     * @param asyncType service async type class
+     * @param <T> service type
+     * @param <AT> asynchronous service type
+     * @return an object of type {@code type} that accesses the service at {@code id}
+     * @throws IllegalStateException if closed
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public <T, AT> AT accessService(A address, int id, Class<T> type, Class<AT> asyncType) {
+        Validate.validState(!closed);
+
+        return serviceAccessor.accessServiceAsync(address, id, type, asyncType, new RuntimeException("Comm failure"),
+                new RuntimeException("Invoke failure"));
+    }
+
+    /**
+     * Access a remote service asynchronously. Must not block in {@link AsyncResultListener}.
+     * @param address destination address
+     * @param id service id
+     * @param type service type class
+     * @param asyncType service async type class
+     * @param throwOnCommFailure exception to throw on communication failure
+     * @param throwOnInvokeFailure exception to throw on invokation failure
+     * @param <T> service type
+     * @param <AT> asynchronous service type
+     * @return an object of type {@code type} that accesses the service at {@code id}
+     * @throws IllegalStateException if closed
+     * @throws IllegalArgumentException if {@code timeout < 1L} 
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public <T, AT> AT accessService(A address, int id, Class<T> type, Class<AT> asyncType, RuntimeException throwOnCommFailure,
+            RuntimeException throwOnInvokeFailure) {
+        Validate.validState(!closed);
+
+        return serviceAccessor.accessServiceAsync(address, id, type, asyncType, throwOnCommFailure, throwOnInvokeFailure);
     }
 
     /**

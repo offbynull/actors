@@ -22,8 +22,7 @@ public final class Capturer<T> {
     private Deserializer deserializer;
 
     /**
-     * Constructs a {@link Capturer} object with {@link XStreamBinarySerializerDeserializer} for serialization and
-     * {@link CompressionFilter} for filters.
+     * Constructs a {@link Capturer} object with {@link XStreamBinarySerializerDeserializer} for serialization.
      * @param cls class type to proxy
      * @throws NullPointerException if any arguments are {@code null}
      */

@@ -14,7 +14,7 @@ public interface CapturerHandler {
      */
     byte[] invokationTriggered(byte[] data);
     /**
-     * Indicates that a method invokation on the proxy object failed.
+     * Indicates that a method invokation on a proxy object failed.
      * @param err error thrown
      * @throws NullPointerException if any argument are {@code null}
      */

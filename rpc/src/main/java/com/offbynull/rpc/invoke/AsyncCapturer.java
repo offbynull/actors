@@ -8,20 +8,65 @@ import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.reflect.MethodUtils;
 
+/**
+ * Provides the ability to proxy a asynchronous interface such that method invokations are processed by some external source. This class
+ * essentially does what {@link Capturer} does, but does so using an asynchronous interface. That is, this class expects to proxy an
+ * interface where the method signatures of the interface resemble that of a non-final class/interface that you would pass in to
+ * {@link Capturer}. The difference between the method signatures are that..
+ * <ol>
+ * <li>Return type must be void.</li>
+ * <li>An extra parameter of type {@link AsyncResultListener} must be added in as the first parameter.</li>
+ * </ol>
+ * The return value / thrown exception will be passed back to the AsyncResultListener object passed in to the first argument.
+ * <p/>
+ * Example...
+ * <p/>
+ * Original interface for {@link Capturer}:
+ * <pre>
+ * public void MyServiceClass {
+ *    String performFunction(int id);
+ * }
+ * </pre>
+ * <p/>
+ * Async interface for this class ({@link AsyncCapturer}):
+ * <pre>
+  * public void MyServiceClass {
+ *    void performFunction(AsyncResultListener<String> result, int id);
+ * }
+ * </pre>
+ * @author Kasra F
+ * @param <T> proxy type
+ * @param <AT> proxy async type
+ */
 public final class AsyncCapturer<T, AT> {
     private Class<T> cls;
     private Class<AT> asyncCls;
     private Serializer serializer;
     private Deserializer deserializer;
 
+    /**
+     * Constructs a {@link AsyncCapturer} object with {@link XStreamBinarySerializerDeserializer} for serialization.
+     * @param cls proxy type
+     * @param asyncCls proxy async type
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if methods declared in {@code asyncCls} don't have an equivalent in {@code cls}
+     */
     public AsyncCapturer(Class<T> cls, Class<AT> asyncCls) {
         this(cls, asyncCls,
                 new XStreamBinarySerializerDeserializer(),
                 new XStreamBinarySerializerDeserializer());
     }
 
+    /**
+     * Constructs a {@link Capturer} object.
+     * @param cls proxy type
+     * @param asyncCls proxy async type
+     * @param serializer serializer to use for invokation data
+     * @param deserializer serializer to use for result data
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if methods declared in {@code asyncCls} don't have an equivalent in {@code cls}
+     */
     public AsyncCapturer(Class<T> cls, Class<AT> asyncCls,
             Serializer serializer, Deserializer deserializer) {
         Validate.notNull(cls);
@@ -58,6 +103,12 @@ public final class AsyncCapturer<T, AT> {
         this.deserializer = deserializer;
     }
     
+    /**
+     * Creates an async proxy object.
+     * @param callback callback to notify when a method's been invoked on the returned proxy object
+     * @return proxy object
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public AT createInstance(final AsyncCapturerHandler callback) {
         Validate.notNull(callback);
         

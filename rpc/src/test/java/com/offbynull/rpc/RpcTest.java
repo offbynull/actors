@@ -1,11 +1,12 @@
 package com.offbynull.rpc;
 
-import com.offbynull.rpc.Rpc;
-import com.offbynull.rpc.TcpTransportFactory;
-import com.offbynull.rpc.RpcInvokeKeys;
+import com.offbynull.rpc.invoke.AsyncResultListener;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -121,6 +122,38 @@ public class RpcTest {
     public void preventDeregistering0Test() {
         rpcSystem.removeService(0);
     }
+    
+    @Test
+    public void listerAsyncServiceTest() throws InterruptedException {
+        ListerAsyncService listerService = rpcSystem.accessService(new InetSocketAddress("localhost", 15000), 0, ListerService.class,
+                ListerAsyncService.class);
+
+        final LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>();
+        
+        listerService.listServices(new AsyncResultListener<ListerService.Services>() {
+
+            @Override
+            public void invokationReturned(ListerService.Services object) {
+                queue.add(object);
+            }
+
+            @Override
+            public void invokationThrew(Throwable err) {
+                queue.add(err);
+            }
+
+            @Override
+            public void invokationFailed(Object err) {
+                queue.add(err);
+            }
+        }, 0, Integer.MAX_VALUE);
+
+        ListerService.Services response = (ListerService.Services) queue.poll(1000L, TimeUnit.MILLISECONDS);
+        
+        Assert.assertEquals(Arrays.asList(0), response.getList());
+        Assert.assertEquals(1, response.getTotal());
+    }
+    
     
     private interface CustomService {
         String echo(String value);

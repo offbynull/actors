@@ -132,6 +132,9 @@ public final class Invoker implements Closeable {
                     return;
                 } catch (InvocationTargetException ex) {
                     outData = serializer.serializeMethodThrow(ex.getCause());
+                } catch (NullPointerException npe) {
+                     // throws npe if method expects primitves
+                    outData = serializer.serializeMethodThrow(npe);
                 } finally {
                     InvokeThreadInformation.removeInvokeThreadInfo();
                 }

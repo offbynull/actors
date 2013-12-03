@@ -15,7 +15,7 @@ public final class InvokeData {
     public InvokeData(String methodName, Object[] arguments,
             Class<?>[] paramTypes) {
         Validate.notNull(methodName);
-        Validate.noNullElements(arguments);
+        Validate.notNull(arguments);
         Validate.noNullElements(paramTypes);
         Validate.isTrue(arguments.length == paramTypes.length);
         

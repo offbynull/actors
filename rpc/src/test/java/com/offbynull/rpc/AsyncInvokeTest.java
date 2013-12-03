@@ -65,13 +65,53 @@ public final class AsyncInvokeTest {
     }
 
     @Test
+    public void simpleInvokeWithNullForPrimitiveReturnTest() throws InterruptedException, TimeoutException {
+        final AtomicBoolean failFlag = new AtomicBoolean();
+        final AtomicBoolean successFlag = new AtomicBoolean();
+        final Exchanger<?> exchanger = new Exchanger<>();
+        
+        IntegerIntObject server = Mockito.mock(IntegerIntObject.class);
+        IntIntObjectAsync client = generateWiredAsyncStub(IntIntObject.class,
+                IntIntObjectAsync.class, server, failFlag, Collections.emptyMap());
+
+        Mockito.when(server.fakeMethodCall(0)).thenReturn(null);
+        
+        TestAsyncResultListener listener = new TestAsyncResultListener(failFlag, successFlag, exchanger);
+        client.fakeMethodCall(listener, 0);
+        
+        Assert.assertNotEquals(null, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(failFlag.get());
+        Assert.assertFalse(successFlag.get());
+    }
+
+    @Test
+    public void simpleInvokeWithNullForPrimitiveArgumentTest() throws InterruptedException, TimeoutException {
+        final AtomicBoolean failFlag = new AtomicBoolean();
+        final AtomicBoolean successFlag = new AtomicBoolean();
+        final Exchanger<?> exchanger = new Exchanger<>();
+        
+        IntIntObject server = Mockito.mock(IntIntObject.class);
+        IntIntegerObjectAsync client = generateWiredAsyncStub(IntIntegerObject.class,
+                IntIntegerObjectAsync.class, server, failFlag, Collections.emptyMap());
+
+        Mockito.when(server.fakeMethodCall(Mockito.anyInt())).thenReturn(1);
+        
+        TestAsyncResultListener listener = new TestAsyncResultListener(failFlag, successFlag, exchanger);
+        client.fakeMethodCall(listener, null);
+        
+        Assert.assertNotEquals(1, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(failFlag.get());
+        Assert.assertFalse(successFlag.get());
+    }
+    
+    @Test
     public void simpleInvokeWithWrongReturnTypeTest() throws InterruptedException, TimeoutException {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
         
         IntIntObject server = Mockito.mock(IntIntObject.class);
-        StringIntObjectAsync client = generateIncorrectlyWiredAsyncStub(StringIntObject.class,
+        StringIntObjectAsync client = generateWiredAsyncStub(StringIntObject.class,
                 StringIntObjectAsync.class, server, failFlag, Collections.emptyMap());
         
         Mockito.when(server.fakeMethodCall(0)).thenReturn(5);
@@ -91,7 +131,7 @@ public final class AsyncInvokeTest {
         final Exchanger<?> exchanger = new Exchanger<>();
         
         StringIntObject server = Mockito.mock(StringIntObject.class);
-        StringStringObjectAsync client = generateIncorrectlyWiredAsyncStub(StringStringObject.class,
+        StringStringObjectAsync client = generateWiredAsyncStub(StringStringObject.class,
                 StringStringObjectAsync.class, server, failFlag, Collections.emptyMap());
         
         Mockito.when(server.fakeMethodCall(0)).thenReturn("serverRet");
@@ -254,7 +294,7 @@ public final class AsyncInvokeTest {
         return client;
     }
 
-    private <T, AT, ST> AT generateIncorrectlyWiredAsyncStub(Class<T> type, Class<AT> asyncType, Object server,
+    private <T, AT, ST> AT generateWiredAsyncStub(Class<T> type, Class<AT> asyncType, Object server,
             final AtomicBoolean failFlag,
             final Map<? extends Object, ? extends Object> invokeInfo) {
         final Invoker invoker = new Invoker(server, Executors.newFixedThreadPool(1));
@@ -321,9 +361,16 @@ public final class AsyncInvokeTest {
         void fakeMethodCall2(AsyncResultListener<Integer> result, String arg);
     }
 
-    private interface IntIntObject {
-
+    private interface IntegerIntObject {
         Integer fakeMethodCall(int arg);
+    }
+    
+    private interface IntIntObject {
+        int fakeMethodCall(int arg);
+    }
+
+    private interface IntIntegerObject {
+        int fakeMethodCall(Integer arg);
     }
     
     private interface StringIntObject {
@@ -342,6 +389,10 @@ public final class AsyncInvokeTest {
 
     private interface IntIntObjectAsync {
         void fakeMethodCall(AsyncResultListener<Integer> result, int arg);
+    }
+    
+    private interface IntIntegerObjectAsync {
+        void fakeMethodCall(AsyncResultListener<Integer> result, Integer arg);
     }
     
     private interface StringStringObjectAsync {

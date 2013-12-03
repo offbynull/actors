@@ -210,7 +210,13 @@ public final class AsyncCapturer<T, AT> {
                                 break;
                             }
                             case METHOD_THROW: {
-                                resultListener.invokationThrew((Throwable) dr.getResult());
+                                Object ret = dr.getResult();
+                                
+                                if (!(ret instanceof Throwable)) {
+                                    resultListener.invokationFailed("Throw non-throwable type");
+                                } else {
+                                    resultListener.invokationThrew((Throwable) ret);
+                                }
                                 break;
                             }
                             default: {

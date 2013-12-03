@@ -48,7 +48,7 @@ public final class AsyncInvokeTest {
     }
 
     @Test
-    public void simpleInvokeAsyncTest() throws InterruptedException, TimeoutException {
+    public void simpleInvokeTest() throws InterruptedException, TimeoutException {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
@@ -65,24 +65,27 @@ public final class AsyncInvokeTest {
     }
 
     @Test
-    public void simpleInvokeWithWrongReturnTypeAsyncTest() throws InterruptedException, TimeoutException {
+    public void simpleInvokeWithWrongReturnTypeTest() throws InterruptedException, TimeoutException {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
         
-        FakeObject server = Mockito.mock(FakeObject.class);
-        FakeObjectAsync client = generateAsyncStub(server, failFlag, Collections.emptyMap());
+        IntegerReturnTypeObject server = Mockito.mock(IntegerReturnTypeObject.class);
+        StringReturnTypeObjectAsync client = generateIncorrectlyWiredAsyncStub(StringReturnTypeObject.class,
+                StringReturnTypeObjectAsync.class, server, failFlag, Collections.emptyMap());
+        
+        Mockito.when(server.fakeMethodCall(0)).thenReturn(5);
 
         TestAsyncResultListener listener = new TestAsyncResultListener(failFlag, successFlag, exchanger);
-        client.fakeMethodCall(listener);
+        client.fakeMethodCall(listener, 0);
         
-        Assert.assertEquals(null, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
-        Assert.assertFalse(failFlag.get());
-        Assert.assertTrue(successFlag.get());
+        Assert.assertNotEquals(5, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(failFlag.get());
+        Assert.assertFalse(successFlag.get());
     }
     
     @Test
-    public void simpleInvokeWithInfoAsyncTest() throws Throwable {
+    public void simpleInvokeWithInfoTest() throws Throwable {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
@@ -108,13 +111,13 @@ public final class AsyncInvokeTest {
         TestAsyncResultListener listener = new TestAsyncResultListener(failFlag, successFlag, exchanger);
         client.fakeMethodCall(listener, "");
         
-        Assert.assertEquals(5, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
+        Assert.assertEquals(5, exchanger.exchange(null, 50000L, TimeUnit.MILLISECONDS));
         Assert.assertFalse(failFlag.get());
         Assert.assertTrue(successFlag.get());
     }
     
     @Test
-    public void advancedInvokeAsyncTest() throws InterruptedException, TimeoutException {
+    public void advancedInvokeTest() throws InterruptedException, TimeoutException {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
@@ -133,7 +136,7 @@ public final class AsyncInvokeTest {
     }
 
     @Test
-    public void throwableInvokeAsyncTest() throws InterruptedException, TimeoutException {
+    public void throwableInvokeTest() throws InterruptedException, TimeoutException {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
@@ -231,6 +234,48 @@ public final class AsyncInvokeTest {
         return client;
     }
 
+    private <T, AT, ST> AT generateIncorrectlyWiredAsyncStub(Class<T> type, Class<AT> asyncType, Object server,
+            final AtomicBoolean failFlag,
+            final Map<? extends Object, ? extends Object> invokeInfo) {
+        final Invoker invoker = new Invoker(server, Executors.newFixedThreadPool(1));
+        AsyncCapturer<T, AT> capturer = new AsyncCapturer<>(type, asyncType);
+        
+        AT client = capturer.createInstance(new AsyncCapturerHandler() {
+
+            @Override
+            public void invokationTriggered(final byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
+
+                Runnable r = new Runnable() {
+
+                    @Override
+                    public void run() {
+                        invoker.invoke(data, new InvokerListener() {
+
+                            @Override
+                            public void invokationFailed(Throwable t) {
+                                responseHandler.responseFailed(t);
+                            }
+
+                            @Override
+                            public void invokationFinised(byte[] outData) {
+                                responseHandler.responseArrived(outData);
+                            }
+                        }, invokeInfo);
+                    }
+                };
+                
+                new Thread(r).start();
+            }
+
+            @Override
+            public void invokationFailed(Throwable err) {
+                failFlag.set(true);
+            }
+        });
+        
+        return client;
+    }
+    
     private interface FakeObject {
 
         void fakeMethodCall();
@@ -254,5 +299,23 @@ public final class AsyncInvokeTest {
         void fakeMethodCall(AsyncResultListener<String> result, String arg1, int arg2);
 
         void fakeMethodCall2(AsyncResultListener<Integer> result, String arg);
+    }
+
+    private interface IntegerReturnTypeObject {
+
+        Integer fakeMethodCall(int arg);
+    }
+    
+    private interface StringReturnTypeObject {
+
+        String fakeMethodCall(int arg);
+    }
+    
+    private interface StringReturnTypeObjectAsync {
+        void fakeMethodCall(AsyncResultListener<String> result, int arg);
+    }
+
+    private interface IntegerReturnTypeObjectAsync {
+        void fakeMethodCall(AsyncResultListener<Integer> result, int arg);
     }
 }

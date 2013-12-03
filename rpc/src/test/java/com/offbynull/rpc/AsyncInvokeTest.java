@@ -70,9 +70,9 @@ public final class AsyncInvokeTest {
         final AtomicBoolean successFlag = new AtomicBoolean();
         final Exchanger<?> exchanger = new Exchanger<>();
         
-        IntegerReturnTypeObject server = Mockito.mock(IntegerReturnTypeObject.class);
-        StringReturnTypeObjectAsync client = generateIncorrectlyWiredAsyncStub(StringReturnTypeObject.class,
-                StringReturnTypeObjectAsync.class, server, failFlag, Collections.emptyMap());
+        IntIntObject server = Mockito.mock(IntIntObject.class);
+        StringIntObjectAsync client = generateIncorrectlyWiredAsyncStub(StringIntObject.class,
+                StringIntObjectAsync.class, server, failFlag, Collections.emptyMap());
         
         Mockito.when(server.fakeMethodCall(0)).thenReturn(5);
 
@@ -80,6 +80,26 @@ public final class AsyncInvokeTest {
         client.fakeMethodCall(listener, 0);
         
         Assert.assertNotEquals(5, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(failFlag.get());
+        Assert.assertFalse(successFlag.get());
+    }
+
+    @Test
+    public void simpleInvokeWithWrongParamTypeTest() throws InterruptedException, TimeoutException {
+        final AtomicBoolean failFlag = new AtomicBoolean();
+        final AtomicBoolean successFlag = new AtomicBoolean();
+        final Exchanger<?> exchanger = new Exchanger<>();
+        
+        StringIntObject server = Mockito.mock(StringIntObject.class);
+        StringStringObjectAsync client = generateIncorrectlyWiredAsyncStub(StringStringObject.class,
+                StringStringObjectAsync.class, server, failFlag, Collections.emptyMap());
+        
+        Mockito.when(server.fakeMethodCall(0)).thenReturn("serverRet");
+
+        TestAsyncResultListener listener = new TestAsyncResultListener(failFlag, successFlag, exchanger);
+        client.fakeMethodCall(listener, "testArg");
+        
+        Assert.assertNotEquals("serverRet", exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
         Assert.assertTrue(failFlag.get());
         Assert.assertFalse(successFlag.get());
     }
@@ -301,21 +321,30 @@ public final class AsyncInvokeTest {
         void fakeMethodCall2(AsyncResultListener<Integer> result, String arg);
     }
 
-    private interface IntegerReturnTypeObject {
+    private interface IntIntObject {
 
         Integer fakeMethodCall(int arg);
     }
     
-    private interface StringReturnTypeObject {
+    private interface StringIntObject {
 
         String fakeMethodCall(int arg);
     }
+
+    private interface StringStringObject {
+
+        String fakeMethodCall(String arg);
+    }
     
-    private interface StringReturnTypeObjectAsync {
+    private interface StringIntObjectAsync {
         void fakeMethodCall(AsyncResultListener<String> result, int arg);
     }
 
-    private interface IntegerReturnTypeObjectAsync {
+    private interface IntIntObjectAsync {
         void fakeMethodCall(AsyncResultListener<Integer> result, int arg);
+    }
+    
+    private interface StringStringObjectAsync {
+        void fakeMethodCall(AsyncResultListener<String> result, String arg);
     }
 }

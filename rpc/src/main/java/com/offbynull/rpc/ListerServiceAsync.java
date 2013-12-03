@@ -7,7 +7,7 @@ import com.offbynull.rpc.invoke.AsyncResultListener;
  * A special service that provides callers with a list of supported services.
  * @author Kasra F
  */
-public interface ListerAsyncService {
+public interface ListerServiceAsync {
 
     /**
      * List service entries from {@code from} to {@code to}. For example, if you want to see the first 5 service entries, call with from set

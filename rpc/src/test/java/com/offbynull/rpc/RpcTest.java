@@ -125,8 +125,8 @@ public class RpcTest {
     
     @Test
     public void listerAsyncServiceTest() throws InterruptedException {
-        ListerAsyncService listerService = rpcSystem.accessService(new InetSocketAddress("localhost", 15000), 0, ListerService.class,
-                ListerAsyncService.class);
+        ListerServiceAsync listerService = rpcSystem.accessService(new InetSocketAddress("localhost", 15000), 0, ListerService.class,
+                ListerServiceAsync.class);
 
         final LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>();
         

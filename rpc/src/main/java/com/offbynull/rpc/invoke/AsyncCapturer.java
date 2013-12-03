@@ -212,8 +212,8 @@ public final class AsyncCapturer<T, AT> {
                             case METHOD_THROW: {
                                 Object ret = dr.getResult();
                                 
-                                if (!(ret instanceof Throwable)) {
-                                    resultListener.invokationFailed("Throw non-throwable type");
+                                if (!(ret instanceof Throwable)) { // will be false for null, which is expected
+                                    resultListener.invokationFailed("Throw non-throwable type or null");
                                 } else {
                                     resultListener.invokationThrew((Throwable) ret);
                                 }

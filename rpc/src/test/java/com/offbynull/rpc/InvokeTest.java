@@ -138,6 +138,38 @@ public final class InvokeTest {
     }
 
     @Test
+    public void simpleInvokeWithInfoAsyncTest() throws Throwable {
+        final AtomicBoolean failFlag = new AtomicBoolean();
+        final AtomicBoolean successFlag = new AtomicBoolean();
+        final Exchanger<?> exchanger = new Exchanger<>();
+        
+        final Map<String, Object> info = new HashMap<>();
+        info.put("TestKey1", "TestValue1");
+        info.put("TestKey2", 2);
+        
+        FakeObject server = Mockito.mock(FakeObject.class);
+        FakeObjectAsync client = generateAsyncStub(server, failFlag, info);
+        
+        Mockito.when(server.fakeMethodCall(Matchers.anyString())).thenAnswer(new Answer<Integer>() {
+
+            @Override
+            public Integer answer(InvocationOnMock invocation) throws Throwable {
+                Map<String, Object> grabbedInfo = InvokeThreadInformation.getInfoMap();
+                Assert.assertEquals(info, grabbedInfo);
+                return 5;
+            }
+            
+        });
+
+        TestAsyncResultListener listener = new TestAsyncResultListener(failFlag, successFlag, exchanger);
+        client.fakeMethodCall(listener, "");
+        
+        Assert.assertEquals(5, exchanger.exchange(null, 500L, TimeUnit.MILLISECONDS));
+        Assert.assertFalse(failFlag.get());
+        Assert.assertTrue(successFlag.get());
+    }
+    
+    @Test
     public void advancedInvokeAsyncTest() throws InterruptedException, TimeoutException {
         final AtomicBoolean failFlag = new AtomicBoolean();
         final AtomicBoolean successFlag = new AtomicBoolean();

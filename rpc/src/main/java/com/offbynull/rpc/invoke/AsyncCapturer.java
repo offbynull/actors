@@ -2,14 +2,11 @@ package com.offbynull.rpc.invoke;
 
 import com.offbynull.rpc.invoke.Deserializer.DeserializerResult;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
-import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -80,30 +77,7 @@ public final class AsyncCapturer<T, AT> {
         
         Validate.isTrue(asyncCls.isInterface());
         
-        methodMap = new HashMap<>();
-        
-        Method[] asyncMethods = asyncCls.getDeclaredMethods();
-        for (Method asyncMethod : asyncMethods) {
-            Validate.isTrue(Modifier.isPublic(asyncMethod.getModifiers()), "All asyncCls methods must be public");
-            Validate.isTrue(asyncMethod.getReturnType() == Void.TYPE, "All asyncCls methods must return void");
-            
-            Class<?>[] asyncParamTypes = asyncMethod.getParameterTypes();
-            
-            Validate.isTrue(asyncParamTypes.length > 0 && asyncParamTypes[0] == AsyncResultListener.class,
-                    "All asyncCls methods must have " + AsyncResultListener.class.getSimpleName() + " as first method");
-            
-            String methodName = asyncMethod.getName();
-            Class<?>[] relevantAsyncParamTypes = Arrays.copyOfRange(asyncParamTypes, 1, asyncParamTypes.length);
-
-            Method syncMethod;
-            try {
-                syncMethod = cls.getMethod(methodName, relevantAsyncParamTypes);
-            } catch (NoSuchMethodException nsme) {
-                throw new IllegalArgumentException("Method " + methodName + " not found");
-            }
-            
-            methodMap.put(asyncMethod, syncMethod);
-        }
+        methodMap = CapturerUtils.mapAsyncInterfaceToNormalClass(cls, asyncCls);
         
         
         this.cls = cls;
@@ -124,41 +98,22 @@ public final class AsyncCapturer<T, AT> {
         return  (AT) Enhancer.create(asyncCls, new MethodInterceptor() {
             @Override
             public Object intercept(Object obj, final Method method, Object[] args, MethodProxy proxy) throws Throwable {
-                if (method.getReturnType() != Void.TYPE) {
-                    try {
-                        throw new RuntimeException("Method return type must be void");
-                    } catch (RuntimeException e) {
-                        callback.invokationFailed(e);
-                        throw e;
-                    }
-                }
+                // Method already validated as being correct through mapping method in constructor
                 
-                String name = method.getName();
-                Class<?>[] paramTypes = method.getParameterTypes();
-                
-                if (paramTypes.length == 0 || paramTypes[0] != AsyncResultListener.class) {
-                    try {
-                        throw new RuntimeException("First parameter must be " + AsyncResultListener.class.getSimpleName());
-                    } catch (RuntimeException e) {
-                        callback.invokationFailed(e);
-                        throw e;
-                    }
-                }
-                
-                if (args[0] == null) {
-                    try {
-                        throw new NullPointerException("First argument must be non-null");
-                    } catch (NullPointerException e) {
-                        callback.invokationFailed(e);
-                        throw e;
-                    }
+                try {
+                    Validate.notNull(args[0], "First argument must be non-null");
+                } catch (NullPointerException e) {
+                    callback.invokationFailed(e);
+                    throw e;
                 }
                 
                 final AsyncResultListener<Object> resultListener = (AsyncResultListener<Object>) args[0];
 
+                Class<?>[] paramTypes = method.getParameterTypes();
                 Class<?>[] sanitizedParamTypes = Arrays.copyOfRange(paramTypes, 1, args.length);
                 Object[] sanitizedArgs = Arrays.copyOfRange(args, 1, args.length);
                 
+                String name = method.getName();
                 InvokeData invokeData = new InvokeData(name, sanitizedArgs, sanitizedParamTypes);
 
                 // Serialize input
@@ -187,23 +142,13 @@ public final class AsyncCapturer<T, AT> {
                         switch (dr.getType()) {
                             case METHOD_RETURN: {
                                 Object ret = dr.getResult();
-                                
                                 Method syncMethod = methodMap.get(method);
-                                Class<?> returnType = syncMethod.getReturnType();
                                 
-                                if (ret != null) {
-                                    if (returnType == Void.TYPE) {
-                                        resultListener.invokationFailed("Return non-null for void type");
-                                        break;
-                                    } else if (!ClassUtils.isAssignable(ret.getClass(), returnType)) {
-                                        resultListener.invokationFailed("Return non-matching class type");
-                                        break;
-                                    }
-                                } else {
-                                    if (returnType.isPrimitive() && returnType != Void.TYPE) {
-                                        resultListener.invokationFailed("Return null for primitive type");
-                                        break;
-                                    }
+                                try {
+                                    CapturerUtils.validateReturn(syncMethod, ret);
+                                } catch (RuntimeException re) {
+                                    resultListener.invokationFailed(re);
+                                    throw re;
                                 }
                                 
                                 resultListener.invokationReturned(dr.getResult());
@@ -211,20 +156,30 @@ public final class AsyncCapturer<T, AT> {
                             }
                             case METHOD_THROW: {
                                 Object ret = dr.getResult();
+                                Method syncMethod = methodMap.get(method);
                                 
-                                if (!(ret instanceof Throwable)) { // will be false for null, which is expected
-                                    resultListener.invokationFailed("Throw non-throwable type or null");
-                                } else {
-                                    resultListener.invokationThrew((Throwable) ret);
+                                try {
+                                    CapturerUtils.validateThrowable(syncMethod, ret);
+                                } catch (RuntimeException re) {
+                                    resultListener.invokationFailed(re);
+                                    throw re;
                                 }
+                                
+                                resultListener.invokationThrew((Throwable) ret);
                                 break;
                             }
                             default: {
-                                resultListener.invokationFailed("Expected "
+                                RuntimeException re = new RuntimeException("Expected "
                                         + SerializationType.METHOD_RETURN + " or "
                                         + SerializationType.METHOD_THROW + " but found "
                                         + dr);
-                                break;
+                                
+                                try {
+                                    throw re;
+                                } catch (RuntimeException e) {
+                                    resultListener.invokationFailed(e);
+                                    throw e;
+                                }
                             }
                         }
                     }

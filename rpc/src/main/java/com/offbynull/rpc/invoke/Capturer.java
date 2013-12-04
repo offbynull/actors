@@ -88,16 +88,33 @@ public final class Capturer<T> {
                     throw e;
                 }
 
-                if (dr.getType() == SerializationType.METHOD_RETURN) {
-                    return dr.getResult();
-                } else if (dr.getType() == SerializationType.METHOD_THROW) {
-                    throw (Throwable) dr.getResult();
+                Object result = dr.getResult();
+                switch (dr.getType()) {
+                    case METHOD_RETURN:
+                        try {
+                            CapturerUtils.validateReturn(method, result);
+                        } catch (RuntimeException e) {
+                            callback.invokationFailed(e);
+                            throw e;
+                        }
+                        
+                        return result;
+                    case METHOD_THROW: {
+                        try {
+                            CapturerUtils.validateThrowable(method, result);
+                        } catch (RuntimeException e) {
+                            callback.invokationFailed(e);
+                            throw e;
+                        }
+                        
+                        throw (Throwable) result;
+                    }
+                    default:
+                        throw new IOException("Expected "
+                                + SerializationType.METHOD_RETURN + " or "
+                                + SerializationType.METHOD_THROW + " but found "
+                                + dr);
                 }
-                
-                throw new IOException("Expected "
-                        + SerializationType.METHOD_RETURN + " or "
-                        + SerializationType.METHOD_THROW + " but found "
-                        + dr);
             }
         });
     }

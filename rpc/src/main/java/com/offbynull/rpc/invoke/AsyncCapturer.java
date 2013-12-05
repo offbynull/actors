@@ -169,13 +169,11 @@ public final class AsyncCapturer<T, AT> {
                                 break;
                             }
                             default: {
-                                RuntimeException re = new RuntimeException("Expected "
-                                        + SerializationType.METHOD_RETURN + " or "
-                                        + SerializationType.METHOD_THROW + " but found "
-                                        + dr);
-                                
                                 try {
-                                    throw re;
+                                    throw new RuntimeException("Expected "
+                                            + SerializationType.METHOD_RETURN + " or "
+                                            + SerializationType.METHOD_THROW + " but found "
+                                            + dr);
                                 } catch (RuntimeException e) {
                                     resultListener.invokationFailed(e);
                                     throw e;

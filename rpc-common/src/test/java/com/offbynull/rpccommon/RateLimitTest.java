@@ -10,9 +10,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class RateLimitIncomingMessageListenerTest {
+public class RateLimitTest {
     
-    public RateLimitIncomingMessageListenerTest() {
+    public RateLimitTest() {
     }
     
     @BeforeClass

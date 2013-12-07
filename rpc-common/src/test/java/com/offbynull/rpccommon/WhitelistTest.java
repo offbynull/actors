@@ -9,9 +9,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class WhitelistIncomingMessageListenerTest {
+public class WhitelistTest {
     
-    public WhitelistIncomingMessageListenerTest() {
+    public WhitelistTest() {
     }
     
     @BeforeClass

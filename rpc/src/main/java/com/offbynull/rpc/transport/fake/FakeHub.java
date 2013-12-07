@@ -1,13 +1,14 @@
 package com.offbynull.rpc.transport.fake;
 
+import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
@@ -19,20 +20,14 @@ import org.apache.commons.lang3.Validate;
  */
 public final class FakeHub<A> {
 
-    private PriorityQueue<Message<A>> transitPacketQueue;
-    private Map<A, FakeEndpoint<A>> addressMap;
     private Line<A> line;
     
 
     private EventLoop eventLoop;
-    private Thread eventLoopThread;
-
-    private Lock lock;
-    private Condition transitSleepCondition;
-    private Condition startedCondition;
-    private Condition stoppedCondition;
+    private LinkedBlockingQueue<Command> commandQueue;
     
-    State state;
+    private volatile State state;
+    private Lock startStopLock;
 
     /**
      * Construct a {@link FakeHub} object.
@@ -42,19 +37,13 @@ public final class FakeHub<A> {
     public FakeHub(Line<A> line) {
         Validate.notNull(line);
 
-        transitPacketQueue = new PriorityQueue<>(11, new MessageArriveTimeComparator());
-        addressMap = new HashMap<>();
         this.line = line;
 
-        lock = new ReentrantLock();
-        transitSleepCondition = lock.newCondition();
-        startedCondition = lock.newCondition();
-        stoppedCondition = lock.newCondition();
-
         eventLoop = new EventLoop();
-        eventLoopThread = new Thread(eventLoop, "Fake Event Loop");
+        commandQueue = new LinkedBlockingQueue<>();
         
         state = State.UNKNOWN;
+        startStopLock = new ReentrantLock();
     }
 
     /**
@@ -63,16 +52,14 @@ public final class FakeHub<A> {
      * @throws IllegalStateException if already started
      */
     public void start() throws IOException {
-        lock.lock();
+        startStopLock.lock();
         try {
             Validate.validState(state == State.UNKNOWN);
             
-            eventLoopThread.start();
-            startedCondition.awaitUninterruptibly();
-            
+            eventLoop.startAndWait();
             state = State.STARTED;
         } finally {
-            lock.unlock();
+            startStopLock.unlock();
         }
     }
 
@@ -81,21 +68,19 @@ public final class FakeHub<A> {
      * @throws IllegalStateException if not started
      */
     public void stop() {
-        lock.lock();
+        startStopLock.lock();
         try {
             Validate.validState(state == State.STARTED);
             
-            eventLoop.triggerShutdown();
-            stoppedCondition.awaitUninterruptibly();
-            
+            eventLoop.stopAndWait();
             state = State.STOPPED;
         } finally {
-            lock.unlock();
+            startStopLock.unlock();
         }
     }
 
     /**
-     * Add an endpoint to the hub.
+     * Queues a command to add an endpoint to the hub.
      * @param address endpoint address
      * @param receiver receiver that receives messages from the hub to {@code address}
      * @return an object to send messages to the hub from {@code address}
@@ -106,20 +91,16 @@ public final class FakeHub<A> {
         Validate.notNull(address);
         Validate.notNull(receiver);
 
-        lock.lock();
-        try {
-            Validate.validState(state == State.STARTED);
-            Validate.isTrue(!addressMap.containsKey(address));
-            addressMap.put(address, new FakeEndpoint<>(receiver));
-            
-            return new FakeHubSender<>(lock, transitSleepCondition, transitPacketQueue, addressMap, line);
-        } finally {
-            lock.unlock();
-        }
+        Validate.validState(state == State.STARTED);
+        
+        CommandAddEndpoint<A> command = new CommandAddEndpoint<>(address, receiver);
+        commandQueue.add(command);
+        
+        return new FakeHubSender<>(commandQueue, line);
     }
 
     /**
-     * Remove an endpoint from the hub.
+     * Queues a command to remove an endpoint from the hub.
      * @param address endpoint address
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalStateException if not started
@@ -127,17 +108,15 @@ public final class FakeHub<A> {
     void removeEndpoint(A address) {
         Validate.notNull(address);
 
-        lock.lock();
-        try {
-            Validate.validState(state == State.STARTED);
-            addressMap.remove(address);
-        } finally {
-            lock.unlock();
-        }
+        Validate.validState(state == State.STARTED);
+        
+        CommandRemoveEndpoint<A> command = new CommandRemoveEndpoint<>(address);
+        commandQueue.add(command);
     }
 
     /**
-     * Activates an endpoint from the hub. Call this after adding.
+     * Queues a command to activates an endpoint from the hub. Call this after
+     * {@link #addEndpoint(java.lang.Object, com.offbynull.rpc.transport.fake.FakeHubReceiver) }.
      * @param address endpoint address
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalStateException if not started
@@ -146,103 +125,105 @@ public final class FakeHub<A> {
     void activateEndpoint(A address) {
         Validate.notNull(address);
 
-        lock.lock();
-        try {
-            Validate.validState(state == State.STARTED);
-            Validate.isTrue(addressMap.containsKey(address));
-            addressMap.get(address).setActive(true);
-        } finally {
-            lock.unlock();
-        }
+        Validate.validState(state == State.STARTED);
+        
+        CommandActivateEndpoint<A> command = new CommandActivateEndpoint<>(address);
+        commandQueue.add(command);
     }
 
-    private final class EventLoop implements Runnable {
+    private final class EventLoop extends AbstractExecutionThreadService {
 
-        private boolean stop;
+        private volatile boolean stop;
+        private PriorityQueue<Message<A>> transitMessageQueue;
+        private Map<A, FakeEndpoint<A>> addressMap;
+
+        public EventLoop() {
+            transitMessageQueue = new PriorityQueue<>(11, new MessageArriveTimeComparator());
+            addressMap = new HashMap<>();
+        }
 
 
         @Override
-        public void run() {
-            lock.lock();
-            try {
-                startedCondition.signal();
+        public void run() throws Exception {
+            while (true) {
+                Message<A> nextArrivingMessage = transitMessageQueue.peek();
                 
-                while (true) {
-                    if (stop) {
+                long waitTime = Long.MAX_VALUE;
+                if (nextArrivingMessage != null) {
+                    long currentTime = System.currentTimeMillis();
+                    long arrivalTime = nextArrivingMessage.getArriveTime();
+                    waitTime = Math.max(0L, arrivalTime - currentTime); // just incase
+                }
+                    
+                LinkedList<Command> commands = new LinkedList<>();
+                Command initialCommand = commandQueue.poll(waitTime, TimeUnit.MILLISECONDS);
+                if (initialCommand != null) {
+                    commands.add(initialCommand);
+                    commandQueue.drainTo(commands);
+                }
+                
+                long time = System.currentTimeMillis();
+                
+                // if stop triggered
+                if (stop) {
+                    break;
+                }
+                
+                // process commands
+                for (Command command : commands) {
+                    if (command instanceof CommandAddEndpoint) {
+                        CommandAddEndpoint<A> commandAe = (CommandAddEndpoint<A>) command;
+                        FakeEndpoint<A> endpoint = new FakeEndpoint<>(commandAe.getReceiver());
+                        addressMap.put(commandAe.getAddress(), endpoint);
+                    } else if (command instanceof CommandRemoveEndpoint) {
+                        CommandRemoveEndpoint<A> commandRe = (CommandRemoveEndpoint<A>) command;
+                        addressMap.remove(commandRe.getAddress());
+                    } else if (command instanceof CommandActivateEndpoint) {
+                        CommandActivateEndpoint<A> commandAe = (CommandActivateEndpoint<A>) command;
+                        FakeEndpoint<A> endpoint = addressMap.get(commandAe.getAddress());
+                        endpoint.setActive(true);
+                    } else if (command instanceof CommandSend) {
+                        CommandSend<A> commandSend = (CommandSend<A>) command;
+                        Message<A> message = commandSend.getMessage();
+                        transitMessageQueue.add(message);
+                    } else {
+                        throw new IllegalStateException();
+                    }
+                }
+
+                // process arrived messages
+                List<Message<A>> packets = new LinkedList<>();
+
+                while (!transitMessageQueue.isEmpty()) {
+                    Message<A> topPacket = transitMessageQueue.peek();
+
+                    long arriveTime = topPacket.getArriveTime();
+                    if (arriveTime > time) {
                         break;
                     }
                     
-                    long time = System.currentTimeMillis();
-
-                    List<Message<A>> packets = new LinkedList<>();
-                    FakeEndpoint<A> dest;
-
-                    if (transitPacketQueue.isEmpty()) {
-                        try {
-                            transitSleepCondition.await();
-                        } catch (InterruptedException ex) {
-                            break;
-                        }
+                    transitMessageQueue.poll(); // remove
+                    
+                    FakeEndpoint<A> dest = addressMap.get(topPacket.getTo());
+                    if (dest == null || !dest.isActive()) {
                         continue;
-                    } else {
-                        Message<A> topPacket = transitPacketQueue.peek();
-                        
-                        long topClosestArriveTime = topPacket.getArriveTime();
-                        long topWaitTime = topClosestArriveTime - time;
-
-                        if (topWaitTime > 0L) {
-                            try {
-                                transitSleepCondition.await(topWaitTime, TimeUnit.MILLISECONDS);
-                            } catch (InterruptedException ex) {
-                                break;
-                            }
-                            continue;
-                        }
-                        
-                        
-                        Message<A> packet;
-                        while ((packet = transitPacketQueue.peek()) != null) {
-                            long closestArriveTime = packet.getArriveTime();
-                            long waitTime = closestArriveTime - time;                            
-                            
-                            if (waitTime <= 0L) {
-                                packets.add(packet);
-                                transitPacketQueue.poll(); // remove
-                            }
-                        }
                     }
 
-                    
-                    for (Message<A> packet : packets) {
-                        dest = addressMap.get(packet.getTo());
-                        if (dest == null || !dest.isActive()) {
-                            continue;
-                        }
-
-                        try {
-                            dest.getReceiver().incoming(packet);
-                        } catch (RuntimeException re) {
-                            // do nothing
-                        }
+                    try {
+                        dest.getReceiver().incoming(topPacket);
+                    } catch (RuntimeException re) {
+                        // do nothing
                     }
-                    
-                    line.arrive(packets);
                 }
                 
-                stoppedCondition.signal();
-            } finally {
-                lock.unlock();
+                line.arrive(packets);
             }
         }
 
+        @Override
         public void triggerShutdown() {
-            lock.lock();
-            try {
-                stop = true;
-                transitSleepCondition.signal();
-            } finally {
-                lock.unlock();
-            }
+            stop = true;
+            commandQueue.add(new Command() { }); // add no-op just to trigger a poll
         }
     }
     

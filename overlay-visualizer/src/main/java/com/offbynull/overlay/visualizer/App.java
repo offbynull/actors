@@ -5,20 +5,22 @@ import java.awt.Color;
 public class App {
 
     public static void main(String[] args) {
-        VisualizeComponent<Integer> component = new VisualizeComponent<>();
+        JGraphXVisualizer<Integer> visualizer = new JGraphXVisualizer<>();
 
-//        component.addNode(0);
-//        component.removeNode(0);
+        visualizer.addNode(5);
+        visualizer.addNode(6);
+        visualizer.addNode(1);
+        visualizer.addNode(7);
+        visualizer.resizeNode(1, 100, 100);
+        visualizer.scaleNode(1, 0.3);
+        visualizer.addConnection(5, 6);
+        visualizer.setNodeColor(5, Color.RED);
         
-        VisualizeUtils.displayInWindow("Test", component);
-
-        component.addNode(5);
-        component.addNode(6);
-        component.addNode(1);
-        component.addNode(7);
-        component.resizeNode(1, 100, 100);
-        component.scaleNode(1, 0.3);
-        component.addConnection(5, 6);
-        component.setNodeColor(5, Color.RED);
+        visualizer.visualize();
+        
+        visualizer.addConnection(1, 7);
+        visualizer.setNodeColor(6, Color.GRAY);
+        visualizer.addNode(9);
+        visualizer.addNode(10);
     }
 }

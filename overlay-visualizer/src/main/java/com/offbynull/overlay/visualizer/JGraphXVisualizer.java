@@ -7,18 +7,23 @@ import com.mxgraph.util.mxRectangle;
 import com.mxgraph.view.mxGraph;
 import com.mxgraph.view.mxGraphView;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.lang.reflect.InvocationTargetException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
@@ -35,18 +40,14 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
     private mxGraph graph;
     private mxGraphComponent component;
+    private JTextArea textOutputArea;
     private BidiMap<A, Object> nodeLookupMap;
     private MultiMap<ImmutablePair<A, A>, Object> connToEdgeLookupMap;
     private Map<Object, ImmutablePair<A,A>> edgeToConnLookupMap;
-    private NodePlacer<A> placer;
     private AtomicReference<VisualizerEventListener> listener = new AtomicReference<>();
+    private AtomicBoolean consumed = new AtomicBoolean();
 
     public JGraphXVisualizer() {
-        this(new RandomLocationNodePlacer<A>(400, 400));
-    }
-
-    public JGraphXVisualizer(NodePlacer<A> placer) {
-        Validate.notNull(placer);
 
         graph = new mxGraph();
         graph.setCellsEditable(false);
@@ -73,13 +74,21 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         connToEdgeLookupMap = new MultiValueMap<>();
         edgeToConnLookupMap = new HashMap<>();
 
-        this.placer = placer;
+        
+        textOutputArea = new JTextArea();
+        textOutputArea.setLineWrap(false);
+        textOutputArea.setEditable(false);
+        JScrollPane textOutputScrollPane = new JScrollPane(textOutputArea);
+        textOutputScrollPane.setPreferredSize(new Dimension(0, 100));
 
         frame = new JFrame("Visualizer");
         frame.setSize(400, 400);
         frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-        frame.setContentPane(component);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, component, textOutputScrollPane);
+        splitPane.setResizeWeight(1.0);
+        
+        frame.setContentPane(splitPane);
         
         component.addComponentListener(new ComponentAdapter() {
 
@@ -100,17 +109,24 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 }
             }
         });
+        
+        splitPane.setDividerLocation(0.2);
     }
 
 
     @Override
     public void visualize(final VisualizerEventListener listener) {
+        if (consumed.getAndSet(true)) {
+            throw new IllegalStateException();
+        }
+        
         Validate.notNull(listener);
         try {
             SwingUtilities.invokeAndWait(new Runnable() {
                 
                 @Override
                 public void run() {
+                    textOutputArea.append(JGraphXVisualizer.class.getSimpleName() + " started.\n\n");
                     JGraphXVisualizer.this.listener.set(listener);
                     frame.setVisible(true);
                 }
@@ -131,7 +147,18 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     }
 
     @Override
-    public void moveNode(final A address, final int centerX, final int centerY) {
+    public void step(String output, Command<A>... commands) {
+        Validate.notNull(output);
+        Validate.noNullElements(commands);
+        
+        String name = Thread.currentThread().getName();
+        String date = SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date());
+        
+        textOutputArea.append(date + " / " + name + " - " + output);
+        textOutputArea.setCaretPosition(textOutputArea.getDocument().getLength());
+    }
+
+    private void moveNode(final A address, final int centerX, final int centerY) {
         Validate.notNull(address);
 
         SwingUtilities.invokeLater(new Runnable() {
@@ -149,8 +176,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void resizeNode(final A address, final int width, final int height) {
+    private void resizeNode(final A address, final int width, final int height) {
         Validate.notNull(address);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, width);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, height);
@@ -176,8 +202,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void scaleNode(final A address, final double scale) {
+    private void scaleNode(final A address, final double scale) {
         Validate.notNull(address);
         Validate.inclusiveBetween(0.0, Double.POSITIVE_INFINITY, scale);
 
@@ -202,8 +227,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void setNodeColor(final A address, final Color color) {
+    private void setNodeColor(final A address, final Color color) {
         Validate.notNull(address);
         Validate.notNull(color);
         Validate.isTrue(color.getAlpha() == 255);
@@ -224,17 +248,16 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void addNode(final A address) {
-        Validate.notNull(address);
-        Validate.notNull(placer);
-
-        NodePlacementInfo info = placer.placeNode(address);
-
-        addNode(address, info.getCenterX(), info.getCenterY());
-        setNodeColor(address, info.getColor());
-        scaleNode(address, info.getScale());
-    }
+//    private void addNode(final A address) {
+//        Validate.notNull(address);
+//        Validate.notNull(placer);
+//
+//        NodePlacementInfo info = placer.placeNode(address);
+//
+//        addNode(address, info.getCenterX(), info.getCenterY());
+//        setNodeColor(address, info.getColor());
+//        scaleNode(address, info.getScale());
+//    }
 
     private void addNode(final A address, final int centerX, final int centerY) {
         Validate.notNull(address);
@@ -269,8 +292,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void removeNode(final A address) {
+    private void removeNode(final A address) {
         Validate.notNull(address);
 
         SwingUtilities.invokeLater(new Runnable() {
@@ -294,8 +316,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void addConnection(final A from, final A to) {
+    private void addConnection(final A from, final A to) {
         Validate.notNull(from);
         Validate.notNull(to);
 
@@ -320,8 +341,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    @Override
-    public void removeConnection(final A from, final A to) {
+    private void removeConnection(final A from, final A to) {
 
         Validate.notNull(from);
         Validate.notNull(to);

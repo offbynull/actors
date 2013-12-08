@@ -35,6 +35,7 @@ public final class Overlay<A> {
 
                 rpc.addService(OverlayService.SERVICE_ID, service);
             } catch (RuntimeException e) {
+                state = State.STARTED; // required by stop();
                 stop();
                 throw e;
             }

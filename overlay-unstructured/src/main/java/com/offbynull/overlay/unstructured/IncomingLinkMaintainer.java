@@ -82,7 +82,7 @@ public final class IncomingLinkMaintainer<A> {
         try {
             Validate.validState(state == State.STARTED);
             
-            if (slotCount == 0) {
+            if (slotCount == 0 || addressToLinkMap.containsKey(address)) {
                 return false;
             }
             

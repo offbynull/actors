@@ -13,9 +13,9 @@ package com.offbynull.overlay.visualizer;
  *     public static void main(String[] args) {
  *         VisualizeComponent<Integer> component = new VisualizeComponent<>();
  *         
- *         component.addNode(5, 50, 50);
- *         component.addNode(6, 100, 100);
- *         component.addNode(1, 10, 10);
+ *         component.addNode(5);
+ *         component.addNode(6);
+ *         component.addNode(1);
  *         component.resizeNode(1, 100, 200);
  *         component.scaleNode(1, 0.1);
  *         component.addConnection(5, 6);

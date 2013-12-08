@@ -35,7 +35,7 @@ public final class VisualizeComponent<A> extends JComponent {
     private NodePlacer<A> placer;
 
     public VisualizeComponent() {
-        this(new RandomLocationNodePlacer<A>(400, 400));
+        this(new RandomLocationNodePlacer<A>(300, 300));
     }
 
     public VisualizeComponent(NodePlacer<A> placer) {
@@ -323,15 +323,19 @@ public final class VisualizeComponent<A> extends JComponent {
     }
 
     private void zoomFit() {
-        mxGraphView view = graph.getView();
         double compWidth = component.getWidth();
         double compHeight = component.getHeight();
         double compLen = Math.min(compWidth, compHeight);
+        
+        mxGraphView view = graph.getView();
+        double oldScale = view.getScale();
+        mxPoint oldTranslate = view.getTranslate();
+        
         mxRectangle graphBounds = view.getGraphBounds();
-        double graphX = (graphBounds.getX()) / view.getScale();
-        double graphY = (graphBounds.getY()) / view.getScale();
-        double graphWidth = (graphBounds.getWidth()) / view.getScale();
-        double graphHeight = (graphBounds.getHeight()) / view.getScale();
+        double graphX = (graphBounds.getX()) / oldScale - oldTranslate.getX();
+        double graphY = (graphBounds.getY()) / oldScale - oldTranslate.getY();
+        double graphWidth = (graphBounds.getWidth()) / oldScale;
+        double graphHeight = (graphBounds.getHeight()) / oldScale;
         double graphEndX = graphX + graphWidth;
         double graphEndY = graphY + graphHeight;
         
@@ -340,10 +344,8 @@ public final class VisualizeComponent<A> extends JComponent {
         if (Double.isInfinite(viewLen) || Double.isNaN(viewLen) || viewLen <= 0.0) {
             view.setScale(1.0);
         } else {
-//                        view.scaleAndTranslate(compLen / viewLen,
-//                    -graphX - (graphWidth - compWidth) / 2,
-//                    -graphY - (graphHeight - compHeight) / 2);
-            view.setScale(compLen / viewLen);
+            double newScale = compLen / viewLen;
+            view.scaleAndTranslate(newScale, -graphX, -graphY);
         }
     }
 

@@ -8,9 +8,9 @@ public class App {
         VisualizeComponent<Integer> component = new VisualizeComponent<>();
         NodePlacer<Integer> placer = new RandomLocationNodePlacer<>(1000, 1000);
         
-        component.placeNode(5, placer);
-        component.placeNode(6, placer);
-        component.placeNode(1, placer);
+        component.addNode(5);
+        component.addNode(6);
+        component.addNode(1);
         component.resizeNode(1, 100, 200);
         component.scaleNode(1, 0.1);
         component.addConnection(5, 6);

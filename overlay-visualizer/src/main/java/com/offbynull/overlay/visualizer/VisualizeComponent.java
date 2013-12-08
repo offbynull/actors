@@ -27,8 +27,15 @@ public final class VisualizeComponent<A> extends JComponent {
     private BidiMap<A, Object> nodeLookupMap;
     private BidiMap<ImmutablePair<A, A>, Object> connLookupMap;
     private Lock updateLock;
+    private NodePlacer<A> placer;
 
     public VisualizeComponent() {
+        this(new RandomLocationNodePlacer<A>(1000, 1000));
+    }
+    
+    public VisualizeComponent(NodePlacer<A> placer) {
+        Validate.notNull(placer);
+        
         graph = new mxGraph();
         graph.setCellsEditable(false);
         graph.setAllowDanglingEdges(false);
@@ -57,6 +64,8 @@ public final class VisualizeComponent<A> extends JComponent {
         nodeLookupMap = new DualHashBidiMap<>();
         connLookupMap = new DualHashBidiMap<>();
         updateLock = new ReentrantLock();
+        
+        this.placer = placer;
         
         super.addComponentListener(new ComponentAdapter() {
 
@@ -156,7 +165,7 @@ public final class VisualizeComponent<A> extends JComponent {
         }
     }
     
-    public void placeNode(A address, NodePlacer<A> placer) {
+    public void addNode(A address) {
         Validate.notNull(address);
         Validate.notNull(placer);
                 

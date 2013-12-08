@@ -8,12 +8,13 @@
     <name>peernetic</name>
     
     <modules>
-    <module>p2p-tools</module>
-    <module>basic-chord</module>
-    <module>rpc</module>
-    <module>rpc-common</module>
-    <module>overlay-unstructured</module>
-  </modules>
+        <module>p2p-tools</module>
+        <module>basic-chord</module>
+        <module>rpc</module>
+        <module>rpc-common</module>
+        <module>overlay-unstructured</module>
+        <module>overlay-visualizer</module>
+    </modules>
     
     <dependencyManagement>
         <dependencies>
@@ -52,6 +53,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.tinyjee.jgraphx</groupId>
+                <artifactId>jgraphx</artifactId>
+                <version>2.0.0.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

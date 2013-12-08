@@ -9,12 +9,23 @@ import com.mxgraph.view.mxGraphView;
 import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import org.apache.commons.collections4.BidiMap;
+import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
@@ -25,8 +36,10 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     private mxGraph graph;
     private mxGraphComponent component;
     private BidiMap<A, Object> nodeLookupMap;
-    private BidiMap<ImmutablePair<A, A>, Object> connLookupMap;
+    private MultiMap<ImmutablePair<A, A>, Object> connToEdgeLookupMap;
+    private Map<Object, ImmutablePair<A,A>> edgeToConnLookupMap;
     private NodePlacer<A> placer;
+    private AtomicReference<VisualizerEventListener> listener = new AtomicReference<>();
 
     public JGraphXVisualizer() {
         this(new RandomLocationNodePlacer<A>(400, 400));
@@ -57,7 +70,8 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         component.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
 
         nodeLookupMap = new DualHashBidiMap<>();
-        connLookupMap = new DualHashBidiMap<>();
+        connToEdgeLookupMap = new MultiValueMap<>();
+        edgeToConnLookupMap = new HashMap<>();
 
         this.placer = placer;
 
@@ -74,15 +88,44 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 zoomFit();
             }
         });
+        
+        frame.addWindowListener(new WindowAdapter() {
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+                VisualizerEventListener veListener = listener.get();
+                
+                if (veListener != null) {
+                    veListener.closed();
+                }
+            }
+        });
+    }
+
+
+    @Override
+    public void visualize(final VisualizerEventListener listener) {
+        Validate.notNull(listener);
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                
+                @Override
+                public void run() {
+                    JGraphXVisualizer.this.listener.set(listener);
+                    frame.setVisible(true);
+                }
+            });
+        } catch (Exception ex) {
+            throw new RuntimeException("Visualize failed", ex);
+        }
     }
 
     @Override
     public void visualize() {
-        SwingUtilities.invokeLater(new Runnable() {
+        visualize(new VisualizerEventListener() {
 
             @Override
-            public void run() {
-                frame.setVisible(true);
+            public void closed() {
             }
         });
     }
@@ -154,8 +197,6 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 rect.setY(rect.getY() / view.getScale());
                 graph.resizeCell(vertex, rect);
 
-                System.out.println("Scaled node " + address);
-
                 zoomFit();
             }
         });
@@ -177,8 +218,6 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 graph.setCellStyle(mxConstants.STYLE_FILLCOLOR + "=" + "#" + String.format("%06x", color.getRGB() & 0x00FFFFFF),
                         new Object[]{vertex});
                 nodeLookupMap.put(address, vertex);
-
-                System.out.println("Node color " + address);
 
                 zoomFit();
             }
@@ -225,8 +264,6 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
                 nodeLookupMap.put(address, vertex);
 
-                System.out.println("Added " + address + " at " + centerX + " " + centerY);
-
                 zoomFit();
             }
         });
@@ -246,12 +283,11 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 Object[] edges = graph.getEdges(vertex);
 
                 for (Object edge : edges) {
-                    connLookupMap.removeValue(edge);
+                    ImmutablePair<A, A> conn = edgeToConnLookupMap.get(edge);
+                    connToEdgeLookupMap.removeMapping(conn, edge);
                 }
 
                 graph.removeCells(new Object[]{vertex});
-
-                System.out.println("Removed " + address);
 
                 zoomFit();
             }
@@ -271,13 +307,13 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
                 Object fromVertex = nodeLookupMap.get(from);
                 Object toVertex = nodeLookupMap.get(to);
-                ImmutablePair<A, A> key = new ImmutablePair<>(from, to);
+                ImmutablePair<A, A> conn = new ImmutablePair<>(from, to);
                 Validate.isTrue(nodeLookupMap.containsKey(from), "Connection source doesn't exist");
                 Validate.isTrue(nodeLookupMap.containsKey(to), "Connection destination doesn't exist");
-                Validate.isTrue(!connLookupMap.containsKey(key), "Connection already exists");
 
                 Object edge = graph.insertEdge(parent, null, null, fromVertex, toVertex);
-                connLookupMap.put(key, edge);
+                connToEdgeLookupMap.put(conn, edge);
+                edgeToConnLookupMap.put(edge, conn);
 
                 zoomFit();
             }
@@ -296,16 +332,21 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
             public void run() {
                 Object fromVertex = nodeLookupMap.get(from);
                 Object toVertex = nodeLookupMap.get(to);
-                ImmutablePair<A, A> key = new ImmutablePair<>(from, to);
+                ImmutablePair<A, A> conn = new ImmutablePair<>(from, to);
                 Validate.isTrue(nodeLookupMap.containsKey(from), "Connection source doesn't exist");
                 Validate.isTrue(nodeLookupMap.containsKey(to), "Connection destination doesn't exist");
-                Validate.isTrue(connLookupMap.containsKey(key), "Connection doesn't exists");
+                Validate.isTrue(connToEdgeLookupMap.containsKey(conn), "Connection doesn't exists");
 
                 if (fromVertex == null || toVertex == null) {
                     return;
                 }
+                
+                Collection<Object> edges = (Collection<Object>) connToEdgeLookupMap.get(conn);
+                Object edge = edges.iterator().next();
+                
 
-                Object edge = connLookupMap.remove(key);
+                connToEdgeLookupMap.removeMapping(conn, edge);
+                edgeToConnLookupMap.remove(edge);
 
                 graph.removeCells(new Object[]{edge});
 
@@ -319,9 +360,6 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
             @Override
             public void run() {
-                System.out.println(component.getWidth());
-                System.out.println(component.getHeight());
-                
                 double compWidth = component.getWidth();
                 double compHeight = component.getHeight();
                 double compLen = Math.min(compWidth, compHeight);

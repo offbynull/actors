@@ -6,7 +6,12 @@ import com.offbynull.overlay.visualizer.VisualizeComponent;
 import com.offbynull.rpc.Rpc;
 import com.offbynull.rpc.RpcConfig;
 import com.offbynull.rpc.TransportFactory;
-import javax.swing.SwingUtilities;
+import com.offbynull.rpc.transport.IncomingFilter;
+import com.offbynull.rpc.transport.OutgoingFilter;
+import com.offbynull.rpccommon.filters.selfblock.SelfBlockId;
+import com.offbynull.rpccommon.filters.selfblock.SelfBlockIncomingFilter;
+import com.offbynull.rpccommon.filters.selfblock.SelfBlockOutgoingFilter;
+import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public class OverlayRunnable implements Runnable {
@@ -40,7 +45,15 @@ public class OverlayRunnable implements Runnable {
         Overlay<Integer> overlay = null;
         
         try {
-            rpc = new Rpc<>(transportFactory, new RpcConfig<Integer>());
+            RpcConfig<Integer> rpcConfig = new RpcConfig<>();
+            
+//            SelfBlockId selfBlockId = new SelfBlockId();
+//            IncomingFilter<Integer> inFilter = new SelfBlockIncomingFilter<>(selfBlockId);
+//            OutgoingFilter<Integer> outFilter = new SelfBlockOutgoingFilter<>(selfBlockId);
+//            rpcConfig.setIncomingFilters(Arrays.asList(inFilter));
+//            rpcConfig.setOutgoingFilters(Arrays.asList(outFilter));
+            
+            rpc = new Rpc<>(transportFactory, rpcConfig);
             overlay = new Overlay<>();
             overlay.start(rpc, bootstrap, maxInLinks, maxOutLinks, new CustomOverlayListener());
             
@@ -64,28 +77,15 @@ public class OverlayRunnable implements Runnable {
         @Override
         public void linkEstablished(final Integer address, LinkType type) {
             if (type == LinkType.OUTGOING) {
-                System.out.println("CREATED " + selfAddress + "/" + address);
-                SwingUtilities.invokeLater(new Runnable() {
-
-                    @Override
-                    public void run() {
                         visualizer.addConnection(selfAddress, address);
-                    }
-                });
+                   
             }
         }
 
         @Override
         public void linkBroken(final Integer address, LinkType type) {
             if (type == LinkType.OUTGOING) {
-                System.out.println("REMOVED " + selfAddress + "/" + address);
-                SwingUtilities.invokeLater(new Runnable() {
-
-                    @Override
-                    public void run() {
                         visualizer.removeConnection(selfAddress, address);
-                    }
-                });
             }
         }
 

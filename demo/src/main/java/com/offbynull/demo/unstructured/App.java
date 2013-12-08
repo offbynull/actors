@@ -19,7 +19,7 @@ public class App {
         
         ExecutorService executor = Executors.newFixedThreadPool(10);
         for (int i = 0; i < 10; i++) {
-            executor.submit(new OverlayRunnable(i, new FakeTransportFactory<>(hub, i), i+1, 3, 3, visualizer));
+            executor.submit(new OverlayRunnable(i, new FakeTransportFactory<>(hub, i), i-1, 10, 10, visualizer));
         }
     }
 }

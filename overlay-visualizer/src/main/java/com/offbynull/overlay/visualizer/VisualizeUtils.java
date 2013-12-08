@@ -11,7 +11,7 @@ public final class VisualizeUtils {
     public static JFrame displayInWindow(String title, VisualizeComponent component) {
         JFrame jframe = new JFrame("" + title);
         
-        jframe.getContentPane().add(component);
+        jframe.add(component);
         jframe.setSize(400, 400);
         jframe.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         jframe.setVisible(true);

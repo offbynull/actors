@@ -44,13 +44,7 @@ public class OverlayRunnable implements Runnable {
             overlay = new Overlay<>();
             overlay.start(rpc, bootstrap, maxInLinks, maxOutLinks, new CustomOverlayListener());
             
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    visualizer.addNode(selfAddress);
-                }
-            });
+            visualizer.addNode(selfAddress);
 
             Thread.sleep(Long.MAX_VALUE);
         } catch (Exception e) {

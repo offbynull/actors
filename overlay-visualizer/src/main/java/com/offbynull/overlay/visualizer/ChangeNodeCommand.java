@@ -12,6 +12,7 @@ public final class ChangeNodeCommand<A> implements Command<A> {
 
     public ChangeNodeCommand(A node, Double scale, Point location, Color color) {
         Validate.notNull(node); // others can be null
+        Validate.isTrue(scale == null || scale >= 0.0, "Negative scale");
         
         this.node = node;
         this.scale = scale;
@@ -27,7 +28,7 @@ public final class ChangeNodeCommand<A> implements Command<A> {
         return scale;
     }
 
-    public Point getLocation() {
+    public Point getCenter() {
         return location;
     }
 

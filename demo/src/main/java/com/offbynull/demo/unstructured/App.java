@@ -2,13 +2,11 @@ package com.offbynull.demo.unstructured;
 
 import com.offbynull.overlay.visualizer.JGraphXVisualizer;
 import com.offbynull.overlay.visualizer.Visualizer;
-import com.offbynull.overlay.visualizer.VisualizerEventListener;
 import com.offbynull.rpc.FakeTransportFactory;
 import com.offbynull.rpc.transport.fake.FakeHub;
 import com.offbynull.rpc.transport.fake.PerfectLine;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
 public class App {
@@ -33,17 +31,6 @@ public class App {
             executor.submit(new OverlayRunnable(i, new FakeTransportFactory<>(hub, i), i-1, 10, 10, visualizer));
         }
         
-        visualizer.visualize(new VisualizerEventListener() {
-
-            @Override
-            public void closed() {
-                try {
-                    executor.shutdownNow();
-                    executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException ex) {
-                    // do nothing
-                }
-            }
-        });
+        visualizer.visualize();
     }
 }

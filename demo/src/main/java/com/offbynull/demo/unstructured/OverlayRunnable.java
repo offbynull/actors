@@ -2,10 +2,17 @@ package com.offbynull.demo.unstructured;
 
 import com.offbynull.overlay.unstructured.Overlay;
 import com.offbynull.overlay.unstructured.OverlayListener;
+import com.offbynull.overlay.visualizer.AddEdgeCommand;
+import com.offbynull.overlay.visualizer.AddNodeCommand;
+import com.offbynull.overlay.visualizer.ChangeNodeCommand;
+import com.offbynull.overlay.visualizer.RemoveNodeCommand;
 import com.offbynull.overlay.visualizer.Visualizer;
 import com.offbynull.rpc.Rpc;
 import com.offbynull.rpc.RpcConfig;
 import com.offbynull.rpc.TransportFactory;
+import java.awt.Color;
+import java.awt.Point;
+import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 public class OverlayRunnable implements Runnable {
@@ -49,7 +56,10 @@ public class OverlayRunnable implements Runnable {
             overlay = new Overlay<>();
             overlay.start(rpc, bootstrap, maxInLinks, maxOutLinks, new CustomOverlayListener());
 
-            visualizer.addNode(selfAddress);
+            Random random = new Random();
+            visualizer.step("Adding node " + selfAddress,
+                    new AddNodeCommand<>(selfAddress),
+                    new ChangeNodeCommand(selfAddress, null, new Point(random.nextInt(500), random.nextInt(500)), Color.GREEN));
 
             Thread.sleep(Long.MAX_VALUE);
         } catch (Exception e) {
@@ -60,7 +70,8 @@ public class OverlayRunnable implements Runnable {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            visualizer.removeNode(selfAddress);
+            visualizer.step("Removing node " + selfAddress,
+                    new RemoveNodeCommand<>(selfAddress));
         }
     }
 
@@ -69,15 +80,16 @@ public class OverlayRunnable implements Runnable {
         @Override
         public void linkEstablished(final Integer address, LinkType type) {
             if (type == LinkType.OUTGOING) {
-                visualizer.addConnection(selfAddress, address);
-
+                visualizer.step(selfAddress + " attached to " + address,
+                        new AddEdgeCommand<>(selfAddress, address));
             }
         }
 
         @Override
         public void linkBroken(final Integer address, LinkType type) {
             if (type == LinkType.OUTGOING) {
-                visualizer.removeConnection(selfAddress, address);
+                visualizer.step(selfAddress + " detached from " + address,
+                        new AddEdgeCommand<>(selfAddress, address));
             }
         }
 

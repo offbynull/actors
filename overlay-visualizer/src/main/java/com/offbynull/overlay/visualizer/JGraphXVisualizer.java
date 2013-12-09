@@ -418,7 +418,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                     view.setScale(1.0);
                 } else {
                     double newScale = compLen / viewLen;
-                    view.scaleAndTranslate(newScale, -graphX, -graphY);
+                    view.setScale(newScale);
                 }
             }
         });

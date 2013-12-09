@@ -162,10 +162,10 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         textOutputArea.append(date + " / " + name + " - " + output + " \n");
         textOutputArea.setCaretPosition(textOutputArea.getDocument().getLength());
         
-        performCommands(Arrays.asList(commands));
+        queueCommands(Arrays.asList(commands));
     }
     
-    private void performCommands(List<Command<A>> commands) {
+    private void queueCommands(List<Command<A>> commands) {
         for (Command<A> command : commands) {
             if (command instanceof AddNodeCommand) {
                 addNode((AddNodeCommand<A>) command);
@@ -311,13 +311,10 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                     ImmutablePair<A, A> conn = edgeToConnLookupMap.get(edge);
                     connToEdgeLookupMap.removeMapping(conn, edge);
                 }
-
-                List<Command<A>> commands = vertexLingerTriggerMap.remove(vertex);
-                if (commands != null) {
-                    performCommands(commands);
-                }
                 
-                graph.removeCells(new Object[]{vertex});
+                graph.getModel().remove(vertex);
+                
+                triggerIfNoEdges(command.getNode(), vertex);
 
                 zoomFit();
             }
@@ -373,13 +370,27 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 connToEdgeLookupMap.removeMapping(conn, edge);
                 edgeToConnLookupMap.remove(edge);
 
-                graph.removeCells(new Object[]{edge});
+                graph.getModel().remove(edge);
+                
+                triggerIfNoEdges(command.getFrom(), fromVertex);
+                triggerIfNoEdges(command.getTo(), toVertex);
 
                 zoomFit();
             }
         });
     }
 
+    private void triggerIfNoEdges(A node, Object vertex) {
+        Object[] in = graph.getIncomingEdges(vertex);
+        Object[] out = graph.getOutgoingEdges(vertex);
+        if (in.length == 0 && out.length == 0) {
+            List<Command<A>> commands = vertexLingerTriggerMap.remove(vertex);
+            if (commands != null) {
+                queueCommands(commands);
+            }
+        }
+    }
+    
     private void zoomFit() {
         SwingUtilities.invokeLater(new Runnable() {
 

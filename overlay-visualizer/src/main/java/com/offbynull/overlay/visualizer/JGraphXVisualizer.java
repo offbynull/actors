@@ -34,6 +34,7 @@ import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
@@ -49,6 +50,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     private MultiMap<ImmutablePair<A, A>, Object> connToEdgeLookupMap;
     private Map<Object, ImmutablePair<A,A>> edgeToConnLookupMap;
     private AtomicReference<VisualizerEventListener> listener = new AtomicReference<>();
+    private AtomicReference<Recorder<A>> recorder = new AtomicReference<>();
     private AtomicBoolean consumed = new AtomicBoolean();
 
     public JGraphXVisualizer() {
@@ -107,8 +109,12 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
             @Override
             public void windowClosed(WindowEvent e) {
-                VisualizerEventListener veListener = listener.get();
+                Recorder<A> rec = recorder.get();
+                if (rec != null) {
+                    IOUtils.closeQuietly(rec);
+                }
                 
+                VisualizerEventListener veListener = listener.get();
                 if (veListener != null) {
                     veListener.closed();
                 }
@@ -120,12 +126,11 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
 
     @Override
-    public void visualize(final VisualizerEventListener listener) {
+    public void visualize(final Recorder recorder, final VisualizerEventListener listener) {
         if (consumed.getAndSet(true)) {
             throw new IllegalStateException();
         }
         
-        Validate.notNull(listener);
         try {
             SwingUtilities.invokeAndWait(new Runnable() {
                 
@@ -133,6 +138,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 public void run() {
                     textOutputArea.append(JGraphXVisualizer.class.getSimpleName() + " started.\n\n");
                     JGraphXVisualizer.this.listener.set(listener);
+                    JGraphXVisualizer.this.recorder.set(recorder);
                     frame.setVisible(true);
                 }
             });
@@ -143,12 +149,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
     @Override
     public void visualize() {
-        visualize(new VisualizerEventListener() {
-
-            @Override
-            public void closed() {
-            }
-        });
+        visualize(null, null);
     }
 
     @Override
@@ -156,11 +157,18 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         Validate.notNull(output);
         Validate.noNullElements(commands);
         
-        String name = Thread.currentThread().getName();
-        String date = SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date());
+        Date date = new Date();
         
-        textOutputArea.append(date + " / " + name + " - " + output + " \n");
+        String name = Thread.currentThread().getName();
+        String dateStr = SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(date);
+        
+        textOutputArea.append(dateStr + " / " + name + " - " + output + " \n");
         textOutputArea.setCaretPosition(textOutputArea.getDocument().getLength());
+        
+        Recorder<A> rec = this.recorder.get();
+        if (rec != null) {
+            rec.recordStep(output, commands);
+        }
         
         queueCommands(Arrays.asList(commands));
     }

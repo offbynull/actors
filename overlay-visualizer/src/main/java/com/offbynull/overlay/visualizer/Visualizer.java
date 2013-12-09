@@ -4,6 +4,6 @@ public interface Visualizer<A> {
 
     void step(String output, Command<A> ... commands);
     void visualize();
-    void visualize(VisualizerEventListener listener);
+    void visualize(Recorder recorder, VisualizerEventListener listener);
     
 }

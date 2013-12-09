@@ -7,7 +7,9 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static com.offbynull.peernetic.chord.test.TestUtils.*;
+import org.junit.Ignore;
 
+@Ignore
 public class ChordTest {
     
     public ChordTest() {

@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpccommon.services.nat;
 
 import com.offbynull.rpc.Rpc;
@@ -33,6 +49,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Encapsulates the logic to query a {@link NatHelperService}.
+ * @author Kasra F
+ */
 public final class NatHelperCallable implements Callable<Result> {
     
     private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
@@ -48,6 +68,14 @@ public final class NatHelperCallable implements Callable<Result> {
     private int mainRpcPort;
     private InetSocketAddress partnerAddress;
 
+    /**
+     * Constructs a {@link NatHelperCallable} object.
+     * @param mainRpc rpc
+     * @param mainRpcPort rpc port
+     * @param partnerAddress query address
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code mainRpcPort} is not between {@code 1} and {@code 65535}
+     */
     public NatHelperCallable(Rpc<InetSocketAddress> mainRpc, int mainRpcPort, InetSocketAddress partnerAddress) {
         Validate.notNull(mainRpc);
         Validate.inclusiveBetween(1, 65535, mainRpcPort);
@@ -130,7 +158,7 @@ public final class NatHelperCallable implements Callable<Result> {
         } finally {
             try {
                 transport.stop();
-            } catch (Exception e) {
+            } catch (IOException | RuntimeException e) { // NOPMD
                 // do nothing
             }
         }
@@ -188,6 +216,9 @@ public final class NatHelperCallable implements Callable<Result> {
         return ret;
     }
 
+    /**
+     * Result of {@link NatHelperCallable}.
+     */
     public static final class Result {
 
         private InetSocketAddress exposedAddress;
@@ -196,7 +227,16 @@ public final class NatHelperCallable implements Callable<Result> {
         private boolean accessibleUdp;
         private boolean accessibleTcp;
 
-        public Result(InetSocketAddress exposedAddress, boolean exposedAddressMatchesLocalAddress, boolean exposedPortMatchesRpcPort, boolean accessibleUdp, boolean accessibleTcp) {
+        /**
+         * Constructs a {@link Result} object.
+         * @param exposedAddress exposed address
+         * @param exposedAddressMatchesLocalAddress {@code true} if the exposed address matches a local address, {@code false} otherwise
+         * @param exposedPortMatchesRpcPort {@code true} if the exposed port matches the local port, {@code false} otherwise
+         * @param accessibleUdp {@code true} if TCP was accessible, {@code false} otherwise
+         * @param accessibleTcp {@code true} if UDP was accessible, {@code false} otherwise
+         */
+        public Result(InetSocketAddress exposedAddress, boolean exposedAddressMatchesLocalAddress, boolean exposedPortMatchesRpcPort,
+                boolean accessibleUdp, boolean accessibleTcp) {
             super();
             Validate.notNull(exposedAddress);
             this.exposedAddress = exposedAddress;
@@ -206,29 +246,51 @@ public final class NatHelperCallable implements Callable<Result> {
             this.accessibleTcp = accessibleTcp;
         }
 
+        /**
+         * Get the exposed address.
+         * @return exposed address
+         */
         public InetSocketAddress getExposedAddress() {
             return exposedAddress;
         }
 
+        /**
+         * Get if UDP was accessible.
+         * @return {@code true} if UDP was accessible, {@code false} otherwise
+         */
         public boolean isAccessibleUdp() {
             return accessibleUdp;
         }
 
+        /**
+         * Get if TCP was accessible.
+         * @return {@code true} if TCP was accessible, {@code false} otherwise
+         */
         public boolean isAccessibleTcp() {
             return accessibleTcp;
         }
 
+        /**
+         * Get if the exposed address matched a local address.
+         * @return {@code true} if the exposed address matched a local address
+         */
         public boolean isExposedAddressMatchesLocalAddress() {
             return exposedAddressMatchesLocalAddress;
         }
 
+        /**
+         * Get if the exposed port matched the local port.
+         * @return {@code true} if the exposed port matched the local port
+         */
         public boolean isExposedPortMatchesRpcPort() {
             return exposedPortMatchesRpcPort; // this is totally worthless for tcp
         }
 
         @Override
         public String toString() {
-            return "NatTestResult{" + "exposedAddress=" + exposedAddress + ", exposedAddressMatchesLocalAddress=" + exposedAddressMatchesLocalAddress + ", exposedPortMatchesRpcPort=" + exposedPortMatchesRpcPort + ", accessibleUdp=" + accessibleUdp + ", accessibleTcp=" + accessibleTcp + '}';
+            return "NatTestResult{" + "exposedAddress=" + exposedAddress + ", exposedAddressMatchesLocalAddress="
+                    + exposedAddressMatchesLocalAddress + ", exposedPortMatchesRpcPort=" + exposedPortMatchesRpcPort
+                    + ", accessibleUdp=" + accessibleUdp + ", accessibleTcp=" + accessibleTcp + '}';
         }
     }
 }

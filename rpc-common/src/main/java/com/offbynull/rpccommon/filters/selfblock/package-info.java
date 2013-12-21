@@ -14,19 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.rpccommon.services.ping;
-
-import com.offbynull.rpc.invoke.AsyncResultListener;
 
 /**
- * Async {@link PingService}.
- * @author Kasra F
+ * Filters to detect when you're sending messages to yourself.
  */
-public interface PingServiceAsync {
-    /**
-     * See {@link PingService#ping(long) }.
-     * @param result see {@link PingService}
-     * @param value see {@link PingService}
-     */
-    void ping(AsyncResultListener<Long> result, long value);    
-}
+
+package com.offbynull.rpccommon.filters.selfblock;

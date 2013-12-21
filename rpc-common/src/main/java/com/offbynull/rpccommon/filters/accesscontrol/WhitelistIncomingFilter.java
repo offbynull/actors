@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpccommon.filters.accesscontrol;
 
 import com.offbynull.rpc.transport.IncomingFilter;
@@ -8,37 +24,77 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * An {@link IncomingFilter} that only allows a collection of addresses.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class WhitelistIncomingFilter<A> implements IncomingFilter<A> {
 
     private Set<A> allowedSet;
 
+    /**
+     * Constructs a {@link WhitelistIncomingFilter} object.
+     */
     public WhitelistIncomingFilter() {
         this(Collections.<A>emptySet());
     }
-    
-    public WhitelistIncomingFilter(Set<A> disallowedSet) {
-        Validate.noNullElements(disallowedSet);
+
+    /**
+     * Constructs a {@link WhitelistIncomingFilter} object with an initial set of addresses.
+     * @param allowedSet addresses to block
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
+    public WhitelistIncomingFilter(Set<A> allowedSet) {
+        Validate.noNullElements(allowedSet);
 
         this.allowedSet = Collections.newSetFromMap(new ConcurrentHashMap<A, Boolean>());
-        this.allowedSet.addAll(disallowedSet);
+        this.allowedSet.addAll(allowedSet);
     }
 
+    /**
+     * Add an address.
+     * @param e address
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public void addAddress(A e) {
+        Validate.notNull(e);
         allowedSet.add(e);
     }
 
+    /**
+     * Remove an address.
+     * @param e address
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public void removeAddress(A e) {
+        Validate.notNull(e);
         allowedSet.remove(e);
     }
 
+    /**
+     * Add a collection of addresses.
+     * @param c addresses to add
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
     public void addAddresses(Collection<? extends A> c) {
+        Validate.noNullElements(c);
         allowedSet.addAll(c);
     }
 
+    /**
+     * Remove a collection of addresses.
+     * @param c addresses to remove
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
     public void removeAddresses(Collection<? extends A> c) {
+        Validate.noNullElements(c);
         allowedSet.removeAll(c);
     }
 
+    /**
+     * Clears the blocked addresses.
+     */
     public void clear() {
         allowedSet.clear();
     }
@@ -52,6 +108,10 @@ public final class WhitelistIncomingFilter<A> implements IncomingFilter<A> {
         return buffer;
     }
 
+    /**
+     * Exception thrown when {@link WhitelistIncomingFilter#filter(java.lang.Object, java.nio.ByteBuffer) } notices that the message doesn't
+     * come from a whitelisted address.
+     */
     public static class AddressNotInWhitelistException extends RuntimeException {
     }
 }

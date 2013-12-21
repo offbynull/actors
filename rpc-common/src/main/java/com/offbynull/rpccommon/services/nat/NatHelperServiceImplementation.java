@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpccommon.services.nat;
 
 import com.offbynull.rpc.RpcInvokeKeys;
@@ -12,9 +28,14 @@ import com.offbynull.rpc.transport.Transport;
 import com.offbynull.rpc.transport.TransportHelper;
 import com.offbynull.rpc.transport.tcp.TcpTransport;
 import com.offbynull.rpc.transport.udp.UdpTransport;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 
+/**
+ * NAT helper implementation.
+ * @author Kasra F
+ */
 public final class NatHelperServiceImplementation implements NatHelperService {
 
     private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
@@ -66,11 +87,11 @@ public final class NatHelperServiceImplementation implements NatHelperService {
             TransportHelper.sendAndForget(transport, outgoingMessage);
 
             return TestPortResult.SUCCESS; // sendAndForget will close the transport for us once it's finished
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             if (transport != null) {
                 try {
                     transport.stop();
-                } catch (Exception ex) {
+                } catch (IOException | RuntimeException ex) { // NOPMD
                     // do nothing
                 }
             }

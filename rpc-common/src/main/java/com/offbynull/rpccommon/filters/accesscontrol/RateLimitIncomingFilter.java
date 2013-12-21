@@ -1,6 +1,23 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpccommon.filters.accesscontrol;
 
 import com.offbynull.rpc.transport.IncomingFilter;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -10,6 +27,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * An {@link IncomingFilter} that ensures a certain address isn't hammering.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
     private int maxHit;
     private long maxDuration;
@@ -19,6 +41,12 @@ public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
     
     private Lock lock;
 
+    /**
+     * Constructs a {@link RateLimitIncomingFilter} object.
+     * @param maxHit maximum number of hits allowed within {@link duration}
+     * @param maxDuration duration of time before the hit counter for an address resets
+     * @throws IllegalArgumentException if either argument is {@code <= 0}
+     */
     public RateLimitIncomingFilter(int maxHit, long maxDuration) {
         Validate.exclusiveBetween(1L, Long.MAX_VALUE, maxDuration);
         Validate.exclusiveBetween(1, Integer.MAX_VALUE, maxHit);
@@ -65,6 +93,9 @@ public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
         }
     }
     
+    /**
+     * Clear banned addresses.
+     */
     public void clearBanned() {
         lock.lock();
         
@@ -74,7 +105,7 @@ public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
             lock.unlock();
         }
     }
-    
+
     private void clearExceededDurations(long currentTime) {
         State<A> state;
         while ((state = durationQueue.peek()) != null) {
@@ -123,8 +154,10 @@ public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
         }
     }
 
-    private static final class StateComparator implements Comparator<State> {
-
+    private static final class StateComparator implements Comparator<State>, Serializable {
+        
+        private static final long serialVersionUID = 0L;
+        
         @Override
         public int compare(State o1, State o2) {
             return Long.compare(o1.getStartTime(), o2.getStartTime());
@@ -132,6 +165,10 @@ public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {
         
     }
     
+    /**
+     * Exception thrown when {@link RateLimitIncomingFilter#filter(java.lang.Object, java.nio.ByteBuffer) } notices that the message belongs
+     * to an address that's been hammering.
+     */
     public static class AddressBannedException extends RuntimeException {
     }
 }

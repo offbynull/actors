@@ -1,9 +1,29 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpc.transport.udp;
 
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-public final class MessageMarker {
+final class MessageMarker {
+    private MessageMarker() {
+        // Do nothing
+    }
+    
     public static void writeRequestMarker(ByteBuffer data) {
         Validate.notNull(data);
         Validate.isTrue(data.remaining() >= 1);
@@ -51,7 +71,7 @@ public final class MessageMarker {
     public static boolean isRequest(ByteBuffer data) {
         Validate.notNull(data);
         
-        if (data.remaining()== 0) {
+        if (data.remaining() == 0) {
             return false;
         }
         

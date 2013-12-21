@@ -1,5 +1,22 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpc;
 
+import static com.offbynull.rpc.ListerService.SERVICE_ID;
 import com.offbynull.rpc.invoke.Invoker;
 import com.offbynull.rpc.invoke.InvokerListener;
 import com.offbynull.rpc.transport.IncomingMessage;
@@ -18,8 +35,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.Validate;
 
 final class ServiceRouter<A> {
-    private static final int LISTER_SERVICE_ID = 0;
-    
     private ReadWriteLock lock;
     
     private SortedSet<Integer> listedServiceSet;
@@ -57,10 +72,10 @@ final class ServiceRouter<A> {
         listerService = new ListerServiceImplementation(lock, Collections.unmodifiableSortedSet(listedServiceSet),
                 Collections.unmodifiableMap(serviceNameMap));
 
-        listedServiceSet.add(LISTER_SERVICE_ID);
-        serviceNameMap.put(LISTER_SERVICE_ID, ListerServiceImplementation.class.getName());
+        listedServiceSet.add(SERVICE_ID);
+        serviceNameMap.put(SERVICE_ID, ListerServiceImplementation.class.getName());
 
-        invokerMap.put(LISTER_SERVICE_ID, new ServiceEntry(LISTER_SERVICE_ID, listerService));
+        invokerMap.put(SERVICE_ID, new ServiceEntry(SERVICE_ID, listerService));
 
         messageListener = new ServerMessageToInvokeCallback();
     }

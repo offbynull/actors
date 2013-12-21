@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.rpc.invoke;
 
 import java.util.Collections;
@@ -39,7 +55,7 @@ public final class InvokeThreadInformation {
      * @param <V> value type
      * @return unmodifiable map containing the extra data
      */
-    public static <K,V> Map<K,V> getInfoMap() {
+    public static <K, V> Map<K, V> getInfoMap() {
         return (Map<K, V>) tls.get();
     }
 
@@ -50,8 +66,8 @@ public final class InvokeThreadInformation {
      * @param <V> value type
      * @return unmodifiable map containing the extra data
      */
-    public static <K,V> V getInfo(K key) {
-        Map<K,V> map = (Map<K, V>) tls.get();
+    public static <K, V> V getInfo(K key) {
+        Map<K, V> map = (Map<K, V>) tls.get();
         return map == null ? null : map.get(key);
     }
 }

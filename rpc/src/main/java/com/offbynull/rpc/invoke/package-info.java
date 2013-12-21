@@ -14,22 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.rpc.transport;
-
-import java.nio.ByteBuffer;
 
 /**
- * Modifies raw message data coming in to a {@link Transport}.
- * @author Kasra F
- * @param <A> address type
+ * Provides facilities to serialize/de-serialize method invokations.
  */
-public interface IncomingFilter<A> {
-    /**
-     * Modifies data.
-     * @param from address the data is to/from
-     * @param buffer data to be modified
-     * @throws NullPointerException if any arguments are {@code null}
-     * @return modified data
-     */
-    ByteBuffer filter(A from, ByteBuffer buffer); 
-}
+
+package com.offbynull.rpc.invoke;

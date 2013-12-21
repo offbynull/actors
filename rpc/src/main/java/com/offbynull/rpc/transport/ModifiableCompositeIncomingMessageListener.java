@@ -86,7 +86,7 @@ public final class ModifiableCompositeIncomingMessageListener<A> implements Inco
             for (IncomingMessageListener<A> listener : listeners) {
                 listener.messageArrived(message, responseCallback);
             }
-        } catch (RuntimeException re) {
+        } catch (RuntimeException re) { // NOPMD
             // do nothing
         }
     }

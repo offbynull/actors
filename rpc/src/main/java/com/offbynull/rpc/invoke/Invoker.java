@@ -172,9 +172,11 @@ public final class Invoker implements Closeable {
         executor.shutdownNow();
         try {
             executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        } catch (Exception ex) {
+        } catch (InterruptedException ex) {
             Thread.interrupted(); // just in case this is interrupted exception
             throw new IOException(ex);
+        } catch (RuntimeException re) {
+            throw new IOException(re);
         }
     }
 }

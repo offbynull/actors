@@ -41,8 +41,8 @@ final class StreamIoBuffers {
     }
     
     public void startReading() {
-        if ((mode == Mode.READ_FIRST && state != State.INIT)
-                || (mode == Mode.WRITE_FIRST && state != State.WRITE_DONE)) {
+        if ((mode == Mode.READ_FIRST && state != State.INIT) // NOPMD
+                || (mode == Mode.WRITE_FIRST && state != State.WRITE_DONE)) { // NOPMD
             throw new IllegalStateException();
         }
         
@@ -83,8 +83,8 @@ final class StreamIoBuffers {
     public void startWriting(ByteBuffer data) {
         Validate.notNull(data);
         
-        if ((mode == Mode.READ_FIRST && state != State.READ_DONE)
-                || (mode == Mode.WRITE_FIRST && state != State.INIT)) {
+        if ((mode == Mode.READ_FIRST && state != State.READ_DONE) // NOPMD
+                || (mode == Mode.WRITE_FIRST && state != State.INIT)) { // NOPMD
             throw new IllegalStateException();
         }
         

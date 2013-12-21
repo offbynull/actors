@@ -59,7 +59,7 @@ final class CapturerUtils {
         try {
             syncMethod = normalClass.getMethod(methodName, relevantAsyncParamTypes);
         } catch (NoSuchMethodException nsme) {
-            throw new IllegalArgumentException("Method " + methodName + " not found");
+            throw new IllegalArgumentException("Method " + methodName + " not found", nsme);
         }
         
         return syncMethod;

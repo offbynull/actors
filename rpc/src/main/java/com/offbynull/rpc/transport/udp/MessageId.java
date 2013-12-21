@@ -66,7 +66,7 @@ final class MessageId {
     public static byte[] removePrependedId(byte[] buffer) {
         Validate.notNull(buffer);
         
-        return removePrependedId(buffer);
+        return removePrependedId(ByteBuffer.wrap(buffer));
     }
     
     public static byte[] removePrependedId(ByteBuffer buffer) {

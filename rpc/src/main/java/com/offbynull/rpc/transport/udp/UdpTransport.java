@@ -394,7 +394,7 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
 
                     try {
                         response.getReceiver().responseArrived(data);
-                    } catch (RuntimeException re) {
+                    } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
                 } else if (event instanceof EventResponseTimedOut) {
@@ -402,7 +402,7 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
 
                     try {
                         response.getReceiver().timedOut();
-                    } catch (RuntimeException re) {
+                    } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
                 }

@@ -49,7 +49,7 @@ public interface ListerService {
     /**
      * {@link ListerService#listServices(int, int) } result.
      */
-    public static final class Services {
+    final class Services {
         private int total;
         private List<Integer> list;
 

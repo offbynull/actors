@@ -16,6 +16,7 @@
  */
 package com.offbynull.rpc.transport;
 
+import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
@@ -94,7 +95,7 @@ public final class TransportHelper {
             public void responseArrived(IncomingResponse<A> response) {
                 try {
                     transport.stop();
-                } catch (Exception e) {
+                } catch (IOException | RuntimeException e) { // NOPMD
                     // do nothing
                 }
             }
@@ -103,7 +104,7 @@ public final class TransportHelper {
             public void internalErrorOccurred(Throwable error) {
                 try {
                     transport.stop();
-                } catch (Exception e) {
+                } catch (IOException | RuntimeException e) { // NOPMD
                     // do nothing
                 }
             }
@@ -112,7 +113,7 @@ public final class TransportHelper {
             public void timedOut() {
                 try {
                     transport.stop();
-                } catch (Exception e) {
+                } catch (IOException | RuntimeException e) { // NOPMD
                     // do nothing
                 }
             }

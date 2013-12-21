@@ -193,7 +193,7 @@ public final class FakeTransport<A> implements Transport<A> {
             try {
                 Validate.validState(state == State.STARTED);
                 
-                ByteBuffer tempBuffer = outFilter.filter(from, data);
+                ByteBuffer tempBuffer = inFilter.filter(from, data);
                 
                 switch (marker) {
                     case SEND_MARKER: {

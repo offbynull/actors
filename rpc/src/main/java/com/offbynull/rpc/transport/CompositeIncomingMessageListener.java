@@ -45,7 +45,7 @@ public final class CompositeIncomingMessageListener<A> implements IncomingMessag
             for (IncomingMessageListener<A> listener : listeners) {
                 listener.messageArrived(message, responseCallback);
             }
-        } catch (RuntimeException re) {
+        } catch (RuntimeException re) { // NOPMD
             // do nothing
         }
     }

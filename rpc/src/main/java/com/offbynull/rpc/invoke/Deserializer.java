@@ -33,7 +33,7 @@ public interface Deserializer {
     /**
      * {@link Deserializer}'s result.
      */
-    public static final class DeserializerResult {
+    final class DeserializerResult {
         private SerializationType type;
         private Object result;
 

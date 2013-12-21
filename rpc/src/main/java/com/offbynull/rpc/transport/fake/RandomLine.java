@@ -94,12 +94,6 @@ public final class RandomLine<A> implements Line<A> {
         double max = range.getMaximum();
         return min + (max - min) * random.nextDouble();
     }
-
-    private int randomIntegerBetween(Range<Integer> range) {
-        int min = range.getMinimum();
-        int max = range.getMaximum();
-        return min + (max - min) * Math.abs(random.nextInt());
-    }
     
     @Override
     public void arrive(Collection<Message<A>> packets) {

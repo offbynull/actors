@@ -65,8 +65,10 @@ final class ServiceAccessor<A> {
                     resp.get(respArray);
                     
                     return respArray;
-                } catch (Exception ex) {
+                } catch (InterruptedException ie) {
                     Thread.interrupted(); // ignore interrupt, if it's interrupted
+                    throw throwOnCommFailure;
+                } catch (RuntimeException re) {
                     throw throwOnCommFailure;
                 }
             }

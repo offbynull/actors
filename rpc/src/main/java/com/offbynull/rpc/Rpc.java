@@ -42,7 +42,7 @@ public final class Rpc<A> implements Closeable {
     private ServiceAccessor<A> serviceAccessor;
     
     /**
-     * Constructs an RPC object.
+     * Constructs a {@link Rpc} object with default configuration.
      * @param transportFactory transport factory
      * @throws IOException on error
      * @throws NullPointerException if any arguments is {@code null}
@@ -52,7 +52,7 @@ public final class Rpc<A> implements Closeable {
     }
 
     /**
-     * Constructs an RPC object.
+     * Constructs a {@link Rpc} object.
      * @param transportFactory transport factory
      * @param conf configuration
      * @throws IOException on error
@@ -78,18 +78,18 @@ public final class Rpc<A> implements Closeable {
         } catch (IOException | RuntimeException ex) {
             closed = true;
             close();
-            throw ex;
+            throw new IOException(ex);
         }
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         closed = true;
 
         try {
             transport.stop();
-        } catch (Exception ex) {
-            // do nothing
+        } catch (IOException | RuntimeException ex) {
+            throw new IOException(ex);
         }
     }
 

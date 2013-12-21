@@ -103,7 +103,7 @@ final class TimeoutManager {
         
     }
     
-    private final class Entity {
+    private static final class Entity {
         private long timeoutTimestamp;
         private SocketChannel channel;
 

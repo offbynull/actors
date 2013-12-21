@@ -227,7 +227,7 @@ public final class FakeHub<A> {
 
                     try {
                         dest.getReceiver().incoming(topPacket);
-                    } catch (RuntimeException re) {
+                    } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
                 }

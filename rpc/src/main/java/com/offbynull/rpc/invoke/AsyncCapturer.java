@@ -56,7 +56,7 @@ import org.apache.commons.lang3.Validate;
  * @param <AT> proxy async type
  */
 public final class AsyncCapturer<T, AT> {
-    private Class<T> cls;
+//    private Class<T> cls;
     private Class<AT> asyncCls;
     private Map<Method, Method> methodMap;
     private Serializer serializer;
@@ -96,7 +96,7 @@ public final class AsyncCapturer<T, AT> {
         methodMap = CapturerUtils.mapAsyncInterfaceToNormalClass(cls, asyncCls);
         
         
-        this.cls = cls;
+//        this.cls = cls;
         this.asyncCls = asyncCls;
         this.serializer = serializer;
         this.deserializer = deserializer;

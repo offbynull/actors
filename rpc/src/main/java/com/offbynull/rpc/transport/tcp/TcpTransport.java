@@ -245,8 +245,8 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                         } else {
                             throw new IllegalStateException("Unknown command " + command);
                         }
-                    } catch (IOException | RuntimeException e) {
-                        e.printStackTrace();
+                    } catch (IOException | RuntimeException e) { // NOPMD
+                        // do nothing
                     }
                 }
                 dumpedCommandQueue.clear();
@@ -308,8 +308,7 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                             ChannelInfo info = acceptAndInitializeIncomingSocket(internalEventQueue);
                             SocketChannel clientChannel = info.getChannel();
                             timeoutManager.addChannel(clientChannel, currentTime);
-                        } catch (RuntimeException | IOException e) {
-                            e.printStackTrace();
+                        } catch (RuntimeException | IOException e) {  // NOPMD
                             // do nothing
                         }
                     } else if (key.isConnectable()) {
@@ -330,7 +329,6 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                                 throw new IllegalStateException();
                             }
                         } catch (RuntimeException | IOException e) {
-                            e.printStackTrace();
                             killSocketDueToError(clientChannel, internalEventQueue, e);
                         }
                     } else if (key.isReadable()) {
@@ -373,7 +371,6 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                                 }
                             }
                         } catch (RuntimeException | IOException e) {
-                            e.printStackTrace();
                             killSocketDueToError(clientChannel, internalEventQueue, e);
                         }
                     } else if (key.isWritable()) {
@@ -405,7 +402,6 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                                 }
                             }
                         } catch (RuntimeException | IOException e) {
-                            e.printStackTrace();
                             killSocketDueToError(clientChannel, internalEventQueue, e);
                         }
                     }

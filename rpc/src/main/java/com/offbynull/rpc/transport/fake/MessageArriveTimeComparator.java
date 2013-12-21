@@ -16,9 +16,12 @@
  */
 package com.offbynull.rpc.transport.fake;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
-final class MessageArriveTimeComparator implements Comparator<Message> {
+final class MessageArriveTimeComparator implements Comparator<Message>, Serializable {
+    
+    private static final long serialVersionUID = 0L;
 
     @Override
     public int compare(Message o1, Message o2) {

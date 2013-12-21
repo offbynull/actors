@@ -310,8 +310,8 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
                             } else {
                                 throw new IllegalStateException();
                             }
-                        } catch (RuntimeException | IOException e) {
-                            e.printStackTrace();
+                        } catch (RuntimeException | IOException e) { // NOPMD
+                            // do nothing
                         }
                     } else if (key.isWritable()) { // ready for outgoing data
                         try {
@@ -361,8 +361,8 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
                             } else {
                                 throw new IllegalStateException();
                             }
-                        } catch (RuntimeException | IOException e) {
-                            e.printStackTrace();
+                        } catch (RuntimeException | IOException e) { // NOPMD
+                            // do nothing
                         }
                     }
                 }

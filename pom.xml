@@ -127,7 +127,7 @@
                 <version>2.5.3</version>
                 <configuration>
                     <effort>Max</effort>
-                    <threshold>Low</threshold>
+                    <threshold>Default</threshold>
                     <failOnError>false</failOnError> <!-- Because there isn't an easy way to turn off checks in source -->
                 </configuration>
                 <executions>

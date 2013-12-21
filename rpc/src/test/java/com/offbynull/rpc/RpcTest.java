@@ -4,7 +4,6 @@ import com.offbynull.rpc.invoke.AsyncResultListener;
 import com.offbynull.rpc.invoke.InvokeThreadInformation;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.concurrent.Exchanger;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -27,7 +26,7 @@ public class RpcTest {
     }
 
     @AfterClass
-    public static void tearDownClass() {
+    public static void tearDownClass() throws Throwable {
         rpcSystem.close();
     }
 

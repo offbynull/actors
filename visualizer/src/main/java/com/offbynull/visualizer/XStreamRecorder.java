@@ -1,4 +1,20 @@
-package com.offbynull.overlay.visualizer;
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.offbynull.visualizer;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
@@ -8,10 +24,20 @@ import java.io.OutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Records steps that can later be played with an {@link XStreamPlayer}.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class XStreamRecorder<A> implements Recorder<A> {
     private XStream xstream;
     private DataOutputStream os;
 
+    /**
+     * Constructs a {@link XStreamRecorder} object.
+     * @param os output stream
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public XStreamRecorder(OutputStream os) {
         Validate.notNull(os);
         

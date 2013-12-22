@@ -4,7 +4,7 @@
           "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
 
 <module name="Checker">
-
+    
     <!-- Checks that a package-info.java file exists for each package.     -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html#JavadocPackage -->
     <module name="JavadocPackage"/>
@@ -42,7 +42,11 @@
         <property name="headerFile" value="${checkstyle.header.file}"/> 
     </module>
 
+    <module name="SuppressionCommentFilter"/>
+    
     <module name="TreeWalker">
+        <!-- Required by SupressionCommentFilter -->
+        <module name="FileContentsHolder"/>
 
         <!-- Checks for Javadoc comments.                     -->
         <!-- See http://checkstyle.sf.net/config_javadoc.html -->

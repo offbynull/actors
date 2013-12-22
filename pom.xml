@@ -17,7 +17,7 @@
         <module>rpc</module>
         <module>rpc-common</module>
         <module>overlay-unstructured</module>
-        <module>overlay-visualizer</module>
+        <module>visualizer</module>
         <module>demo</module>
         <module>build-tools</module>
     </modules>

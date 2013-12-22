@@ -1,4 +1,20 @@
-package com.offbynull.overlay.visualizer;
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.offbynull.visualizer;
 
 import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.util.mxConstants;
@@ -38,6 +54,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+/**
+ * A {@link Visualizer} implementation that's backed by JGraphX.
+ * @author Kasra F
+ * @param <A> address type
+ */
 public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
     private JFrame frame;
@@ -48,11 +69,14 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     private BidiMap<A, Object> nodeLookupMap;
     private Map<Object, List<Command<A>>> vertexLingerTriggerMap;
     private MultiMap<ImmutablePair<A, A>, Object> connToEdgeLookupMap;
-    private Map<Object, ImmutablePair<A,A>> edgeToConnLookupMap;
+    private Map<Object, ImmutablePair<A, A>> edgeToConnLookupMap;
     private AtomicReference<VisualizerEventListener> listener = new AtomicReference<>();
     private AtomicReference<Recorder<A>> recorder = new AtomicReference<>();
     private AtomicBoolean consumed = new AtomicBoolean();
 
+    /**
+     * Creates a {@link JGraphXVisualizer} object.
+     */
     public JGraphXVisualizer() {
 
         graph = new mxGraph();
@@ -222,7 +246,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 Object vertex = nodeLookupMap.get(address);
                 Validate.isTrue(vertex != null);
 
-                Point center = command.getCenter();
+                Point center = command.getLocation();
                 if (center != null) {
                     mxRectangle rect = graph.getView().getBoundingBox(new Object[]{vertex});
                     graph.moveCells(new Object[]{vertex}, center.getX() - rect.getCenterX(), center.getY() - rect.getCenterY());
@@ -388,7 +412,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         });
     }
 
-    private void triggerIfNoEdges(A node, Object vertex) {
+    private void triggerIfNoEdges(A node, Object vertex) { // NOPMD
         Object[] in = graph.getIncomingEdges(vertex);
         Object[] out = graph.getOutgoingEdges(vertex);
         if (in.length == 0 && out.length == 0) {

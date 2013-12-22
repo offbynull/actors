@@ -31,14 +31,14 @@ public interface Visualizer<A> {
      */
     void step(String output, Command<A> ... commands);
     /**
-     * Starts the visualizer.
+     * Starts the visualizer. Equivalent to calling {@link #visualize(com.offbynull.visualizer.Recorder,
+     * com.offbynull.visualizer.VisualizerEventListener) } with {@code null} for both parameters.
      */
     void visualize();
     /**
      * Starts the visualizer with a {@link Recorder} and a {@link VisualizerEventListener}.
      * @param recorder step recorder
      * @param listener event listener
-     * @throws NullPointerException if any arguments are {@code null}
      */
     void visualize(Recorder recorder, VisualizerEventListener listener);
     

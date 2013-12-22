@@ -29,7 +29,7 @@ public final class InvokeData {
     private Pair<Object, String>[] arguments;
 
     /**
-     * Constructs an {@InvokeData} object.
+     * Constructs an {@link InvokeData} object.
      * @param methodName method name called
      * @param arguments arguments passed in to method
      * @param paramTypes method's expected parameter types

@@ -29,6 +29,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -166,7 +167,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                     frame.setVisible(true);
                 }
             });
-        } catch (Exception ex) {
+        } catch (InterruptedException | InvocationTargetException ex) {
             throw new RuntimeException("Visualize failed", ex);
         }
     }

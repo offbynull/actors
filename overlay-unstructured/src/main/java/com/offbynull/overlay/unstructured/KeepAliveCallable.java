@@ -2,7 +2,7 @@ package com.offbynull.overlay.unstructured;
 
 import com.offbynull.overlay.unstructured.OverlayService;
 import com.offbynull.overlay.unstructured.KeepAliveListener.FailReason;
-import com.offbynull.rpc.Rpc;
+import com.offbynull.peernetic.rpc.Rpc;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Callable;
 import org.apache.commons.lang3.Validate;

@@ -1,9 +1,9 @@
 package com.offbynull.rpccommon;
 
-import com.offbynull.rpc.FakeTransportFactory;
-import com.offbynull.rpc.Rpc;
-import com.offbynull.rpc.transport.fake.FakeHub;
-import com.offbynull.rpc.transport.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.Rpc;
+import com.offbynull.peernetic.rpc.transport.fake.FakeHub;
+import com.offbynull.peernetic.rpc.transport.fake.PerfectLine;
 import com.offbynull.rpccommon.services.ping.PingCallable;
 import com.offbynull.rpccommon.services.ping.PingService;
 import com.offbynull.rpccommon.services.ping.PingServiceImplementation;

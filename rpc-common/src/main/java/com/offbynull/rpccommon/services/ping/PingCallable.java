@@ -16,7 +16,7 @@
  */
 package com.offbynull.rpccommon.services.ping;
 
-import com.offbynull.rpc.Rpc;
+import com.offbynull.peernetic.rpc.Rpc;
 import java.util.concurrent.Callable;
 import org.apache.commons.lang3.Validate;
 

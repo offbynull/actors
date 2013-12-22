@@ -1,9 +1,9 @@
 package com.offbynull.overlay.unstructured;
 
-import com.offbynull.rpc.FakeTransportFactory;
-import com.offbynull.rpc.Rpc;
-import com.offbynull.rpc.transport.fake.FakeHub;
-import com.offbynull.rpc.transport.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.Rpc;
+import com.offbynull.peernetic.rpc.transport.fake.FakeHub;
+import com.offbynull.peernetic.rpc.transport.fake.PerfectLine;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

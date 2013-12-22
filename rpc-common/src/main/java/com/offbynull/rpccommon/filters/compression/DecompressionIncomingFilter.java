@@ -16,7 +16,7 @@
  */
 package com.offbynull.rpccommon.filters.compression;
 
-import com.offbynull.rpc.transport.IncomingFilter;
+import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

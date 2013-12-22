@@ -16,7 +16,7 @@
  */
 package com.offbynull.rpccommon.filters.selfblock;
 
-import com.offbynull.rpc.transport.OutgoingFilter;
+import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 

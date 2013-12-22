@@ -16,18 +16,18 @@
  */
 package com.offbynull.rpccommon.services.nat;
 
-import com.offbynull.rpc.Rpc;
-import com.offbynull.rpc.TcpTransportFactory;
-import com.offbynull.rpc.TransportFactory;
-import com.offbynull.rpc.UdpTransportFactory;
-import com.offbynull.rpc.transport.CompositeIncomingFilter;
-import com.offbynull.rpc.transport.CompositeOutgoingFilter;
-import com.offbynull.rpc.transport.IncomingFilter;
-import com.offbynull.rpc.transport.IncomingMessage;
-import com.offbynull.rpc.transport.IncomingMessageListener;
-import com.offbynull.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.rpc.transport.OutgoingFilter;
-import com.offbynull.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.Rpc;
+import com.offbynull.peernetic.rpc.TcpTransportFactory;
+import com.offbynull.peernetic.rpc.TransportFactory;
+import com.offbynull.peernetic.rpc.UdpTransportFactory;
+import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
+import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.peernetic.rpc.transport.IncomingFilter;
+import com.offbynull.peernetic.rpc.transport.IncomingMessage;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
+import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.rpccommon.services.nat.NatHelperService.ConnectionType;
 import com.offbynull.rpccommon.services.nat.NatHelperCallable.Result;
 import java.io.IOException;

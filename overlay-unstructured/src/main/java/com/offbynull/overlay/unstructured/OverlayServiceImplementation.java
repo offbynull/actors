@@ -1,7 +1,7 @@
 package com.offbynull.overlay.unstructured;
 
-import com.offbynull.rpc.RpcInvokeKeys;
-import com.offbynull.rpc.invoke.InvokeThreadInformation;
+import com.offbynull.peernetic.rpc.RpcInvokeKeys;
+import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Set;

@@ -2,9 +2,9 @@ package com.offbynull.demo.unstructured;
 
 import com.offbynull.overlay.unstructured.Overlay;
 import com.offbynull.overlay.unstructured.OverlayListener;
-import com.offbynull.rpc.Rpc;
-import com.offbynull.rpc.RpcConfig;
-import com.offbynull.rpc.TransportFactory;
+import com.offbynull.peernetic.rpc.Rpc;
+import com.offbynull.peernetic.rpc.RpcConfig;
+import com.offbynull.peernetic.rpc.TransportFactory;
 import com.offbynull.visualizer.AddEdgeCommand;
 import com.offbynull.visualizer.AddNodeCommand;
 import com.offbynull.visualizer.ChangeNodeCommand;

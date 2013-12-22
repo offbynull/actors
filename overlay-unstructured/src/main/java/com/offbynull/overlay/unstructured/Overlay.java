@@ -1,6 +1,6 @@
 package com.offbynull.overlay.unstructured;
 
-import com.offbynull.rpc.Rpc;
+import com.offbynull.peernetic.rpc.Rpc;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;

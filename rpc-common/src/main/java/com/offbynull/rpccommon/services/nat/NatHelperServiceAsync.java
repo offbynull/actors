@@ -16,7 +16,7 @@
  */
 package com.offbynull.rpccommon.services.nat;
 
-import com.offbynull.rpc.invoke.AsyncResultListener;
+import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import com.offbynull.rpccommon.services.nat.NatHelperService.ConnectionType;
 import com.offbynull.rpccommon.services.nat.NatHelperService.TestPortResult;
 

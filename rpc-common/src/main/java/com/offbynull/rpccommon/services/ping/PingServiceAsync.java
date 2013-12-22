@@ -16,7 +16,7 @@
  */
 package com.offbynull.rpccommon.services.ping;
 
-import com.offbynull.rpc.invoke.AsyncResultListener;
+import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 
 /**
  * Async {@link PingService}.

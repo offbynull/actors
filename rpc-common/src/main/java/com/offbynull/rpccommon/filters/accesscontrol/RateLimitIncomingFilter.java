@@ -16,7 +16,7 @@
  */
 package com.offbynull.rpccommon.filters.accesscontrol;
 
-import com.offbynull.rpc.transport.IncomingFilter;
+import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Comparator;

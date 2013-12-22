@@ -6,9 +6,9 @@
 
 package com.offbynull.rpccommon;
 
-import com.offbynull.rpc.Rpc;
-import com.offbynull.rpc.RpcConfig;
-import com.offbynull.rpc.TcpTransportFactory;
+import com.offbynull.peernetic.rpc.Rpc;
+import com.offbynull.peernetic.rpc.RpcConfig;
+import com.offbynull.peernetic.rpc.TcpTransportFactory;
 import com.offbynull.rpccommon.services.nat.NatHelperService;
 import com.offbynull.rpccommon.services.nat.NatHelperServiceImplementation;
 import com.offbynull.rpccommon.services.nat.NatHelperCallable;

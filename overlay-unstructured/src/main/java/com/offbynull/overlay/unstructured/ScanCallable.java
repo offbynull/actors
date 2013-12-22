@@ -1,6 +1,6 @@
 package com.offbynull.overlay.unstructured;
 
-import com.offbynull.rpc.Rpc;
+import com.offbynull.peernetic.rpc.Rpc;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;

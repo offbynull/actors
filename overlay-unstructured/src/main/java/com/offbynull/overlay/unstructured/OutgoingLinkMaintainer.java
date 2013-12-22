@@ -1,7 +1,7 @@
 package com.offbynull.overlay.unstructured;
 
 import com.offbynull.overlay.unstructured.OverlayListener.LinkType;
-import com.offbynull.rpc.Rpc;
+import com.offbynull.peernetic.rpc.Rpc;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;

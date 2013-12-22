@@ -1,10 +1,10 @@
 package com.offbynull.demo.unstructured;
 
-import com.offbynull.overlay.visualizer.JGraphXVisualizer;
-import com.offbynull.overlay.visualizer.Visualizer;
 import com.offbynull.rpc.FakeTransportFactory;
 import com.offbynull.rpc.transport.fake.FakeHub;
 import com.offbynull.rpc.transport.fake.PerfectLine;
+import com.offbynull.visualizer.JGraphXVisualizer;
+import com.offbynull.visualizer.Visualizer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;

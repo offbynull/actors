@@ -128,7 +128,11 @@ public class OverlayTest {
 
      private void destroyRpcs(List<Rpc<Integer>> rpcs) {
          for (Rpc<Integer> rpc : rpcs) {
-             rpc.close();
+             try {
+                rpc.close();
+             } catch (IOException ioe) {
+                 // do nothing
+             }
          }
      }
 }

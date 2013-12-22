@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.offbynull</groupId>
-    <artifactId>peernetic</artifactId>
+    <groupId>com.offbynull.peernetic</groupId>
+    <artifactId>parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>peernetic</name>
+    <name>parent</name>
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     
     <modules>
+        <module>build-tools</module>
         <module>p2p-tools</module>
         <module>basic-chord</module>
         <module>rpc</module>
@@ -19,7 +20,6 @@
         <module>overlay-unstructured</module>
         <module>visualizer</module>
         <module>demo</module>
-        <module>build-tools</module>
     </modules>
     
     <dependencyManagement>
@@ -94,7 +94,7 @@
                 </executions>
                 <dependencies>
                     <dependency>
-                        <groupId>com.offbynull</groupId>
+                        <groupId>com.offbynull.peernetic</groupId>
                         <artifactId>build-tools</artifactId>
                         <version>${project.version}</version>
                     </dependency>
@@ -128,7 +128,7 @@
                 <configuration>
                     <effort>Max</effort>
                     <threshold>Default</threshold>
-                    <failOnError>false</failOnError> <!-- Because there isn't an easy way to turn off checks in source -->
+                    <failOnError>false</failOnError>  <!-- Because there isn't an easy way to turn off checks in source -->
                 </configuration>
                 <executions>
                     <execution>

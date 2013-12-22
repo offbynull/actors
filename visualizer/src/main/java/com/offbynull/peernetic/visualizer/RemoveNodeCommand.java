@@ -14,27 +14,34 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.visualizer;
+package com.offbynull.peernetic.visualizer;
+
+import org.apache.commons.lang3.Validate;
 
 /**
- * A {@link Visualizer} implementation that displays nothing.
+ * Removes a node.
  * @author Kasra F
+ * @param <A> address type
  */
-public final class NullVisualizer implements Visualizer {
+public final class RemoveNodeCommand<A> implements Command<A> {
+    private A node;
 
-    @Override
-    public void step(String output, Command... commands) {
-        // do nothing
+    /**
+     * Constructs a {@link RemoveNodeCommand} object.
+     * @param node node
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public RemoveNodeCommand(A node) {
+        Validate.notNull(node);
+        
+        this.node = node;
     }
 
-    @Override
-    public void visualize() {
-        // do nothing
+    /**
+     * Get node.
+     * @return node.
+     */
+    public A getNode() {
+        return node;
     }
-
-    @Override
-    public void visualize(Recorder recorder, VisualizerEventListener listener) {
-        // do nothing
-    }
-    
 }

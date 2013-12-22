@@ -14,18 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.visualizer;
+package com.offbynull.peernetic.visualizer;
 
 /**
- * Replays recorded events on to a {@link Visualizer}.
+ * A visualizer command. Commands must be immutable.
  * @author Kasra F
  * @param <A> address type
  */
-public interface Player<A> {
-    /**
-     * Begin replaying events. Make sure that {@code visualizer} is clear before calling this.
-     * @param visualizer visualizer
-     * @throws NullPointerException if {@code visualizer} is {@code null}
-     */
-    void play(Visualizer<A> visualizer);
+public interface Command<A> {
+    
 }

@@ -14,9 +14,34 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.visualizer;
+
+import org.apache.commons.lang3.Validate;
 
 /**
- * Provides facilities to visualize an overlay network.
+ * Command to add a node.
+ * @author Kasra F
+ * @param <A> address type
  */
+public final class AddNodeCommand<A> implements Command<A> {
+    private A node;
 
-package com.offbynull.visualizer;
+    /**
+     * Constructs a {@link AddNodeCommand} object.
+     * @param node node
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public AddNodeCommand(A node) {
+        Validate.notNull(node);
+        
+        this.node = node;
+    }
+
+    /**
+     * Get node.
+     * @return node.
+     */
+    public A getNode() {
+        return node;
+    }
+}

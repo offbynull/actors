@@ -14,13 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.visualizer;
 
 /**
- * A visualizer command. Commands must be immutable.
- * @author Kasra F
- * @param <A> address type
+ * Provides facilities to visualize an overlay network.
  */
-public interface Command<A> {
-    
-}
+
+package com.offbynull.peernetic.visualizer;

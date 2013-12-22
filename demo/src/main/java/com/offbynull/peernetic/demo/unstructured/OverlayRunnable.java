@@ -1,7 +1,7 @@
-package com.offbynull.demo.unstructured;
+package com.offbynull.peernetic.demo.unstructured;
 
-import com.offbynull.overlay.unstructured.Overlay;
-import com.offbynull.overlay.unstructured.OverlayListener;
+import com.offbynull.peernetic.overlay.unstructured.Overlay;
+import com.offbynull.peernetic.overlay.unstructured.OverlayListener;
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.RpcConfig;
 import com.offbynull.peernetic.rpc.TransportFactory;

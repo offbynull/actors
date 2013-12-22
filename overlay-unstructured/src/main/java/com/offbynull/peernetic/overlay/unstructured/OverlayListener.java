@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured;
+package com.offbynull.peernetic.overlay.unstructured;
 
 public interface OverlayListener<A> {
     void linkEstablished(A address, LinkType type);

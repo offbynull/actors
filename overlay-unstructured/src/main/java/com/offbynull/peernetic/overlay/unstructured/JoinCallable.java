@@ -1,7 +1,7 @@
-package com.offbynull.overlay.unstructured;
+package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.overlay.unstructured.OverlayService;
-import com.offbynull.overlay.unstructured.JoinListener.FailReason;
+import com.offbynull.peernetic.overlay.unstructured.OverlayService;
+import com.offbynull.peernetic.overlay.unstructured.JoinListener.FailReason;
 import com.offbynull.peernetic.rpc.Rpc;
 import java.nio.ByteBuffer;
 import java.util.Random;

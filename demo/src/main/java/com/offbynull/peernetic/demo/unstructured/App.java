@@ -1,4 +1,4 @@
-package com.offbynull.demo.unstructured;
+package com.offbynull.peernetic.demo.unstructured;
 
 import com.offbynull.peernetic.rpc.FakeTransportFactory;
 import com.offbynull.peernetic.rpc.transport.fake.FakeHub;

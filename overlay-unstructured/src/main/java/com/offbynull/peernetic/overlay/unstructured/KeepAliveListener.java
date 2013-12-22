@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured;
+package com.offbynull.peernetic.overlay.unstructured;
 
 interface KeepAliveListener<A> {
     void keepAliveSuccessful(A address);

@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured;
+package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.rpc.RpcInvokeKeys;
 import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;

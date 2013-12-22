@@ -1,4 +1,4 @@
-package com.offbynull.overlay.unstructured;
+package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.rpc.Rpc;
 import java.util.concurrent.locks.Lock;

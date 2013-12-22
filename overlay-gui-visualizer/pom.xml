@@ -8,9 +8,9 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <groupId>com.offbynull.peernetic</groupId>
-    <artifactId>visualizer</artifactId>
+    <artifactId>overlay-gui-visualizer</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>visualizer</name>
+    <name>overlay-gui-visualizer</name>
     <url>http://maven.apache.org</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

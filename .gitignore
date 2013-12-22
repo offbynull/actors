@@ -19,3 +19,4 @@
 /build-tools/target/
 /visualizer/target/
 /overlay-gui-visualizer/target/
+/overlay-common/target/

@@ -13,11 +13,11 @@
     
     <modules>
         <module>build-tools</module>
-        <module>basic-chord</module>
         <module>rpc</module>
         <module>rpc-common</module>
         <module>overlay-common</module>
         <module>overlay-unstructured</module>
+        <module>overlay-chord</module>
         <module>overlay-gui-visualizer</module>
         <module>demo</module>
     </modules>

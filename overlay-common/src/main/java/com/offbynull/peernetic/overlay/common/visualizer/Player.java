@@ -14,9 +14,18 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
- * Provides facilities to visualize an overlay network.
+ * Replays recorded events on to a {@link Visualizer}.
+ * @author Kasra F
+ * @param <A> address type
  */
-
-package com.offbynull.peernetic.visualizer;
+public interface Player<A> {
+    /**
+     * Begin replaying events. Make sure that {@code visualizer} is clear before calling this.
+     * @param visualizer visualizer
+     * @throws NullPointerException if {@code visualizer} is {@code null}
+     */
+    void play(Visualizer<A> visualizer);
+}

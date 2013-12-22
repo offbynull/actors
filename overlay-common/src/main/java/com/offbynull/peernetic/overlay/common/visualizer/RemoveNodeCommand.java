@@ -14,18 +14,34 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.visualizer;
+package com.offbynull.peernetic.overlay.common.visualizer;
+
+import org.apache.commons.lang3.Validate;
 
 /**
- * Replays recorded events on to a {@link Visualizer}.
+ * Removes a node.
  * @author Kasra F
  * @param <A> address type
  */
-public interface Player<A> {
+public final class RemoveNodeCommand<A> implements Command<A> {
+    private A node;
+
     /**
-     * Begin replaying events. Make sure that {@code visualizer} is clear before calling this.
-     * @param visualizer visualizer
-     * @throws NullPointerException if {@code visualizer} is {@code null}
+     * Constructs a {@link RemoveNodeCommand} object.
+     * @param node node
+     * @throws NullPointerException if any arguments are {@code null}
      */
-    void play(Visualizer<A> visualizer);
+    public RemoveNodeCommand(A node) {
+        Validate.notNull(node);
+        
+        this.node = node;
+    }
+
+    /**
+     * Get node.
+     * @return node.
+     */
+    public A getNode() {
+        return node;
+    }
 }

@@ -14,27 +14,15 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.visualizer;
+package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
- * A {@link Visualizer} implementation that displays nothing.
+ * Used to receive events from {@link Visualizer}.
  * @author Kasra F
  */
-public final class NullVisualizer implements Visualizer {
-
-    @Override
-    public void step(String output, Command... commands) {
-        // do nothing
-    }
-
-    @Override
-    public void visualize() {
-        // do nothing
-    }
-
-    @Override
-    public void visualize(Recorder recorder, VisualizerEventListener listener) {
-        // do nothing
-    }
-    
+public interface VisualizerEventListener {
+    /**
+     * Triggered when the visualizer closes.
+     */
+    void closed();
 }

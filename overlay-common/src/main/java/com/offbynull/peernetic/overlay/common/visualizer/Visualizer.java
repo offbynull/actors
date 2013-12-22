@@ -14,21 +14,32 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.visualizer;
-
-import java.io.Closeable;
+package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
- * Records events passed to a {@link Visualizer}.
+ * A visualizer.
  * @author Kasra F
  * @param <A> address type
  */
-public interface Recorder<A> extends Closeable {
+public interface Visualizer<A> {
+
     /**
-     * Record a visualizer step.
-     * @param output text output for the step
-     * @param commands commands for the step
+     * Performs a list of {@link Command}s.
+     * @param output output message for the step
+     * @param commands commands to execute
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    void recordStep(String output, Command<A> ... commands);
+    void step(String output, Command<A> ... commands);
+    /**
+     * Starts the visualizer. Equivalent to calling {@link #visualize(com.offbynull.visualizer.Recorder,
+     * com.offbynull.visualizer.VisualizerEventListener) } with {@code null} for both parameters.
+     */
+    void visualize();
+    /**
+     * Starts the visualizer with a {@link Recorder} and a {@link VisualizerEventListener}.
+     * @param recorder step recorder
+     * @param listener event listener
+     */
+    void visualize(Recorder recorder, VisualizerEventListener listener);
+    
 }

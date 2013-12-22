@@ -16,7 +16,7 @@
  */
 
 // CHECKSTYLE:OFF
-package com.offbynull.peernetic.visualizer;
+package com.offbynull.peernetic.overlay.common.visualizer;
 
 import java.awt.Color;
 import java.awt.Point;

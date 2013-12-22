@@ -14,15 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.visualizer;
 
 /**
- * Used to receive events from {@link Visualizer}.
- * @author Kasra F
+ * Provides facilities to visualize an overlay network.
  */
-public interface VisualizerEventListener {
-    /**
-     * Triggered when the visualizer closes.
-     */
-    void closed();
-}
+
+package com.offbynull.peernetic.overlay.common.visualizer;

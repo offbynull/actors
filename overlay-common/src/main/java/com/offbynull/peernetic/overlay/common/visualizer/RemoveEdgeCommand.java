@@ -14,34 +14,47 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.visualizer;
+package com.offbynull.peernetic.overlay.common.visualizer;
 
 import org.apache.commons.lang3.Validate;
 
 /**
- * Command to add a node.
+ * Removes an edge.
  * @author Kasra F
  * @param <A> address type
  */
-public final class AddNodeCommand<A> implements Command<A> {
-    private A node;
+public final class RemoveEdgeCommand<A> implements Command<A> {
+    private A from;
+    private A to;
 
     /**
-     * Constructs a {@link AddNodeCommand} object.
-     * @param node node
+     * Constructs a {@link RemoveEdgeCommand} object.
+     * @param from edge source
+     * @param to edge destination
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public AddNodeCommand(A node) {
-        Validate.notNull(node);
+    public RemoveEdgeCommand(A from, A to) {
+        Validate.notNull(from);
+        Validate.notNull(to);
         
-        this.node = node;
+        this.from = from;
+        this.to = to;
     }
 
     /**
-     * Get node.
-     * @return node.
+     * Get source.
+     * @return source
      */
-    public A getNode() {
-        return node;
+    public A getFrom() {
+        return from;
     }
+
+    /**
+     * Get destination.
+     * @return destination
+     */
+    public A getTo() {
+        return to;
+    }
+    
 }

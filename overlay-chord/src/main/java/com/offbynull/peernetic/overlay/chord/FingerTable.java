@@ -1,13 +1,30 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.overlay.chord.RouteResult.ResultType;
-import com.offbynull.peernetic.overlay.common.id.BitLimitedId;
-import com.offbynull.peernetic.overlay.common.id.BitLimitedPointer;
+import com.offbynull.peernetic.overlay.common.id.Id;
+import com.offbynull.peernetic.overlay.common.id.IdUtils;
+import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import org.apache.commons.lang3.Validate;
 
 /**
  * Holds on to routing information. For more information on how a finger table
@@ -76,9 +93,10 @@ import java.util.ListIterator;
  * </li>
  * </ol>
  *
+ * @param <A> address type
  * @author Kasra Faghihi
  */
-public final class FingerTable {
+public final class FingerTable<A> {
 
     /**
      * Internal table that keeps track of fingers.
@@ -87,7 +105,7 @@ public final class FingerTable {
     /**
      * Base (self) pointer.
      */
-    private BitLimitedPointer basePtr;
+    private Pointer<A> basePtr;
     /**
      * The bit count in {@link #basePtr}.
      */
@@ -97,27 +115,27 @@ public final class FingerTable {
      * Constructs a {@link FingerTable}. All fingers are initialized to
      * {@code base}.
      *
-     * @param base base pointer
+     * @param basePtr base pointer
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public FingerTable(BitLimitedPointer base) {
-        if (base == null) {
-            throw new NullPointerException();
-        }
+    public FingerTable(Pointer<A> basePtr) {
+        Validate.notNull(basePtr);
+        IdUtils.ensureLimitPowerOfTwo(basePtr);
 
-        this.basePtr = base;
+        this.basePtr = basePtr;
 
-        BitLimitedId baseId = base.getId();
-        InetSocketAddress baseAddress = base.getAddress();
+        Id baseId = basePtr.getId();
+        A baseAddress = basePtr.getAddress();
 
-        this.bitCount = baseId.getBitCount();
+        this.bitCount = IdUtils.getLimitBitLength(basePtr);
+        byte[] limit = baseId.getLimitAsByteArray();
 
         table = new ArrayList<>(bitCount);
         for (int i = 0; i < bitCount; i++) {
             BigInteger data = BigInteger.ONE.shiftLeft(i);
             byte[] offsetIdRaw = data.toByteArray();
-            BitLimitedId offsetId = new BitLimitedId(bitCount, offsetIdRaw);
-            BitLimitedId expectedId = baseId.add(offsetId);
+            Id offsetId = new Id(offsetIdRaw, limit);
+            Id expectedId = baseId.add(offsetId);
 
             InternalEntry te = new InternalEntry();
             te.expectedId = expectedId;
@@ -134,7 +152,7 @@ public final class FingerTable {
      * @param orig finger table to copy
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public FingerTable(FingerTable orig) {
+    public FingerTable(FingerTable<A> orig) {
         if (orig == null) {
             throw new NullPointerException();
         }
@@ -171,24 +189,20 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code id} has a different bit count
      * count than base pointer's id
      */
-    public RouteResult route(BitLimitedId id) {
-        if (id == null) {
-            throw new NullPointerException();
-        }
-        if (id.getBitCount() != bitCount) {
-            throw new IllegalArgumentException();
-        }
+    public RouteResult route(Id id) {
+        Validate.notNull(id);
+        IdUtils.ensureLimitsMatch(id, basePtr.getId());
 
         InternalEntry firstEntry = table.get(0); // aka successor
 
-        BitLimitedPointer pointer;
+        Pointer<A> pointer;
         ResultType resultType;
 
-        BitLimitedId selfId = basePtr.getId();
+        Id selfId = basePtr.getId();
 
         if (id.isWithin(selfId, false, firstEntry.actualId, true)) {
             // if id is between baseId (exclusive) and finger[0] (inclusive)
-            pointer = new BitLimitedPointer(firstEntry.actualId, firstEntry.address);
+            pointer = new Pointer<>(firstEntry.actualId, firstEntry.address);
             resultType = ResultType.FOUND;
         } else {
             pointer = findClosestPreceding(id);
@@ -212,16 +226,12 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code id} has a different bit count
      * count than base pointer's id
      */
-    private BitLimitedPointer findClosestPreceding(BitLimitedId id) {
-        if (id == null) {
-            throw new NullPointerException();
-        }
-        if (id.getBitCount() != bitCount) {
-            throw new IllegalArgumentException();
-        }
+    private Pointer<A> findClosestPreceding(Id id) {
+        Validate.notNull(id);
+        IdUtils.ensureLimitsMatch(id, basePtr.getId());
 
-        BitLimitedId selfId = basePtr.getId();
-        InetSocketAddress selfAddress = basePtr.getAddress();
+        Id selfId = basePtr.getId();
+        A selfAddress = basePtr.getAddress();
 
         InternalEntry foundEntry = null;
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
@@ -235,12 +245,12 @@ public final class FingerTable {
             }
         }
 
-        BitLimitedPointer ret;
+        Pointer<A> ret;
         if (foundEntry == null) {
             // nothing found, return self
-            ret = new BitLimitedPointer(selfId, selfAddress);
+            ret = new Pointer<>(selfId, selfAddress);
         } else {
-            ret = new BitLimitedPointer(foundEntry.actualId, foundEntry.address);
+            ret = new Pointer<>(foundEntry.actualId, foundEntry.address);
         }
 
         return ret;
@@ -260,25 +270,24 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
-    public void put(BitLimitedPointer ptr) {
-        if (ptr == null) {
-            throw new NullPointerException();
-        }
+    public void put(Pointer<A> ptr) {
+        Validate.notNull(ptr);
+        IdUtils.ensureLimitsMatch(ptr, basePtr);
 
-        BitLimitedId id = ptr.getId();
-        InetSocketAddress address = ptr.getAddress();
+        Id id = ptr.getId();
+        A address = ptr.getAddress();
 
-        if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
+        if (basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
         }
 
-        BitLimitedId baseId = basePtr.getId();
+        Id baseId = basePtr.getId();
 
         // search for position to insert to
         int replacePos = -1;
         for (int i = 0; i < table.size(); i++) {
             InternalEntry ie = table.get(i);
-            BitLimitedId goalId = ie.expectedId;
+            Id goalId = ie.expectedId;
             int compVal = goalId.comparePosition(baseId, id);
             if (compVal < 0) {
                 replacePos = i;
@@ -345,25 +354,24 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
-    public void replace(BitLimitedPointer ptr) {
-        if (ptr == null) {
-            throw new NullPointerException();
-        }
+    public void replace(Pointer<A> ptr) {
+        Validate.notNull(ptr);
+        IdUtils.ensureLimitsMatch(ptr, basePtr);
 
-        BitLimitedId id = ptr.getId();
-        InetSocketAddress address = ptr.getAddress();
+        Id id = ptr.getId();
+        A address = ptr.getAddress();
 
-        if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
+        if (basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
         }
 
-        BitLimitedId baseId = basePtr.getId();
+        Id baseId = basePtr.getId();
 
         // search for position to insert to
         int replacePos = -1;
         for (int i = 0; i < table.size(); i++) {
             InternalEntry ie = table.get(i);
-            BitLimitedId goalId = ie.expectedId;
+            Id goalId = ie.expectedId;
             int compVal = goalId.comparePosition(baseId, id);
             if (compVal < 0) {
                 replacePos = i;
@@ -381,7 +389,7 @@ public final class FingerTable {
         // check if can be replaced -- if so, replace.
         InternalEntry entry = table.get(replacePos);
 
-        BitLimitedId oldId;
+        Id oldId;
         if (id.comparePosition(baseId, entry.actualId) < 0
                 || entry.actualId.equals(baseId)) {
             oldId = entry.actualId;
@@ -407,7 +415,7 @@ public final class FingerTable {
      *
      * @return base pointer
      */
-    public BitLimitedPointer getBase() {
+    public Pointer<A> getBase() {
         return basePtr;
     }
 
@@ -417,7 +425,7 @@ public final class FingerTable {
      *
      * @return base pointer id
      */
-    public BitLimitedId getBaseId() {
+    public Id getBaseId() {
         return basePtr.getId();
     }
 
@@ -427,7 +435,7 @@ public final class FingerTable {
      *
      * @return base pointer address
      */
-    public InetSocketAddress getBaseAddress() {
+    public A getBaseAddress() {
         return basePtr.getAddress();
     }
 
@@ -439,13 +447,13 @@ public final class FingerTable {
      * @return last/max non-base finger, or {@code null} if no such finger
      * exists
      */
-    public BitLimitedPointer getMaximumNonBase() {
-        BitLimitedId baseId = basePtr.getId();
+    public Pointer<A> getMaximumNonBase() {
+        Id baseId = basePtr.getId();
 
         for (int i = bitCount - 1; i >= 0; i--) {
             InternalEntry ie = table.get(i);
             if (!ie.actualId.equals(baseId)) {
-                return new BitLimitedPointer(ie.actualId, ie.address);
+                return new Pointer<>(ie.actualId, ie.address);
             }
         }
 
@@ -458,33 +466,31 @@ public final class FingerTable {
      *
      * @return finger[0], or {@code null} if finger[0] is base
      */
-    public BitLimitedPointer getMinimumNonBase() {
-        BitLimitedId baseId = basePtr.getId();
+    public Pointer<A> getMinimumNonBase() {
+        Id baseId = basePtr.getId();
         InternalEntry ie = table.get(0);
 
-        BitLimitedPointer ret = null;
+        Pointer<A> ret = null;
 
         if (!ie.actualId.equals(baseId)) {
-            ret = new BitLimitedPointer(ie.actualId, ie.address);
+            ret = new Pointer<>(ie.actualId, ie.address);
         }
 
         return ret;
     }
 
     /**
-     * Get the finger at a specific index
+     * Get the finger at a specific index.
      *
      * @param idx finger index
      * @return finger at index {@code idx}
      * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
      */
-    public BitLimitedPointer get(int idx) {
-        if (idx < 0 || idx >= table.size()) {
-            throw new IllegalArgumentException();
-        }
+    public Pointer<A> get(int idx) {
+        Validate.inclusiveBetween(0, table.size() - 1, idx);
 
         InternalEntry ie = table.get(idx);
-        return new BitLimitedPointer(ie.actualId, ie.address);
+        return new Pointer<>(ie.actualId, ie.address);
     }
 
     /**
@@ -497,10 +503,8 @@ public final class FingerTable {
      * @return expected id for a specific finger position
      * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
      */
-    public BitLimitedId getExpectedId(int idx) {
-        if (idx < 0 || idx >= table.size()) {
-            throw new IllegalArgumentException();
-        }
+    public Id getExpectedId(int idx) {
+        Validate.inclusiveBetween(0, table.size() - 1, idx);
 
         InternalEntry ie = table.get(idx);
         return ie.expectedId;
@@ -518,23 +522,22 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
-    public void remove(BitLimitedPointer ptr) {
-        if (ptr == null) {
-            throw new NullPointerException();
-        }
+    public void remove(Pointer<A> ptr) {
+        Validate.notNull(ptr);
+        IdUtils.ensureLimitsMatch(ptr, basePtr);
 
-        BitLimitedId id = ptr.getId();
-        InetSocketAddress address = ptr.getAddress();
+        Id id = ptr.getId();
+        A address = ptr.getAddress();
 
-        if (id.getBitCount() != bitCount || basePtr.equalsEnsureAddress(ptr)) {
+        if (basePtr.equalsEnsureAddress(ptr)) {
             throw new IllegalArgumentException();
         }
 
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
         while (lit.hasPrevious()) {
             InternalEntry ie = lit.previous();
-            BitLimitedId testId = ie.actualId;
-            InetSocketAddress testAddress = ie.address;
+            Id testId = ie.actualId;
+            A testAddress = ie.address;
 
             if (id.equals(testId) && address.equals(testAddress)) {
                 remove(lit.previousIndex() + 1);
@@ -549,23 +552,20 @@ public final class FingerTable {
      * {@link FingerTable}.
      *
      * @param idx finger position to clear
-     * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code ptr}'s id has a different bit
      * count than the base pointer's id
      * @throws IllegalArgumentException if {@code ptr} has an id that matches
      * the base pointer.
      */
     private void remove(int idx) {
-        if (idx < 0 || idx >= bitCount) {
-            throw new IllegalArgumentException();
-        }
+        Validate.inclusiveBetween(0, bitCount - 1, idx);
 
-        BitLimitedId baseId = basePtr.getId();
-        InetSocketAddress baseAddress = basePtr.getAddress();
+        Id baseId = basePtr.getId();
+        A baseAddress = basePtr.getAddress();
 
         // save existing id
         InternalEntry entry = table.get(idx);
-        BitLimitedId oldId = entry.actualId;
+        Id oldId = entry.actualId;
 
         if (oldId.equals(baseId)) {
             // nothing to remove if self... all forward entries sohuld
@@ -574,8 +574,8 @@ public final class FingerTable {
         }
 
         // get next id in table, if available
-        BitLimitedId nextId;
-        InetSocketAddress nextAddress;
+        Id nextId;
+        A nextAddress;
 
         if (idx < bitCount - 1) {
             // set values if there's a next available (if we aren't at ceiling)
@@ -612,21 +612,20 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code id} has a different bit count
      * count than base pointer's id
      */
-    public int clearBefore(BitLimitedId id) {
-        if (id == null) {
-            throw new NullPointerException();
-        }
+    public int clearBefore(Id id) {
+        Validate.notNull(id);
+        IdUtils.ensureLimitsMatch(basePtr.getId(), id);
 
-        BitLimitedId baseId = basePtr.getId();
+        Id baseId = basePtr.getId();
 
-        if (id.getBitCount() != bitCount || id.equals(baseId)) {
+        if (id.equals(baseId)) {
             throw new IllegalArgumentException();
         }
 
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
         while (lit.hasPrevious()) {
             InternalEntry ie = lit.previous();
-            BitLimitedId testId = ie.actualId;
+            Id testId = ie.actualId;
 
             if (id.comparePosition(baseId, testId) > 0) {
                 int position = lit.previousIndex() + 1;
@@ -646,16 +645,14 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
      */
     private void clearBefore(int idx) {
-        if (idx < 0 || idx >= bitCount) {
-            throw new IllegalArgumentException();
-        }
+        Validate.inclusiveBetween(0, bitCount - 1, idx);
 
-        BitLimitedId baseId = basePtr.getId();
-        InetSocketAddress baseAddress = basePtr.getAddress();
+        Id baseId = basePtr.getId();
+        A baseAddress = basePtr.getAddress();
 
         // get next id in table, if available
-        BitLimitedId nextId;
-        InetSocketAddress nextAddress;
+        Id nextId;
+        A nextAddress;
 
         if (idx < bitCount - 1) {
             // set values if there's a next available (if we aren't at ceiling)
@@ -687,21 +684,16 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code id} has a different bit count
      * count than base pointer's id
      */
-    public int clearAfter(BitLimitedId id) {
-        if (id == null) {
-            throw new NullPointerException();
-        }
+    public int clearAfter(Id id) {
+        Validate.notNull(id);
+        IdUtils.ensureLimitsMatch(id, basePtr.getId());
 
-        BitLimitedId baseId = basePtr.getId();
-
-        if (id.getBitCount() != bitCount) {
-            throw new IllegalArgumentException();
-        }
+        Id baseId = basePtr.getId();
 
         ListIterator<InternalEntry> lit = table.listIterator();
         while (lit.hasNext()) {
             InternalEntry ie = lit.next();
-            BitLimitedId testId = ie.actualId;
+            Id testId = ie.actualId;
 
             if (id.comparePosition(baseId, testId) < 0) {
                 int position = lit.nextIndex() - 1;
@@ -721,12 +713,10 @@ public final class FingerTable {
      * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
      */
     private void clearAfter(int idx) {
-        if (idx < 0 || idx >= bitCount) {
-            throw new IllegalArgumentException();
-        }
+        Validate.inclusiveBetween(0, bitCount - 1, idx);
 
-        BitLimitedId baseId = basePtr.getId();
-        InetSocketAddress baseAddress = basePtr.getAddress();
+        Id baseId = basePtr.getId();
+        A baseAddress = basePtr.getAddress();
 
         // replace entries with self id all the way till the end...
         for (int i = idx; i < bitCount; i++) {
@@ -741,8 +731,8 @@ public final class FingerTable {
      * Clears the finger table. All fingers will be set to the base pointer.
      */
     public void clear() {
-        BitLimitedId baseId = basePtr.getId();
-        InetSocketAddress baseAddress = basePtr.getAddress();
+        Id baseId = basePtr.getId();
+        A baseAddress = basePtr.getAddress();
 
         // replace entries with self id all the way till the end...
         for (int i = 0; i < bitCount; i++) {
@@ -765,7 +755,7 @@ public final class FingerTable {
         }
 
         InternalEntry ie = table.get(0);
-        BitLimitedPointer ptr = new BitLimitedPointer(ie.actualId, ie.address);
+        Pointer<A> ptr = new Pointer<>(ie.actualId, ie.address);
         return ptr.equals(basePtr);
     }
 
@@ -774,11 +764,11 @@ public final class FingerTable {
      *
      * @return list of fingers
      */
-    public List<BitLimitedPointer> dump() {
-        List<BitLimitedPointer> ret = new ArrayList<>(table.size());
+    public List<Pointer<A>> dump() {
+        List<Pointer<A>> ret = new ArrayList<>(table.size());
 
         for (InternalEntry ie : table) {
-            BitLimitedPointer ptr = new BitLimitedPointer(ie.actualId, ie.address);
+            Pointer<A> ptr = new Pointer<A>(ie.actualId, ie.address);
             ret.add(ptr);
         }
 
@@ -788,19 +778,19 @@ public final class FingerTable {
     /**
      * Internal class to keep track of a finger.
      */
-    private static final class InternalEntry {
+    private final class InternalEntry {
 
         /**
          * Desired id for finger.
          */
-        public BitLimitedId expectedId;
+        private Id expectedId;
         /**
          * BitLimitedId of finger.
          */
-        public BitLimitedId actualId;
+        private Id actualId;
         /**
-         * InetSocketAddress of finger.
+         * A of finger.
          */
-        public InetSocketAddress address;
+        private A address;
     }
 }

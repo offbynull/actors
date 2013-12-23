@@ -16,7 +16,7 @@
  */
 
 /**
- * Provides facilities to visualize a P2P overlay network.
+ * Provides facilities to create and encapsulates IDs for P2P clients.
  */
 
-package com.offbynull.peernetic.overlay.common.visualizer;
+package com.offbynull.peernetic.overlay.common.id;

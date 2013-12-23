@@ -1,11 +1,26 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.overlay.chord.UpdateState.FingerUpdateInstruction;
-import com.offbynull.peernetic.overlay.chord.UpdateState.SuccessorStabilizeInstruction;
-import com.offbynull.peernetic.overlay.common.id.BitLimitedId;
-import com.offbynull.peernetic.overlay.common.id.BitLimitedPointer;
-import java.net.InetSocketAddress;
+import com.offbynull.peernetic.overlay.common.id.Id;
+import com.offbynull.peernetic.overlay.common.id.IdUtils;
+import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.util.List;
+import org.apache.commons.lang3.Validate;
 
 /**
  * Holds the state information for a Chord entity. State information includes
@@ -19,68 +34,44 @@ import java.util.List;
  * In addition to that, this class attempts to keep track of when updates are
  * supposed to happen. Updates include fix finger updates as well as stabilizing
  * the successor.
+ * @param <A> address type
  * @author Kasra Faghihi
  */
-public final class ChordState {
+public final class ChordState<A> {
     /**
      * The pointer to this node.
      */
-    private BitLimitedPointer basePtr;
+    private Pointer<A> basePtr;
     
     /**
      * Finger table -- accelerates key lookup. As per the Chord research paper.
      */
-    private FingerTable fingerTable;
+    private FingerTable<A> fingerTable;
     
     /**
      * Successor table -- keeps track of a recursive list of successors. As per
      * the Chord research paper.
      */
-    private SuccessorTable successorTable;
-    
-    /**
-     * Update state -- keeps track of when/which fingers are to be fixed and
-     * when the successor is to be stabilized.
-     */
-    private UpdateState updateState;
+    private SuccessorTable<A> successorTable;
     
     /**
      * Pointer to this node's predecessor.
      */
-    private BitLimitedPointer predecessorPtr;
+    private Pointer<A> predecessorPtr;
     
     /**
      * Construct a {@link ChordState} object.
      * @param basePtr pointer to self (also known as base pointer
      * @throws NullPointerException if any of the arguments are {@code null}
      */
-    public ChordState(BitLimitedPointer basePtr) {
-        if (basePtr == null) {
-            throw new NullPointerException();
-        }
+    public ChordState(Pointer<A> basePtr) {
+        Validate.notNull(basePtr);
+        
         this.basePtr = basePtr;
         fingerTable = new FingerTable(basePtr);
         successorTable = new SuccessorTable(basePtr);
-        updateState = new UpdateState(basePtr);
         predecessorPtr = null;
     }
-
-    /**
-     * Get the next finger update instruction.
-     * @return next finger update instruction
-     */
-    public FingerUpdateInstruction getNextFingerUpdate() {
-        return updateState.getNextFingerUpdate();
-    }
-
-    /**
-     * Get the next successor stabilize instruction.
-     * @return next stabilize update instruction
-     */
-    public SuccessorStabilizeInstruction getNextStabilizeUpdate() {
-        return updateState.getNextStabilizeUpdate();
-    }
-
     
     /**
      * Get the bit length of IDs that this Chord entity is suppose to use. See
@@ -90,14 +81,14 @@ public final class ChordState {
      * @return expected bit length of ids
      */
     public int getBitCount() {
-        return basePtr.getId().getBitCount();
+        return IdUtils.getLimitBitLength(basePtr);
     }
     
     /**
      * Get the base pointer.
      * @return base pointer
      */
-    public BitLimitedPointer getBase() {
+    public Pointer<A> getBase() {
         return basePtr;
     }
     
@@ -105,7 +96,7 @@ public final class ChordState {
      * Get the ID from the base pointer.
      * @return ID for base pointer
      */
-    public BitLimitedId getBaseId() {
+    public Id getBaseId() {
         return basePtr.getId();
     }
     
@@ -113,7 +104,7 @@ public final class ChordState {
      * Get the address from the base pointer.
      * @return address for base pointer
      */
-    public InetSocketAddress getBaseAddress() {
+    public A getBaseAddress() {
         return basePtr.getAddress();
     }
 
@@ -121,7 +112,7 @@ public final class ChordState {
      * Get the predecessor.
      * @return predecessor
      */
-    public BitLimitedPointer getPredecessor() {
+    public Pointer<A> getPredecessor() {
         return predecessorPtr;
     }
 
@@ -199,20 +190,18 @@ public final class ChordState {
      * the existing predecessor pointer and base pointer
      * @param predecessor new predecessor value
      */
-    public void setPredecessor(BitLimitedPointer predecessor) {
-        if (predecessor == null) {
-            throw new NullPointerException();
-        }
+    public void setPredecessor(Pointer<A> predecessor) {
+        Validate.notNull(predecessor);
         
         if (basePtr.equalsEnsureAddress(predecessor)) {
             throw new IllegalArgumentException();
         }
         
-        BitLimitedId id = basePtr.getId();
+        Id id = basePtr.getId();
         
         if (this.predecessorPtr != null) {
-            BitLimitedId oldId = this.predecessorPtr.getId();
-            BitLimitedId newId = predecessor.getId();
+            Id oldId = this.predecessorPtr.getId();
+            Id newId = predecessor.getId();
 
             if (!newId.isWithin(oldId, true, id, false)) {
                 throw new IllegalArgumentException();
@@ -270,7 +259,7 @@ public final class ChordState {
      * (index 0 of the finger table) is always in sync with the successor.
      * @return successor
      */
-    public BitLimitedPointer getSuccessor() {
+    public Pointer<A> getSuccessor() {
         return successorTable.getSuccessor();
     }
     
@@ -400,10 +389,9 @@ public final class ChordState {
      * @throws IllegalArgumentException if any incoming pointer's bit count
      * doesn't match the base pointer's bit count
      */
-    public void setSuccessor(BitLimitedPointer successor, List<BitLimitedPointer> table) {
-        if (successor == null || table == null || table.contains(null)) {
-            throw new NullPointerException();
-        }
+    public void setSuccessor(Pointer<A> successor, List<Pointer<A>> table) {
+        Validate.notNull(successor);
+        Validate.noNullElements(table);
         
         successorTable.update(successor, table);
 
@@ -433,10 +421,8 @@ public final class ChordState {
      * @throws IllegalArgumentException if {@code id}'s bit count doesn't match
      * the base pointer's bit count
      */
-    public RouteResult route(BitLimitedId id) {
-        if (id == null) {
-            throw new NullPointerException();
-        }
+    public RouteResult route(Id id) {
+        Validate.notNull(id);
         
         return fingerTable.route(id);
     }
@@ -449,10 +435,8 @@ public final class ChordState {
      * @throws IllegalArgumentException if
      * {@code bitPosition < 0 || >= bitCount}
      */
-    public BitLimitedId getExpectedFingerId(int bitPosition) {
-        if (bitPosition < 0 || bitPosition >= getBitCount()) {
-            throw new IllegalArgumentException();
-        }
+    public Id getExpectedFingerId(int bitPosition) {
+        Validate.inclusiveBetween(0, getBitCount() - 1, bitPosition);
         
         return fingerTable.getExpectedId(bitPosition);
     }
@@ -465,10 +449,8 @@ public final class ChordState {
      * @throws IllegalArgumentException if
      * {@code bitPosition < 0 || >= bitCount}
      */
-    public BitLimitedPointer getFinger(int bitPosition) {
-        if (bitPosition < 0 || bitPosition >= getBitCount()) {
-            throw new IllegalArgumentException();
-        }
+    public Pointer<A> getFinger(int bitPosition) {
+        Validate.inclusiveBetween(0, getBitCount() - 1, bitPosition);
         
         return fingerTable.get(bitPosition);
     }
@@ -571,10 +553,8 @@ public final class ChordState {
      * @throws IllegalArgumentException if {@code pointers}'s bit count doesn't
      * match the base pointer's bit count
      */
-    public void putFinger(BitLimitedPointer pointer) {
-        if (pointer == null) {
-            throw new NullPointerException();
-        }
+    public void putFinger(Pointer<A> pointer) {
+        Validate.notNull(pointer);
         
         fingerTable.put(pointer);
         
@@ -615,12 +595,10 @@ public final class ChordState {
      * @throws IllegalArgumentException if {@code pointers}'s bit count doesn't
      * match the base pointer's bit count
      */
-    public void removeFinger(BitLimitedPointer pointer) {
-        if (pointer == null) {
-            throw new NullPointerException();
-        }
+    public void removeFinger(Pointer<A> pointer) {
+        Validate.notNull(pointer);
         
-        BitLimitedPointer oldMaxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
+        Pointer<A> oldMaxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
         fingerTable.remove(pointer);
         
         // If finger is max non-base finger entry and also the predecessor,
@@ -630,7 +608,7 @@ public final class ChordState {
         // being unresponsive, so the predecessor will be unresponsive as well.
         if (pointer.equals(oldMaxNonBaseFingerPtr)
                 && pointer.equals(predecessorPtr)) {
-            BitLimitedPointer newMaxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
+            Pointer<A> newMaxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
             predecessorPtr = newMaxNonBaseFingerPtr;
         }
         
@@ -647,7 +625,7 @@ public final class ChordState {
      * Dump the finger table.
      * @return list of fingers in the finger table
      */
-    public List<BitLimitedPointer> dumpFingerTable() {
+    public List<Pointer<A>> dumpFingerTable() {
         return fingerTable.dump();
     }
 
@@ -655,7 +633,7 @@ public final class ChordState {
      * Dump the successor table.
      * @return list of successor in the finger table
      */
-    public List<BitLimitedPointer> dumpSuccessorTable() {
+    public List<Pointer<A>> dumpSuccessorTable() {
         return successorTable.dump();
     }
     
@@ -665,7 +643,7 @@ public final class ChordState {
      * unset it if it doesn't exist).
      */
     private void derivePredecessorFromFingerTable() {
-        BitLimitedPointer maxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
+        Pointer<A> maxNonBaseFingerPtr = fingerTable.getMaximumNonBase();
         
         if (predecessorPtr != null) {
             if (maxNonBaseFingerPtr == null) {
@@ -674,9 +652,9 @@ public final class ChordState {
                 return;
             }
             
-            BitLimitedId baseId = basePtr.getId();
-            BitLimitedId predecessorId = predecessorPtr.getId();
-            BitLimitedId maxNonBaseFingerId = maxNonBaseFingerPtr.getId();
+            Id baseId = basePtr.getId();
+            Id predecessorId = predecessorPtr.getId();
+            Id maxNonBaseFingerId = maxNonBaseFingerPtr.getId();
             
             if (predecessorId.comparePosition(baseId, maxNonBaseFingerId) > 0) {
                 // predecessor is greater than max non-base finger, so don't
@@ -705,13 +683,13 @@ public final class ChordState {
             return;
         }
         
-        BitLimitedId baseId = basePtr.getId();
+        Id baseId = basePtr.getId();
         
-        BitLimitedPointer lastFingerPtr = fingerTable.getMaximumNonBase();
+        Pointer<A> lastFingerPtr = fingerTable.getMaximumNonBase();
         
         if (lastFingerPtr != null) {
-            BitLimitedId lastFingerId = lastFingerPtr.getId();
-            BitLimitedId predecessorId = predecessorPtr.getId();
+            Id lastFingerId = lastFingerPtr.getId();
+            Id predecessorId = predecessorPtr.getId();
 
             if (predecessorId.comparePosition(baseId, lastFingerId) < 0) {
                 fingerTable.clearAfter(predecessorId);
@@ -730,7 +708,7 @@ public final class ChordState {
      */
     private void adjustSuccessorTableToMatchFingerTable() {
         // make sure successor table's value is finger table's idx 0
-        BitLimitedPointer successorPtr = fingerTable.get(0);
+        Pointer<A> successorPtr = fingerTable.get(0);
         successorTable.updateTrim(successorPtr);
     }
 
@@ -739,7 +717,7 @@ public final class ChordState {
      * successor table.
      */
     private void adjustFingerTableToMatchSuccessorTable() {
-        BitLimitedPointer successorPtr = successorTable.getSuccessor();
+        Pointer<A> successorPtr = successorTable.getSuccessor();
 
         if (basePtr.equalsEnsureAddress(successorPtr)) {
             // if the successor is us, clear the finger table such that all
@@ -747,7 +725,7 @@ public final class ChordState {
             fingerTable.clear();
         } else {
             // otherwise, get the successor and set it to the finger table
-            BitLimitedId successorId = successorPtr.getId();
+            Id successorId = successorPtr.getId();
 
                 // just to make sure this goes in idx 0, clear everything before
                 // the new successor and shove it in

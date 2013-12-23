@@ -16,7 +16,6 @@
  */
 
 /**
- * Provides facilities to visualize a P2P overlay network.
+ * An implementation of the Chord algorithm.
  */
-
-package com.offbynull.peernetic.overlay.common.visualizer;
+package com.offbynull.peernetic.overlay.chord;

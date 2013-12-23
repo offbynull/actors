@@ -1,7 +1,8 @@
 package com.offbynull.peernetic.overlay.chord;
 
 import com.google.common.collect.Lists;
-import com.offbynull.peernetic.overlay.common.id.BitLimitedPointer;
+import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
@@ -25,9 +26,9 @@ public class ChordStateTest {
 
     @Test
     public void testInitialState() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(2, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(2, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         assertEquals(cs.getBase(), basePtr);
@@ -41,12 +42,12 @@ public class ChordStateTest {
 
     @Test
     public void testSetSuccessor1() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList());
         
         assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
@@ -57,13 +58,13 @@ public class ChordStateTest {
 
     @Test
     public void testSetSuccessor2() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
-        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList());
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList());
+        cs.setSuccessor(ptrList.get(7), Lists.<Pointer<InetSocketAddress>>newArrayList());
         
         assertEquals(ptrList.get(7), cs.getFinger(0));
         assertEquals(ptrList.get(7), cs.getFinger(1));
@@ -75,13 +76,13 @@ public class ChordStateTest {
 
     @Test
     public void testSetSuccessor3() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList());
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
+        cs.setSuccessor(ptrList.get(7), Lists.<Pointer<InetSocketAddress>>newArrayList());
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList());
         
         assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(ptrList.get(7), cs.getFinger(1));
@@ -93,42 +94,42 @@ public class ChordStateTest {
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetSuccessor4() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList(ptrList.get(1)));
+        cs.setSuccessor(ptrList.get(7), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(1)));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetSuccessor5() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(7), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setSuccessor(ptrList.get(7), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7)));
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetSuccessor6() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(5), ptrList.get(5)));
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(5), ptrList.get(5)));
     }
     
     @Test
     public void testShiftSuccessor1() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7)));
         cs.shiftSuccessor();
         
         assertEquals(ptrList.get(7), cs.getFinger(0));
@@ -140,12 +141,12 @@ public class ChordStateTest {
     
     @Test
     public void testShiftSuccessor2() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7)));
         cs.setPredecessor(ptrList.get(1));
         cs.shiftSuccessor();
         
@@ -158,12 +159,12 @@ public class ChordStateTest {
     
     @Test
     public void testShiftSuccessor3() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7)));
         cs.setPredecessor(ptrList.get(2));
         cs.shiftSuccessor();
         
@@ -176,12 +177,12 @@ public class ChordStateTest {
     
     @Test
     public void testShiftSuccessor4() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7), basePtr, ptrList.get(1)));
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7), basePtr, ptrList.get(1)));
 
         assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
@@ -208,12 +209,12 @@ public class ChordStateTest {
     
     @Test(expected = IllegalStateException.class)
     public void testShiftSuccessor5() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList());
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList());
         
         assertEquals(ptrList.get(1), cs.getFinger(0));
         assertEquals(basePtr, cs.getFinger(1));
@@ -226,21 +227,21 @@ public class ChordStateTest {
     
     @Test(expected = IllegalStateException.class)
     public void testShiftSuccessor6() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
-        cs.setSuccessor(ptrList.get(1), Lists.<BitLimitedPointer>newArrayList(ptrList.get(7)));
+        cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7)));
         cs.shiftSuccessor();
         cs.shiftSuccessor();
     }
     
     @Test
     public void testSetPredecessor1() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.setPredecessor(ptrList.get(1));
@@ -254,9 +255,9 @@ public class ChordStateTest {
 
     @Test
     public void testSetPredecessor2() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -271,9 +272,9 @@ public class ChordStateTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor3() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(7));
@@ -282,9 +283,9 @@ public class ChordStateTest {
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor4() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(4));
@@ -294,9 +295,9 @@ public class ChordStateTest {
     
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor5() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.setPredecessor(basePtr);
@@ -304,9 +305,9 @@ public class ChordStateTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetPredecessor6() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(7));
@@ -315,9 +316,9 @@ public class ChordStateTest {
 
     @Test
     public void testRemovePredecessor1() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(2));
@@ -337,9 +338,9 @@ public class ChordStateTest {
 
     @Test
     public void testRemovePredecessor2() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(2));
@@ -357,9 +358,9 @@ public class ChordStateTest {
     
     @Test
     public void testPutFinger1() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -373,9 +374,9 @@ public class ChordStateTest {
     
     @Test
     public void testPutFinger2() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -391,9 +392,9 @@ public class ChordStateTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testPutFinger3() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(basePtr);
@@ -401,9 +402,9 @@ public class ChordStateTest {
     
     @Test
     public void testRemoveFinger1() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -420,9 +421,9 @@ public class ChordStateTest {
     
     @Test
     public void testRemoveFinger2() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -440,9 +441,9 @@ public class ChordStateTest {
     
     @Test
     public void testRemoveFinger3() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -460,9 +461,9 @@ public class ChordStateTest {
 
     @Test
     public void testRemoveFinger4() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));
@@ -480,9 +481,9 @@ public class ChordStateTest {
     
     @Test(expected = IllegalArgumentException.class)
     public void testRemoveFinger5() {
-        List<BitLimitedPointer> ptrList = TestUtils.generatePointers(3, 0x00L);
+        List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
-        BitLimitedPointer basePtr = ptrList.get(0);
+        Pointer<InetSocketAddress> basePtr = ptrList.get(0);
         ChordState cs = new ChordState(basePtr);
         
         cs.putFinger(ptrList.get(1));

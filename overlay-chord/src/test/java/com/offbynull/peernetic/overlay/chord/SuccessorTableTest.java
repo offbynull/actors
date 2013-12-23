@@ -1,7 +1,8 @@
 package com.offbynull.peernetic.overlay.chord;
 
 import com.google.common.collect.Lists;
-import com.offbynull.peernetic.overlay.common.id.BitLimitedPointer;
+import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.net.InetSocketAddress;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -23,16 +24,16 @@ public class SuccessorTableTest {
 
     @Test
     public void testInitial1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(2, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer successorPtr = st.getSuccessor();
+        Pointer<InetSocketAddress> successorPtr = st.getSuccessor();
         
         assertEquals(basePtr, successorPtr);
     }
 
     public void testInitialEmpty1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(2, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(2, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
         st.moveToNextSucessor();
@@ -41,16 +42,16 @@ public class SuccessorTableTest {
 
     @Test
     public void testUpdate1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(3, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        Pointer<InetSocketAddress> ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer<InetSocketAddress> ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer<InetSocketAddress> ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer<InetSocketAddress> ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer<InetSocketAddress> ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer<InetSocketAddress> ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer<InetSocketAddress> ptr7 = TestUtils.generatePointer(3, 0x07L);
         
         st.update(ptr1,
                 Lists.newArrayList(ptr2, ptr3, ptr4, ptr5, ptr6, ptr7,
@@ -67,11 +68,11 @@ public class SuccessorTableTest {
 
     @Test
     public void testUpdate2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(3, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer<InetSocketAddress> ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer<InetSocketAddress> ptr2 = TestUtils.generatePointer(3, 0x02L);
         
         st.update(ptr1,
                 Lists.newArrayList(ptr2, basePtr, ptr1, ptr2, basePtr, ptr1,
@@ -84,11 +85,11 @@ public class SuccessorTableTest {
 
     @Test(expected = IllegalStateException.class)
     public void testUpdateFail1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(3, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer<InetSocketAddress> ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer<InetSocketAddress> ptr2 = TestUtils.generatePointer(3, 0x02L);
         
         st.update(ptr1,
                 Lists.newArrayList(ptr2, basePtr, ptr1, ptr2, basePtr, ptr1,
@@ -102,16 +103,16 @@ public class SuccessorTableTest {
     
     @Test
     public void testUpdateTrim1() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(3, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        Pointer<InetSocketAddress> ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer<InetSocketAddress> ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer<InetSocketAddress> ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer<InetSocketAddress> ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer<InetSocketAddress> ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer<InetSocketAddress> ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer<InetSocketAddress> ptr7 = TestUtils.generatePointer(3, 0x07L);
         
         st.update(ptr1,
                 Lists.newArrayList(ptr2, ptr4, ptr5, ptr6, ptr7,
@@ -127,16 +128,16 @@ public class SuccessorTableTest {
 
     @Test
     public void testUpdateTrim2() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(3, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        Pointer<InetSocketAddress> ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer<InetSocketAddress> ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer<InetSocketAddress> ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer<InetSocketAddress> ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer<InetSocketAddress> ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer<InetSocketAddress> ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer<InetSocketAddress> ptr7 = TestUtils.generatePointer(3, 0x07L);
         
         st.update(ptr1,
                 Lists.newArrayList(ptr2, ptr3, ptr4, ptr5, ptr6, ptr7,
@@ -150,16 +151,16 @@ public class SuccessorTableTest {
 
     @Test
     public void testUpdateTrim3() {
-        BitLimitedPointer basePtr = TestUtils.generatePointer(3, 0L);
+        Pointer<InetSocketAddress> basePtr = TestUtils.generatePointer(3, 0L);
         SuccessorTable st = new SuccessorTable(basePtr);
         
-        BitLimitedPointer ptr1 = TestUtils.generatePointer(3, 0x01L);
-        BitLimitedPointer ptr2 = TestUtils.generatePointer(3, 0x02L);
-        BitLimitedPointer ptr3 = TestUtils.generatePointer(3, 0x03L);
-        BitLimitedPointer ptr4 = TestUtils.generatePointer(3, 0x04L);
-        BitLimitedPointer ptr5 = TestUtils.generatePointer(3, 0x05L);
-        BitLimitedPointer ptr6 = TestUtils.generatePointer(3, 0x06L);
-        BitLimitedPointer ptr7 = TestUtils.generatePointer(3, 0x07L);
+        Pointer<InetSocketAddress> ptr1 = TestUtils.generatePointer(3, 0x01L);
+        Pointer<InetSocketAddress> ptr2 = TestUtils.generatePointer(3, 0x02L);
+        Pointer<InetSocketAddress> ptr3 = TestUtils.generatePointer(3, 0x03L);
+        Pointer<InetSocketAddress> ptr4 = TestUtils.generatePointer(3, 0x04L);
+        Pointer<InetSocketAddress> ptr5 = TestUtils.generatePointer(3, 0x05L);
+        Pointer<InetSocketAddress> ptr6 = TestUtils.generatePointer(3, 0x06L);
+        Pointer<InetSocketAddress> ptr7 = TestUtils.generatePointer(3, 0x07L);
         
         st.update(ptr1,
                 Lists.newArrayList(ptr2, ptr3, ptr4, ptr5, ptr6, ptr7,

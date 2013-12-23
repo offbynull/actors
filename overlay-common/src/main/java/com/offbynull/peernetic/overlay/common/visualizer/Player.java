@@ -18,7 +18,7 @@ package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
  * Replays recorded events on to a {@link Visualizer}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface Player<A> {

@@ -20,7 +20,7 @@ import java.io.Closeable;
 
 /**
  * Records events passed to a {@link Visualizer}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface Recorder<A> extends Closeable {

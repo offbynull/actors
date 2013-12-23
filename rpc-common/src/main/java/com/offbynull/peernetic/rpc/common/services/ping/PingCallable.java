@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Encapsulates the logic to query a {@link PingService}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class PingCallable<A> implements Callable<Long> {

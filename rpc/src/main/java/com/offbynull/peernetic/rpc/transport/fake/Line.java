@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Controls how messages are sent in a hub. For example, depending on the line, a message may be dropped/duplicated/corrupted/slow/fast...
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface Line<A> {

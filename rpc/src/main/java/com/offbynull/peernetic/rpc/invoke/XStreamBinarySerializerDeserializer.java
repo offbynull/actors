@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A serializer/deserializer that uses XStream.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class XStreamBinarySerializerDeserializer implements Serializer, Deserializer {
     

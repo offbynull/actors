@@ -57,7 +57,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 /**
  * A {@link Visualizer} implementation that's backed by JGraphX.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class JGraphXVisualizer<A> implements Visualizer<A> {

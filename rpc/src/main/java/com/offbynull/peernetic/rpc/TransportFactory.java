@@ -21,7 +21,7 @@ import java.io.IOException;
 
 /**
  * A factory class that creates {@link Transport}s.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface TransportFactory<A> {

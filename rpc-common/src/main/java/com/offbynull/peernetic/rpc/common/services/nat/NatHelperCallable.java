@@ -51,7 +51,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Encapsulates the logic to query a {@link NatHelperService}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class NatHelperCallable implements Callable<Result> {
     

@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.invoke;
 
 /**
  * Inspects and potentially makes changes to an invokation.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface InvokeFilter {
     /**

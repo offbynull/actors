@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Default {@link Id} generator.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class IdGenerator {
 

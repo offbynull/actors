@@ -19,7 +19,7 @@ package com.offbynull.peernetic.rpc.invoke;
 /**
  * Interface called by methods of proxy objects generated through
  * {@link Capturer#createInstance(com.offbynull.rpc.invoke.CapturerHandler) }.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface CapturerHandler {
     /**

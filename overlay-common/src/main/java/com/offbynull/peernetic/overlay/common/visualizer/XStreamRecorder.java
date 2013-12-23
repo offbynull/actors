@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Records steps that can later be played with an {@link XStreamPlayer}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class XStreamRecorder<A> implements Recorder<A> {

@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * {@link ListerService} implementation.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 final class ListerServiceImplementation implements ListerService {
     private ReadWriteLock lock;

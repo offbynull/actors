@@ -24,7 +24,7 @@ import java.util.Set;
 
 /**
  * An {@link InvokeFilter} that makes sure that method names being invoked don't match that of {@link Object}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class AvoidObjectInvokeFilter implements InvokeFilter {
     private static final Set<String> OBJECT_METHOD_NAMES;

@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * Invokations are sent to the external source as a serialized byte array, and each invokation waits for the external source to give back
  * either a result to be returned by the invokation or a {@link Throwable} to be thrown from the invokation. {@link CapturerHandler} is the
  * processing mechanism.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <T> proxy type
  */
 public final class Capturer<T> {

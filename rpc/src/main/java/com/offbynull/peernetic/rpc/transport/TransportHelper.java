@@ -23,7 +23,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A utility class for {@link Transport}s.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class TransportHelper {
     /**

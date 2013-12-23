@@ -20,7 +20,7 @@ import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 
 /**
  * Async {@link PingService}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface PingServiceAsync {
     /**

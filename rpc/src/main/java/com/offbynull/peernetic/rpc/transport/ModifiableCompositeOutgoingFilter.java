@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A composite {@link OutgoingFilter} that allows adding/removing of inner filters.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class ModifiableCompositeOutgoingFilter<A> implements OutgoingFilter<A> {

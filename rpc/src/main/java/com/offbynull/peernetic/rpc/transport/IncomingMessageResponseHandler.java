@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.transport;
 
 /**
  * A handler that should be triggered once a response is ready for an incoming message.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface IncomingMessageResponseHandler {
     /**

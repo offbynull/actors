@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.invoke;
 
 /**
  * Interface for serializing method invokations and invokation results.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface Serializer {
     /**

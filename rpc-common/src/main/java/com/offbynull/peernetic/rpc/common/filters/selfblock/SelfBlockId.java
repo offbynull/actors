@@ -23,7 +23,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An ID used to detect when you're communicating with yourself.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class SelfBlockId {
     /**

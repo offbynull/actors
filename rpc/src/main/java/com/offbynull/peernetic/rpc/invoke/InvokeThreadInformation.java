@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A static class that can contains extra information for methods invoked through {@link Invoker}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class InvokeThreadInformation {
     private static ThreadLocal<Map<Object, Object>> tls = new ThreadLocal<>();

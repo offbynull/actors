@@ -20,7 +20,7 @@ import java.io.IOException;
 
 /**
  * An interface to send, receive, and reply to messages over a network. Implementations must be thread-safe.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface Transport<A> {

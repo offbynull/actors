@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link IncomingFilter} that only allows a collection of addresses.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class WhitelistIncomingFilter<A> implements IncomingFilter<A> {

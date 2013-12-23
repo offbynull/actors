@@ -18,7 +18,7 @@ package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
  * A {@link Visualizer} implementation that displays nothing.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class NullVisualizer implements Visualizer {
 

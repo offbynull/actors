@@ -20,7 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Command to add a node.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class AddNodeCommand<A> implements Command<A> {

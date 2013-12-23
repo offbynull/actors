@@ -47,7 +47,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A TCP transport implementation.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class TcpTransport implements Transport<InetSocketAddress> {
 

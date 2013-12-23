@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link IncomingFilter} that ensures a certain address isn't hammering.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class RateLimitIncomingFilter<A> implements IncomingFilter<A> {

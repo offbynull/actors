@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.invoke;
 
 /**
  * A listener that gets triggered once a method invoked through {@link Invoker} has finished.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface InvokerListener {
     /**

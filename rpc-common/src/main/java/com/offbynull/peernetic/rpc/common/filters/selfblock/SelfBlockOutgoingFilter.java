@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link OutgoingFilter} that prepends your {@link SelfBlockId} to the beginning of a message.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class SelfBlockOutgoingFilter<A> implements OutgoingFilter<A> {

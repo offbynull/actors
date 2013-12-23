@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Modifies raw message data coming in to a {@link Transport}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface IncomingFilter<A> {

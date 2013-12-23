@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 /**
  * Waits for a node to have no edges to/from it and then triggers a set of commands. Applies to the node AT THE TIME this command was
  * issued... That is, if this command gets issued and the node it refers to is removed then added again, this command will have no effect.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class TriggerOnLingeringNodeCommand<A> implements Command<A> {

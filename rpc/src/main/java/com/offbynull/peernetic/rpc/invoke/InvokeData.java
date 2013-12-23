@@ -22,7 +22,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Method invokation details. Contains the method name, arguments, and parameter types of the method being invoked.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class InvokeData {
     private String methodName;

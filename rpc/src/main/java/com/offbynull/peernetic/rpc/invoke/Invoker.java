@@ -32,7 +32,7 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 
 /**
  * Invokes methods on an object based on serialized data. See {@link Capturer}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class Invoker implements Closeable {
 

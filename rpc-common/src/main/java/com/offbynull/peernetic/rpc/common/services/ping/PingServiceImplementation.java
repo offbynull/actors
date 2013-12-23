@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.common.services.ping;
 
 /**
  * Ping service implementation.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class PingServiceImplementation implements PingService {
 

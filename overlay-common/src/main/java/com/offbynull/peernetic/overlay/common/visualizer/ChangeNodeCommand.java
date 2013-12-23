@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Changes a node's scale/location/color.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class ChangeNodeCommand<A> implements Command<A> {

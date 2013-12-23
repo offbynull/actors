@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An ID between 0 and some pre-defined limit.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class Id {
 

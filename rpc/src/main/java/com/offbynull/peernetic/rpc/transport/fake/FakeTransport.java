@@ -38,7 +38,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A {@link Transport} used for testing. Backed by a {@link FakeHub}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class FakeTransport<A> implements Transport<A> {

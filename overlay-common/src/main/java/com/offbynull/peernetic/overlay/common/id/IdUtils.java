@@ -21,7 +21,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Utilities for {@link Id}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class IdUtils {
 

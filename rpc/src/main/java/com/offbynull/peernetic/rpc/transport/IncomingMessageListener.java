@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.transport;
 
 /**
  * A listener that gets triggered when a new message arrives. Implementations must be thread-safe.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface IncomingMessageListener<A> {

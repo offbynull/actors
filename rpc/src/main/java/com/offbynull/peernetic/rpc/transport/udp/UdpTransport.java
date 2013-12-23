@@ -45,7 +45,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A UDP transport implementation.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class UdpTransport implements Transport<InetSocketAddress> {
     

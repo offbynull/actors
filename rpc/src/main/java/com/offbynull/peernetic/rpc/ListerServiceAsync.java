@@ -21,7 +21,7 @@ import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 
 /**
  * A special service that provides callers with a list of supported services.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface ListerServiceAsync {
 

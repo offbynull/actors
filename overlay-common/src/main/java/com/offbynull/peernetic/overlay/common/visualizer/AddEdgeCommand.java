@@ -20,7 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Command to add an edge.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class AddEdgeCommand<A> implements Command<A> {

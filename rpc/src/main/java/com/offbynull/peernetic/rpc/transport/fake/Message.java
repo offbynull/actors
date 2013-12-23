@@ -21,7 +21,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Transit message.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class Message<A> {

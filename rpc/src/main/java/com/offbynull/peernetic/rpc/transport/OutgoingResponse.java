@@ -21,7 +21,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Outgoing response.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class OutgoingResponse {
     private ByteBuffer data;

@@ -31,7 +31,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A hub that pipes messages between {@link FakeTransport}s.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class FakeHub<A> {

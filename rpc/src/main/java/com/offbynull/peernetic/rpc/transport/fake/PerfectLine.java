@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * A line implementation without any constraints or failures. Takes no time to transmit a message.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class PerfectLine<A> implements Line<A> {

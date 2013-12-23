@@ -20,7 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Removes an edge.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class RemoveEdgeCommand<A> implements Command<A> {

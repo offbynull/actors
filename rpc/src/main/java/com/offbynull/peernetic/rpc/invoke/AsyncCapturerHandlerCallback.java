@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.invoke;
 
 /**
  * Interface used to signal that the response for a async proxy call has arrived.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface AsyncCapturerHandlerCallback {
     /**

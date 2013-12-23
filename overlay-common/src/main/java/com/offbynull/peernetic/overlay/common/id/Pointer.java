@@ -21,7 +21,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A {@link Id} paired with an address.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class Pointer<A> {

@@ -20,7 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Interface for deserializing method invokations and invokation results.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface Deserializer {
     /**

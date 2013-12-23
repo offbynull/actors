@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Creates a {@link TcpTransport} based on properties in this class.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class TcpTransportFactory implements TransportFactory<InetSocketAddress> {
     private int readLimit = 65535;

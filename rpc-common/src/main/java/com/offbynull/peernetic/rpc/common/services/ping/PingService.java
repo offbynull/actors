@@ -19,7 +19,7 @@ package com.offbynull.peernetic.rpc.common.services.ping;
 
 /**
  * Ping service.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface PingService {
     /**

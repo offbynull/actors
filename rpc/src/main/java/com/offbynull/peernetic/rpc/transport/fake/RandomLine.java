@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * number of bytes to get that property. Properties include: drop rate, repeat rate, duration, jitter. So, for example, if a
  * {@link RandomLine} object with a drop rate of 0.01 gets asked to process a 1000 byte request, there's a 10% chance of that the message
  * won't make it out.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class RandomLine<A> implements Line<A> {

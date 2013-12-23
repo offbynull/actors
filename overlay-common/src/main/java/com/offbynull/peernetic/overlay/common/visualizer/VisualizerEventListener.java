@@ -18,7 +18,7 @@ package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
  * Used to receive events from {@link Visualizer}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface VisualizerEventListener {
     /**

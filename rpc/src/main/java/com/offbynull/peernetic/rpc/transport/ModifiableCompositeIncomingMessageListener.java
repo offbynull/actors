@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A composite {@link IncomingMessageListener} that allows adding/removing of inner listeners.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class ModifiableCompositeIncomingMessageListener<A> implements IncomingMessageListener<A> {

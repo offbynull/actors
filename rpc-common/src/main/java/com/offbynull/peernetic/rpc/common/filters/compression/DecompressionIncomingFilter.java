@@ -27,7 +27,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link IncomingFilter} that compresses data using {@link GZIPIncomingStream}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class DecompressionIncomingFilter<A> implements IncomingFilter<A> {

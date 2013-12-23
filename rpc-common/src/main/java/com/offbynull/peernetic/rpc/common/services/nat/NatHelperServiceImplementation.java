@@ -34,7 +34,7 @@ import java.util.Collections;
 
 /**
  * NAT helper implementation.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class NatHelperServiceImplementation implements NatHelperService {
 

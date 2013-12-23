@@ -32,7 +32,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * RPC configuration.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class RpcConfig<A> {

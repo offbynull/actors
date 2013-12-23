@@ -23,7 +23,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A composite {@link IncomingFilter}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class CompositeIncomingFilter<A> implements IncomingFilter<A> {

@@ -51,7 +51,7 @@ import org.apache.commons.lang3.Validate;
  *    void performFunction(AsyncResultListener<String> result, int id);
  * }
  * </pre>
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <T> proxy type
  * @param <AT> proxy async type
  */

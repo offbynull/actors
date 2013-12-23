@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.invoke;
 
 /**
  * Type of serialized invokation data.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public enum SerializationType {
 

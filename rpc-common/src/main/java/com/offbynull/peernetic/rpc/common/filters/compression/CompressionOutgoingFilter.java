@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link OutgoingFilter} that compresses data using {@link GZIPOutputStream}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class CompressionOutgoingFilter<A> implements OutgoingFilter<A> {

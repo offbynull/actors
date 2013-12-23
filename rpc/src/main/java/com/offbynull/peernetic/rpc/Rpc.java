@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * RPC entry point.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class Rpc<A> implements Closeable {

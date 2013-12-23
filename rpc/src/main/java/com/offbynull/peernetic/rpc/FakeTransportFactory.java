@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 /**
  * Creates a {@link FakeTransportFactory} based on properties in this class.
  * @param <A> address type
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class FakeTransportFactory<A> implements TransportFactory<A> {
 

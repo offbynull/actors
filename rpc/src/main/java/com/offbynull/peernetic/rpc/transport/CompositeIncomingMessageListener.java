@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A composite {@link IncomingMessageListener}.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class CompositeIncomingMessageListener<A> implements IncomingMessageListener<A> {

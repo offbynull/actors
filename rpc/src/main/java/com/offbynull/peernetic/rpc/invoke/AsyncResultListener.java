@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.invoke;
 
 /**
  * Receives the response from an async proxy method invokation.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <T> return type
  */
 public interface AsyncResultListener<T> {

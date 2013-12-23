@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link IncomingFilter} that checks the first 16 bytes of data to ensure that you aren't sending a message to yourself.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public final class SelfBlockIncomingFilter<A> implements IncomingFilter<A> {

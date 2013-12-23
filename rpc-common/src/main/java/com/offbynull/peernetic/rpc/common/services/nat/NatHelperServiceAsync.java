@@ -22,7 +22,7 @@ import com.offbynull.peernetic.rpc.common.services.nat.NatHelperService.TestPort
 
 /**
  * Async {@link NatHelperService}.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface NatHelperServiceAsync {
     /**

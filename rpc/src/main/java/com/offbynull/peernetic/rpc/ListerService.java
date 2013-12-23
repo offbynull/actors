@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * A special service that provides callers with a list of supported services.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface ListerService {
     /**

@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Creates a {@link UdpTransport} based on properties in this class.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public final class UdpTransportFactory implements TransportFactory<InetSocketAddress> {
     private int bufferSize = 65535;

@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.common.services.nat;
 
 /**
  * NAT helper service.
- * @author Kasra F
+ * @author Kasra Faghihi
  */
 public interface NatHelperService {
     /**

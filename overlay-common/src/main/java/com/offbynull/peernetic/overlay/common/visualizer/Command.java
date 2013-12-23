@@ -18,7 +18,7 @@ package com.offbynull.peernetic.overlay.common.visualizer;
 
 /**
  * A visualizer command. Commands must be immutable.
- * @author Kasra F
+ * @author Kasra Faghihi
  * @param <A> address type
  */
 public interface Command<A> {

@@ -1,9 +1,28 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultAdapter;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,6 +32,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Manages incoming and outgoing links. This class is thread-safe.
+ * @author Kasra Faghihi
+ * @param <A> address type
+ */
 public final class LinkManager<A> {
     private static final int NEW_OUTGOING_LINKS_PER_CYCLE = 5;
     private static final long CYCLE_WAIT = 5000L;
@@ -25,6 +49,20 @@ public final class LinkManager<A> {
     private Rpc<A> rpc;
     private Lock lock;
     
+    /**
+     * Constructs a {@link LinkManager}.
+     * @param rpc RPC object
+     * @param random used to generate secrets
+     * @param listener notified of link events (can be {@code null})
+     * @param maxIncomingLinks maximum number of incoming links allowed
+     * @param maxOutgoingLinks maximum number of outgoing links allowed
+     * @param incomingLinkExpireDuration amount of time to wait before expiring an incoming link
+     * @param outgoingLinkStaleDuration amount of time to wait before attempting to update an outgoing link
+     * @param outgoingLinkExpireDuration amount of time to wait before expiring an outgoing link
+     * @throws NullPointerException if any argument other than {@code listener} is {@code null}
+     * @throws IllegalArgumentException if any numeric argument is {@code < 0}, or if
+     * {@code outgoingLinkExpireDuration <= outgoingLinkStaleDuration}
+     */
     public LinkManager(Rpc<A> rpc, Random random, LinkManagerListener<A> listener, int maxIncomingLinks, int maxOutgoingLinks,
             long incomingLinkExpireDuration, long outgoingLinkStaleDuration, long outgoingLinkExpireDuration) {
         Validate.notNull(rpc);
@@ -44,7 +82,34 @@ public final class LinkManager<A> {
         lock = new ReentrantLock();
     }
 
+    /**
+     * Add addresses to address cache. Addresses used for creating outgoing links are obtained through the address cache.
+     * @param addresses addresses to add
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
+    public void addToAddressCache(A ... addresses) {
+        Validate.noNullElements(addresses);
+        
+        lock.lock();
+        try {
+            addressCache.addAll(Arrays.asList(addresses));
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    /**
+     * Signals that an incoming link should be updated.
+     * @param timestamp current time
+     * @param address address link is from
+     * @param secret secret value associated with the incoming link
+     * @return {@code true} if the incoming link was updated, or {@code false} if the incoming link doesn't exist
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public boolean updateIncomingLink(long timestamp, A address, ByteBuffer secret) {
+        Validate.notNull(address);
+        Validate.notNull(secret);
+        
         lock.lock();
         try {
             return incomingLinkManager.updateLink(timestamp, address, secret);
@@ -53,7 +118,18 @@ public final class LinkManager<A> {
         }
     }
     
+    /**
+     * Adds an incoming link.
+     * @param timestamp current time
+     * @param address address link is from
+     * @param secret secret value associated with the incoming link
+     * @return {@code true} if the incoming link was added, or {@code false} if there was no room available for it
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public boolean addIncomingLink(long timestamp, A address, ByteBuffer secret) {
+        Validate.notNull(address);
+        Validate.notNull(secret);
+        
         lock.lock();
         try {
             boolean added = incomingLinkManager.addLink(timestamp, address, secret);
@@ -66,8 +142,8 @@ public final class LinkManager<A> {
         
         if (listener != null) {
             try {
-                listener.linkDestroyed(LinkType.OUTGOING, address);
-            } catch (RuntimeException re) {
+                listener.linkCreated(LinkType.INCOMING, address);
+            } catch (RuntimeException re) { // NOPMD
                 // do nothing
             }
         }
@@ -75,6 +151,10 @@ public final class LinkManager<A> {
         return true;
     }
     
+    /**
+     * Gets the current set of incoming and outgoing links.
+     * @return incoming/outgoing links
+     */
     public State<A> getState() {
         Set<A> incomingLinks;
         Set<A> outgoingLinks;
@@ -92,6 +172,12 @@ public final class LinkManager<A> {
         return new State<>(incomingLinks, outgoingLinks, freeIncomingSlots == 0);
     }
 
+    /**
+     * Called periodically to establish new connections, update stale outgoing connections, and purge expired incoming/outgoing
+     * connections.
+     * @param timestamp current time
+     * @return next time that this method should be called
+     */
     public long process(long timestamp) {
         establishNewOutgoingLinks();
         maintainExistingOutgoingLinks(timestamp);
@@ -113,12 +199,8 @@ public final class LinkManager<A> {
         if (listener != null) {
             for (A address : killedAddresses) {
                 try {
-                    try {
-                        listener.linkDestroyed(LinkType.INCOMING, address);
-                    } catch (RuntimeException re) {
-                        // do nothing
-                    }
-                } catch (RuntimeException re) {
+                    listener.linkDestroyed(LinkType.INCOMING, address);
+                } catch (RuntimeException re) { //NOPMD
                     // do nothing
                 }
             }
@@ -146,29 +228,26 @@ public final class LinkManager<A> {
     }
     
     private void establishNewOutgoingLinks() {
-        int remainingInOutgoingLinkManager;
-        int availableInAddressCache;
+        Set<A> addressesToTry = new HashSet<>();
         
         lock.lock();
         try {
-            availableInAddressCache = addressCache.size();
-            remainingInOutgoingLinkManager = outgoingLinkManager.getRemaining();
+            int availableInAddressCache = addressCache.size();
+            int remainingInOutgoingLinkManager = outgoingLinkManager.getRemaining();
+            
+            int numOfPossibleRequests = Math.min(availableInAddressCache, remainingInOutgoingLinkManager);
+            int cappedNumOfPossibleRequests = Math.min(NEW_OUTGOING_LINKS_PER_CYCLE, numOfPossibleRequests);
+            
+            Iterator<A> addressCacheIt = addressCache.iterator();
+            for (int i = 0; i < cappedNumOfPossibleRequests; i++) {
+                addressesToTry.add(addressCacheIt.next());
+                addressCacheIt.remove();
+            }
         } finally {
             lock.unlock();
         }
-
-        int numOfPossibleRequests = Math.min(availableInAddressCache, remainingInOutgoingLinkManager);
-        int cappedNumOfPossibleRequests = Math.min(NEW_OUTGOING_LINKS_PER_CYCLE, numOfPossibleRequests);
         
-        for (int i = 0; i < cappedNumOfPossibleRequests; i++) {
-            A address;
-            lock.lock();
-            try {
-                address = addressCache.iterator().next();
-            } finally {
-                lock.unlock();
-            }
-            
+        for (A address : addressesToTry) {
             UnstructuredServiceAsync<A> service = rpc.accessService(address, UnstructuredService.SERVICE_ID, UnstructuredService.class,
                     UnstructuredServiceAsync.class);            
             service.getState(new GetStateResultListener(address));
@@ -186,7 +265,7 @@ public final class LinkManager<A> {
         public void invokationReturned(Boolean object) {
             Validate.notNull(object);
             
-            if (object == false) {
+            if (!object) {
                 lock.lock();
                 try {
                     outgoingLinkManager.removeLink(address);
@@ -197,7 +276,7 @@ public final class LinkManager<A> {
                 if (listener != null) {
                     try {
                         listener.linkDestroyed(LinkType.OUTGOING, address);
-                    } catch (RuntimeException re) {
+                    } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
                 }
@@ -223,7 +302,7 @@ public final class LinkManager<A> {
             if (listener != null) {
                 try {
                     listener.linkDestroyed(LinkType.OUTGOING, address);
-                } catch (RuntimeException re) {
+                } catch (RuntimeException re) { // NOPMD
                     // do nothing
                 }
             }
@@ -241,7 +320,7 @@ public final class LinkManager<A> {
             if (listener != null) {
                 try {
                     listener.linkDestroyed(LinkType.OUTGOING, address);
-                } catch (RuntimeException re) {
+                } catch (RuntimeException re) { // NOPMD
                     // do nothing
                 }
             }
@@ -258,8 +337,8 @@ public final class LinkManager<A> {
         @Override
         public void invokationReturned(State<A> object) {
             Validate.notNull(object);
-            Validate.notNull(object.getIncomingLinks());
-            Validate.notNull(object.getOutgoingLinks());
+            Validate.noNullElements(object.getIncomingLinks());
+            Validate.noNullElements(object.getOutgoingLinks());
             
             lock.lock();
             try {
@@ -295,10 +374,10 @@ public final class LinkManager<A> {
         public void invokationReturned(Boolean object) {
             Validate.notNull(object);
             
-            if (object == true) {
+            if (object) {
                 lock.lock();
                 try {
-                    incomingLinkManager.addLink(System.currentTimeMillis(), address, secret);
+                    outgoingLinkManager.addLink(System.currentTimeMillis(), address, secret);
                 } finally {
                     lock.unlock();
                 }
@@ -306,7 +385,7 @@ public final class LinkManager<A> {
                 if (listener != null) {
                     try {
                         listener.linkCreated(LinkType.OUTGOING, address);
-                    } catch (RuntimeException re) {
+                    } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
                 }

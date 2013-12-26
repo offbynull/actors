@@ -186,14 +186,15 @@ public final class FakeTransport<A> implements Transport<A> {
         public void incoming(Message<A> packet) {
             A from = packet.getFrom();
             ByteBuffer data = packet.getData();
-            byte marker = data.get();
-            int packetId = data.getInt();
             
             lock.lock();
             try {
                 Validate.validState(state == State.STARTED);
                 
                 ByteBuffer tempBuffer = inFilter.filter(from, data);
+                
+                byte marker = data.get();
+                int packetId = data.getInt();
                 
                 switch (marker) {
                     case SEND_MARKER: {
@@ -247,8 +248,10 @@ public final class FakeTransport<A> implements Transport<A> {
                 newBuffer.putInt(packetId);
                 newBuffer.put(buffer);
                 newBuffer.flip();
+                
+                ByteBuffer tempBuffer = outFilter.filter(replyTo, newBuffer);
             
-                hubSender.send(address, replyTo, newBuffer);
+                hubSender.send(address, replyTo, tempBuffer);
             } finally {
                 lock.unlock();
             }

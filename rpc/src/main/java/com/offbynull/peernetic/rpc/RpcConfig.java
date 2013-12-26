@@ -97,7 +97,7 @@ public final class RpcConfig<A> {
      * @param incomingFilters incoming filters
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    public void setIncomingFilters(List<IncomingFilter<A>> incomingFilters) {
+    public void setIncomingFilters(List<? extends IncomingFilter<A>> incomingFilters) {
         Validate.noNullElements(incomingFilters);
         this.incomingFilters = Collections.unmodifiableList(new ArrayList<>(incomingFilters));
     }
@@ -115,7 +115,7 @@ public final class RpcConfig<A> {
      * @param outgoingFilters outgoing filters
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    public void setOutgoingFilters(List<OutgoingFilter<A>> outgoingFilters) {
+    public void setOutgoingFilters(List<? extends OutgoingFilter<A>> outgoingFilters) {
         Validate.noNullElements(outgoingFilters);
         this.outgoingFilters = Collections.unmodifiableList(new ArrayList<>(outgoingFilters));
     }

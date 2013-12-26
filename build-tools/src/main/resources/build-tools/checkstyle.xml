@@ -95,7 +95,9 @@
         <!-- Little value. A lot of times you find large methods which are easy to read / don't contain much complexity.
         There's no point causing a failure because of this. -->
         <!--<module name="MethodLength"/>-->
-        <module name="ParameterNumber"/>
+        <module name="ParameterNumber">
+            <property name="max" value="10"/>
+        </module>
 
 
         <!-- Checks for whitespace                               -->
@@ -141,7 +143,8 @@
         usages different from parameter usages. -->
         <!--<module name="HiddenField"/>-->
         <module name="IllegalInstantiation"/>
-        <module name="InnerAssignment"/>
+        <!-- This is disabled due to personal preference. -->
+        <!--<module name="InnerAssignment"/>-->
         <!-- This is disabled because of parameter validation checks. Will add too much clutter to add constants for every check. -->
         <!--<module name="MagicNumber"/>-->
         <module name="MissingSwitchDefault"/>

@@ -42,7 +42,7 @@ public final class SelfBlockIncomingFilter<A> implements IncomingFilter<A> {
     @Override
     public ByteBuffer filter(A from, ByteBuffer buffer) {
         ByteBuffer incomingIdBuffer = buffer.asReadOnlyBuffer();
-        incomingIdBuffer.limit(SelfBlockId.LENGTH);
+        incomingIdBuffer.limit(incomingIdBuffer.position() + SelfBlockId.LENGTH);
         
         if (id.getBuffer().equals(incomingIdBuffer)) {
             throw new RuntimeException("Incoming message to self detected");

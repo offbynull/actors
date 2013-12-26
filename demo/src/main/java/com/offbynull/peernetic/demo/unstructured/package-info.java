@@ -14,25 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.overlay.unstructured;
 
 /**
- * Receives notifications when a link is established/destroyed with other nodes.
- * @author Kasra Faghihi
- * @param <A> address type
+ * Unstructured overlay demo.
  */
-public interface LinkManagerListener<A> {
-    /**
-     * Link has been established.
-     * @param type link type
-     * @param address address
-     */
-    void linkCreated(LinkType type, A address);
-    
-    /**
-     * Link has been closed.
-     * @param type link type
-     * @param address address
-     */
-    void linkDestroyed(LinkType type, A address);
-}
+package com.offbynull.peernetic.demo.unstructured;

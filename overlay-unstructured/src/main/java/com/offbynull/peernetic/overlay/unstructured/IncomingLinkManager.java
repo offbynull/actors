@@ -1,7 +1,24 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.overlay.unstructured;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -22,7 +39,7 @@ final class IncomingLinkManager<A> {
         this.maxSize = maxSize;
         this.killDuration = killDuration;
         addressMap = new HashMap<>();
-        killQueue = new PriorityQueue<>();
+        killQueue = new PriorityQueue<>(11, new EntityComparator());
     }
     
     public boolean addLink(long timestamp, A address, ByteBuffer secret) {
@@ -126,7 +143,16 @@ final class IncomingLinkManager<A> {
         
     }
     
-    private class Entity implements Comparable<Entity> {
+    private class EntityComparator implements Comparator<Entity> {
+
+        @Override
+        public int compare(Entity o1, Entity o2) {
+            return Long.compare(o1.getKillTime(), o2.getKillTime());
+        }
+        
+    }
+    
+    private class Entity {
         private A address;
         private long killTime;
         private boolean ignore;
@@ -162,11 +188,6 @@ final class IncomingLinkManager<A> {
         
         public boolean isIgnore() {
             return ignore;
-        }
-
-        @Override
-        public int compareTo(Entity o) {
-            return Long.compare(killTime, o.killTime);
         }
         
     }

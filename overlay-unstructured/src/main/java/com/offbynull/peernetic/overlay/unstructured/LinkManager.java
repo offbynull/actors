@@ -23,15 +23,19 @@ public final class LinkManager<A> {
     private LinkedHashSet<A> addressCache;
     private IncomingLinkManager<A> incomingLinkManager;
     private OutgoingLinkManager<A> outgoingLinkManager;
+    private LinkManagerListener<A> listener;
     private Rpc<A> rpc;
     private Lock lock;
     
-    public LinkManager(Rpc<A> rpc) throws NoSuchAlgorithmException {
+    public LinkManager(Rpc<A> rpc, LinkManagerListener<A> listener) throws NoSuchAlgorithmException {
+        Validate.notNull(rpc);
+        
         random = SecureRandom.getInstance("SHA1PRNG");
         addressCache = new LinkedHashSet<>();
         incomingLinkManager = new IncomingLinkManager(15, 30000L);
         outgoingLinkManager = new OutgoingLinkManager(15, 15000L, 30000L);
         this.rpc = rpc;
+        this.listener = listener;
         lock = new ReentrantLock();
     }
 
@@ -47,10 +51,23 @@ public final class LinkManager<A> {
     public boolean addIncomingLink(long timestamp, A address, ByteBuffer secret) {
         lock.lock();
         try {
-            return incomingLinkManager.addLink(timestamp, address, secret);
+            boolean added = incomingLinkManager.addLink(timestamp, address, secret);
+            if (!added) {
+                return false;
+            }
         } finally {
             lock.unlock();
         }
+        
+        if (listener != null) {
+            try {
+                listener.linkDestroyed(LinkType.OUTGOING, address);
+            } catch (RuntimeException re) {
+                // do nothing
+            }
+        }
+        
+        return true;
     }
     
     public State<A> getState() {
@@ -71,10 +88,36 @@ public final class LinkManager<A> {
     }
 
     public long process(long timestamp) {
-        establishNewOutgoingLinks(timestamp);
+        establishNewOutgoingLinks();
         maintainExistingOutgoingLinks(timestamp);
+        purgeExpiredIncomingLinks(timestamp);
         
         return timestamp + CYCLE_WAIT;
+    }
+
+    private void purgeExpiredIncomingLinks(long timestamp) {
+        Set<A> killedAddresses;
+        lock.lock();
+        try {
+            IncomingLinkManager.ProcessResult<A> result = incomingLinkManager.process(timestamp);
+            killedAddresses = result.getKilledAddresses();
+        } finally {
+            lock.unlock();
+        }
+        
+        if (listener != null) {
+            for (A address : killedAddresses) {
+                try {
+                    try {
+                        listener.linkDestroyed(LinkType.INCOMING, address);
+                    } catch (RuntimeException re) {
+                        // do nothing
+                    }
+                } catch (RuntimeException re) {
+                    // do nothing
+                }
+            }
+        }
     }
 
     private void maintainExistingOutgoingLinks(long timestamp) {
@@ -93,11 +136,11 @@ public final class LinkManager<A> {
             ByteBuffer secret = entry.getValue();
             byte[] secretData = new byte[secret.remaining()];
             secret.get(secretData);
-            service.keepAlive(new AsyncResultAdapter<Boolean>(), secretData);
+            service.keepAlive(new KeepAliveListener(entry.getKey()), secretData);
         }
     }
     
-    private void establishNewOutgoingLinks(long timestamp) {
+    private void establishNewOutgoingLinks() {
         int remainingInOutgoingLinkManager;
         int availableInAddressCache;
         
@@ -127,7 +170,80 @@ public final class LinkManager<A> {
         }
     }
     
-    private final class GetStateResultListener implements AsyncResultListener<State<A>> {
+    private final class KeepAliveListener implements AsyncResultListener<Boolean> {
+        private A address;
+
+        public KeepAliveListener(A address) {
+            this.address = address;
+        }
+
+        @Override
+        public void invokationReturned(Boolean object) {
+            Validate.notNull(object);
+            
+            if (object == false) {
+                lock.lock();
+                try {
+                    outgoingLinkManager.removeLink(address);
+                } finally {
+                    lock.unlock();
+                }
+                
+                if (listener != null) {
+                    try {
+                        listener.linkDestroyed(LinkType.OUTGOING, address);
+                    } catch (RuntimeException re) {
+                        // do nothing
+                    }
+                }
+            } else {
+                lock.lock();
+                try {
+                    outgoingLinkManager.updateLink(System.currentTimeMillis(), address);
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }
+
+        @Override
+        public void invokationThrew(Throwable err) {
+            lock.lock();
+            try {
+                outgoingLinkManager.removeLink(address);
+            } finally {
+                lock.unlock();
+            }
+            
+            if (listener != null) {
+                try {
+                    listener.linkDestroyed(LinkType.OUTGOING, address);
+                } catch (RuntimeException re) {
+                    // do nothing
+                }
+            }
+        }
+
+        @Override
+        public void invokationFailed(Object err) {
+            lock.lock();
+            try {
+                outgoingLinkManager.removeLink(address);
+            } finally {
+                lock.unlock();
+            }
+            
+            if (listener != null) {
+                try {
+                    listener.linkDestroyed(LinkType.OUTGOING, address);
+                } catch (RuntimeException re) {
+                    // do nothing
+                }
+            }
+        }
+    }
+    
+    private final class GetStateResultListener extends AsyncResultAdapter<State<A>> {
         private A address;
 
         public GetStateResultListener(A address) {
@@ -159,17 +275,9 @@ public final class LinkManager<A> {
             random.nextBytes(secret);
             service.join(new JoinResultListener(address, ByteBuffer.wrap(secret)), secret);
         }
-
-        @Override
-        public void invokationThrew(Throwable err) {
-        }
-
-        @Override
-        public void invokationFailed(Object err) {
-        }
     }
 
-    private final class JoinResultListener implements AsyncResultListener<Boolean> {
+    private final class JoinResultListener extends AsyncResultAdapter<Boolean> {
         private A address;
         private ByteBuffer secret;
 
@@ -182,20 +290,22 @@ public final class LinkManager<A> {
         public void invokationReturned(Boolean object) {
             Validate.notNull(object);
             
-            lock.lock();
-            try {
-                incomingLinkManager.addLink(System.currentTimeMillis(), address, secret);
-            } finally {
-                lock.unlock();
+            if (object == true) {
+                lock.lock();
+                try {
+                    incomingLinkManager.addLink(System.currentTimeMillis(), address, secret);
+                } finally {
+                    lock.unlock();
+                }
+                
+                if (listener != null) {
+                    try {
+                        listener.linkCreated(LinkType.OUTGOING, address);
+                    } catch (RuntimeException re) {
+                        // do nothing
+                    }
+                }
             }
-        }
-
-        @Override
-        public void invokationThrew(Throwable err) {
-        }
-
-        @Override
-        public void invokationFailed(Object err) {
         }
     }
 }

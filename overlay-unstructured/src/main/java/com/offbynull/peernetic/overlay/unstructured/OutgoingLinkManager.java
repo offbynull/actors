@@ -46,7 +46,7 @@ final class OutgoingLinkManager<A> {
         return true;
     }
 
-    public boolean removeLink(long timestamp, A address) {
+    public boolean removeLink(A address) {
         Validate.notNull(address);
         
         Entity entity;

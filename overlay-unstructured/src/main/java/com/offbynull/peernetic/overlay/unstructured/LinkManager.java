@@ -4,8 +4,6 @@ import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultAdapter;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,14 +25,21 @@ public final class LinkManager<A> {
     private Rpc<A> rpc;
     private Lock lock;
     
-    public LinkManager(Rpc<A> rpc, LinkManagerListener<A> listener) throws NoSuchAlgorithmException {
+    public LinkManager(Rpc<A> rpc, Random random, LinkManagerListener<A> listener, int maxIncomingLinks, int maxOutgoingLinks,
+            long incomingLinkExpireDuration, long outgoingLinkStaleDuration, long outgoingLinkExpireDuration) {
         Validate.notNull(rpc);
+        Validate.notNull(random);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxIncomingLinks);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxOutgoingLinks);
+        Validate.inclusiveBetween(0L, Long.MAX_VALUE, incomingLinkExpireDuration);
+        Validate.inclusiveBetween(0L, Long.MAX_VALUE, outgoingLinkStaleDuration);
+        Validate.isTrue(outgoingLinkExpireDuration > outgoingLinkStaleDuration);
         
-        random = SecureRandom.getInstance("SHA1PRNG");
         addressCache = new LinkedHashSet<>();
-        incomingLinkManager = new IncomingLinkManager(15, 30000L);
-        outgoingLinkManager = new OutgoingLinkManager(15, 15000L, 30000L);
+        incomingLinkManager = new IncomingLinkManager(maxIncomingLinks, incomingLinkExpireDuration);
+        outgoingLinkManager = new OutgoingLinkManager(maxOutgoingLinks, outgoingLinkStaleDuration, outgoingLinkExpireDuration);
         this.rpc = rpc;
+        this.random = random;
         this.listener = listener;
         lock = new ReentrantLock();
     }

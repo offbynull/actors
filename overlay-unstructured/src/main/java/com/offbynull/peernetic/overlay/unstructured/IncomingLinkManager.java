@@ -56,6 +56,11 @@ final class IncomingLinkManager<A> {
         return true;
     }
     
+    public boolean containsLink(A address) {
+        Validate.notNull(address);
+        return addressMap.containsKey(address);
+    }
+
     public boolean updateLink(long timestamp, A address, ByteBuffer secret) {
         Validate.notNull(address);
         Validate.notNull(secret);
@@ -74,7 +79,7 @@ final class IncomingLinkManager<A> {
         return true;
     }
 
-    public boolean removeLink(long timestamp, A address, ByteBuffer secret) {
+    public boolean removeLink(A address, ByteBuffer secret) {
         Validate.notNull(address);
         Validate.notNull(secret);
         

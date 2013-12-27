@@ -39,7 +39,6 @@ import com.offbynull.peernetic.rpc.transport.fake.FakeHub;
 import com.offbynull.peernetic.rpc.transport.fake.PerfectLine;
 import java.awt.Color;
 import java.awt.Point;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -73,33 +72,42 @@ public final class App {
         FakeHub<Integer> hub = new FakeHub<>(new PerfectLine<Integer>());
         hub.start();
         
+
         
-        
-        ArrayList<LinkManager<Integer>> linkManagers = new ArrayList<>();
-        
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100; i++) {
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
-                    new ChangeNodeCommand(i, 1.0, new Point((int) (Math.random() * 500.0), (int) (Math.random() * 500.0)),
-                            Color.LIGHT_GRAY));
+                    new ChangeNodeCommand(i, null, new Point((int) (Math.random() * 1000.0), (int) (Math.random() * 1000.0)),
+                            Color.YELLOW));
             
             final int from = i;
             LinkManagerListener<Integer> listener = new LinkManagerListener<Integer>() {
+                
+                private volatile int linkCount;
 
                 @Override
-                public void linkCreated(LinkType type, Integer address) {
+                public void linkCreated(LinkManager<Integer> linkManager, LinkType type, Integer address) {
                     if (type == LinkType.OUTGOING) {
+                        linkCount++;
                         visualizer.step("Link created from " + from + " to " + address,
-                                new AddEdgeCommand<>(from, address));
+                                new AddEdgeCommand<>(from, address),
+                                new ChangeNodeCommand<>(from, null, null, linkCount == 0 ? Color.YELLOW : Color.GREEN));
                     }
                 }
 
                 @Override
-                public void linkDestroyed(LinkType type, Integer address) {
+                public void linkDestroyed(LinkManager<Integer> linkManager, LinkType type, Integer address) {
                     if (type == LinkType.OUTGOING) {
+                        linkCount--;
                         visualizer.step("Link destroyed from " + from + " to " + address,
-                                new RemoveEdgeCommand<>(from, address));
+                                new RemoveEdgeCommand<>(from, address),
+                                new ChangeNodeCommand<>(from, null, null, linkCount == 0 ? Color.YELLOW : Color.GREEN));
                     }
+                }
+
+                @Override
+                public void addressCacheEmpty(LinkManager<Integer> linkManager) {
+                    linkManager.addToAddressCache(0);
                 }
             };
             
@@ -109,21 +117,12 @@ public final class App {
             rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
             Rpc<Integer> rpc = new Rpc(new FakeTransportFactory(hub, i), rpcConfig);
             
-            LinkManager linkManager = new LinkManager(rpc, new Random(), listener, 3, 3, 5000L, 2500L, 5000L);
-            linkManagers.add(linkManager);
+            LinkManager linkManager = new LinkManager(rpc, new Random(), listener, 5, 5, 5000L, 2500L, 5000L);
             
             rpc.addService(UnstructuredService.SERVICE_ID, new UnstructuredServiceImplementation<>(linkManager));
             
             UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(linkManager);
             overlay.startAndWait();
-        }
-        
-        
-        
-        
-        for (int i = 1; i < linkManagers.size(); i++) {
-            LinkManager linkManager = linkManagers.get(i);
-            linkManager.addToAddressCache(0);
         }
     }
 }

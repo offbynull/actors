@@ -132,6 +132,12 @@ public final class LinkManager<A> {
         
         lock.lock();
         try {
+            addressCache.add(address);
+            
+            if (outgoingLinkManager.containsLink(address)) {
+                return false;
+            }
+            
             boolean added = incomingLinkManager.addLink(timestamp, address, secret);
             if (!added) {
                 return false;
@@ -142,7 +148,7 @@ public final class LinkManager<A> {
         
         if (listener != null) {
             try {
-                listener.linkCreated(LinkType.INCOMING, address);
+                listener.linkCreated(this, LinkType.INCOMING, address);
             } catch (RuntimeException re) { // NOPMD
                 // do nothing
             }
@@ -199,7 +205,7 @@ public final class LinkManager<A> {
         if (listener != null) {
             for (A address : killedAddresses) {
                 try {
-                    listener.linkDestroyed(LinkType.INCOMING, address);
+                    listener.linkDestroyed(this, LinkType.INCOMING, address);
                 } catch (RuntimeException re) { //NOPMD
                     // do nothing
                 }
@@ -229,22 +235,38 @@ public final class LinkManager<A> {
     
     private void establishNewOutgoingLinks() {
         Set<A> addressesToTry = new HashSet<>();
+
+        boolean signalEmpty = false;
         
         lock.lock();
         try {
-            int availableInAddressCache = addressCache.size();
             int remainingInOutgoingLinkManager = outgoingLinkManager.getRemaining();
+            if (remainingInOutgoingLinkManager == 0) {
+                return;
+            }
+            
+            int availableInAddressCache = addressCache.size();
+            signalEmpty = availableInAddressCache == 0;
             
             int numOfPossibleRequests = Math.min(availableInAddressCache, remainingInOutgoingLinkManager);
             int cappedNumOfPossibleRequests = Math.min(NEW_OUTGOING_LINKS_PER_CYCLE, numOfPossibleRequests);
             
             Iterator<A> addressCacheIt = addressCache.iterator();
             for (int i = 0; i < cappedNumOfPossibleRequests; i++) {
-                addressesToTry.add(addressCacheIt.next());
+                A address = addressCacheIt.next();
+                
+                if (!incomingLinkManager.containsLink(address) && !outgoingLinkManager.containsLink(address)) {
+                    addressesToTry.add(address);
+                }
                 addressCacheIt.remove();
             }
         } finally {
             lock.unlock();
+        }
+        
+        if (signalEmpty) {
+            listener.addressCacheEmpty(this);
+            return;
         }
         
         for (A address : addressesToTry) {
@@ -275,7 +297,7 @@ public final class LinkManager<A> {
                 
                 if (listener != null) {
                     try {
-                        listener.linkDestroyed(LinkType.OUTGOING, address);
+                        listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
                     } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
@@ -301,7 +323,7 @@ public final class LinkManager<A> {
             
             if (listener != null) {
                 try {
-                    listener.linkDestroyed(LinkType.OUTGOING, address);
+                    listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
                 } catch (RuntimeException re) { // NOPMD
                     // do nothing
                 }
@@ -319,7 +341,7 @@ public final class LinkManager<A> {
             
             if (listener != null) {
                 try {
-                    listener.linkDestroyed(LinkType.OUTGOING, address);
+                    listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
                 } catch (RuntimeException re) { // NOPMD
                     // do nothing
                 }
@@ -377,14 +399,20 @@ public final class LinkManager<A> {
             if (object) {
                 lock.lock();
                 try {
+                    if (incomingLinkManager.containsLink(address)) {
+                        return;
+                    }
+
                     outgoingLinkManager.addLink(System.currentTimeMillis(), address, secret);
+                    
+                    addressCache.add(address);
                 } finally {
                     lock.unlock();
                 }
                 
                 if (listener != null) {
                     try {
-                        listener.linkCreated(LinkType.OUTGOING, address);
+                        listener.linkCreated(LinkManager.this, LinkType.OUTGOING, address);
                     } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }

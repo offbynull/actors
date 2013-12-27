@@ -62,6 +62,11 @@ final class OutgoingLinkManager<A> {
         return true;
     }
 
+    public boolean containsLink(A address) {
+        Validate.notNull(address);
+        return addressMap.containsKey(address);
+    }
+    
     public boolean removeLink(A address) {
         Validate.notNull(address);
         

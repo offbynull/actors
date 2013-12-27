@@ -38,14 +38,13 @@ import org.apache.commons.lang3.Validate;
  * @param <A> address type
  */
 public final class LinkManager<A> {
-    private static final int NEW_OUTGOING_LINKS_PER_CYCLE = 5;
-    private static final long CYCLE_WAIT = 5000L;
-    
     private Random random;
     private LinkedHashSet<A> addressCache;
     private IncomingLinkManager<A> incomingLinkManager;
     private OutgoingLinkManager<A> outgoingLinkManager;
     private LinkManagerListener<A> listener;
+    private long cycleDuration;
+    private int maxOutgoingLinkAttemptsPerCycle;
     private Rpc<A> rpc;
     private Lock lock;
     
@@ -59,12 +58,16 @@ public final class LinkManager<A> {
      * @param incomingLinkExpireDuration amount of time to wait before expiring an incoming link
      * @param outgoingLinkStaleDuration amount of time to wait before attempting to update an outgoing link
      * @param outgoingLinkExpireDuration amount of time to wait before expiring an outgoing link
+     * @param cycleDuration amount of time to wait before attempting to make new outgoing links
+     * @param maxOutgoingLinkAttemptsPerCycle maximum number of link attempts per cycle
      * @throws NullPointerException if any argument other than {@code listener} is {@code null}
      * @throws IllegalArgumentException if any numeric argument is {@code < 0}, or if
-     * {@code outgoingLinkExpireDuration <= outgoingLinkStaleDuration}
+     * {@code outgoingLinkExpireDuration <= outgoingLinkStaleDuration}, or if
+     * {@code maxOutgoingLinkAttemptsPerCycle <= maxOutgoingLinks}
      */
     public LinkManager(Rpc<A> rpc, Random random, LinkManagerListener<A> listener, int maxIncomingLinks, int maxOutgoingLinks,
-            long incomingLinkExpireDuration, long outgoingLinkStaleDuration, long outgoingLinkExpireDuration) {
+            long incomingLinkExpireDuration, long outgoingLinkStaleDuration, long outgoingLinkExpireDuration, long cycleDuration,
+            int maxOutgoingLinkAttemptsPerCycle) {
         Validate.notNull(rpc);
         Validate.notNull(random);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxIncomingLinks);
@@ -72,6 +75,9 @@ public final class LinkManager<A> {
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, incomingLinkExpireDuration);
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, outgoingLinkStaleDuration);
         Validate.isTrue(outgoingLinkExpireDuration > outgoingLinkStaleDuration);
+        Validate.inclusiveBetween(0L, Long.MAX_VALUE, cycleDuration);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxOutgoingLinkAttemptsPerCycle);
+        Validate.isTrue(maxOutgoingLinkAttemptsPerCycle > maxOutgoingLinks);
         
         addressCache = new LinkedHashSet<>();
         incomingLinkManager = new IncomingLinkManager(maxIncomingLinks, incomingLinkExpireDuration);
@@ -79,6 +85,8 @@ public final class LinkManager<A> {
         this.rpc = rpc;
         this.random = random;
         this.listener = listener;
+        this.cycleDuration = cycleDuration;
+        this.maxOutgoingLinkAttemptsPerCycle = maxOutgoingLinkAttemptsPerCycle;
         lock = new ReentrantLock();
     }
 
@@ -189,7 +197,7 @@ public final class LinkManager<A> {
         maintainExistingOutgoingLinks(timestamp);
         purgeExpiredIncomingLinks(timestamp);
         
-        return timestamp + CYCLE_WAIT;
+        return timestamp + cycleDuration;
     }
 
     private void purgeExpiredIncomingLinks(long timestamp) {
@@ -249,7 +257,7 @@ public final class LinkManager<A> {
             signalEmpty = availableInAddressCache == 0;
             
             int numOfPossibleRequests = Math.min(availableInAddressCache, remainingInOutgoingLinkManager);
-            int cappedNumOfPossibleRequests = Math.min(NEW_OUTGOING_LINKS_PER_CYCLE, numOfPossibleRequests);
+            int cappedNumOfPossibleRequests = Math.min(maxOutgoingLinkAttemptsPerCycle, numOfPossibleRequests);
             
             Iterator<A> addressCacheIt = addressCache.iterator();
             for (int i = 0; i < cappedNumOfPossibleRequests; i++) {

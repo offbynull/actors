@@ -117,7 +117,7 @@ public final class App {
             rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
             Rpc<Integer> rpc = new Rpc(new FakeTransportFactory(hub, i), rpcConfig);
             
-            LinkManager linkManager = new LinkManager(rpc, new Random(), listener, 5, 5, 5000L, 2500L, 5000L);
+            LinkManager linkManager = new LinkManager(rpc, new Random(), listener, 6, 6, 5000L, 2500L, 5000L, 5000L, 20);
             
             rpc.addService(UnstructuredService.SERVICE_ID, new UnstructuredServiceImplementation<>(linkManager));
             

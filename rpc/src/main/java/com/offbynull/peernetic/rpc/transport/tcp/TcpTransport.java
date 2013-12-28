@@ -29,6 +29,7 @@ import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.tcp.TimeoutManager.Result;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -173,6 +174,7 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
             
             try {
                 serverChannel = ServerSocketChannel.open();
+                serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             } catch (RuntimeException | IOException e) {
                 IOUtils.closeQuietly(selector);
                 IOUtils.closeQuietly(serverChannel);
@@ -496,11 +498,9 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
             try {
                 clientChannel = serverChannel.accept();
                 clientChannel.configureBlocking(false);
-                clientChannel.socket().setKeepAlive(true);
-                clientChannel.socket().setReuseAddress(true);
-                clientChannel.socket().setSoLinger(false, 0);
-                clientChannel.socket().setSoTimeout(0);
-                clientChannel.socket().setTcpNoDelay(true);
+                clientChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, false);
+                clientChannel.setOption(StandardSocketOptions.SO_LINGER, 0);
+                clientChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
                 selectionKey = clientChannel.register(selector, SelectionKey.OP_READ); // no need to OP_CONNECT
                 StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.READ_FIRST, readLimit, writeLimit);
@@ -531,11 +531,9 @@ public final class TcpTransport implements Transport<InetSocketAddress> {
                 clientChannel = SocketChannel.open();
 
                 clientChannel.configureBlocking(false);
-                clientChannel.socket().setKeepAlive(true);
-                clientChannel.socket().setReuseAddress(true);
-                clientChannel.socket().setSoLinger(false, 0);
-                clientChannel.socket().setSoTimeout(0);
-                clientChannel.socket().setTcpNoDelay(false);
+                clientChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, false);
+                clientChannel.setOption(StandardSocketOptions.SO_LINGER, 0);
+                clientChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
                 selectionKey = clientChannel.register(selector, SelectionKey.OP_CONNECT);
 

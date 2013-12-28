@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo.rpc;
+package com.offbynull.peernetic.demos.rpc;
 
 import com.offbynull.peernetic.rpc.FakeTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class App {
+public final class RpcBenchmark {
     private static final int NUM_OF_TRANSPORTS = 100;
     private static FakeHub<Integer> fakeHub = new FakeHub<>(new PerfectLine<Integer>());
     private static List<Client> clients = new ArrayList<>();
@@ -26,7 +26,9 @@ public final class App {
             
             rpc.addService(PingService.SERVICE_ID, new PingServiceImplementation());
             
+            // Pre-populate accessors, because creating an accessor each time you need to make a call will be super slow.
             List<PingServiceAsync> accessors = populateRpcAccessClasses(i, rpc);
+            
             clients.add(new Client(rpc, accessors));
         }
 

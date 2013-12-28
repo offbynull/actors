@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo.faketransport;
+package com.offbynull.peernetic.demos.transport;
 
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class App {
+public final class FakeTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 100;
     private static FakeHub<Integer> fakeHub = new FakeHub<>(new PerfectLine<Integer>());
     private static List<FakeTransport<Integer>> transports = new ArrayList<>();

@@ -18,4 +18,4 @@
 /**
  * Unstructured overlay demo.
  */
-package com.offbynull.peernetic.demo.unstructured;
+package com.offbynull.peernetic.demos.unstructured;

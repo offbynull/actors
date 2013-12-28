@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.demo.unstructured;
+package com.offbynull.peernetic.demos.unstructured;
 
 import com.offbynull.peernetic.overlay.common.visualizer.AddEdgeCommand;
 import com.offbynull.peernetic.overlay.common.visualizer.AddNodeCommand;

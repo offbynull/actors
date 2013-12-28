@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.rpc;
 
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.tcp.TcpTransport;
+import com.offbynull.peernetic.rpc.transports.tcp.TcpTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;

@@ -3,7 +3,7 @@ package com.offbynull.peernetic.rpc;
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
-import com.offbynull.peernetic.rpc.transport.udp.UdpTransport;
+import com.offbynull.peernetic.rpc.transports.udp.UdpTransport;
 import com.offbynull.peernetic.rpc.transport.IncomingMessage;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;

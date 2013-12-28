@@ -17,8 +17,8 @@
 package com.offbynull.peernetic.rpc;
 
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transport.fake.FakeTransport;
+import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
+import com.offbynull.peernetic.rpc.transports.fake.FakeTransport;
 import java.io.IOException;
 import org.apache.commons.lang3.Validate;
 

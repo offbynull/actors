@@ -247,7 +247,7 @@ final class LinkManager<A> {
             ByteBuffer secret = entry.getValue();
             byte[] secretData = new byte[secret.remaining()];
             secret.get(secretData);
-            service.keepAlive(new KeepAliveListener(entry.getKey()), secretData);
+            service.getState(new GetStateResultListener(entry.getKey(), NextCall.KEEPALIVE, secretData));
         }
     }
     
@@ -290,7 +290,9 @@ final class LinkManager<A> {
         for (A address : addressesToTry) {
             UnstructuredServiceAsync<A> service = rpc.accessService(address, UnstructuredService.SERVICE_ID, UnstructuredService.class,
                     UnstructuredServiceAsync.class);            
-            service.getState(new GetStateResultListener(address));
+            byte[] secret = new byte[UnstructuredService.SECRET_SIZE];
+            random.nextBytes(secret);
+            service.getState(new GetStateResultListener(address, NextCall.JOIN, secret));
         }
     }
     
@@ -372,9 +374,13 @@ final class LinkManager<A> {
     
     private final class GetStateResultListener extends AsyncResultAdapter<State<A>> {
         private A address;
+        private NextCall nextCall;
+        private byte[] secret;
 
-        public GetStateResultListener(A address) {
+        public GetStateResultListener(A address, NextCall nextCall, byte[] secret) {
             this.address = address;
+            this.nextCall = nextCall;
+            this.secret = secret;
         }
 
         @Override
@@ -398,9 +404,18 @@ final class LinkManager<A> {
             UnstructuredServiceAsync<A> service = rpc.accessService(address, UnstructuredService.SERVICE_ID, UnstructuredService.class,
                     UnstructuredServiceAsync.class);
             
-            byte[] secret = new byte[UnstructuredService.SECRET_SIZE];
-            random.nextBytes(secret);
-            service.join(new JoinResultListener(address, ByteBuffer.wrap(secret)), secret);
+            switch (nextCall) {
+                case JOIN: {
+                    service.join(new JoinResultListener(address, ByteBuffer.wrap(secret)), secret);
+                    break;
+                }
+                case KEEPALIVE: {
+                    service.keepAlive(new KeepAliveListener(address), secret);
+                    break;
+                }
+                default:
+                    throw new IllegalStateException();
+            }
         }
     }
 
@@ -444,5 +459,10 @@ final class LinkManager<A> {
                 }
             }
         }
+    }
+    
+    private enum NextCall {
+        JOIN,
+        KEEPALIVE
     }
 }

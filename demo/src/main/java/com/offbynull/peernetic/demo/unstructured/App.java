@@ -72,7 +72,7 @@ public final class App {
         
 
         
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 3; i++) {
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
                     new ChangeNodeCommand(i, null, new Point((int) (Math.random() * 1000.0), (int) (Math.random() * 1000.0)),

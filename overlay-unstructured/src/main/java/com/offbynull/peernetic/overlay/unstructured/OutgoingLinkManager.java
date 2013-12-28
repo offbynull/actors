@@ -227,14 +227,6 @@ final class OutgoingLinkManager<A> {
         public void ignore() {
             ignore = true;
         }
-
-        public void updateStaleTime(long staleTime) {
-            this.staleTime = staleTime;
-        }
-        
-        public void updateKillTime(long killTime) {
-            this.killTime = killTime;
-        }
         
         public boolean isIgnore() {
             return ignore;

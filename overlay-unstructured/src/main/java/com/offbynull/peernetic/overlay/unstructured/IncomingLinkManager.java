@@ -52,6 +52,7 @@ final class IncomingLinkManager<A> {
         
         Entity entity = new Entity(address, timestamp + killDuration, secret);
         addressMap.put(address, entity);
+        killQueue.add(entity);
         
         return true;
     }
@@ -73,8 +74,11 @@ final class IncomingLinkManager<A> {
         if (!secret.equals(entity.getSecret())) {
             return false;
         }
+        entity.ignore();
         
-        entity.updateKillTime(timestamp + killDuration);
+        Entity newEntity = new Entity(address, timestamp + killDuration, entity.getSecret());
+        killQueue.add(newEntity);
+        addressMap.put(address, newEntity);
         
         return true;
     }
@@ -111,6 +115,7 @@ final class IncomingLinkManager<A> {
         Entity entity;
         while ((entity = killQueue.peek()) != null) {
             if (entity.isIgnore()) {
+                killQueue.poll();
                 continue;
             }
             
@@ -185,10 +190,6 @@ final class IncomingLinkManager<A> {
         
         public void ignore() {
             ignore = true;
-        }
-        
-        public void updateKillTime(long killTime) {
-            this.killTime = killTime;
         }
         
         public boolean isIgnore() {

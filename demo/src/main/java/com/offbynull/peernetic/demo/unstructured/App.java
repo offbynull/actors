@@ -23,12 +23,9 @@ import com.offbynull.peernetic.overlay.common.visualizer.JGraphXVisualizer;
 import com.offbynull.peernetic.overlay.common.visualizer.RemoveEdgeCommand;
 import com.offbynull.peernetic.overlay.common.visualizer.Visualizer;
 import com.offbynull.peernetic.overlay.common.visualizer.VisualizerEventListener;
-import com.offbynull.peernetic.overlay.unstructured.LinkManager;
-import com.offbynull.peernetic.overlay.unstructured.LinkManagerListener;
 import com.offbynull.peernetic.overlay.unstructured.LinkType;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay;
-import com.offbynull.peernetic.overlay.unstructured.UnstructuredService;
-import com.offbynull.peernetic.overlay.unstructured.UnstructuredServiceImplementation;
+import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayListener;
 import com.offbynull.peernetic.rpc.FakeTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.RpcConfig;
@@ -40,7 +37,6 @@ import com.offbynull.peernetic.rpc.transport.fake.PerfectLine;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.Arrays;
-import java.util.Random;
 
 /**
  * Demo of unstructured overlay.
@@ -81,12 +77,12 @@ public final class App {
                             Color.YELLOW));
             
             final int from = i;
-            LinkManagerListener<Integer> listener = new LinkManagerListener<Integer>() {
+            UnstructuredOverlayListener<Integer> listener = new UnstructuredOverlayListener<Integer>() {
                 
                 private volatile int linkCount;
 
                 @Override
-                public void linkCreated(LinkManager<Integer> linkManager, LinkType type, Integer address) {
+                public void linkCreated(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
                     if (type == LinkType.OUTGOING) {
                         linkCount++;
                         visualizer.step("Link created from " + from + " to " + address,
@@ -96,7 +92,7 @@ public final class App {
                 }
 
                 @Override
-                public void linkDestroyed(LinkManager<Integer> linkManager, LinkType type, Integer address) {
+                public void linkDestroyed(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
                     if (type == LinkType.OUTGOING) {
                         linkCount--;
                         visualizer.step("Link destroyed from " + from + " to " + address,
@@ -106,8 +102,8 @@ public final class App {
                 }
 
                 @Override
-                public void addressCacheEmpty(LinkManager<Integer> linkManager) {
-                    linkManager.addToAddressCache(0);
+                public void addressCacheEmpty(UnstructuredOverlay<Integer> overlay) {
+                    overlay.addToAddressCache(0);
                 }
             };
             
@@ -117,11 +113,7 @@ public final class App {
             rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
             Rpc<Integer> rpc = new Rpc(new FakeTransportFactory(hub, i), rpcConfig);
             
-            LinkManager linkManager = new LinkManager(rpc, new Random(), listener, 6, 6, 5000L, 2500L, 5000L, 5000L, 20);
-            
-            rpc.addService(UnstructuredService.SERVICE_ID, new UnstructuredServiceImplementation<>(linkManager));
-            
-            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(linkManager);
+            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(rpc, listener);
             overlay.startAndWait();
         }
     }

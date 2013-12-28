@@ -58,6 +58,7 @@ final class OutgoingLinkManager<A> {
         
         Entity entity = new Entity(address, timestamp + staleDuration, timestamp + killDuration, secret);
         addressMap.put(address, entity);
+        staleQueue.add(entity);
         
         return true;
     }
@@ -92,6 +93,7 @@ final class OutgoingLinkManager<A> {
         
         Entity newEntity = new Entity(address, timestamp + staleDuration, timestamp + killDuration, entity.getSecret());
         staleQueue.add(newEntity);
+        addressMap.put(address, newEntity);
         
         return true;
     }
@@ -99,8 +101,9 @@ final class OutgoingLinkManager<A> {
     public ProcessResult<A> process(long timestamp) {
         Map<A, ByteBuffer> staleAddresses = new HashMap<>();
         Entity staleEntity;
-        while ((staleEntity = killQueue.peek()) != null) {
+        while ((staleEntity = staleQueue.peek()) != null) {
             if (staleEntity.isIgnore()) {
+                staleQueue.poll();
                 continue;
             }
             
@@ -118,6 +121,7 @@ final class OutgoingLinkManager<A> {
         Entity killEntity;
         while ((killEntity = killQueue.peek()) != null) {
             if (killEntity.isIgnore()) {
+                killQueue.poll();
                 continue;
             }
             

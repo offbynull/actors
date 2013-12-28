@@ -23,7 +23,7 @@ import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public interface UnstructuredServiceAsync<A> {
+interface UnstructuredServiceAsync<A> {
     /**
      * See {@link UnstructuredService#getState() }.
      * @param result see {@link UnstructuredService}

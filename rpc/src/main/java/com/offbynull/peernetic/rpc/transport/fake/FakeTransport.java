@@ -210,6 +210,9 @@ public final class FakeTransport<A> implements Transport<A> {
                             return;
                         }
                         
+                        pr.timerTask.cancel(); // BUG: THIS NEEDS TO BE SYNCHRONIZED BETTER. THERES A CHANCE CANCEL CAN GO THROUGH WHILE
+                                               // THE REPLY GETS PROCESSED
+                        
                         OutgoingMessageResponseListener<A> listener = pr.getListener();
                         IncomingResponse<A> response = new IncomingResponse(from, tempBuffer, System.currentTimeMillis());
                         

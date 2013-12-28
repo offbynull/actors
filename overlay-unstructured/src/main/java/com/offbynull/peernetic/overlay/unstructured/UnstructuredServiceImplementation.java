@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class UnstructuredServiceImplementation<A> implements UnstructuredService<A> {
+final class UnstructuredServiceImplementation<A> implements UnstructuredService<A> {
     private LinkManager<A> linkManager;
 
     /**

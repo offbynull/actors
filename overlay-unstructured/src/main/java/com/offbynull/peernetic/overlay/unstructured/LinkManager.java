@@ -37,7 +37,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class LinkManager<A> {
+final class LinkManager<A> {
     private Random random;
     private LinkedHashSet<A> addressCache;
     private IncomingLinkManager<A> incomingLinkManager;
@@ -52,7 +52,7 @@ public final class LinkManager<A> {
      * Constructs a {@link LinkManager}.
      * @param rpc RPC object
      * @param random used to generate secrets
-     * @param listener notified of link events (can be {@code null})
+     * @param listener notified of link events
      * @param maxIncomingLinks maximum number of incoming links allowed
      * @param maxOutgoingLinks maximum number of outgoing links allowed
      * @param incomingLinkExpireDuration amount of time to wait before expiring an incoming link
@@ -60,16 +60,17 @@ public final class LinkManager<A> {
      * @param outgoingLinkExpireDuration amount of time to wait before expiring an outgoing link
      * @param cycleDuration amount of time to wait before attempting to make new outgoing links
      * @param maxOutgoingLinkAttemptsPerCycle maximum number of link attempts per cycle
-     * @throws NullPointerException if any argument other than {@code listener} is {@code null}
+     * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is {@code < 0}, or if
      * {@code outgoingLinkExpireDuration <= outgoingLinkStaleDuration}, or if
-     * {@code maxOutgoingLinkAttemptsPerCycle <= maxOutgoingLinks}
+     * {@code maxOutgoingLinkAttemptsPerCycle > maxOutgoingLinks}
      */
     public LinkManager(Rpc<A> rpc, Random random, LinkManagerListener<A> listener, int maxIncomingLinks, int maxOutgoingLinks,
             long incomingLinkExpireDuration, long outgoingLinkStaleDuration, long outgoingLinkExpireDuration, long cycleDuration,
             int maxOutgoingLinkAttemptsPerCycle) {
         Validate.notNull(rpc);
         Validate.notNull(random);
+        Validate.notNull(listener);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxIncomingLinks);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxOutgoingLinks);
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, incomingLinkExpireDuration);
@@ -77,7 +78,7 @@ public final class LinkManager<A> {
         Validate.isTrue(outgoingLinkExpireDuration > outgoingLinkStaleDuration);
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, cycleDuration);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxOutgoingLinkAttemptsPerCycle);
-        Validate.isTrue(maxOutgoingLinkAttemptsPerCycle > maxOutgoingLinks);
+        Validate.isTrue(maxOutgoingLinkAttemptsPerCycle <= maxOutgoingLinks);
         
         addressCache = new LinkedHashSet<>();
         incomingLinkManager = new IncomingLinkManager(maxIncomingLinks, incomingLinkExpireDuration);
@@ -154,12 +155,10 @@ public final class LinkManager<A> {
             lock.unlock();
         }
         
-        if (listener != null) {
-            try {
-                listener.linkCreated(this, LinkType.INCOMING, address);
-            } catch (RuntimeException re) { // NOPMD
-                // do nothing
-            }
+        try {
+            listener.linkCreated(this, LinkType.INCOMING, address);
+        } catch (RuntimeException re) { // NOPMD
+            // do nothing
         }
         
         return true;
@@ -210,13 +209,11 @@ public final class LinkManager<A> {
             lock.unlock();
         }
         
-        if (listener != null) {
-            for (A address : killedAddresses) {
-                try {
-                    listener.linkDestroyed(this, LinkType.INCOMING, address);
-                } catch (RuntimeException re) { //NOPMD
-                    // do nothing
-                }
+        for (A address : killedAddresses) {
+            try {
+                listener.linkDestroyed(this, LinkType.INCOMING, address);
+            } catch (RuntimeException re) { //NOPMD
+                // do nothing
             }
         }
     }
@@ -302,13 +299,11 @@ public final class LinkManager<A> {
                 } finally {
                     lock.unlock();
                 }
-                
-                if (listener != null) {
-                    try {
-                        listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
-                    } catch (RuntimeException re) { // NOPMD
-                        // do nothing
-                    }
+
+                try {
+                    listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
+                } catch (RuntimeException re) { // NOPMD
+                    // do nothing
                 }
             } else {
                 lock.lock();
@@ -347,12 +342,10 @@ public final class LinkManager<A> {
                 lock.unlock();
             }
             
-            if (listener != null) {
-                try {
-                    listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
-                } catch (RuntimeException re) { // NOPMD
-                    // do nothing
-                }
+            try {
+                listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
+            } catch (RuntimeException re) { // NOPMD
+                // do nothing
             }
         }
     }
@@ -418,12 +411,10 @@ public final class LinkManager<A> {
                     lock.unlock();
                 }
                 
-                if (listener != null) {
-                    try {
-                        listener.linkCreated(LinkManager.this, LinkType.OUTGOING, address);
-                    } catch (RuntimeException re) { // NOPMD
-                        // do nothing
-                    }
+                try {
+                    listener.linkCreated(LinkManager.this, LinkType.OUTGOING, address);
+                } catch (RuntimeException re) { // NOPMD
+                    // do nothing
                 }
             }
         }

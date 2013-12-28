@@ -21,29 +21,29 @@ package com.offbynull.peernetic.overlay.unstructured;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-interface LinkManagerListener<A> {
+public interface UnstructuredOverlayListener<A> {
     /**
      * Link has been established.
-     * @param linkManager link manager
+     * @param overlay overlay
      * @param type link type
      * @param address address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void linkCreated(LinkManager<A> linkManager, LinkType type, A address);
+    void linkCreated(UnstructuredOverlay<A> overlay, LinkType type, A address);
     
     /**
      * Link has been closed.
-     * @param linkManager link manager
+     * @param overlay overlay
      * @param type link type
      * @param address address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void linkDestroyed(LinkManager<A> linkManager, LinkType type, A address);
+    void linkDestroyed(UnstructuredOverlay<A> overlay, LinkType type, A address);
 
     /**
      * Attempted to create new outgoing links but address cache is empty.
-     * @param linkManager link manager
+     * @param overlay overlay
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void addressCacheEmpty(LinkManager<A> linkManager);
+    void addressCacheEmpty(UnstructuredOverlay<A> overlay);
 }

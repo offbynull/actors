@@ -87,7 +87,9 @@ public final class Rpc<A> implements Closeable {
         closed = true;
 
         try {
-            transport.stop();
+            if (transport != null) {
+                transport.stop();
+            }
         } catch (IOException | RuntimeException ex) {
             throw new IOException(ex);
         }

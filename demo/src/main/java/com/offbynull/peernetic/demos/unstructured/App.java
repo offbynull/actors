@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Demo of unstructured overlay.
+ * Demo of {@link UnstructuredOverlay}. Uses {@link FakeTransport} as the underlying transport mechanism.
  * @author Kasra Faghihi
  */
 public final class App {
@@ -51,7 +51,7 @@ public final class App {
     }
 
     /**
-     * Main method.
+     * Entry-point.
      * @param args unused
      * @throws Throwable on error
      */

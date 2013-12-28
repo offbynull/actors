@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.demos.transport;
 
 import com.offbynull.peernetic.rpc.UdpTransportFactory;
@@ -13,6 +29,7 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.udp.UdpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -20,10 +37,23 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Benchmarks {@link UdpTransport}.
+ * @author Kasra Faghihi
+ */
 public final class UdpTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 20;
     private static Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
     
+    private UdpTransportBenchmark() {
+        // do nothing
+    }
+    
+    /**
+     * Entry-point.
+     * @param args unused
+     * @throws Throwable on error
+     */
     public static void main(String[] args) throws Throwable {
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
             final UdpTransportFactory udpTransportFactory = new UdpTransportFactory();
@@ -44,7 +74,8 @@ public final class UdpTransportBenchmark {
                 }
                 
                 InetSocketAddress fromAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-                InetSocketAddress toAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + ((i + 1) % NUM_OF_TRANSPORTS));
+                InetSocketAddress toAddr = new InetSocketAddress(InetAddress.getLocalHost(),
+                        10000 + ((i + 1) % NUM_OF_TRANSPORTS)); // NOPMD
                 issueMessage(fromAddr, toAddr);
             }
         }

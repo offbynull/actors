@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.demos.transport;
 
 import com.offbynull.peernetic.rpc.TcpTransportFactory;
@@ -13,6 +29,7 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.tcp.TcpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -20,15 +37,29 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-//
-// http://stackoverflow.com/questions/10088363/java-net-socketexception-no-buffer-space-available-maximum-connections-reached
-// http://support.microsoft.com/kb/2577795
-//
-// This has issues with TIME_WAIT.
+/**
+ * Benchmarks {@link TcpTransport}.
+ * <p/>
+ * Has issues with TIME_WAIT due to hammering out new connections as fast as possible. Also, if on Windows, check out the following links:
+ * <ul>
+ * <li>http://stackoverflow.com/questions/10088363/java-net-socketexception-no-buffer-space-available-maximum-connections-reached</li>
+ * <li>http://support.microsoft.com/kb/2577795</li>
+ * </ul>
+ * @author Kasra Faghihi
+ */
 public final class TcpTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 2;
     private static Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
     
+    private TcpTransportBenchmark() {
+        // do nothing
+    }
+    
+    /**
+     * Entry-point.
+     * @param args unused
+     * @throws Throwable on error
+     */
     public static void main(String[] args) throws Throwable {
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
             final TcpTransportFactory tcpTransportFactory = new TcpTransportFactory();
@@ -49,7 +80,8 @@ public final class TcpTransportBenchmark {
                 }
                 
                 InetSocketAddress fromAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-                InetSocketAddress toAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + ((i + 1) % NUM_OF_TRANSPORTS));
+                InetSocketAddress toAddr = new InetSocketAddress(InetAddress.getLocalHost(),
+                        10000 + ((i + 1) % NUM_OF_TRANSPORTS)); // NOPMD
                 issueMessage(fromAddr, toAddr);
             }
         }

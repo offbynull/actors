@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.demos.transport;
 
 import com.offbynull.peernetic.rpc.FakeTransportFactory;
@@ -21,11 +37,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Benchmarks {@link FakeTransport}.
+ * @author Kasra Faghihi
+ */
 public final class FakeTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 20;
     private static FakeHub<Integer> fakeHub = new FakeHub<>(new PerfectLine<Integer>());
     private static List<Transport<Integer>> transports = new ArrayList<>();
     
+    private FakeTransportBenchmark() {
+        // do nothing
+    }
+    
+    /**
+     * Entry-point.
+     * @param args unused
+     * @throws Throwable on error
+     */
     public static void main(String[] args) throws Throwable {
         fakeHub.start();
 

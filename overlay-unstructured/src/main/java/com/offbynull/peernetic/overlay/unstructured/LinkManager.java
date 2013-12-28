@@ -142,7 +142,10 @@ final class LinkManager<A> {
         lock.lock();
         try {
             addressCache.add(address);
-            
+
+            if (incomingLinkManager.containsLink(address)) {
+                return false;
+            }
             if (outgoingLinkManager.containsLink(address)) {
                 return false;
             }
@@ -220,12 +223,22 @@ final class LinkManager<A> {
 
     private void maintainExistingOutgoingLinks(long timestamp) {
         Map<A, ByteBuffer> needsUpdateMap;
+        Set<A> killedSet;
         lock.lock();
         try {
             OutgoingLinkManager.ProcessResult<A> result = outgoingLinkManager.process(timestamp);
             needsUpdateMap = result.getStaleAddresses();
+            killedSet = result.getKilledAddresses();
         } finally {
             lock.unlock();
+        }
+        
+        for (A address : killedSet) {
+            try {
+                listener.linkDestroyed(this, LinkType.OUTGOING, address);
+            } catch (RuntimeException re) { //NOPMD
+                // do nothing
+            }
         }
         
         for (Entry<A, ByteBuffer> entry : needsUpdateMap.entrySet()) {
@@ -261,6 +274,9 @@ final class LinkManager<A> {
                 A address = addressCacheIt.next();
                 
                 if (!incomingLinkManager.containsLink(address) && !outgoingLinkManager.containsLink(address)) {
+                    System.out.println("Trying " + address + " in:" + incomingLinkManager.getLinks() + " out:"
+                            + outgoingLinkManager.getLinks());
+                    
                     addressesToTry.add(address);
                 }
                 addressCacheIt.remove();
@@ -308,7 +324,15 @@ final class LinkManager<A> {
             } else {
                 lock.lock();
                 try {
-                    outgoingLinkManager.updateLink(System.currentTimeMillis(), address);
+                    boolean updated = outgoingLinkManager.updateLink(System.currentTimeMillis(), address);
+                    if (!updated) {
+                        System.out.println("update failed for " + address);
+                        try {
+                            listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
+                        } catch (RuntimeException re) { // NOPMD
+                            // do nothing
+                        }
+                    }
                 } finally {
                     lock.unlock();
                 }
@@ -403,8 +427,14 @@ final class LinkManager<A> {
                     if (incomingLinkManager.containsLink(address)) {
                         return;
                     }
+                    if (outgoingLinkManager.containsLink(address)) {
+                        return;
+                    }
 
-                    outgoingLinkManager.addLink(System.currentTimeMillis(), address, secret);
+                    boolean added = outgoingLinkManager.addLink(System.currentTimeMillis(), address, secret);
+                    if (!added) {
+                        return;
+                    }
                     
                     addressCache.add(address);
                 } finally {

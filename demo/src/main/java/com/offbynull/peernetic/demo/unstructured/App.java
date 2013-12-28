@@ -25,6 +25,7 @@ import com.offbynull.peernetic.overlay.common.visualizer.Visualizer;
 import com.offbynull.peernetic.overlay.common.visualizer.VisualizerEventListener;
 import com.offbynull.peernetic.overlay.unstructured.LinkType;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay;
+import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayConfig;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayListener;
 import com.offbynull.peernetic.rpc.FakeTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
@@ -37,6 +38,7 @@ import com.offbynull.peernetic.rpc.transport.fake.PerfectLine;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Demo of unstructured overlay.
@@ -70,7 +72,7 @@ public final class App {
         
 
         
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 4; i++) {
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
                     new ChangeNodeCommand(i, null, new Point((int) (Math.random() * 1000.0), (int) (Math.random() * 1000.0)),
@@ -79,25 +81,25 @@ public final class App {
             final int from = i;
             UnstructuredOverlayListener<Integer> listener = new UnstructuredOverlayListener<Integer>() {
                 
-                private volatile int linkCount;
+                private AtomicInteger linkCount = new AtomicInteger();
 
                 @Override
                 public void linkCreated(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
                     if (type == LinkType.OUTGOING) {
-                        linkCount++;
+                        int count = linkCount.incrementAndGet();
                         visualizer.step("Link created from " + from + " to " + address,
                                 new AddEdgeCommand<>(from, address),
-                                new ChangeNodeCommand<>(from, null, null, linkCount == 0 ? Color.YELLOW : Color.GREEN));
+                                new ChangeNodeCommand<>(from, null, null, count == 0 ? Color.YELLOW : Color.GREEN));
                     }
                 }
 
                 @Override
                 public void linkDestroyed(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
                     if (type == LinkType.OUTGOING) {
-                        linkCount--;
+                        int count = linkCount.decrementAndGet();
                         visualizer.step("Link destroyed from " + from + " to " + address,
                                 new RemoveEdgeCommand<>(from, address),
-                                new ChangeNodeCommand<>(from, null, null, linkCount == 0 ? Color.YELLOW : Color.GREEN));
+                                new ChangeNodeCommand<>(from, null, null, count == 0 ? Color.YELLOW : Color.GREEN));
                     }
                 }
 
@@ -113,7 +115,15 @@ public final class App {
             rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
             Rpc<Integer> rpc = new Rpc(new FakeTransportFactory(hub, i), rpcConfig);
             
-            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(rpc, listener);
+            UnstructuredOverlayConfig<Integer> overlayConfig = new UnstructuredOverlayConfig<>();
+            overlayConfig.setMaxOutgoingLinkAttemptsPerCycle(2);
+            overlayConfig.setMaxOutgoingLinks(3);
+            overlayConfig.setMaxIncomingLinks(3);
+            overlayConfig.setCycleDuration(100L);
+            overlayConfig.setOutgoingLinkStaleDuration(250L);
+            overlayConfig.setOutgoingLinkExpireDuration(500L);
+            overlayConfig.setIncomingLinkExpireDuration(500L);
+            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(rpc, listener, overlayConfig);
             overlay.startAndWait();
         }
     }

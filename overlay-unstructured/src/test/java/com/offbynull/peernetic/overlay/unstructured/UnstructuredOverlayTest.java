@@ -2,7 +2,6 @@ package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.rpc.FakeTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.RpcConfig;
 import com.offbynull.peernetic.rpc.transport.fake.FakeHub;
 import com.offbynull.peernetic.rpc.transport.fake.PerfectLine;
 import java.io.IOException;
@@ -213,7 +212,7 @@ public class UnstructuredOverlayTest {
             rpc = new Rpc<>(fakeTransportFactory);
             
             UnstructuredOverlayConfig<Integer> uoConfig = new UnstructuredOverlayConfig<>();
-            uoConfig.setCycleDuration(500L);
+            uoConfig.setCycleDuration(100L);
             uoConfig.setMaxOutgoingLinks(5);
             uoConfig.setMaxOutgoingLinks(5);
             uoConfig.setMaxOutgoingLinkAttemptsPerCycle(5);

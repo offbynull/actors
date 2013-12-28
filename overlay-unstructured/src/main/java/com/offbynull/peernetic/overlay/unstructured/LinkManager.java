@@ -274,9 +274,6 @@ final class LinkManager<A> {
                 A address = addressCacheIt.next();
                 
                 if (!incomingLinkManager.containsLink(address) && !outgoingLinkManager.containsLink(address)) {
-                    System.out.println("Trying " + address + " in:" + incomingLinkManager.getLinks() + " out:"
-                            + outgoingLinkManager.getLinks());
-                    
                     addressesToTry.add(address);
                 }
                 addressCacheIt.remove();
@@ -326,7 +323,6 @@ final class LinkManager<A> {
                 try {
                     boolean updated = outgoingLinkManager.updateLink(System.currentTimeMillis(), address);
                     if (!updated) {
-                        System.out.println("update failed for " + address);
                         try {
                             listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
                         } catch (RuntimeException re) { // NOPMD

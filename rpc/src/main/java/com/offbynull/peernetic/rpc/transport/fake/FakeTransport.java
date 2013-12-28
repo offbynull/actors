@@ -168,6 +168,7 @@ public final class FakeTransport<A> implements Transport<A> {
             
             responseIdMap.put(packetId, new PendingResponse(to, packetId, timerTask, listener));
             timeoutTimer.schedule(timerTask, timeout);
+            timeoutTimer.purge();
         } finally {
             lock.unlock();
         }
@@ -209,6 +210,8 @@ public final class FakeTransport<A> implements Transport<A> {
                         if (pr == null || !pr.getAddress().equals(from)) {
                             return;
                         }
+                        
+                        responseIdMap.remove(packetId);
                         
                         pr.timerTask.cancel(); // BUG: THIS NEEDS TO BE SYNCHRONIZED BETTER. THERES A CHANCE CANCEL CAN GO THROUGH WHILE
                                                // THE REPLY GETS PROCESSED

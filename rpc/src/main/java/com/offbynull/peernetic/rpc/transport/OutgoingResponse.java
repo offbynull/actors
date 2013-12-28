@@ -28,6 +28,18 @@ public final class OutgoingResponse {
 
     /**
      * Constructs a {@link OutgoingResponse} object.
+     * @param data message data
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public OutgoingResponse(ByteBuffer data) {
+        Validate.notNull(data);
+        
+        this.data = ByteBuffer.allocate(data.remaining()).put(data);
+        this.data.flip();
+    }
+
+    /**
+     * Constructs a {@link OutgoingResponse} object.
      * @param data response data
      * @throws NullPointerException if any arguments are {@code null}
      */

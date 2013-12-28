@@ -72,7 +72,7 @@ public final class App {
         
 
         
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
                     new ChangeNodeCommand(i, null, new Point((int) (Math.random() * 1000.0), (int) (Math.random() * 1000.0)),
@@ -117,8 +117,8 @@ public final class App {
             
             UnstructuredOverlayConfig<Integer> overlayConfig = new UnstructuredOverlayConfig<>();
             overlayConfig.setMaxOutgoingLinkAttemptsPerCycle(2);
-            overlayConfig.setMaxOutgoingLinks(3);
-            overlayConfig.setMaxIncomingLinks(3);
+            overlayConfig.setMaxOutgoingLinks(5);
+            overlayConfig.setMaxIncomingLinks(5);
             overlayConfig.setCycleDuration(100L);
             overlayConfig.setOutgoingLinkStaleDuration(250L);
             overlayConfig.setOutgoingLinkExpireDuration(500L);

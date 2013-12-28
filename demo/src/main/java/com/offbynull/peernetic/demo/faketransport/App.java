@@ -71,10 +71,8 @@ public final class App {
 
         @Override
         public void responseArrived(IncomingResponse<Integer> response) {
-            long diff = System.currentTimeMillis() - response.getArriveTime();
-            if (diff > 1L) {
-                System.out.println("Response time: " + diff);
-            }
+            long diff = System.currentTimeMillis() - response.getData().getLong(0);
+            System.out.println("Response time: " + diff);
             
             issueMessage(from, to);
         }

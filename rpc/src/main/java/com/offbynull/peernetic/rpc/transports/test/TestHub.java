@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import java.io.IOException;
@@ -30,11 +30,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A hub that pipes messages between {@link FakeTransport}s.
+ * A hub that pipes messages between {@link TestTransport}s.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class FakeHub<A> {
+public final class TestHub<A> {
 
     private Line<A> line;
     
@@ -46,11 +46,11 @@ public final class FakeHub<A> {
     private Lock startStopLock;
 
     /**
-     * Construct a {@link FakeHub} object.
+     * Construct a {@link TestHub} object.
      * @param line line to use
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public FakeHub(Line<A> line) {
+    public TestHub(Line<A> line) {
         Validate.notNull(line);
 
         this.line = line;
@@ -103,7 +103,7 @@ public final class FakeHub<A> {
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalStateException if not started
      */
-    FakeHubSender<A> addEndpoint(A address, FakeHubReceiver<A> receiver) {
+    TestHubSender<A> addEndpoint(A address, TestHubReceiver<A> receiver) {
         Validate.notNull(address);
         Validate.notNull(receiver);
 
@@ -112,7 +112,7 @@ public final class FakeHub<A> {
         CommandAddEndpoint<A> command = new CommandAddEndpoint<>(address, receiver);
         commandQueue.add(command);
         
-        return new FakeHubSender<>(commandQueue, line);
+        return new TestHubSender<>(commandQueue, line);
     }
 
     /**
@@ -132,7 +132,7 @@ public final class FakeHub<A> {
 
     /**
      * Queues a command to activates an endpoint from the hub. Call this after
-     * {@link #addEndpoint(java.lang.Object, com.offbynull.rpc.transport.fake.FakeHubReceiver) }.
+     * {@link #addEndpoint(java.lang.Object, com.offbynull.rpc.transport.test.TestHubReceiver) }.
      * @param address endpoint address
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalStateException if not started
@@ -151,7 +151,7 @@ public final class FakeHub<A> {
 
         private volatile boolean stop;
         private PriorityQueue<Message<A>> transitMessageQueue;
-        private Map<A, FakeEndpoint<A>> addressMap;
+        private Map<A, TestEndpoint<A>> addressMap;
 
         public EventLoop() {
             transitMessageQueue = new PriorityQueue<>(11, new MessageArriveTimeComparator());
@@ -189,14 +189,14 @@ public final class FakeHub<A> {
                 for (Command command : commands) {
                     if (command instanceof CommandAddEndpoint) {
                         CommandAddEndpoint<A> commandAe = (CommandAddEndpoint<A>) command;
-                        FakeEndpoint<A> endpoint = new FakeEndpoint<>(commandAe.getReceiver());
+                        TestEndpoint<A> endpoint = new TestEndpoint<>(commandAe.getReceiver());
                         addressMap.put(commandAe.getAddress(), endpoint);
                     } else if (command instanceof CommandRemoveEndpoint) {
                         CommandRemoveEndpoint<A> commandRe = (CommandRemoveEndpoint<A>) command;
                         addressMap.remove(commandRe.getAddress());
                     } else if (command instanceof CommandActivateEndpoint) {
                         CommandActivateEndpoint<A> commandAe = (CommandActivateEndpoint<A>) command;
-                        FakeEndpoint<A> endpoint = addressMap.get(commandAe.getAddress());
+                        TestEndpoint<A> endpoint = addressMap.get(commandAe.getAddress());
                         endpoint.setActive(true);
                     } else if (command instanceof CommandSend) {
                         CommandSend<A> commandSend = (CommandSend<A>) command;
@@ -220,7 +220,7 @@ public final class FakeHub<A> {
                     
                     transitMessageQueue.poll(); // remove
                     
-                    FakeEndpoint<A> dest = addressMap.get(topPacket.getTo());
+                    TestEndpoint<A> dest = addressMap.get(topPacket.getTo());
                     if (dest == null || !dest.isActive()) {
                         continue;
                     }

@@ -14,28 +14,20 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import org.apache.commons.lang3.Validate;
 
-/**
- * A line implementation without any constraints or failures. Takes no time to transmit a message.
- * @author Kasra Faghihi
- * @param <A> address type
- */
-public final class PerfectLine<A> implements Line<A> {
+final class CommandRemoveEndpoint<A> implements Command {
+    private A address;
 
-    @Override
-    public List<Message<A>> depart(A from, A to, ByteBuffer data) {
-        return new ArrayList<>(Arrays.asList(new Message<>(from, to, data, 0L)));
+    public CommandRemoveEndpoint(A address) {
+        Validate.notNull(address);
+        
+        this.address = address;
     }
 
-    @Override
-    public void arrive(Collection<Message<A>> packets) {
+    public A getAddress() {
+        return address;
     }
-    
 }

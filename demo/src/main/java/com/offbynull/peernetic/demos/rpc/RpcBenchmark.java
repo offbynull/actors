@@ -16,26 +16,26 @@
  */
 package com.offbynull.peernetic.demos.rpc;
 
-import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.common.services.ping.PingService;
 import com.offbynull.peernetic.rpc.common.services.ping.PingServiceAsync;
 import com.offbynull.peernetic.rpc.common.services.ping.PingServiceImplementation;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.FakeTransport;
-import com.offbynull.peernetic.rpc.transports.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.TestTransport;
+import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Benchmarks {@link Rpc}. Uses {@link FakeTransport} as the underlying transport mechanism.
+ * Benchmarks {@link Rpc}. Uses {@link TestTransport} as the underlying transport mechanism.
  * @author Kasra Faghihi
  */
 public final class RpcBenchmark {
     private static final int NUM_OF_TRANSPORTS = 100;
-    private static FakeHub<Integer> fakeHub = new FakeHub<>(new PerfectLine<Integer>());
+    private static TestHub<Integer> fakeHub = new TestHub<>(new PerfectLine<Integer>());
     private static List<Client> clients = new ArrayList<>();
     
     private RpcBenchmark() {
@@ -51,7 +51,7 @@ public final class RpcBenchmark {
         fakeHub.start();
 
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
-            FakeTransportFactory<Integer> transportFactory = new FakeTransportFactory(fakeHub, i);
+            TestTransportFactory<Integer> transportFactory = new TestTransportFactory(fakeHub, i);
             Rpc<Integer> rpc = new Rpc(transportFactory);
             
             rpc.addService(PingService.SERVICE_ID, new PingServiceImplementation());

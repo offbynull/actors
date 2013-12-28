@@ -17,29 +17,29 @@
 package com.offbynull.peernetic.rpc;
 
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.FakeTransport;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.TestTransport;
 import java.io.IOException;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Creates a {@link FakeTransportFactory} based on properties in this class.
+ * Creates a {@link TestTransportFactory} based on properties in this class.
  * @param <A> address type
  * @author Kasra Faghihi
  */
-public final class FakeTransportFactory<A> implements TransportFactory<A> {
+public final class TestTransportFactory<A> implements TransportFactory<A> {
 
-    private FakeHub<A> hub;
+    private TestHub<A> hub;
     private long timeout = 10000;
     private A address;
 
     /**
-     * Constructs a {@link FakeTransportFactory} object.
+     * Constructs a {@link TestTransportFactory} object.
      * @param hub hub
      * @param address address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public FakeTransportFactory(FakeHub<A> hub, A address) {
+    public TestTransportFactory(TestHub<A> hub, A address) {
         Validate.notNull(hub);
         Validate.notNull(address);
         
@@ -51,7 +51,7 @@ public final class FakeTransportFactory<A> implements TransportFactory<A> {
      * Gets the hub.
      * @return hub
      */
-    public FakeHub<A> getHub() {
+    public TestHub<A> getHub() {
         return hub;
     }
 
@@ -60,7 +60,7 @@ public final class FakeTransportFactory<A> implements TransportFactory<A> {
      * @param hub hub
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public void setHub(FakeHub<A> hub) {
+    public void setHub(TestHub<A> hub) {
         Validate.notNull(hub);
         this.hub = hub;
     }
@@ -103,7 +103,7 @@ public final class FakeTransportFactory<A> implements TransportFactory<A> {
     
     @Override
     public Transport<A> createTransport() throws IOException {
-        return new FakeTransport<>(address, hub, timeout);
+        return new TestTransport<>(address, hub, timeout);
     }
     
 }

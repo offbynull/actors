@@ -14,15 +14,15 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
 import org.apache.commons.lang3.Validate;
 
 final class CommandAddEndpoint<A> implements Command {
     private A address;
-    private FakeHubReceiver<A> receiver;
+    private TestHubReceiver<A> receiver;
 
-    public CommandAddEndpoint(A address, FakeHubReceiver<A> receiver) {
+    public CommandAddEndpoint(A address, TestHubReceiver<A> receiver) {
         Validate.notNull(address);
         Validate.notNull(receiver);
         
@@ -34,7 +34,7 @@ final class CommandAddEndpoint<A> implements Command {
         return address;
     }
 
-    public FakeHubReceiver<A> getReceiver() {
+    public TestHubReceiver<A> getReceiver() {
         return receiver;
     }
 }

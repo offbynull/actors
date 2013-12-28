@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingMessage;
@@ -37,11 +37,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A {@link Transport} used for testing. Backed by a {@link FakeHub}.
+ * A {@link Transport} used for testing. Backed by a {@link TestHub}.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class FakeTransport<A> implements Transport<A> {
+public final class TestTransport<A> implements Transport<A> {
 
     private static final byte SEND_MARKER = 0;
     private static final byte REPLY_MARKER = 1;
@@ -53,22 +53,22 @@ public final class FakeTransport<A> implements Transport<A> {
     private State state = State.UNKNOWN;
     private int nextPacketId;
     private A address;
-    private FakeHub<A> hub;
-    private FakeHubSender<A> hubSender;
-    private FakeHubReceiver<A> hubReceiver;
+    private TestHub<A> hub;
+    private TestHubSender<A> hubSender;
+    private TestHubReceiver<A> hubReceiver;
     private Timer timeoutTimer;
     private Map<Integer, PendingResponse> responseIdMap;
     private long timeout;
 
     /**
-     * Constructs a {@link FakeTransport} object.
+     * Constructs a {@link TestTransport} object.
      * @param address this object's address
      * @param hub hub to connect to
      * @param timeout timeout
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code timeout < 1L} 
      */
-    public FakeTransport(A address, FakeHub<A> hub, long timeout) {
+    public TestTransport(A address, TestHub<A> hub, long timeout) {
         Validate.notNull(address);
         Validate.notNull(hub);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
@@ -78,7 +78,7 @@ public final class FakeTransport<A> implements Transport<A> {
         this.hub = hub;
         this.address = address;
 
-        hubReceiver = new CustomFakeHubReceiver();
+        hubReceiver = new CustomTestHubReceiver();
         hubSender = hub.addEndpoint(address, hubReceiver);
 
         responseIdMap = new HashMap<>();
@@ -181,7 +181,7 @@ public final class FakeTransport<A> implements Transport<A> {
         STOPPED
     }
 
-    private final class CustomFakeHubReceiver implements FakeHubReceiver<A> {
+    private final class CustomTestHubReceiver implements TestHubReceiver<A> {
 
         @Override
         public void incoming(Message<A> packet) {

@@ -14,10 +14,28 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.rpc.transports.test;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
- * A fake transport implementation used for testing purposes. This package provides classes to simulate the behaviour of a network. Use it
- * to see how your algorithm performs under network congestion / network latency / duplication scenarios / data speed limits / etc...
+ * A line implementation without any constraints or failures. Takes no time to transmit a message.
+ * @author Kasra Faghihi
+ * @param <A> address type
  */
+public final class PerfectLine<A> implements Line<A> {
 
-package com.offbynull.peernetic.rpc.transports.fake;
+    @Override
+    public List<Message<A>> depart(A from, A to, ByteBuffer data) {
+        return new ArrayList<>(Arrays.asList(new Message<>(from, to, data, 0L)));
+    }
+
+    @Override
+    public void arrive(Collection<Message<A>> packets) {
+    }
+    
+}

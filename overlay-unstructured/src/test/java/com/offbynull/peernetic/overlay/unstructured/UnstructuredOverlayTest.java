@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
 import java.io.IOException;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -14,7 +14,7 @@ import org.mockito.Mockito;
 
 public class UnstructuredOverlayTest {
 
-    private FakeHub fakeHub;
+    private TestHub fakeHub;
 
     public UnstructuredOverlayTest() {
     }
@@ -29,7 +29,7 @@ public class UnstructuredOverlayTest {
 
     @Before
     public void setUp() throws Throwable {
-        fakeHub = new FakeHub<>(new PerfectLine<Integer>());
+        fakeHub = new TestHub<>(new PerfectLine<Integer>());
         fakeHub.start();
     }
 
@@ -207,7 +207,7 @@ public class UnstructuredOverlayTest {
         private UnstructuredOverlay<Integer> overlay;
 
         public OverlayEntry(int address, UnstructuredOverlayListener<Integer> listener) throws IOException {
-            FakeTransportFactory<Integer> fakeTransportFactory = new FakeTransportFactory<>(fakeHub, address);
+            TestTransportFactory<Integer> fakeTransportFactory = new TestTransportFactory<>(fakeHub, address);
             fakeTransportFactory.setTimeout(200L);
             rpc = new Rpc<>(fakeTransportFactory);
             

@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.rpc.common;
 
-import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
 import com.offbynull.peernetic.rpc.common.services.ping.PingCallable;
 import com.offbynull.peernetic.rpc.common.services.ping.PingService;
 import com.offbynull.peernetic.rpc.common.services.ping.PingServiceImplementation;
@@ -38,11 +38,11 @@ public class PingServiceTest {
 
     @Test
     public void testPingService() throws Throwable {
-        FakeHub<Integer> hub = new FakeHub<>(new PerfectLine<Integer>());
+        TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
         hub.start();
         
-        Rpc<Integer> rpc1 = new Rpc<>(new FakeTransportFactory<>(hub, 1));
-        Rpc<Integer> rpc2 = new Rpc<>(new FakeTransportFactory<>(hub, 2));
+        Rpc<Integer> rpc1 = new Rpc<>(new TestTransportFactory<>(hub, 1));
+        Rpc<Integer> rpc2 = new Rpc<>(new TestTransportFactory<>(hub, 2));
         
         rpc2.addService(PingService.SERVICE_ID, new PingServiceImplementation());
         

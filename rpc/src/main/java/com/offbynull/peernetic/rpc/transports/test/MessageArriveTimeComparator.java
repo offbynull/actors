@@ -14,8 +14,18 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
-interface Command {
+import java.io.Serializable;
+import java.util.Comparator;
+
+final class MessageArriveTimeComparator implements Comparator<Message>, Serializable {
+    
+    private static final long serialVersionUID = 0L;
+
+    @Override
+    public int compare(Message o1, Message o2) {
+        return Long.compare(o1.getArriveTime(), o2.getArriveTime());
+    }
     
 }

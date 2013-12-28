@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.demos.transport;
 
-import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.TestTransportFactory;
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
@@ -29,21 +29,21 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.FakeTransport;
-import com.offbynull.peernetic.rpc.transports.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.TestTransport;
+import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Benchmarks {@link FakeTransport}.
+ * Benchmarks {@link TestTransport}.
  * @author Kasra Faghihi
  */
 public final class FakeTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 20;
-    private static FakeHub<Integer> fakeHub = new FakeHub<>(new PerfectLine<Integer>());
+    private static TestHub<Integer> fakeHub = new TestHub<>(new PerfectLine<Integer>());
     private static List<Transport<Integer>> transports = new ArrayList<>();
     
     private FakeTransportBenchmark() {
@@ -59,7 +59,7 @@ public final class FakeTransportBenchmark {
         fakeHub.start();
 
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
-            FakeTransportFactory<Integer> transportFactory = new FakeTransportFactory<>(fakeHub, i);
+            TestTransportFactory<Integer> transportFactory = new TestTransportFactory<>(fakeHub, i);
             Transport<Integer> transport = transportFactory.createTransport();
             transport.start(new CompositeIncomingFilter<>(Collections.<IncomingFilter<Integer>>emptyList()),
                     new EchoIncomingMessageListener(),

@@ -14,8 +14,30 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
-interface FakeHubReceiver<A> {
-    void incoming(Message<A> packet);
+final class TestEndpoint<A> {
+    private TestHubReceiver<A> receiver;
+    private boolean active;
+
+    public TestEndpoint(TestHubReceiver<A> receiver) {
+        this.receiver = receiver;
+    }
+
+    public TestHubReceiver<A> getReceiver() {
+        return receiver;
+    }
+
+    public void setReceiver(TestHubReceiver<A> receiver) {
+        this.receiver = receiver;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+    
 }

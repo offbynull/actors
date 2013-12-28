@@ -27,14 +27,14 @@ import com.offbynull.peernetic.overlay.unstructured.LinkType;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayConfig;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayListener;
-import com.offbynull.peernetic.rpc.FakeTransportFactory;
+import com.offbynull.peernetic.rpc.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.RpcConfig;
 import com.offbynull.peernetic.rpc.common.filters.selfblock.SelfBlockId;
 import com.offbynull.peernetic.rpc.common.filters.selfblock.SelfBlockIncomingFilter;
 import com.offbynull.peernetic.rpc.common.filters.selfblock.SelfBlockOutgoingFilter;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
 import java.awt.Color;
 import java.awt.Point;
 import java.util.Arrays;
@@ -67,7 +67,7 @@ public final class App {
         
         
         
-        FakeHub<Integer> hub = new FakeHub<>(new PerfectLine<Integer>());
+        TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
         hub.start();
         
 
@@ -113,7 +113,7 @@ public final class App {
             SelfBlockId selfBlockId = new SelfBlockId();
             rpcConfig.setIncomingFilters(Arrays.asList(new SelfBlockIncomingFilter<Integer>(selfBlockId)));
             rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
-            Rpc<Integer> rpc = new Rpc(new FakeTransportFactory(hub, i), rpcConfig);
+            Rpc<Integer> rpc = new Rpc(new TestTransportFactory(hub, i), rpcConfig);
             
             UnstructuredOverlayConfig<Integer> overlayConfig = new UnstructuredOverlayConfig<>();
             overlayConfig.setMaxOutgoingLinkAttemptsPerCycle(2);

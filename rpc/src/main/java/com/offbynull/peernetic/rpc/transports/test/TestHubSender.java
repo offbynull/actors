@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.lang3.Validate;
 
-final class FakeHubSender<A> {
+final class TestHubSender<A> {
     private LinkedBlockingQueue<Command> commandQueue;
     private Line<A> line;
 
-    FakeHubSender(LinkedBlockingQueue<Command> commandQueue, Line<A> line) {
+    TestHubSender(LinkedBlockingQueue<Command> commandQueue, Line<A> line) {
         Validate.notNull(commandQueue);
         Validate.notNull(line);
         this.commandQueue = commandQueue;

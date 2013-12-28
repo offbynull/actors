@@ -12,10 +12,10 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.TerminateIncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.TransportHelper;
-import com.offbynull.peernetic.rpc.transports.fake.FakeHub;
-import com.offbynull.peernetic.rpc.transports.fake.FakeTransport;
-import com.offbynull.peernetic.rpc.transports.fake.Line;
-import com.offbynull.peernetic.rpc.transports.fake.PerfectLine;
+import com.offbynull.peernetic.rpc.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transports.test.TestTransport;
+import com.offbynull.peernetic.rpc.transports.test.Line;
+import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -33,9 +33,9 @@ public final class FakeTransportTest {
     private static final OutgoingFilter<Integer> EMPTY_OUTGOING_FILTER =
             new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<Integer>>emptyList());
 
-    private FakeHub<Integer> hub;
-    private FakeTransport<Integer> transport1;
-    private FakeTransport<Integer> transport2;
+    private TestHub<Integer> hub;
+    private TestTransport<Integer> transport1;
+    private TestTransport<Integer> transport2;
 
     public FakeTransportTest() {
     }
@@ -51,11 +51,11 @@ public final class FakeTransportTest {
     @Before
     public void setUp() throws IOException {
         Line<Integer> line = new PerfectLine<>();
-        hub = new FakeHub(line);
+        hub = new TestHub(line);
         hub.start();
         
-        transport1 = new FakeTransport<>(1, hub, 500L);
-        transport2 = new FakeTransport<>(2, hub, 500L);
+        transport1 = new TestTransport<>(1, hub, 500L);
+        transport2 = new TestTransport<>(2, hub, 500L);
     }
 
     @After

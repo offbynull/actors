@@ -14,20 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transports.fake;
+package com.offbynull.peernetic.rpc.transports.test;
 
-import org.apache.commons.lang3.Validate;
-
-final class CommandActivateEndpoint<A> implements Command {
-    private A address;
-
-    public CommandActivateEndpoint(A address) {
-        Validate.notNull(address);
-        
-        this.address = address;
-    }
-
-    public A getAddress() {
-        return address;
-    }
+interface Command {
+    
 }

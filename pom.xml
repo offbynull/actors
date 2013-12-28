@@ -19,6 +19,7 @@
         <module>overlay-unstructured</module>
         <module>overlay-chord</module>
         <module>demo</module>
+        <module>common</module>
     </modules>
     
     <dependencyManagement>

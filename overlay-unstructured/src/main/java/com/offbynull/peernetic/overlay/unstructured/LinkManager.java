@@ -17,8 +17,13 @@
 package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.invoke.AsyncResultAdapter;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
+import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.ErrorOperation;
+import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.ErrorType;
+import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainBuilder;
+import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainStep;
+import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainStepErrorHandler;
+import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainStepResultHandler;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -247,7 +252,7 @@ final class LinkManager<A> {
             ByteBuffer secret = entry.getValue();
             byte[] secretData = new byte[secret.remaining()];
             secret.get(secretData);
-            service.getState(new GetStateResultListener(entry.getKey(), NextCall.KEEPALIVE, secretData));
+            invokeKeepAlive(service, entry.getKey(), secretData);
         }
     }
     
@@ -292,177 +297,163 @@ final class LinkManager<A> {
                     UnstructuredServiceAsync.class);            
             byte[] secret = new byte[UnstructuredService.SECRET_SIZE];
             random.nextBytes(secret);
-            service.getState(new GetStateResultListener(address, NextCall.JOIN, secret));
+            invokeJoin(service, address, secret);
         }
     }
     
-    private final class KeepAliveListener implements AsyncResultListener<Boolean> {
-        private A address;
+    private void internalAddToAddressCache(State<A> state) {
+        Validate.notNull(state);
+        Validate.noNullElements(state.getIncomingLinks());
+        Validate.noNullElements(state.getOutgoingLinks());
 
-        public KeepAliveListener(A address) {
-            this.address = address;
-        }
-
-        @Override
-        public void invokationReturned(Boolean object) {
-            Validate.notNull(object);
-            
-            if (!object) {
-                lock.lock();
-                try {
-                    outgoingLinkManager.removeLink(address);
-                } finally {
-                    lock.unlock();
-                }
-
-                try {
-                    listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
-                } catch (RuntimeException re) { // NOPMD
-                    // do nothing
-                }
-            } else {
-                lock.lock();
-                try {
-                    boolean updated = outgoingLinkManager.updateLink(System.currentTimeMillis(), address);
-                    if (!updated) {
-                        try {
-                            listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
-                        } catch (RuntimeException re) { // NOPMD
-                            // do nothing
-                        }
-                    }
-                } finally {
-                    lock.unlock();
-                }
-            }
-        }
-
-        @Override
-        public void invokationThrew(Throwable err) {
-            lock.lock();
-            try {
-                outgoingLinkManager.removeLink(address);
-            } finally {
-                lock.unlock();
-            }
-            
-            if (listener != null) {
-                try {
-                    listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
-                } catch (RuntimeException re) { // NOPMD
-                    // do nothing
-                }
-            }
-        }
-
-        @Override
-        public void invokationFailed(Object err) {
-            lock.lock();
-            try {
-                outgoingLinkManager.removeLink(address);
-            } finally {
-                lock.unlock();
-            }
-            
-            try {
-                listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
-            } catch (RuntimeException re) { // NOPMD
-                // do nothing
-            }
+        lock.lock();
+        try {
+            addressCache.addAll(state.getIncomingLinks());
+            addressCache.addAll(state.getOutgoingLinks());
+        } finally {
+            lock.unlock();
         }
     }
     
-    private final class GetStateResultListener extends AsyncResultAdapter<State<A>> {
-        private A address;
-        private NextCall nextCall;
-        private byte[] secret;
+    private void internalUpdateOutgoingLink(A address) {
+        lock.lock();
+        try {
+            outgoingLinkManager.updateLink(System.currentTimeMillis(), address);
+        } finally {
+            lock.unlock();
+        }
+    }
 
-        public GetStateResultListener(A address, NextCall nextCall, byte[] secret) {
-            this.address = address;
-            this.nextCall = nextCall;
-            this.secret = secret;
+    private void internalRemoveOutgoingLink(A address) {
+        lock.lock();
+        try {
+            outgoingLinkManager.removeLink(address);
+        } finally {
+            lock.unlock();
         }
 
-        @Override
-        public void invokationReturned(State<A> object) {
-            Validate.notNull(object);
-            Validate.noNullElements(object.getIncomingLinks());
-            Validate.noNullElements(object.getOutgoingLinks());
-            
-            lock.lock();
-            try {
-                addressCache.addAll(object.getIncomingLinks());
-                addressCache.addAll(object.getOutgoingLinks());
-            } finally {
-                lock.unlock();
+        try {
+            listener.linkDestroyed(LinkManager.this, LinkType.OUTGOING, address);
+        } catch (RuntimeException re) { // NOPMD
+            // do nothing
+        }
+    }
+    
+    private void internalAddOutgoingLink(A address, byte[] secret) {
+        lock.lock();
+        try {
+            if (incomingLinkManager.containsLink(address)) {
+                return;
             }
-            
-            if (object.isIncomingLinksFull()) {
+            if (outgoingLinkManager.containsLink(address)) {
                 return;
             }
 
-            UnstructuredServiceAsync<A> service = rpc.accessService(address, UnstructuredService.SERVICE_ID, UnstructuredService.class,
-                    UnstructuredServiceAsync.class);
-            
-            switch (nextCall) {
-                case JOIN: {
-                    service.join(new JoinResultListener(address, ByteBuffer.wrap(secret)), secret);
-                    break;
-                }
-                case KEEPALIVE: {
-                    service.keepAlive(new KeepAliveListener(address), secret);
-                    break;
-                }
-                default:
-                    throw new IllegalStateException();
+            boolean added = outgoingLinkManager.addLink(System.currentTimeMillis(), address, ByteBuffer.wrap(secret));
+            if (!added) {
+                return;
             }
-        }
-    }
 
-    private final class JoinResultListener extends AsyncResultAdapter<Boolean> {
-        private A address;
-        private ByteBuffer secret;
-
-        public JoinResultListener(A address, ByteBuffer secret) {
-            this.address = address;
-            this.secret = secret;
+            addressCache.add(address);
+        } finally {
+            lock.unlock();
         }
 
-        @Override
-        public void invokationReturned(Boolean object) {
-            Validate.notNull(object);
-            
-            if (object) {
-                lock.lock();
-                try {
-                    if (incomingLinkManager.containsLink(address)) {
-                        return;
-                    }
-                    if (outgoingLinkManager.containsLink(address)) {
-                        return;
-                    }
-
-                    boolean added = outgoingLinkManager.addLink(System.currentTimeMillis(), address, secret);
-                    if (!added) {
-                        return;
-                    }
-                    
-                    addressCache.add(address);
-                } finally {
-                    lock.unlock();
-                }
-                
-                try {
-                    listener.linkCreated(LinkManager.this, LinkType.OUTGOING, address);
-                } catch (RuntimeException re) { // NOPMD
-                    // do nothing
-                }
-            }
+        try {
+            listener.linkCreated(LinkManager.this, LinkType.OUTGOING, address);
+        } catch (RuntimeException re) { // NOPMD
+            // do nothing
         }
     }
     
-    private enum NextCall {
-        JOIN,
-        KEEPALIVE
+    private void invokeKeepAlive(final UnstructuredServiceAsync<A> service, final A address, final byte[] secret) {
+        InvokationChainBuilder builder = new InvokationChainBuilder();
+        
+        builder.addStep(new InvokationChainStep() {
+
+            @Override
+            public void doInvoke(AsyncResultListener resultListener) {
+                service.getState(resultListener);
+            }
+        });
+        
+        builder.addStep(new InvokationChainStep() {
+
+            @Override
+            public void doInvoke(AsyncResultListener resultListener) {
+                service.keepAlive(resultListener, secret);
+            }
+        });
+        
+        builder.setErrorHandler(new InvokationChainStepErrorHandler() {
+
+            @Override
+            public ErrorOperation handleError(InvokationChainStep step, int stepIndex, ErrorType type, Object error) {
+                internalRemoveOutgoingLink(address);
+                return ErrorOperation.STOP;
+            }
+        });
+        
+        builder.setResultHandler(new InvokationChainStepResultHandler() {
+
+            @Override
+            public boolean handleResult(InvokationChainStep step, int stepIndex, Object result) {
+                if (stepIndex == 0) {
+                    internalAddToAddressCache((State<A>) result);
+                } else if (stepIndex == 1) {
+                    Boolean keptAlive = (Boolean) result;
+                    
+                    if (keptAlive) {
+                        internalUpdateOutgoingLink(address);
+                    } else {
+                        internalRemoveOutgoingLink(address);
+                    }
+                }
+                return true;
+            }
+            
+        });
+        
+        builder.build().start();
+    }
+    
+    private void invokeJoin(final UnstructuredServiceAsync<A> service, final A address, final byte[] secret) {
+        InvokationChainBuilder builder = new InvokationChainBuilder();
+        
+        builder.addStep(new InvokationChainStep() {
+
+            @Override
+            public void doInvoke(AsyncResultListener resultListener) {
+                service.getState(resultListener);
+            }
+        });
+        
+        builder.addStep(new InvokationChainStep() {
+
+            @Override
+            public void doInvoke(AsyncResultListener resultListener) {
+                service.join(resultListener, secret);
+            }
+        });
+        
+        builder.setResultHandler(new InvokationChainStepResultHandler() {
+
+            @Override
+            public boolean handleResult(InvokationChainStep step, int stepIndex, Object result) {
+                if (stepIndex == 0) {
+                    internalAddToAddressCache((State<A>) result);
+                } else if (stepIndex == 1) {
+                    Validate.notNull(result);
+
+                    if ((Boolean) result) {
+                        internalAddOutgoingLink(address, secret);
+                    }
+                }
+                return true;
+            }
+            
+        });
+        
+        builder.build().start();
     }
 }

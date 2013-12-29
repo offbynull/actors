@@ -16,7 +16,9 @@
  */
 package com.offbynull.peernetic.rpc.invoke;
 
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
 import com.offbynull.peernetic.rpc.invoke.Deserializer.DeserializerResult;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Map;
@@ -63,7 +65,7 @@ public final class AsyncCapturer<T, AT> {
     private Deserializer deserializer;
 
     /**
-     * Constructs a {@link AsyncCapturer} object with {@link XStreamBinarySerializerDeserializer} for serialization.
+     * Constructs a {@link AsyncCapturer} object with {@link XStreamSerializer} for serialization.
      * @param cls proxy type
      * @param asyncCls proxy async type
      * @throws NullPointerException if any arguments are {@code null}
@@ -71,8 +73,8 @@ public final class AsyncCapturer<T, AT> {
      */
     public AsyncCapturer(Class<T> cls, Class<AT> asyncCls) {
         this(cls, asyncCls,
-                new XStreamBinarySerializerDeserializer(),
-                new XStreamBinarySerializerDeserializer());
+                new XStreamSerializer(),
+                new XStreamDeserializer());
     }
 
     /**

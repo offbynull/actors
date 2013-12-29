@@ -16,7 +16,9 @@
  */
 package com.offbynull.peernetic.rpc.invoke;
 
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
 import com.offbynull.peernetic.rpc.invoke.Deserializer.DeserializerResult;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import net.sf.cglib.proxy.Enhancer;
@@ -38,14 +40,14 @@ public final class Capturer<T> {
     private Deserializer deserializer;
 
     /**
-     * Constructs a {@link Capturer} object with {@link XStreamBinarySerializerDeserializer} for serialization.
+     * Constructs a {@link Capturer} object with {@link XStreamSerializer} for serialization.
      * @param cls class type to proxy
      * @throws NullPointerException if any arguments are {@code null}
      */
     public Capturer(Class<T> cls) {
         this(cls,
-                new XStreamBinarySerializerDeserializer(),
-                new XStreamBinarySerializerDeserializer());
+                new XStreamSerializer(),
+                new XStreamDeserializer());
     }
 
     /**

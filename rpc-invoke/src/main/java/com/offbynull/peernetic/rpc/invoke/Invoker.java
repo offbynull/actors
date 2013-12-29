@@ -16,6 +16,9 @@
  */
 package com.offbynull.peernetic.rpc.invoke;
 
+import com.offbynull.peernetic.rpc.invoke.filters.sanity.AvoidObjectInvokeFilter;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -44,15 +47,16 @@ public final class Invoker implements Closeable {
 
 
     /**
-     * Constructs an {@link Invoker} object with {@link XStreamBinarySerializerDeserializer} for serialization.
+     * Constructs an {@link Invoker} object with {@link XStreamSerializer} / {@link XStreamDeserializer} for serialization and
+     * {@link AvoidObjectInvokeFilter} as a filter.
      * @param object object to invoke on
      * @param executor executor to use for invokations
      * @throws NullPointerException if {@code object} is {@code null}
      */
     public Invoker(Object object, ExecutorService executor) {
         this(object, executor,
-                new XStreamBinarySerializerDeserializer(),
-                new XStreamBinarySerializerDeserializer(),
+                new XStreamSerializer(),
+                new XStreamDeserializer(),
                 new AvoidObjectInvokeFilter());
     }
     

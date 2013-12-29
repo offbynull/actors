@@ -14,24 +14,44 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke;
+package com.offbynull.peernetic.rpc.invoke.serializers.xstream;
 
+import com.offbynull.peernetic.rpc.invoke.InvokeData;
+import com.offbynull.peernetic.rpc.invoke.SerializationType;
+import com.offbynull.peernetic.rpc.invoke.Serializer;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A serializer/deserializer that uses XStream.
+ * A serializer that uses XStream. Result can be deserialized with {@link XStreamBinaryDeserializer}.
  * @author Kasra Faghihi
  */
-public final class XStreamBinarySerializerDeserializer implements Serializer, Deserializer {
+public final class XStreamSerializer implements Serializer {
+
+    private XStream xstream;
     
-    private XStream xstream = new XStream(new BinaryStreamDriver());
+    /**
+     * Constructs a {@link XStreamBinarySerializer} using XStream's {@link BinaryStreamDriver}.
+     */
+    public XStreamSerializer() {
+        this(new XStream(new BinaryStreamDriver()));
+    }
+
+    /**
+     * Constructs a {@link XStreamBinarySerializer}.
+     * @param xstream xstream object
+     * @throws NullPointerException
+     */
+    public XStreamSerializer(XStream xstream) {
+        Validate.notNull(xstream);
+        this.xstream = xstream;
+    }
 
     @Override
     public byte[] serializeMethodCall(InvokeData invokeData) {
+        Validate.notNull(invokeData);
         return serialize(SerializationType.METHOD_CALL, invokeData);
     }
 
@@ -42,42 +62,20 @@ public final class XStreamBinarySerializerDeserializer implements Serializer, De
 
     @Override
     public byte[] serializeMethodThrow(Throwable err) {
+        Validate.notNull(err);
         return serialize(SerializationType.METHOD_THROW, err);
     }
     
     private byte[] serialize(SerializationType type, Object obj) {
         Validate.notNull(type);
         
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.write(type.ordinal());
-        xstream.toXML(obj, os);
-        return os.toByteArray();
-    }
-    
-    @Override
-    public DeserializerResult deserialize(byte[] data) {
-        ByteArrayInputStream is = new ByteArrayInputStream(data);
-        int ordinal = is.read();
-        SerializationType type = SerializationType.values()[ordinal];
-        Object obj = xstream.fromXML(is);
-        
-        switch (type) {
-            case METHOD_CALL:
-                if (!(obj instanceof InvokeData)) {
-                    throw new IllegalArgumentException("Inconsistent type");
-                }
-                break;
-            case METHOD_RETURN:
-                break;
-            case METHOD_THROW:
-                if (!(obj instanceof Throwable)) {
-                    throw new IllegalArgumentException("Inconsistent type");
-                }
-                break;
-            default:
-                throw new IllegalArgumentException();
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            os.write(type.ordinal());
+            xstream.toXML(obj, os);
+            return os.toByteArray();
+        } catch (RuntimeException re) {
+            throw new IllegalStateException(re);
         }
-        
-        return new DeserializerResult(type, obj);
     }
 }

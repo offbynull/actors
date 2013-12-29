@@ -14,8 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke;
+package com.offbynull.peernetic.rpc.invoke.filters.sanity;
 
+import com.offbynull.peernetic.rpc.invoke.InvokeData;
+import com.offbynull.peernetic.rpc.invoke.InvokeFilter;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;

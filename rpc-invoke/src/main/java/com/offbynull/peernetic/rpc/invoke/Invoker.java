@@ -21,9 +21,10 @@ import java.util.Map;
 
 /**
  * Invokes methods on an object based on serialized data. See {@link Capturer}.
+ * @param <T> type
  * @author Kasra Faghihi
  */
-public interface Invoker extends Closeable {
+public interface Invoker<T> extends Closeable {
 
     /**
      * Invoke a method.

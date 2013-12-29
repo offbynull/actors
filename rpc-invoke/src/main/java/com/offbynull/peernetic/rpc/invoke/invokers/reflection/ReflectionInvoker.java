@@ -43,9 +43,10 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 /**
  * Invokes methods on an object based on serialized data using Java reflections. Optionally allows the invokations to get executed through a
  * user-defined {@link ExecutorService}.
+ * @param <T> type
  * @author Kasra Faghihi
  */
-public final class ReflectionInvoker implements Invoker {
+public final class ReflectionInvoker<T> implements Invoker<T> {
 
     private Object object;
     private ExecutorService executor;
@@ -61,7 +62,7 @@ public final class ReflectionInvoker implements Invoker {
      * @param executor executor to use for invokations
      * @throws NullPointerException if {@code object} is {@code null}
      */
-    public ReflectionInvoker(Object object, ExecutorService executor) {
+    public ReflectionInvoker(T object, ExecutorService executor) {
         this(object, executor,
                 new XStreamSerializer(),
                 new XStreamDeserializer(),
@@ -78,7 +79,7 @@ public final class ReflectionInvoker implements Invoker {
      * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any collection element is
      * {@code null}
      */
-    public ReflectionInvoker(Object object, ExecutorService executor,
+    public ReflectionInvoker(T object, ExecutorService executor,
             Serializer serializer, Deserializer deserializer, InvokeFilter ... filters) {
         Validate.notNull(object);
         Validate.notNull(serializer);

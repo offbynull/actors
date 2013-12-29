@@ -16,7 +16,7 @@
  */
 
 /**
- * Service that asks another client to perform some heuristic tests to see if you're behind a NAT. Only works with UDP and TCP.
+ * Service that pings another client.
  */
 
-package com.offbynull.peernetic.rpc.common.services.nat;
+package com.offbynull.peernetic.rpc.services.ping;

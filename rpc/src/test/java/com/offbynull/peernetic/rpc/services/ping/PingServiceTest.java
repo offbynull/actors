@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.services.ping;
+package com.offbynull.peernetic.rpc.services.ping;
 
 import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.common.services.ping.PingCallable;
-import com.offbynull.peernetic.rpc.common.services.ping.PingService;
-import com.offbynull.peernetic.rpc.common.services.ping.PingServiceImplementation;
+import com.offbynull.peernetic.rpc.services.ping.PingCallable;
+import com.offbynull.peernetic.rpc.services.ping.PingService;
+import com.offbynull.peernetic.rpc.services.ping.PingServiceImplementation;
 import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
 import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
 import junit.framework.Assert;

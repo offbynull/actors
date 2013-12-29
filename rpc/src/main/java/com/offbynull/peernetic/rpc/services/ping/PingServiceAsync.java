@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.common.services.ping;
+package com.offbynull.peernetic.rpc.services.ping;
 
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 

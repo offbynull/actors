@@ -15,7 +15,7 @@
  * License along with this library.
  */
 
-package com.offbynull.peernetic.rpc.common.services.ping;
+package com.offbynull.peernetic.rpc.services.ping;
 
 /**
  * Ping service.

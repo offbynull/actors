@@ -13,15 +13,14 @@
     
     <modules>
         <module>build-tools</module>
+        <module>common</module>
         <module>rpc</module>
-        <module>rpc-common</module>
+        <module>rpc-transport</module>
+        <module>rpc-invoke</module>
         <module>overlay-common</module>
         <module>overlay-unstructured</module>
         <module>overlay-chord</module>
         <module>demo</module>
-        <module>common</module>
-        <module>rpc-transport</module>
-        <module>rpc-invoke</module>
     </modules>
     
     <dependencyManagement>

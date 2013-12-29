@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.services.nat;
+package com.offbynull.peernetic.rpc.services.nat;
 
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.RpcConfig;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperCallable;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperService;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperServiceImplementation;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperCallable;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperService;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperServiceImplementation;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
 import java.net.InetSocketAddress;
 import junit.framework.Assert;
@@ -68,7 +68,7 @@ public class NatHelperServiceTest {
    @Test
    public void checkForNatTest() throws Throwable {
        NatHelperCallable callable = new NatHelperCallable(client, 40990, new InetSocketAddress("localhost", 40991));
-        com.offbynull.peernetic.rpc.common.services.nat.NatHelperCallable.Result result = callable.call();
+        com.offbynull.peernetic.rpc.services.nat.NatHelperCallable.Result result = callable.call();
        
        Assert.assertTrue(result.getExposedAddress().getAddress().isLoopbackAddress()); // this may not always be true, depends on system?
        Assert.assertTrue(result.isAccessibleTcp());

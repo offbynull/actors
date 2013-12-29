@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.common.services.nat;
+package com.offbynull.peernetic.rpc.services.nat;
 
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperService.ConnectionType;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperService.TestPortResult;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperService.ConnectionType;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperService.TestPortResult;
 
 /**
  * Async {@link NatHelperService}.

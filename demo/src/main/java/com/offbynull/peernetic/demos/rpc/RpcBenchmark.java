@@ -18,9 +18,9 @@ package com.offbynull.peernetic.demos.rpc;
 
 import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.common.services.ping.PingService;
-import com.offbynull.peernetic.rpc.common.services.ping.PingServiceAsync;
-import com.offbynull.peernetic.rpc.common.services.ping.PingServiceImplementation;
+import com.offbynull.peernetic.rpc.services.ping.PingService;
+import com.offbynull.peernetic.rpc.services.ping.PingServiceAsync;
+import com.offbynull.peernetic.rpc.services.ping.PingServiceImplementation;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
 import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;

@@ -14,17 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.common.services.ping;
 
 /**
- * Ping service implementation.
- * @author Kasra Faghihi
+ * Service that asks another client to perform some heuristic tests to see if you're behind a NAT. Only works with UDP and TCP.
  */
-public final class PingServiceImplementation implements PingService {
 
-    @Override
-    public long ping(long value) {
-        return value;
-    }
-    
-}
+package com.offbynull.peernetic.rpc.services.nat;

@@ -14,9 +14,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.rpc.services.ping;
 
 /**
- * Service that pings another client.
+ * Ping service implementation.
+ * @author Kasra Faghihi
  */
+public final class PingServiceImplementation implements PingService {
 
-package com.offbynull.peernetic.rpc.common.services.ping;
+    @Override
+    public long ping(long value) {
+        return value;
+    }
+    
+}

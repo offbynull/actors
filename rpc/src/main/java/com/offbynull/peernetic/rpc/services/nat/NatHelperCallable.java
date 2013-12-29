@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.common.services.nat;
+package com.offbynull.peernetic.rpc.services.nat;
 
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
@@ -28,8 +28,8 @@ import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperService.ConnectionType;
-import com.offbynull.peernetic.rpc.common.services.nat.NatHelperCallable.Result;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperService.ConnectionType;
+import com.offbynull.peernetic.rpc.services.nat.NatHelperCallable.Result;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

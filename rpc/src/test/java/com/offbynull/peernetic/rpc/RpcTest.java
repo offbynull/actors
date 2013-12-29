@@ -1,10 +1,6 @@
 package com.offbynull.peernetic.rpc;
 
-import com.offbynull.peernetic.rpc.RpcInvokeKeys;
-import com.offbynull.peernetic.rpc.ListerService;
-import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.ListerServiceAsync;
-import com.offbynull.peernetic.rpc.TcpTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;
 import java.net.InetSocketAddress;

@@ -21,3 +21,6 @@
 /overlay-gui-visualizer/target/
 /overlay-common/target/
 /overlay-chord/target/
+/rpc-transport/target/
+/rpc-invoke/target/
+/common/target/

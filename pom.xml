@@ -20,6 +20,8 @@
         <module>overlay-chord</module>
         <module>demo</module>
         <module>common</module>
+        <module>rpc-transport</module>
+        <module>rpc-invoke</module>
     </modules>
     
     <dependencyManagement>
@@ -71,6 +73,16 @@
                 <artifactId>jgraphx</artifactId>
                 <version>2.0.0.1</version>
                 <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>3.17.1-GA</version>
+            </dependency>
+            <dependency>
+                <groupId>cglib</groupId>
+                <artifactId>cglib-nodep</artifactId>
+                <version>2.2.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

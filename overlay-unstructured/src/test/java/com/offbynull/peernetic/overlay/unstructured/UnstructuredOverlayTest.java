@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.rpc.TestTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.transports.test.TestHub;
-import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
 import java.io.IOException;
 import org.junit.After;
 import org.junit.AfterClass;

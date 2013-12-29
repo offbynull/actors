@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.demos.transport;
 
-import com.offbynull.peernetic.rpc.TestTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
@@ -29,9 +29,9 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transports.test.TestHub;
-import com.offbynull.peernetic.rpc.transports.test.TestTransport;
-import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransport;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;

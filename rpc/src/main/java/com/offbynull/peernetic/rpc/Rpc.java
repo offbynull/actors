@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.rpc;
 
+import com.offbynull.peernetic.rpc.transport.TransportFactory;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;

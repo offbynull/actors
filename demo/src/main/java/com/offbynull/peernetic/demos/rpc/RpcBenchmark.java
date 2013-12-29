@@ -16,15 +16,15 @@
  */
 package com.offbynull.peernetic.demos.rpc;
 
-import com.offbynull.peernetic.rpc.TestTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.common.services.ping.PingService;
 import com.offbynull.peernetic.rpc.common.services.ping.PingServiceAsync;
 import com.offbynull.peernetic.rpc.common.services.ping.PingServiceImplementation;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
-import com.offbynull.peernetic.rpc.transports.test.TestHub;
-import com.offbynull.peernetic.rpc.transports.test.TestTransport;
-import com.offbynull.peernetic.rpc.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransport;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

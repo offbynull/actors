@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.demos.transport;
 
-import com.offbynull.peernetic.rpc.TcpTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
@@ -29,7 +29,7 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transports.tcp.TcpTransport;
+import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;

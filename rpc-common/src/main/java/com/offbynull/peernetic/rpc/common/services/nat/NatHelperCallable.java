@@ -17,9 +17,9 @@
 package com.offbynull.peernetic.rpc.common.services.nat;
 
 import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.TcpTransportFactory;
-import com.offbynull.peernetic.rpc.TransportFactory;
-import com.offbynull.peernetic.rpc.UdpTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
+import com.offbynull.peernetic.rpc.transport.TransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransportFactory;
 import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;

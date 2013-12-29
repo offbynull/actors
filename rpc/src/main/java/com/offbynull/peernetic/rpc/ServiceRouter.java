@@ -19,6 +19,7 @@ package com.offbynull.peernetic.rpc;
 import static com.offbynull.peernetic.rpc.ListerService.SERVICE_ID;
 import com.offbynull.peernetic.rpc.invoke.Invoker;
 import com.offbynull.peernetic.rpc.invoke.InvokerListener;
+import com.offbynull.peernetic.rpc.invoke.invokers.reflection.ReflectionInvoker;
 import com.offbynull.peernetic.rpc.transport.IncomingMessage;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
@@ -120,7 +121,7 @@ final class ServiceRouter<A> {
         public ServiceEntry(int id, Object object) {
             this.id = id;
             this.object = object;
-            invoker = new Invoker(object, executorService);
+            invoker = new ReflectionInvoker(object, executorService);
         }
 
         public int getId() {

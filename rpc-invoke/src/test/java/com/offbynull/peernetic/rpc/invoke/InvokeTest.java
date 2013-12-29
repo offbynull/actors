@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.rpc.invoke;
 
+import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibCapturer;
+import com.offbynull.peernetic.rpc.invoke.invokers.reflection.ReflectionInvoker;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -127,8 +129,8 @@ public final class InvokeTest {
 
     private FakeObject generateStub(FakeObject obj, final AtomicBoolean failFlag,
             final Map<? extends Object, ? extends Object> invokeInfo) {
-        final Invoker invoker = new Invoker(obj, Executors.newFixedThreadPool(1));
-        Capturer<FakeObject> capturer = new Capturer<>(FakeObject.class);
+        final ReflectionInvoker invoker = new ReflectionInvoker(obj, Executors.newFixedThreadPool(1));
+        CglibCapturer<FakeObject> capturer = new CglibCapturer<>(FakeObject.class);
         
         FakeObject client = capturer.createInstance(new CapturerHandler() {
 

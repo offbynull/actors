@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.rpc.invoke;
 
+import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibAsyncCapturer;
+import com.offbynull.peernetic.rpc.invoke.invokers.reflection.ReflectionInvoker;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -264,8 +266,8 @@ public final class AsyncInvokeTest {
     
     private FakeObjectAsync generateAsyncStub(FakeObject obj, final AtomicBoolean failFlag,
             final Map<? extends Object, ? extends Object> invokeInfo) {
-        final Invoker invoker = new Invoker(obj, Executors.newFixedThreadPool(1));
-        AsyncCapturer<FakeObject, FakeObjectAsync> capturer = new AsyncCapturer<>(FakeObject.class, FakeObjectAsync.class);
+        final ReflectionInvoker invoker = new ReflectionInvoker(obj, Executors.newFixedThreadPool(1));
+        CglibAsyncCapturer<FakeObject, FakeObjectAsync> capturer = new CglibAsyncCapturer<>(FakeObject.class, FakeObjectAsync.class);
         
         FakeObjectAsync client = capturer.createInstance(new AsyncCapturerHandler() {
 
@@ -306,8 +308,8 @@ public final class AsyncInvokeTest {
     private <T, AT, ST> AT generateWiredAsyncStub(Class<T> type, Class<AT> asyncType, Object server,
             final AtomicBoolean failFlag,
             final Map<? extends Object, ? extends Object> invokeInfo) {
-        final Invoker invoker = new Invoker(server, Executors.newFixedThreadPool(1));
-        AsyncCapturer<T, AT> capturer = new AsyncCapturer<>(type, asyncType);
+        final ReflectionInvoker invoker = new ReflectionInvoker(server, Executors.newFixedThreadPool(1));
+        CglibAsyncCapturer<T, AT> capturer = new CglibAsyncCapturer<>(type, asyncType);
         
         AT client = capturer.createInstance(new AsyncCapturerHandler() {
 

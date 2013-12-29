@@ -21,6 +21,8 @@ import com.offbynull.peernetic.rpc.invoke.AsyncCapturerHandler;
 import com.offbynull.peernetic.rpc.invoke.AsyncCapturerHandlerCallback;
 import com.offbynull.peernetic.rpc.invoke.Capturer;
 import com.offbynull.peernetic.rpc.invoke.CapturerHandler;
+import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibAsyncCapturer;
+import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibCapturer;
 import com.offbynull.peernetic.rpc.transport.IncomingResponse;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
@@ -46,7 +48,7 @@ final class ServiceAccessor<A> {
         Validate.notNull(throwOnInvokeFailure);
         
         
-        Capturer<T> capturer = new Capturer<>(type);
+        Capturer<T> capturer = new CglibCapturer<>(type);
         T obj = capturer.createInstance(new CapturerHandler() {
 
             @Override
@@ -91,7 +93,7 @@ final class ServiceAccessor<A> {
         Validate.notNull(throwOnInvokeFailure);
         
         
-        AsyncCapturer<T, AT> capturer = new AsyncCapturer<>(type, asyncType);
+        AsyncCapturer<T, AT> capturer = new CglibAsyncCapturer<>(type, asyncType);
         AT obj = capturer.createInstance(new AsyncCapturerHandler() {
 
             @Override

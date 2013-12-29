@@ -32,20 +32,20 @@ public final class InvokeThreadInformation {
     }
     
     /**
-     * Sets the extra data for the current thread.
+     * Sets the extra data for the current thread. Don't touch if you don't know what you're doing.
      * @param info extra data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    static void setInvokeThreadInfo(Map<Object, Object> info) {
+    public static void setInvokeThreadInfo(Map<Object, Object> info) {
         Validate.notNull(info);
 
         tls.set(Collections.unmodifiableMap(info));
     }
     
     /**
-     * Removes the extra data for the current thread.
+     * Removes the extra data for the current thread.  Don't touch if you don't know what you're doing.
      */
-    static void removeInvokeThreadInfo() {
+    public static void removeInvokeThreadInfo() {
         tls.remove();
     }
 

@@ -24,12 +24,26 @@ import java.util.Map;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
 
-final class CapturerUtils {
+/**
+ * Utility class that allows {@link Capturer} and {@link AsyncCapturer} implementations to perform sanity checks on interfaces and classes .
+ * @author User
+ */
+public final class CapturerUtils {
 
     private CapturerUtils() {
         // Do nothing
     }
 
+    /**
+     * Map the methods from an async interface to a normal interface.
+     * @param <T> type
+     * @param <AT> async type
+     * @param normalClass normal class
+     * @param asyncClass async class
+     * @return returns a {@link Map} where the keys are methods in the async class and the values are the matching methods in the normal
+     * class
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public static <T, AT> Map<Method, Method> mapAsyncInterfaceToNormalClass(Class<T> normalClass, Class<AT> asyncClass) {
         Validate.isTrue(asyncClass.isInterface(), "Async type must be interface");
         
@@ -46,6 +60,17 @@ final class CapturerUtils {
         return methodMap;
     }
     
+    /**
+     * Finds the method in the normal class that matches a method in the async class.
+     * @param <T> type
+     * @param <AT> async type
+     * @param normalClass normal class
+     * @param asyncClass async class
+     * @param asyncMethod method to find normal equivalent for
+     * @return method from {@code normalClass} that matches {@code asyncMethod}
+     * @throws IllegalArgumentException if {@code asyncMethod} is not in {@code normalClass}
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public static <T, AT> Method matchSyncMethodForAsyncMethod(Class<T> normalClass, Class<AT> asyncClass, Method asyncMethod) {
         Validate.isTrue(ClassUtils.isAssignable(asyncClass, asyncMethod.getDeclaringClass()),
                 "Async class doesn't match async method class");
@@ -65,6 +90,13 @@ final class CapturerUtils {
         return syncMethod;
     }
     
+    /**
+     * Validates a method in an async class to make sure that it's public, it returns void, and its first parameter is a
+     * {@link AsyncResultListener} (meaning that it must have at least 1 parameter).
+     * @param method method to check
+     * @throws IllegalArgumentException if not valid (see method description).
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public static void validateAsyncMethod(Method method) {
         Validate.isTrue(Modifier.isPublic(method.getModifiers()), "Async method must be public");
         Validate.isTrue(method.getReturnType() == Void.TYPE, "Async method return type must be void");
@@ -76,6 +108,14 @@ final class CapturerUtils {
             "Async method first parameter must be " + AsyncResultListener.class.getSimpleName());
     }
 
+    /**
+     * Validates that an object fits as a method's return type.
+     * @param method method to check against
+     * @param result object to check
+     * @throws IllegalArgumentException if there's a mis-match between primitive/object types, if the types aren't assignable, or if the
+     * return type is void but the return value is non-null
+     * @throws NullPointerException if {@code method} is {@code null}
+     */
     public static void validateReturn(Method method, Object result) {
         Class<?> returnType = method.getReturnType();
 
@@ -87,6 +127,14 @@ final class CapturerUtils {
         }
     }
 
+    /**
+     * Validates that a throwable fits as a throwable that a method could send.
+     * @param method method to check against
+     * @param throwable throwable to check
+     * @throws IllegalArgumentException if {@code throwable} isn't of type {@link RuntimeException} and isn't assignable as one of the 
+     * declared type in {@code method}
+     * @throws NullPointerException if {@code method} is {@code null}
+     */
     public static void validateThrowable(Method method, Object throwable) {
         Validate.notNull(throwable, "null is not throwable");
 

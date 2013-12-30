@@ -6,12 +6,7 @@ public final class Main {
     public static final void main(String[] args) throws Throwable {
 
         
-        Service serviceThread = new Service() {
-
-            @Override
-            protected boolean triggerStop() {
-                return false;
-            }
+        Service serviceThread = new Service("New Service!", true) {
 
             @Override
             protected void onStop() throws Exception {

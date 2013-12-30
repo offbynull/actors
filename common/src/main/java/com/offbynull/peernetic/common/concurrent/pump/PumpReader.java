@@ -1,9 +1,8 @@
 package com.offbynull.peernetic.common.concurrent.pump;
 
-import java.io.Closeable;
-import java.util.Collection;
-import java.util.concurrent.TimeUnit;
+import java.io.IOException;
+import java.util.Iterator;
 
-public interface PumpReader<T> extends Closeable {
-    Collection<T> pull(long timeout, TimeUnit unit) throws InterruptedException;
+public interface PumpReader<T> {
+    Iterator<T> pull(long timeout) throws InterruptedException, IOException;
 }

@@ -1,7 +1,10 @@
 package com.offbynull.peernetic.common.concurrent.lifecycle;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public final class LifeCycleRunnable implements Runnable {
 
+    private AtomicBoolean consumed;
     private LifeCycle service;
 
     public LifeCycleRunnable(LifeCycle service) {
@@ -10,10 +13,15 @@ public final class LifeCycleRunnable implements Runnable {
         }
 
         this.service = service;
+        consumed = new AtomicBoolean();
     }
 
     @Override
     public void run() {
+        if (consumed.getAndSet(true)) {
+            throw new IllegalStateException();
+        }
+
         LifeCycleListener listener = null;
         try {
             listener = service.getListener();

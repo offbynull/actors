@@ -1,13 +1,28 @@
 package com.offbynull.peernetic.common.concurrent.lifecycle;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class LifeCycleCallable implements Callable<Void> {
 
+    private AtomicBoolean consumed;
     private LifeCycle service;
+
+    public LifeCycleCallable(LifeCycle service) {
+        if (service == null) {
+            throw new NullPointerException();
+        }
+
+        this.service = service;
+        consumed = new AtomicBoolean();
+    }
 
     @Override
     public Void call() throws Exception {
+        if (consumed.getAndSet(true)) {
+            throw new IllegalStateException();
+        }
+
         LifeCycleListener listener = null;
         try {
             listener = service.getListener();

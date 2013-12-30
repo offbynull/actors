@@ -1,10 +1,19 @@
 package com.offbynull.peernetic.common.concurrent.service;
 
-public interface StepService {
-    void setListener(ServiceListener listener);
-    ServiceListener getListener();
-    void onStart() throws Exception;
-    boolean onStep() throws Exception;
-    void onStop() throws Exception;
-    void triggerStop();
+public class StepService extends Service {
+
+    @Override
+    protected final void onProcess() throws Exception {
+    }
+
+    protected void onStepStart() {
+    }
+    
+    protected long onStep(long timestamp, Object message) {
+        return 0L;
+    }
+    
+    protected void onStepStop() {
+        
+    }
 }

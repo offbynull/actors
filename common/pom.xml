@@ -21,6 +21,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <artifactId>commons-lang3</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

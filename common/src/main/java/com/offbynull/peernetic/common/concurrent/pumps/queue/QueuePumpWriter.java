@@ -17,7 +17,9 @@
 package com.offbynull.peernetic.common.concurrent.pumps.queue;
 
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -38,5 +40,10 @@ final class QueuePumpWriter<T> implements PumpWriter<T> {
         Validate.noNullElements(data);
         
         queue.add(Collections.unmodifiableList(new ArrayList<>(data)).iterator());
+    }
+
+    @Override
+    public void push(T... data) throws InterruptedException, IOException {
+        push(Arrays.asList(data));
     }
 }

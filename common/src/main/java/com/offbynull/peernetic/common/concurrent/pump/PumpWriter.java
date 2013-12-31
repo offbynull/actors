@@ -34,4 +34,14 @@ public interface PumpWriter<T> {
      * @throws IllegalStateException may be thrown if the underlying mechanism used by the pump has been closed / is not available
      */
     void push(Collection<T> data) throws InterruptedException, IOException;
+
+    /**
+     * Writes messages to a message pump.
+     * @param data messages to write
+     * @throws InterruptedException if interrupted (only thrown in underlying implementation can block)
+     * @throws IOException if something went wrong while sending messages
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalStateException may be thrown if the underlying mechanism used by the pump has been closed / is not available
+     */
+    void push(T ... data) throws InterruptedException, IOException;
 }

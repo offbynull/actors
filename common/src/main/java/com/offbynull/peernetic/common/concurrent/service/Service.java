@@ -111,7 +111,7 @@ public abstract class Service {
      * @throws InterruptedException if this thread was interrupted while waiting
      * @throws IllegalStateException if this service has already been run once, or if the service failed during startup
      */
-    public final void startAndWait() throws InterruptedException {
+    public final void start() throws InterruptedException {
         Validate.validState(retainStateListener.getState() == null);
         
         lock.lock();
@@ -134,7 +134,7 @@ public abstract class Service {
      * @throws InterruptedException if this thread was interrupted while waiting
      * @throws IllegalStateException if this service has already been run once, if it has already been stopped, or if it hasn't been run yet
      */
-    public final void stopAndWait() throws InterruptedException {
+    public final void stop() throws InterruptedException {
         Validate.validState(retainStateListener.getState() != null);
         
         lock.lock();

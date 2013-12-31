@@ -54,7 +54,7 @@ public final class Main {
 
         };
 
-        serviceThread.startAndWait();
-        serviceThread.stopAndWait();
+        serviceThread.start();
+        serviceThread.stop();
     }
 }

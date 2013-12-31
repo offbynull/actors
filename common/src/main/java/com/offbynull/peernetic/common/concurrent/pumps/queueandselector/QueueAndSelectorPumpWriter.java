@@ -17,8 +17,10 @@
 package com.offbynull.peernetic.common.concurrent.pumps.queueandselector;
 
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
+import java.io.IOException;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -44,5 +46,10 @@ final class QueueAndSelectorPumpWriter<T> implements PumpWriter<T> {
         
         queue.add(Collections.unmodifiableList(new ArrayList<>(data)).iterator());
         selector.wakeup();
+    }
+
+    @Override
+    public void push(T... data) throws InterruptedException, IOException {
+        push(Arrays.asList(data));
     }
 }

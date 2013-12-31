@@ -14,17 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.common.concurrent.lifecycle;
 
 /**
- * Listens for changes in the execution of a {@link LifeCycle} instance.
- * @author Kasra Faghihi
+ * Abstract classes that should be extended by any class whose instances are to be executed in their own thread. Like {@code LifeCycle},
+ * these class provides methods for start-up and shutdown phases.
  */
-public interface LifeCycleListener {
-    /**
-     * Called each time the execution state changes.
-     * @param service instance that had its execution state changed
-     * @param state new execution state
-     */
-    void stateChanged(LifeCycle service, LifeCycleState state);
-}
+package com.offbynull.peernetic.common.concurrent.service;

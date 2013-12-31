@@ -1,19 +1,48 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.common.concurrent.service;
 
 
 import com.offbynull.peernetic.common.concurrent.lifecycle.LifeCycleRunnable;
-import com.offbynull.peernetic.common.concurrent.lifecycle.LifeCycleAdapter;
 import com.offbynull.peernetic.common.concurrent.lifecycle.LifeCycle;
 import com.offbynull.peernetic.common.concurrent.lifecycle.BlockingLifeCycleListener;
 import com.offbynull.peernetic.common.concurrent.lifecycle.CompositeLifeCycleListener;
 import com.offbynull.peernetic.common.concurrent.lifecycle.LifeCycleState;
 import com.offbynull.peernetic.common.concurrent.lifecycle.RetainStateLifeCycleListener;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * {@link Service} is an abstract class that should be extended by any class whose instances are to be executed in their own thread. Like
+ * {@code LifeCycle}, this class provides methods for start-up and shutdown phases.
+ * <p/>
+ * Classes that extend this abstract should expect {@link #onStart(java.lang.Object...) } to get called first,
+ * then {@link #onProcess() }, then finally {@link #onStop() }. In the event of exceptions thrown by these methods...
+ * <ul>
+ * <li>If {@link #onStart(java.lang.Object...) } throws an exception, expect {@link #onProcess() } to be skipped.</li>
+ * <li>If {@link #onProcess() } throws an exception, expect to move on to {@link #onStop() }.</li>
+ * <li>The executing thread should complete regardless of if {@link #onStop() } throws an exception.</li>
+ * </ul>
+ * <p/>
+ * Implementations should be designed to run once. That is, subsequent runs of the same instance will encounter an exception.
+ * @author Kasra Faghihi
+ */
 public abstract class Service {
     private Thread thread;
     private LifeCycle lifeCycle;
@@ -21,11 +50,25 @@ public abstract class Service {
     private RetainStateLifeCycleListener retainStateListener;
     private ServiceStopTrigger stopTrigger;
     private Lock lock;
+    private boolean stopped;
 
+    /**
+     * Constructs a {@link Service} object. Default stop trigger used service thread.
+     * @param name thread name
+     * @param daemon thread daemon
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public Service(String name, boolean daemon) {
         initialize(name, daemon, new CustomServiceStopTrigger());
     }
-    
+
+    /**
+     * Constructs a {@link Service} object with a custom stop trigger.
+     * @param name thread name
+     * @param daemon thread daemon
+     * @param stopTrigger stop trigger
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public Service(String name, boolean daemon, ServiceStopTrigger stopTrigger) {
         initialize(name, daemon, stopTrigger);
     }
@@ -35,105 +78,114 @@ public abstract class Service {
         Validate.notNull(name);
         
         this.lifeCycle = new InternalLifeCycle();
-        this.thread = new Thread(new LifeCycleRunnable(lifeCycle));
         this.blockingListener = new BlockingLifeCycleListener();
         this.retainStateListener = new RetainStateLifeCycleListener();
+        this.thread = new Thread(new LifeCycleRunnable(lifeCycle, new CompositeLifeCycleListener(blockingListener, retainStateListener)));
         this.stopTrigger = stopTrigger;
         this.lock = new ReentrantLock();
         
         thread.setName(name);
         thread.setDaemon(daemon);
-        
-        lifeCycle.setListener(new CompositeLifeCycleListener(blockingListener, retainStateListener));
     }
     
-    public Thread getThread() {
+    /**
+     * Gets the thread used by this service.
+     * @return thread used by this service
+     */
+    public final Thread getThread() {
         return thread;
     }
 
-    public LifeCycleState getState() {
+    /**
+     * Get the state of this service.
+     * @return state of this service
+     */
+    public final LifeCycleState getState() {
         return retainStateListener.getState();
     }
 
-    public Future<Void> start() {
+    /**
+     * Start this service and wait until {@link #onStart(java.lang.Object...) } has completed or failed.
+     * @throws InterruptedException if this thread was interrupted while waiting
+     * @throws IllegalStateException if this service has already been run once, or if the service failed during startup
+     */
+    public final void startAndWait() throws InterruptedException {
+        Validate.validState(retainStateListener.getState() == null);
+        
         lock.lock();
-        
-        Validate.validState(retainStateListener.getState() == LifeCycleState.CREATED);
-        
         try {
             thread.start();
-            return blockingListener.awaitStarted();
+            try {
+                blockingListener.awaitStarted().get();
+            } catch (ExecutionException ee) { // NOPMD
+                // never happens
+            }
+            
+            Validate.validState(!retainStateListener.isFailed());
         } finally {
             lock.unlock();
         }
     }
-    
-    public Future<Void> stop() {
+
+    /**
+     * Triggers this service to stop and waits until {@link #onStop() } has completed or failed.
+     * @throws InterruptedException if this thread was interrupted while waiting
+     * @throws IllegalStateException if this service has already been run once, if it has already been stopped, or if it hasn't been run yet
+     */
+    public final void stopAndWait() throws InterruptedException {
+        Validate.validState(retainStateListener.getState() != null);
+        
         lock.lock();
-        
-        Validate.validState(retainStateListener.getState() != LifeCycleState.FINISHED);
-        
         try {
-            triggerStop();
+            Validate.validState(!stopped);
+            stopped = true;
 
-            return blockingListener.awaitStopped();
+            stopTrigger.triggerStop();
+            
+            try {
+                blockingListener.awaitStopped().get();
+            } catch (ExecutionException ee) { // NOPMD
+                // never happens
+            }
+            
+            Validate.validState(!retainStateListener.isFailed());
         } finally {
             lock.unlock();
         }
     }
-    
-    public void startAndWait() {
-        try {
-            startAndWaitInterruptibly();
-        } catch (InterruptedException | ExecutionException ex) {
-            throw new IllegalStateException(ex);
-        }
-    }
 
-    public void stopAndWait() {
-        try {
-            stopAndWaitInterruptibly();
-        } catch (InterruptedException | ExecutionException ex) {
-            throw new IllegalStateException(ex);
-        }
-    }
-
-    public void startAndWaitInterruptibly() throws InterruptedException, ExecutionException {
-        start().get();
-    }
-
-    public void stopAndWaitInterruptibly() throws InterruptedException, ExecutionException {
-        stop().get();
-    }
-
+    /**
+     * Start-up / initialization.
+     * @param init start-up variables
+     * @throws Exception on error -- if encountered the next method called will be {@link #onStop() }
+     */
     protected void onStart(Object ... init) throws Exception {
         
     }
     
+    /**
+     * Process.
+     * @throws Exception on error
+     */
     protected abstract void onProcess() throws Exception;
     
+    /**
+     * Shutdown.
+     * @throws Exception on error
+     */
     protected void onStop() throws Exception {
         
-    }
-    
-    public final void triggerStop() {
-        stopTrigger.triggerStop();
     }
     
     private final class CustomServiceStopTrigger implements ServiceStopTrigger {
         
         @Override
         public void triggerStop() {
-            lifeCycle.triggerStop();
+            thread.interrupt();
         }
     }
     
-    private final class InternalLifeCycle extends LifeCycleAdapter {
-
-        @Override
-        public void triggerStop() {
-            thread.interrupt();
-        }
+    private final class InternalLifeCycle implements LifeCycle {
 
         @Override
         public void onStop() throws Exception {

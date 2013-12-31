@@ -1,5 +1,20 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.common.concurrent.lifecycle;
-
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -7,7 +22,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class BlockingLifeCycleListener implements LifeCycleListener {
+/**
+ * A {@link LifeCycleListener} that provides a mechanism to block until execution of a {@link LifeCycle} has started or stopped.
+ * @author Kasra Faghihi
+ */
+public final class BlockingLifeCycleListener implements LifeCycleListener {
 
     private CountDownLatch startingCl = new CountDownLatch(1);
     private CountDownLatch processingCl = new CountDownLatch(1);
@@ -34,16 +53,26 @@ public class BlockingLifeCycleListener implements LifeCycleListener {
                 failed = true;
                 startingCl.countDown();
                 processingCl.countDown();
-                stoppingCl.countDown();
-                finishedCl.countDown();
                 break;
+            default:
+                throw new IllegalStateException();
         }
     }
 
+    /**
+     * Gets a {@link Future} that will block until {@link LifeCycleState#PROCESSING} is reached. Cannot be canceled. If
+     * {@link LifeCycleState#PROCESSING} has already been reached, the {@link Future} returns immediately.
+     * @return a {@link Future} that waits until {@link LifeCycleState#PROCESSING} is reached
+     */
     public Future<Void> awaitStarted() {
         return new CountDownLatchFuture(processingCl);
     }
-    
+
+    /**
+     * Gets a {@link Future} that will block until {@link LifeCycleState#FINISHED} is reached. Cannot be canceled. If
+     * {@link LifeCycleState#FINISHED} has already been reached, the {@link Future} returns immediately.
+     * @return a {@link Future} that waits until {@link LifeCycleState#FINISHED} is reached
+     */
     public Future<Void> awaitStopped() {
         return new CountDownLatchFuture(finishedCl);
     }

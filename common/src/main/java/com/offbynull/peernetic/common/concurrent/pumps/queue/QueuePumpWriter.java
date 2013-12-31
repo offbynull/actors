@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.common.concurrent.pumps.queue;
 
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
@@ -6,23 +22,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 
-public final class QueuePumpWriter<T> implements PumpWriter<T> {
+final class QueuePumpWriter<T> implements PumpWriter<T> {
     private LinkedBlockingQueue<Iterator<T>> queue;
-    private AtomicBoolean closed;
 
-    QueuePumpWriter(AtomicBoolean closed, LinkedBlockingQueue<Iterator<T>> queue) {
+    QueuePumpWriter(LinkedBlockingQueue<Iterator<T>> queue) {
         Validate.notNull(queue);
-        Validate.notNull(closed);
 
         this.queue = queue;
     }
 
     @Override
     public void push(Collection<T> data) {
-        Validate.validState(!closed.get());
         Validate.noNullElements(data);
         
         queue.add(Collections.unmodifiableList(new ArrayList<>(data)).iterator());

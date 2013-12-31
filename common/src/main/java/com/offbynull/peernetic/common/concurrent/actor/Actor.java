@@ -58,7 +58,7 @@ public abstract class Actor<T> {
     }
 
     /**
-     * Create the internal message pump.
+     * Create the internal message pump. Called from constructor.
      * @return a new message pump to be used by this actor, cannot be {@code null}
      */
     protected abstract Pump<T> createPump();

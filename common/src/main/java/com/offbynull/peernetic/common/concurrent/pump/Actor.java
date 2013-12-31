@@ -14,34 +14,30 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.common.concurrent.service;
+package com.offbynull.peernetic.common.concurrent.pump;
 
-import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
+import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
 
 /**
- * {@link PumpService} is an abstract class that should be extended by any class whose instances are to be executed in their own thread and
- * is expected to receive messages from a {@link PumpReader}.
- * <p/>
- * Very similar to {@link Service}, except that this class has {@link #onStep(long, java.util.Iterator) } instead of
- * {@link Service#onProcess() }. The difference being that {@link #onStep(long, java.util.Iterator) } gets called when the pump has
- * something to feed it or enough time has elapsed.
+ * {@link Actor} is an abstract class that should be extended by any class expected to receive messages from a {@link PumpReader} in
+ * an isolated internal thread. See {@link #onStep(long, java.util.Iterator) }.
  * @param <T> message type
  * @author Kasra Faghihi
  */
-public abstract class PumpService<T> extends Service {
+public abstract class Actor<T> extends AbstractExecutionThreadService {
 
     private PumpReader<T> pumpReader;
     
     /**
-     * Constructs a {@link Service} object.
+     * Constructs a {@link Actor} object.
      * @param name thread name
      * @param daemon thread daemon
      * @param pumpReader pump reader
      * @throws NullPointerException if any argument is {@code null}
      */
-    public PumpService(String name, boolean daemon, PumpReader<T> pumpReader) {
+    public Actor(String name, boolean daemon, PumpReader<T> pumpReader) {
         super(name, daemon);
         Validate.notNull(pumpReader);
         
@@ -49,22 +45,21 @@ public abstract class PumpService<T> extends Service {
     }
 
     /**
-     * Constructs a {@link Service} object with a custom stop trigger.
+     * Constructs a {@link Actor} object with a custom stop trigger.
      * @param name thread name
      * @param daemon thread daemon
-     * @param stopTrigger stop trigger
      * @param pumpReader pump reader
      * @throws NullPointerException if any argument is {@code null}
      */
-    public PumpService(String name, boolean daemon, ServiceStopTrigger stopTrigger, PumpReader<T> pumpReader) {
-        super(name, daemon, stopTrigger);
+    public Actor(String name, boolean daemon, PumpReader<T> pumpReader) {
+        super(name, daemon);
         Validate.notNull(pumpReader);
         
         this.pumpReader = pumpReader;
     }
 
     @Override
-    protected final void onProcess() throws Exception {
+    protected final void run() throws Exception {
         long waitUntil = Long.MAX_VALUE;
         
         while (true) {
@@ -82,13 +77,12 @@ public abstract class PumpService<T> extends Service {
             waitUntil = Math.max(nextStepTime - postStepTime, 0L);
         }
     }
-    
+
     /**
-     * Called when messages are available or the timeout duration has elapsed.
+     * Called when the internal {@link PumpReader} has messages available or the maximum wait duration has elapsed.
      * @param timestamp current timestamp
-     * @param messages messages
-     * @return maximum amount of time to wait until next trigger, or a negative value to shutdown the service
+     * @param messages messages from the internal {@link PumpReader}
+     * @return maximum amount of time to wait until next invokation of this method, or a negative value to shutdown the service
      */
     protected abstract long onStep(long timestamp, Iterator<T> messages);
-    
 }

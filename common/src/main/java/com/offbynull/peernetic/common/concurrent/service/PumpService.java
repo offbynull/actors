@@ -18,6 +18,7 @@ package com.offbynull.peernetic.common.concurrent.service;
 
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import java.util.Iterator;
+import org.apache.commons.lang3.Validate;
 
 /**
  * {@link PumpService} is an abstract class that should be extended by any class whose instances are to be executed in their own thread and
@@ -37,10 +38,14 @@ public abstract class PumpService<T> extends Service {
      * Constructs a {@link Service} object.
      * @param name thread name
      * @param daemon thread daemon
+     * @param pumpReader pump reader
      * @throws NullPointerException if any argument is {@code null}
      */
-    public PumpService(String name, boolean daemon) {
+    public PumpService(String name, boolean daemon, PumpReader<T> pumpReader) {
         super(name, daemon);
+        Validate.notNull(pumpReader);
+        
+        this.pumpReader = pumpReader;
     }
 
     /**
@@ -48,10 +53,14 @@ public abstract class PumpService<T> extends Service {
      * @param name thread name
      * @param daemon thread daemon
      * @param stopTrigger stop trigger
+     * @param pumpReader pump reader
      * @throws NullPointerException if any argument is {@code null}
      */
-    public PumpService(String name, boolean daemon, ServiceStopTrigger stopTrigger) {
+    public PumpService(String name, boolean daemon, ServiceStopTrigger stopTrigger, PumpReader<T> pumpReader) {
         super(name, daemon, stopTrigger);
+        Validate.notNull(pumpReader);
+        
+        this.pumpReader = pumpReader;
     }
 
     @Override

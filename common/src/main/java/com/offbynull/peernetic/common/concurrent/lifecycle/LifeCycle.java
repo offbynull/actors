@@ -30,6 +30,8 @@ package com.offbynull.peernetic.common.concurrent.lifecycle;
  * <p/>
  * Implementations should be designed to run a {@link LifeCycle} instance once. That is, subsequent runs of the same {@link LifeCycle}
  * instance aren't expected to work.
+ * <p/>
+ * The executing thread runs {@link #onStart(java.lang.Object...) }, {@link #onProcess() }, and {@link #onStop() }.
  * @author Kasra Faghihi
  */
 public interface LifeCycle {

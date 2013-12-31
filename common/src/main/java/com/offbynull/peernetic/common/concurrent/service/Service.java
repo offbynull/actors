@@ -41,6 +41,8 @@ import org.apache.commons.lang3.Validate;
  * </ul>
  * <p/>
  * Implementations should be designed to run once. That is, subsequent runs of the same instance will encounter an exception.
+ * <p/>
+ * Expect the thread internal to this instance to run {@link #onStart(java.lang.Object...) }, {@link #onProcess() }, and {@link #onStop() }.
  * @author Kasra Faghihi
  */
 public abstract class Service {
@@ -155,7 +157,7 @@ public abstract class Service {
     }
 
     /**
-     * Start-up / initialization.
+     * Start-up / initialization. Called by internal thread.
      * @param init start-up variables
      * @throws Exception on error -- if encountered the next method called will be {@link #onStop() }
      */
@@ -164,13 +166,13 @@ public abstract class Service {
     }
     
     /**
-     * Process.
+     * Process. Called by internal thread.
      * @throws Exception on error
      */
     protected abstract void onProcess() throws Exception;
     
     /**
-     * Shutdown.
+     * Shutdown. Called by internal thread.
      * @throws Exception on error
      */
     protected void onStop() throws Exception {

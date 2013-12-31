@@ -16,10 +16,9 @@
  */
 package com.offbynull.peernetic.common.concurrent.pumps.queue;
 
+import com.offbynull.peernetic.common.concurrent.pump.Pump;
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
-import com.offbynull.peernetic.common.concurrent.pump.ReadablePump;
-import com.offbynull.peernetic.common.concurrent.pump.WritablePump;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -28,7 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author Kasra Faghihi
  * @param <T> message type
  */
-public final class QueuePump<T> implements ReadablePump<T>, WritablePump<T> {
+public final class QueuePump<T> implements Pump<T> {
     private LinkedBlockingQueue<Iterator<T>> internalQueue = new LinkedBlockingQueue<>();
     private QueuePumpReader<T> reader = new QueuePumpReader<>(internalQueue);
     private QueuePumpWriter<T> writer = new QueuePumpWriter<>(internalQueue);

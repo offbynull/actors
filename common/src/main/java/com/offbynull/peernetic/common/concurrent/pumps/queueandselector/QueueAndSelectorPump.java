@@ -16,10 +16,9 @@
  */
 package com.offbynull.peernetic.common.concurrent.pumps.queueandselector;
 
+import com.offbynull.peernetic.common.concurrent.pump.Pump;
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
-import com.offbynull.peernetic.common.concurrent.pump.ReadablePump;
-import com.offbynull.peernetic.common.concurrent.pump.WritablePump;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <T> message type
  */
-public final class QueueAndSelectorPump<T> implements ReadablePump<T>, WritablePump<T> {
+public final class QueueAndSelectorPump<T> implements Pump<T> {
     private LinkedBlockingQueue<Iterator<T>> internalQueue = new LinkedBlockingQueue<>();
     private QueueAndSelectorPumpReader<T> reader;
     private QueueAndSelectorPumpWriter<T> writer;
@@ -42,6 +41,7 @@ public final class QueueAndSelectorPump<T> implements ReadablePump<T>, WritableP
      */
     public QueueAndSelectorPump(Selector selector) {
         Validate.notNull(selector);
+        Validate.isTrue(selector.isOpen());
         
         reader = new QueueAndSelectorPumpReader<>(internalQueue, selector);
         writer = new QueueAndSelectorPumpWriter<>(internalQueue, selector);

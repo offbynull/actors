@@ -26,7 +26,7 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.lang3.Validate;
 
-class QueueAndSelectorPumpReader<T> implements PumpReader<T> {
+final class QueueAndSelectorPumpReader<T> implements PumpReader<T> {
     private LinkedBlockingQueue<Iterator<T>> queue;
     private Selector selector;
 

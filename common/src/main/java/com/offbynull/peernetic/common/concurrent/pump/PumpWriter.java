@@ -22,9 +22,8 @@ import java.util.Collection;
 /**
  * Writes messages to a message pump.
  * @author Kasra Faghihi
- * @param <T> message type
  */
-public interface PumpWriter<T> {
+public interface PumpWriter {
     /**
      * Writes messages to a message pump.
      * @param data messages to write
@@ -33,7 +32,7 @@ public interface PumpWriter<T> {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @throws IllegalStateException may be thrown if the underlying mechanism used by the pump has been closed / is not available
      */
-    void push(Collection<T> data) throws InterruptedException, IOException;
+    void push(Collection<Message> data) throws InterruptedException, IOException;
 
     /**
      * Writes messages to a message pump.
@@ -43,5 +42,5 @@ public interface PumpWriter<T> {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @throws IllegalStateException may be thrown if the underlying mechanism used by the pump has been closed / is not available
      */
-    void push(T ... data) throws InterruptedException, IOException;
+    void push(Message ... data) throws InterruptedException, IOException;
 }

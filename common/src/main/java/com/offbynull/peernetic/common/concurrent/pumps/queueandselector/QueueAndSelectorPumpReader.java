@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.common.concurrent.pumps.queueandselector;
 
+import com.offbynull.peernetic.common.concurrent.pump.Message;
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import java.io.IOException;
 import java.nio.channels.Selector;
@@ -26,11 +27,11 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.lang3.Validate;
 
-final class QueueAndSelectorPumpReader<T> implements PumpReader<T> {
-    private LinkedBlockingQueue<Iterator<T>> queue;
+final class QueueAndSelectorPumpReader implements PumpReader {
+    private LinkedBlockingQueue<Iterator<Message>> queue;
     private Selector selector;
 
-    QueueAndSelectorPumpReader(LinkedBlockingQueue<Iterator<T>> queue, Selector selector) {
+    QueueAndSelectorPumpReader(LinkedBlockingQueue<Iterator<Message>> queue, Selector selector) {
         Validate.notNull(queue);
         Validate.notNull(selector);
 
@@ -39,7 +40,7 @@ final class QueueAndSelectorPumpReader<T> implements PumpReader<T> {
     }
 
     @Override
-    public Iterator<T> pull(long timeout) throws InterruptedException, IOException {
+    public Iterator<Message> pull(long timeout) throws InterruptedException, IOException {
         Validate.validState(selector.isOpen());
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, timeout);
 
@@ -49,11 +50,11 @@ final class QueueAndSelectorPumpReader<T> implements PumpReader<T> {
             selector.select(timeout);
         }
         
-        LinkedList<Iterator<T>> dst = new LinkedList<>();
+        LinkedList<Iterator<Message>> dst = new LinkedList<>();
         queue.drainTo(dst);
         
-        IteratorChain<T> chain = new IteratorChain();
-        for (Iterator<T> batch : dst) {
+        IteratorChain chain = new IteratorChain();
+        for (Iterator<Message> batch : dst) {
             chain.addIterator(batch);
         }
         

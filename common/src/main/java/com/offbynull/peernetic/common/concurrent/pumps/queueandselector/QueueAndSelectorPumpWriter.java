@@ -16,22 +16,22 @@
  */
 package com.offbynull.peernetic.common.concurrent.pumps.queueandselector;
 
+import com.offbynull.peernetic.common.concurrent.pump.Message;
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
 import java.io.IOException;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.lang3.Validate;
 
-final class QueueAndSelectorPumpWriter<T> implements PumpWriter<T> {
-    private LinkedBlockingQueue<Iterator<T>> queue;
+final class QueueAndSelectorPumpWriter implements PumpWriter {
+    private LinkedBlockingQueue<Iterator<Message>> queue;
     private Selector selector;
 
-    QueueAndSelectorPumpWriter(LinkedBlockingQueue<Iterator<T>> queue, Selector selector) {
+    QueueAndSelectorPumpWriter(LinkedBlockingQueue<Iterator<Message>> queue, Selector selector) {
         Validate.notNull(queue);
         Validate.notNull(selector);
 
@@ -40,16 +40,16 @@ final class QueueAndSelectorPumpWriter<T> implements PumpWriter<T> {
     }
 
     @Override
-    public void push(Collection<T> data) {
+    public void push(Collection<Message> data) {
         Validate.validState(selector.isOpen());
         Validate.noNullElements(data);
         
-        queue.add(Collections.unmodifiableList(new ArrayList<>(data)).iterator());
+        queue.add(new ArrayList<>(data).iterator());
         selector.wakeup();
     }
 
     @Override
-    public void push(T... data) throws InterruptedException, IOException {
+    public void push(Message ... data) throws InterruptedException, IOException {
         push(Arrays.asList(data));
     }
 }

@@ -19,12 +19,11 @@ package com.offbynull.peernetic.common.concurrent.pump;
 /**
  * A writable message pump.
  * @author Kasra Faghihi
- * @param <T> message type
  */
-public interface WritablePump<T> {
+public interface WritablePump {
     /**
-     * Get the pump writer.
+     * Get the pump writer. Must return the same instance on each invokation.
      * @return pump writer
      */
-    PumpWriter<T> getPumpWriter();
+    PumpWriter getPumpWriter();
 }

@@ -19,8 +19,7 @@ package com.offbynull.peernetic.common.concurrent.pump;
 /**
  * A readable and writable message pump.
  * @author Kasra Faghihi
- * @param <T> message type
  */
-public interface Pump<T> extends ReadablePump<T>, WritablePump<T> {
+public interface Pump extends ReadablePump, WritablePump {
     
 }

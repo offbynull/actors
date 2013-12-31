@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.common.concurrent.pumps.queue;
 
+import com.offbynull.peernetic.common.concurrent.pump.Message;
 import com.offbynull.peernetic.common.concurrent.pump.Pump;
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
@@ -25,20 +26,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * A message pump implementation based on local queues.
  * @author Kasra Faghihi
- * @param <T> message type
  */
-public final class QueuePump<T> implements Pump<T> {
-    private LinkedBlockingQueue<Iterator<T>> internalQueue = new LinkedBlockingQueue<>();
-    private QueuePumpReader<T> reader = new QueuePumpReader<>(internalQueue);
-    private QueuePumpWriter<T> writer = new QueuePumpWriter<>(internalQueue);
+public final class QueuePump implements Pump {
+    private LinkedBlockingQueue<Iterator<Message>> internalQueue = new LinkedBlockingQueue<>();
+    private QueuePumpReader reader = new QueuePumpReader(internalQueue);
+    private QueuePumpWriter writer = new QueuePumpWriter(internalQueue);
     
     @Override
-    public PumpReader<T> getPumpReader() {
+    public PumpReader getPumpReader() {
         return reader;
     }
     
     @Override
-    public PumpWriter<T> getPumpWriter() {
+    public PumpWriter getPumpWriter() {
         return writer;
     }
 }

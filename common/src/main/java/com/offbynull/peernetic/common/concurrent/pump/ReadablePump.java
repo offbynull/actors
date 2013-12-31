@@ -19,12 +19,11 @@ package com.offbynull.peernetic.common.concurrent.pump;
 /**
  * A readable message pump.
  * @author Kasra Faghihi
- * @param <T> message type
  */
-public interface ReadablePump<T> {
+public interface ReadablePump {
     /**
-     * Get the pump reader.
+     * Get the pump reader. Must return the same instance on each invokation.
      * @return pump reader
      */
-    PumpReader<T> getPumpReader();
+    PumpReader getPumpReader();
 }

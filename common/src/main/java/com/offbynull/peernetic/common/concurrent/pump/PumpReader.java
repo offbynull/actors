@@ -22,9 +22,8 @@ import java.util.Iterator;
 /**
  * Reads messages from a message pump.
  * @author Kasra Faghihi
- * @param <T> message type
  */
-public interface PumpReader<T> {
+public interface PumpReader {
     /**
      * Blocks until messages are available, and then returns them.
      * @param timeout amount of time to block
@@ -34,5 +33,5 @@ public interface PumpReader<T> {
      * @throws IllegalArgumentException if any numeric argument is negative
      * @throws IllegalStateException may be thrown if the underlying mechanism used by the pump has been closed / is not available
      */
-    Iterator<T> pull(long timeout) throws InterruptedException, IOException;
+    Iterator<Message> pull(long timeout) throws InterruptedException, IOException;
 }

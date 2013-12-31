@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.common.concurrent.pumps.queueandselector;
 
+import com.offbynull.peernetic.common.concurrent.pump.Message;
 import com.offbynull.peernetic.common.concurrent.pump.Pump;
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import com.offbynull.peernetic.common.concurrent.pump.PumpWriter;
@@ -27,12 +28,12 @@ import org.apache.commons.lang3.Validate;
 /**
  * A message pump implementation based on local queues that gets woken up by a {@link Selector}.
  * @author Kasra Faghihi
- * @param <T> message type
+
  */
-public final class QueueAndSelectorPump<T> implements Pump<T> {
-    private LinkedBlockingQueue<Iterator<T>> internalQueue = new LinkedBlockingQueue<>();
-    private QueueAndSelectorPumpReader<T> reader;
-    private QueueAndSelectorPumpWriter<T> writer;
+public final class QueueAndSelectorPump implements Pump {
+    private LinkedBlockingQueue<Iterator<Message>> internalQueue = new LinkedBlockingQueue<>();
+    private QueueAndSelectorPumpReader reader;
+    private QueueAndSelectorPumpWriter writer;
 
     /**
      * Constructs a {@link QueueAndSelectorPump} object.
@@ -43,17 +44,17 @@ public final class QueueAndSelectorPump<T> implements Pump<T> {
         Validate.notNull(selector);
         Validate.isTrue(selector.isOpen());
         
-        reader = new QueueAndSelectorPumpReader<>(internalQueue, selector);
-        writer = new QueueAndSelectorPumpWriter<>(internalQueue, selector);
+        reader = new QueueAndSelectorPumpReader(internalQueue, selector);
+        writer = new QueueAndSelectorPumpWriter(internalQueue, selector);
     }
     
     @Override
-    public PumpReader<T> getPumpReader() {
+    public PumpReader getPumpReader() {
         return reader;
     }
     
     @Override
-    public PumpWriter<T> getPumpWriter() {
+    public PumpWriter getPumpWriter() {
         return writer;
     }
 }

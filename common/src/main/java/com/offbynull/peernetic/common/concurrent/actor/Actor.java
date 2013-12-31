@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.common.concurrent.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.offbynull.peernetic.common.concurrent.pump.Message;
 import com.offbynull.peernetic.common.concurrent.pump.Pump;
 import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import java.util.Iterator;
@@ -29,12 +30,11 @@ import org.apache.commons.lang3.Validate;
 /**
  * {@link Actor} is an abstract class that should be extended by any class expected to receive messages from a {@link PumpReader} in
  * an isolated internal thread.
- * @param <T> read message type
  * @author Kasra Faghihi
  */
-public abstract class Actor<T> {
+public abstract class Actor {
 
-    private Pump<T> pump;
+    private Pump pump;
     private InternalService internalService;
     private boolean daemon;
     
@@ -61,7 +61,7 @@ public abstract class Actor<T> {
      * Create the internal message pump. Called from constructor.
      * @return a new message pump to be used by this actor, cannot be {@code null}
      */
-    protected abstract Pump<T> createPump();
+    protected abstract Pump createPump();
 
     /**
      * Starts this {@link Actor} and waits for it to be ready.
@@ -100,7 +100,7 @@ public abstract class Actor<T> {
      * @return maximum amount of time to wait until next invokation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract long onStep(long timestamp, Iterator<T> messages) throws Exception;
+    protected abstract long onStep(long timestamp, Iterator<Message> messages) throws Exception;
     
     /**
      * Called to initialize this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
@@ -155,13 +155,13 @@ public abstract class Actor<T> {
 
         @Override
         protected void run() throws Exception {
-            PumpReader<T> reader = pump.getPumpReader();
+            PumpReader reader = pump.getPumpReader();
             
             try {
                 long waitUntil = Long.MAX_VALUE;
 
                 while (true) {
-                    Iterator<T> messages = reader.pull(waitUntil);
+                    Iterator<Message> messages = reader.pull(waitUntil);
 
                     long preStepTime = System.currentTimeMillis();
                     long nextStepTime = onStep(preStepTime, messages);

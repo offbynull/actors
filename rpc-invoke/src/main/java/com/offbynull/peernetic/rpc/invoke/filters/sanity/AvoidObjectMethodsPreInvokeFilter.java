@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.rpc.invoke.filters.sanity;
 
 import com.offbynull.peernetic.rpc.invoke.InvokeData;
-import com.offbynull.peernetic.rpc.invoke.InvokeFilter;
+import com.offbynull.peernetic.rpc.invoke.PreInvokeFilter;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,10 +25,10 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * An {@link InvokeFilter} that makes sure that method names being invoked don't match that of {@link Object}.
+ * An {@link PreInvokeFilter} that makes sure that method names being invoked don't match that of {@link Object}.
  * @author Kasra Faghihi
  */
-public final class AvoidObjectInvokeFilter implements InvokeFilter {
+public final class AvoidObjectMethodsPreInvokeFilter implements PreInvokeFilter {
     private static final Set<String> OBJECT_METHOD_NAMES;
     
     static {

@@ -18,13 +18,16 @@ package com.offbynull.peernetic.rpc.invoke.invokers.reflection;
 
 import com.offbynull.peernetic.rpc.invoke.Deserializer;
 import com.offbynull.peernetic.rpc.invoke.InvokeData;
-import com.offbynull.peernetic.rpc.invoke.InvokeFilter;
+import com.offbynull.peernetic.rpc.invoke.PreInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;
 import com.offbynull.peernetic.rpc.invoke.Invoker;
 import com.offbynull.peernetic.rpc.invoke.InvokerListener;
+import com.offbynull.peernetic.rpc.invoke.PostInvokeFilter;
+import com.offbynull.peernetic.rpc.invoke.PostInvokeFilter.Result;
+import com.offbynull.peernetic.rpc.invoke.PostInvokeFilter.ResultType;
 import com.offbynull.peernetic.rpc.invoke.SerializationType;
 import com.offbynull.peernetic.rpc.invoke.Serializer;
-import com.offbynull.peernetic.rpc.invoke.filters.sanity.AvoidObjectInvokeFilter;
+import com.offbynull.peernetic.rpc.invoke.filters.sanity.AvoidObjectMethodsPreInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
 import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
 import java.io.IOException;
@@ -52,12 +55,13 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
     private ExecutorService executor;
     private Serializer serializer;
     private Deserializer deserializer;
-    private List<InvokeFilter> filters;
+    private List<PreInvokeFilter> preInvokeFilters;
+    private List<PostInvokeFilter> postInvokeFilters;
 
 
     /**
      * Constructs an {@link ReflectionInvoker} object with {@link XStreamSerializer} / {@link XStreamDeserializer} for serialization and
-     * {@link AvoidObjectInvokeFilter} as a filter.
+     * {@link AvoidObjectMethodsPreInvokeFilter} as a filter.
      * @param object object to invoke on
      * @param executor executor to use for invokations
      * @throws NullPointerException if {@code object} is {@code null}
@@ -66,7 +70,8 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
         this(object, executor,
                 new XStreamSerializer(),
                 new XStreamDeserializer(),
-                new AvoidObjectInvokeFilter());
+                Arrays.asList(new AvoidObjectMethodsPreInvokeFilter()),
+                Arrays.<PostInvokeFilter>asList());
     }
     
     /**
@@ -75,22 +80,26 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
      * @param executor executor to use for invokations
      * @param serializer serializer to use for invokation data
      * @param deserializer serializer to use for result data
-     * @param filters invoke filters
-     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any collection element is
+     * @param preInvokeFilters pre invoke filters
+     * @param postInvokeFilters post invoke filters
+     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any element within a collection is
      * {@code null}
      */
     public ReflectionInvoker(T object, ExecutorService executor,
-            Serializer serializer, Deserializer deserializer, InvokeFilter ... filters) {
+            Serializer serializer, Deserializer deserializer,
+            List<? extends PreInvokeFilter> preInvokeFilters,
+            List<? extends PostInvokeFilter> postInvokeFilters) {
         Validate.notNull(object);
         Validate.notNull(serializer);
         Validate.notNull(deserializer);
-        Validate.noNullElements(filters);
+        Validate.noNullElements(preInvokeFilters);
         
         this.object = object;
         this.executor = executor;
         this.serializer = serializer;
         this.deserializer = deserializer;
-        this.filters = new ArrayList<>(Arrays.asList(filters));
+        this.preInvokeFilters = new ArrayList<>(preInvokeFilters);
+        this.postInvokeFilters = new ArrayList<>(postInvokeFilters);
     }
     
     @Override
@@ -124,41 +133,75 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
                     }
                     
                     invokeData = (InvokeData) dr.getResult();
-                } catch (IOException ioe) {
+                } catch (RuntimeException | IOException ioe) {
                     callback.invokationFailed(ioe);
                     return;
                 }
 
                 // Filter
-                for (InvokeFilter filter : filters) {
-                    invokeData = filter.filter(invokeData);
+                try {
+                    for (PreInvokeFilter filter : preInvokeFilters) {
+                        invokeData = filter.filter(invokeData);
+                    }
+                } catch (RuntimeException re) {
+                    callback.invokationFailed(re);
+                    return;
                 }
                 
-                // Set shared data map
-                InvokeThreadInformation.setInvokeThreadInfo(sharedDataCopy);
-                
-                // Call and serialize
-                byte[] outData;
+                // Call
+                Result result;
                 try {
+                    InvokeThreadInformation.setInvokeThreadInfo(sharedDataCopy);
+                    
                     Object ret = MethodUtils.invokeMethod(object,
                             invokeData.getMethodName(),
                             invokeData.getArguments());
                     
-                    outData = serializer.serializeMethodReturn(ret);
-                } catch (NoSuchMethodException | IllegalAccessException ex) {
+                    result = new Result(ResultType.RETURN, ret);
+                } catch (InvocationTargetException ex) {
+                    result = new Result(ResultType.THROW, ex.getCause());
+                } catch (RuntimeException | NoSuchMethodException | IllegalAccessException ex) {
+                    // throws npe if method expects primitves
                     callback.invokationFailed(ex);
                     return;
-                } catch (InvocationTargetException ex) {
-                    outData = serializer.serializeMethodThrow(ex.getCause());
-                } catch (NullPointerException npe) {
-                     // throws npe if method expects primitves
-                    outData = serializer.serializeMethodThrow(npe);
                 } finally {
                     InvokeThreadInformation.removeInvokeThreadInfo();
                 }
+
+                // Filter
+                try {
+                    for (PostInvokeFilter filter : postInvokeFilters) {
+                        result = filter.filter(result);
+                    }
+                } catch (RuntimeException re) {
+                    callback.invokationFailed(re);
+                    return;
+                }
+                
+                // Serialize output
+                byte[] outData;
+                try {
+                    switch (result.getType()) {
+                        case RETURN:
+                            outData = serializer.serializeMethodReturn(result.getResult());
+                            break;
+                        case THROW:
+                            outData = serializer.serializeMethodThrow((Exception) result.getResult());
+                            break;
+                        default:
+                            throw new IllegalStateException();
+                    }
+                } catch (RuntimeException re) {
+                    callback.invokationFailed(re);
+                    return;
+                }
                 
                 // Send
-                callback.invokationFinised(outData);
+                try {
+                    callback.invokationFinised(outData);
+                } catch (RuntimeException re) { // NOPMD
+                    // don't bother calling invokationFailed here, we've already attempted to end the invokation by calling finish
+                }
             }
         };
         

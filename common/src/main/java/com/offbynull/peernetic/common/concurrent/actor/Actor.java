@@ -94,10 +94,11 @@ public abstract class Actor {
      * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
      * @param timestamp current timestamp
      * @param messages messages from the internal {@link ActorQueueReader}
+     * @param responseQueue responses that get flushed at the end of each invocation of this method
      * @return maximum amount of time to wait until next invokation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract long onStep(long timestamp, Iterator<Message> messages) throws Exception;
+    protected abstract long onStep(long timestamp, Iterator<Message> messages, ResponseQueue responseQueue) throws Exception;
     
     /**
      * Called to initialize this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
@@ -157,12 +158,15 @@ public abstract class Actor {
             try {
                 long waitUntil = Long.MAX_VALUE;
 
+                ResponseQueue responseQueue = new ResponseQueue(queue.getWriter());
                 while (true) {
                     Iterator<Message> messages = reader.pull(waitUntil);
 
                     long preStepTime = System.currentTimeMillis();
-                    long nextStepTime = onStep(preStepTime, messages);
+                    long nextStepTime = onStep(preStepTime, messages, responseQueue);
 
+                    responseQueue.flush();
+                    
                     if (nextStepTime < 0L) {
                         return;
                     }

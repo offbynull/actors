@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.common.concurrent.actor;
 
-import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

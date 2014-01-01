@@ -18,6 +18,7 @@ package com.offbynull.peernetic.common.concurrent.actor;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
+import org.apache.commons.lang3.Validate;
 
 /**
  * An {@link ActorQueueNotifier} that uses a {@link Selector} to wakeup and notify. That is, in addition to waking up on manual triggers of
@@ -27,7 +28,13 @@ import java.nio.channels.Selector;
 public final class SelectorActorQueueNotifier implements ActorQueueNotifier {
     private Selector selector;
 
+    /**
+     * Construct a {@link SelectorActorQueueNotifier} object.
+     * @param selector selector
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public SelectorActorQueueNotifier(Selector selector) {
+        Validate.notNull(selector);
         this.selector = selector;
     }
 

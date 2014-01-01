@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
+import com.offbynull.peernetic.common.concurrent.actor.Message.ResponseDetails;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,23 +38,23 @@ final class TimeoutManager {
         idQueue = new LinkedList<>();
     }
     
-    public void addRequestId(InetSocketAddress dest, MessageId id, OutgoingMessageResponseListener<InetSocketAddress> receiver,
+    public void addRequestId(InetSocketAddress dest, MessageId id, ResponseDetails responseDetails,
             long currentTime) {
         Validate.notNull(dest);
         Validate.notNull(id);
-        Validate.notNull(receiver);
+        Validate.notNull(responseDetails);
         
         MessageIdInstance idInstance = new MessageIdInstance(dest, id, PacketType.REQUEST);
         
         Validate.isTrue(!messageIdSet.containsKey(idInstance));
         
-        Entity entity = new Entity(currentTime + timeout, idInstance, receiver);
+        Entity entity = new Entity(currentTime + timeout, idInstance, responseDetails);
         
         messageIdSet.put(idInstance, entity);
         idQueue.addLast(entity);
     }
 
-    public OutgoingMessageResponseListener<InetSocketAddress> getReceiver(InetSocketAddress dest, MessageId id) {
+    public ResponseDetails getResponseDetails(InetSocketAddress dest, MessageId id) {
         Validate.notNull(dest);
         Validate.notNull(id);
         
@@ -62,21 +62,21 @@ final class TimeoutManager {
         
         Entity entity = messageIdSet.get(idInstance);
         
-        return entity == null ? null : entity.getReceiver();
+        return entity == null ? null : entity.getResponseDetails();
     }
     
     public Result pending() {
-        Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers = new HashSet<>();
+        Set<ResponseDetails> timedOutReceivers = new HashSet<>();
         
         for (Entity entity : idQueue) {
-            timedOutReceivers.add(entity.getReceiver());
+            timedOutReceivers.add(entity.getResponseDetails());
         }
         
         return new Result(timedOutReceivers, 0L);
     }
     
     public Result evaluate(long currentTime) {
-        Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers = new HashSet<>();
+        Set<ResponseDetails> timedOut = new HashSet<>();
         long waitDuration = 0L;
         
         while (true) {
@@ -87,7 +87,7 @@ final class TimeoutManager {
             }
             
             if (currentTime >= entity.getTimeoutTimestamp()) {
-                timedOutReceivers.add(entity.getReceiver());
+                timedOut.add(entity.getResponseDetails());
                 idQueue.pollFirst();
             } else {
                 waitDuration = entity.getTimeoutTimestamp() - currentTime;
@@ -98,20 +98,20 @@ final class TimeoutManager {
             }
         }
         
-        return new Result(timedOutReceivers, waitDuration);
+        return new Result(timedOut, waitDuration);
     }
     
     static final class Result {
-        private Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers;
+        private Set<ResponseDetails> timedOut;
         private long waitDuration;
 
-        public Result(Set<OutgoingMessageResponseListener<InetSocketAddress>> timedOutReceivers, long waitDuration) {
-            this.timedOutReceivers = Collections.unmodifiableSet(timedOutReceivers);
+        public Result(Set<ResponseDetails> timedOut, long waitDuration) {
+            this.timedOut = Collections.unmodifiableSet(timedOut);
             this.waitDuration = waitDuration;
         }
 
-        public Set<OutgoingMessageResponseListener<InetSocketAddress>> getTimedOutReceivers() {
-            return timedOutReceivers;
+        public Set<ResponseDetails> getTimedOut() {
+            return timedOut;
         }
 
         public long getWaitDuration() {
@@ -122,13 +122,13 @@ final class TimeoutManager {
     
     private static final class Entity {
         private long timeoutTimestamp;
-        private OutgoingMessageResponseListener<InetSocketAddress> receiver;
+        private ResponseDetails responseDetails;
         private MessageIdInstance instance;
 
-        public Entity(long timeoutTimestamp, MessageIdInstance instance, OutgoingMessageResponseListener<InetSocketAddress> receiver) {
+        public Entity(long timeoutTimestamp, MessageIdInstance instance, ResponseDetails responseDetails) {
             this.timeoutTimestamp = timeoutTimestamp;
             this.instance = instance;
-            this.receiver = receiver;
+            this.responseDetails = responseDetails;
         }
 
         public long getTimeoutTimestamp() {
@@ -139,8 +139,8 @@ final class TimeoutManager {
             return instance;
         }
 
-        public OutgoingMessageResponseListener<InetSocketAddress> getReceiver() {
-            return receiver;
+        public ResponseDetails getResponseDetails() {
+            return responseDetails;
         }
         
     }

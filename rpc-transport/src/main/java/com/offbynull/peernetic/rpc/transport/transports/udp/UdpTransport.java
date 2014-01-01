@@ -17,14 +17,12 @@
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
+import com.offbynull.peernetic.common.concurrent.actor.Message;
+import com.offbynull.peernetic.common.concurrent.actor.ResponseQueue;
+import com.offbynull.peernetic.common.concurrent.actor.SelectorActorQueueNotifier;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingMessage;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingResponse;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
 import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.transports.udp.TimeoutManager.Result;
 import java.io.IOException;
@@ -36,10 +34,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -47,7 +41,7 @@ import org.apache.commons.lang3.Validate;
  * A UDP transport implementation.
  * @author Kasra Faghihi
  */
-public final class UdpTransport implements Transport<InetSocketAddress> {
+public final class UdpTransport extends Transport<InetSocketAddress> {
     
     private InetSocketAddress listenAddress;
     private Selector selector;
@@ -56,23 +50,10 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
     private int cacheSize;
     private long timeout;
     
-    private LinkedBlockingQueue<Command> commandQueue;
-    
-    private EventLoop eventLoop;
-    private Lock accessLock;
-
-    /**
-     * Constructs a {@link UdpTransport} object.
-     * @param port port to listen on
-     * @param bufferSize buffer size
-     * @param cacheSize number of packet ids to cache
-     * @param timeout timeout duration
-     * @throws IOException on error
-     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
-     */
-    public UdpTransport(int port, int bufferSize, int cacheSize, long timeout) throws IOException {
-        this(new InetSocketAddress(port), bufferSize, cacheSize, timeout);
-    }
+    private DatagramChannel channel;
+    private MessageIdGenerator idGenerator;
+    private MessageIdCache idCache;
+    private TimeoutManager timeoutManager;
 
     /**
      * Constructs a {@link UdpTransport} object.
@@ -80,11 +61,16 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
      * @param bufferSize buffer size
      * @param cacheSize number of packet ids to cache
      * @param timeout timeout duration
+     * @param incomingFilter incoming filter
+     * @param outgoingFilter outgoing filter
      * @throws IOException on error
      * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long timeout) throws IOException {
+    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long timeout,
+            IncomingFilter<InetSocketAddress> incomingFilter, OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
+        super(incomingFilter, outgoingFilter, true);
+        
         Validate.notNull(listenAddress);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, bufferSize);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
@@ -96,101 +82,52 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
         this.bufferSize = bufferSize;
         this.cacheSize = cacheSize;
         this.timeout = timeout;
-        
-        this.commandQueue = new LinkedBlockingQueue<>();
-        
-        accessLock = new ReentrantLock();
+    }
+
+    @Override
+    protected ActorQueue createQueue() {
+        return new ActorQueue(new SelectorActorQueueNotifier(selector));
+    }
+
+    @Override
+    protected void onStart() throws Exception {
+        idGenerator = new MessageIdGenerator();
+        idCache = new MessageIdCache(cacheSize);
+        timeoutManager = new TimeoutManager(timeout);
+
+        try {
+            channel = DatagramChannel.open();
+            channel.configureBlocking(false);
+            channel.register(selector, SelectionKey.OP_READ);
+            channel.socket().bind(listenAddress);
+        } catch (RuntimeException | IOException e) {
+            IOUtils.closeQuietly(selector);
+            IOUtils.closeQuietly(channel);
+            throw e;
+        }
     }
     
     @Override
-    public void start(IncomingFilter<InetSocketAddress> incomingFilter, IncomingMessageListener<InetSocketAddress> incomingMessageListener,
-            OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
-        accessLock.lock();
-        try {
-            if (eventLoop != null) {
-                throw new IllegalStateException();
-            }
-            
-            Validate.notNull(incomingFilter);
-            Validate.notNull(outgoingFilter);
-            Validate.notNull(incomingMessageListener);
-
-            eventLoop = new EventLoop(incomingFilter, incomingMessageListener, outgoingFilter);
-            eventLoop.startAndWait();
-        } finally {
-            accessLock.unlock();
-        }
+    protected long onStep(long timestamp, Iterator<Message> messages, ResponseQueue responseQueue) throws Exception {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public void stop() throws IOException {
-        accessLock.lock();
-        try {
-            if (eventLoop == null || !eventLoop.isRunning()) {
-                throw new IllegalStateException();
-            }
+    protected void onStop() throws Exception {
+        IOUtils.closeQuietly(selector);
+        IOUtils.closeQuietly(channel);
 
-            eventLoop.stopAndWait();
-        } finally {
-            accessLock.unlock();
+        for (OutgoingMessageResponseListener receiver : timeoutManager.pending().getTimedOut()) {
+            receiver.internalErrorOccurred(null);
         }
     }
 
-    @Override
-    public void sendMessage(OutgoingMessage message, OutgoingMessageResponseListener listener) {
-        Validate.notNull(message);
-        Validate.notNull(listener);
-        Validate.validState(eventLoop != null && eventLoop.isRunning());
-        
-        commandQueue.add(new CommandSendRequest(message, listener));
-        selector.wakeup();
-    }
     
     private final class EventLoop extends AbstractExecutionThreadService {
 
-        private DatagramChannel channel;
-        private AtomicBoolean stop;
-        
-        private MessageIdGenerator idGenerator;
-        private MessageIdCache idCache;
-        private TimeoutManager timeoutManager;
-        
-        private IncomingFilter<InetSocketAddress> inFilter;
-        private IncomingMessageListener<InetSocketAddress> handler;
-        private OutgoingFilter<InetSocketAddress> outFilter;
 
-        public EventLoop(IncomingFilter<InetSocketAddress> incomingFilter,
-                IncomingMessageListener<InetSocketAddress> incomingMessageListener,
-                OutgoingFilter<InetSocketAddress> outgoingFilter) throws IOException {
-            this.inFilter = incomingFilter;
-            this.handler = incomingMessageListener;
-            this.outFilter = outgoingFilter;
-            idGenerator = new MessageIdGenerator();
-            idCache = new MessageIdCache(cacheSize);
-            timeoutManager = new TimeoutManager(timeout);
-            
-            try {
-                channel = DatagramChannel.open();
-            } catch (RuntimeException | IOException e) {
-                IOUtils.closeQuietly(selector);
-                IOUtils.closeQuietly(channel);
-                throw e;
-            }
-        }
+
         
-        @Override
-        protected void startUp() throws IOException {
-            stop = new AtomicBoolean(false);
-            try {
-                channel.configureBlocking(false);
-                channel.register(selector, SelectionKey.OP_READ);
-                channel.socket().bind(listenAddress);
-            } catch (RuntimeException | IOException e) {
-                IOUtils.closeQuietly(selector);
-                IOUtils.closeQuietly(channel);
-                throw e;
-            }
-        }
 
         @Override
         protected void run() {
@@ -228,7 +165,7 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
 
                 // go through receivers requestManager has removed for timing out and add timeout events for each of them
                 boolean timeoutEventAdded = false;
-                for (OutgoingMessageResponseListener<InetSocketAddress> receiver : timeoutRes.getTimedOutReceivers()) {
+                for (OutgoingMessageResponseListener<InetSocketAddress> receiver : timeoutRes.getTimedOut()) {
                     internalEventQueue.add(new EventResponseTimedOut(receiver));
                     
                     timeoutEventAdded = true;
@@ -299,7 +236,7 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
                                     throw new RuntimeException("Duplicate messageid encountered");
                                 }
 
-                                OutgoingMessageResponseListener<InetSocketAddress> receiver = timeoutManager.getReceiver(from, id);
+                                OutgoingMessageResponseListener<InetSocketAddress> receiver = timeoutManager.getResponseDetails(from, id);
 
                                 if (receiver != null) { // timeout may have lapsed already, don't do anything if it did
                                     IncomingResponse<InetSocketAddress> response = new IncomingResponse<>(from, tempBuffer, currentTime);
@@ -409,15 +346,6 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
             }
         }
         
-        @Override
-        protected void shutDown() throws Exception {
-            IOUtils.closeQuietly(selector);
-            IOUtils.closeQuietly(channel);
-            
-            for (OutgoingMessageResponseListener receiver : timeoutManager.pending().getTimedOutReceivers()) {
-                receiver.internalErrorOccurred(null);
-            }
-        }
 
         @Override
         protected String serviceName() {

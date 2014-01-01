@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.actormessages.events;
 
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
@@ -24,19 +24,21 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class IncomingResponse<A> {
+public final class ResponseArrivedEvent<A> {
     private A from;
     private ByteBuffer data;
     private long arriveTime;
+    private long id;
 
     /**
      * Constructs an {@link IncomingResponse} object.
+     * @param id id
      * @param from source address
      * @param data response data
      * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public IncomingResponse(A from, ByteBuffer data, long arriveTime) {
+    public ResponseArrivedEvent(long id, A from, ByteBuffer data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);
         
@@ -44,6 +46,7 @@ public final class IncomingResponse<A> {
         this.data = ByteBuffer.allocate(data.remaining()).put(data);
         this.arriveTime = arriveTime;
         this.data.flip();
+        this.id = id;
     }
 
     /**
@@ -53,7 +56,7 @@ public final class IncomingResponse<A> {
      * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public IncomingResponse(A from, byte[] data, long arriveTime) {
+    public ResponseArrivedEvent(A from, byte[] data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);
         
@@ -87,4 +90,11 @@ public final class IncomingResponse<A> {
         return arriveTime;
     }
     
+    /**
+     * Get Id.
+     * @return id 
+     */
+    public long getId() {
+        return id;
+    }
 }

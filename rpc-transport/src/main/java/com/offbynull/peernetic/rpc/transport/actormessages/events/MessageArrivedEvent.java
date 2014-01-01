@@ -14,48 +14,87 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.actormessages.events;
 
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Outgoing response.
+ * Incoming message.
  * @author Kasra Faghihi
+ * @param <A> address type
  */
-public final class OutgoingResponse {
+public final class MessageArrivedEvent<A> {
+    private A from;
     private ByteBuffer data;
+    private long arriveTime;
+    private long id;
 
     /**
-     * Constructs a {@link OutgoingResponse} object.
+     * Constructs an {@link IncomingMessage} object.
+     * @param id id
+     * @param from source address
      * @param data message data
+     * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public OutgoingResponse(ByteBuffer data) {
+    public MessageArrivedEvent(long id, A from, ByteBuffer data, long arriveTime) {
+        Validate.notNull(from);
         Validate.notNull(data);
         
+        this.from = from;
         this.data = ByteBuffer.allocate(data.remaining()).put(data);
+        this.arriveTime = arriveTime;
         this.data.flip();
+        this.id = id;
     }
 
     /**
-     * Constructs a {@link OutgoingResponse} object.
-     * @param data response data
+     * Constructs an {@link IncomingMessage} object.
+     * @param from source address
+     * @param data message data
+     * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public OutgoingResponse(byte[] data) {
+    public MessageArrivedEvent(A from, byte[] data, long arriveTime) {
+        Validate.notNull(from);
         Validate.notNull(data);
         
+        this.from = from;
         this.data = ByteBuffer.allocate(data.length).put(data);
+        this.arriveTime = arriveTime;
         this.data.flip();
     }
 
     /**
-     * Gets a read-only view of the response data.
-     * @return response data
+     * Get source address.
+     * @return source address
+     */
+    public A getFrom() {
+        return from;
+    }
+
+    /**
+     * Gets a read-only view of the message data.
+     * @return message data
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();
     }
+
+    /**
+     * Gets the arrival time.
+     * @return arrival time
+     */
+    public long getArriveTime() {
+        return arriveTime;
+    }
     
+    /**
+     * Get Id.
+     * @return id 
+     */
+    public long getId() {
+        return id;
+    }
 }

@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.actormessages.commands;
 
+import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
@@ -24,23 +25,26 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class OutgoingMessage<A> {
+public final class SendRequestCommand<A> {
     private A to;
     private ByteBuffer data;
+    private long id;
 
     /**
      * Constructs a {@link OutgoingMessage}.
+     * @param id id
      * @param to destination address
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public OutgoingMessage(A to, ByteBuffer data) {
+    public SendRequestCommand(long id, A to, ByteBuffer data) {
         Validate.notNull(to);
         Validate.notNull(data);
         
         this.to = to;
-        this.data = ByteBuffer.allocate(data.remaining()).put(data);
+        this.data = ByteBufferUtils.copyContents(data, true);
         this.data.flip();
+        this.id = id;
     }
 
     /**
@@ -49,7 +53,7 @@ public final class OutgoingMessage<A> {
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public OutgoingMessage(A to, byte[] data) {
+    public SendRequestCommand(A to, byte[] data) {
         Validate.notNull(to);
         Validate.notNull(data);
         
@@ -74,4 +78,11 @@ public final class OutgoingMessage<A> {
         return data.asReadOnlyBuffer();
     }
     
+    /**
+     * Get Id.
+     * @return id 
+     */
+    public long getId() {
+        return id;
+    }
 }

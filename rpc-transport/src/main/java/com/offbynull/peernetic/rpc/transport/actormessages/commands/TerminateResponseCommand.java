@@ -14,24 +14,29 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.actormessages.commands;
 
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import java.net.InetSocketAddress;
-import org.apache.commons.lang3.Validate;
+/**
+ * Terminate response.
+ * @author Kasra Faghihi
+ */
+public final class TerminateResponseCommand {
+    private long id;
 
-final class EventResponseTimedOut implements Event {
-    private OutgoingMessageResponseListener<InetSocketAddress> receiver;
-
-    EventResponseTimedOut(OutgoingMessageResponseListener<InetSocketAddress> receiver) {
-        Validate.notNull(receiver);
-        
-        this.receiver = receiver;
-    }
-
-    public OutgoingMessageResponseListener<InetSocketAddress> getReceiver() {
-        return receiver;
+    /**
+     * Constructs a {@link OutgoingResponse} object.
+     * @param id id
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public TerminateResponseCommand(long id) {
+        this.id = id;
     }
     
-    
+    /**
+     * Get Id.
+     * @return id 
+     */
+    public long getId() {
+        return id;
+    }
 }

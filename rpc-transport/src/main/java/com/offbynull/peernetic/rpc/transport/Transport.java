@@ -16,38 +16,50 @@
  */
 package com.offbynull.peernetic.rpc.transport;
 
-import java.io.IOException;
+import com.offbynull.peernetic.common.concurrent.actor.Actor;
+import org.apache.commons.lang3.Validate;
 
 /**
- * An interface to send, receive, and reply to messages over a network. Implementations must be thread-safe.
+ * An abstract base-class for network transport implementations.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public interface Transport<A> {
-    /**
-     * Starts the transport.
-     * @param incomingFilter incoming filter
-     * @param listener listener for incoming messages
-     * @param outgoingFilter outgoing filter
-     * @throws IOException on error
-     * @throws IllegalStateException if already started or stopped
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> listener, OutgoingFilter<A> outgoingFilter) throws IOException;
+public abstract class Transport<A> extends Actor {
 
-    /**
-     * Stops the transport. Cannot be restarted once stopped.
-     * @throws IOException on error
-     * @throws IllegalStateException if not started
-     */
-    void stop() throws IOException;
+    private IncomingFilter<A> incomingFilter;
+    private OutgoingFilter<A> outgoingFilter;
     
     /**
-     * Queues a message to be sent out. The behaviour of this method is undefined if the transport isn't in a started state. Implementations
-     * of this method must not block.
-     * @param message message contents and recipient
-     * @param listener handles message responses
+     * Constructs a {@link Transport} object.
+     * @param incomingFilter incoming filter
+     * @param outgoingFilter outgoing filter
+     * @param daemon daemon thread
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void sendMessage(OutgoingMessage<A> message, OutgoingMessageResponseListener<A> listener);
+    public Transport(IncomingFilter<A> incomingFilter, OutgoingFilter<A> outgoingFilter, boolean daemon) {
+        super(daemon);
+        Validate.notNull(incomingFilter);
+        Validate.notNull(outgoingFilter);
+        
+        this.incomingFilter = incomingFilter;
+        this.outgoingFilter = outgoingFilter;
+    }
+
+    /**
+     * Get the incoming filter for this transport.
+     * @return incoming filter
+     */
+    protected final IncomingFilter<A> getIncomingFilter() {
+        return incomingFilter;
+    }
+
+    /**
+     * Get the outgoing filter for this transport.
+     * @return outgoing filter
+     */
+    protected final OutgoingFilter<A> getOutgoingFilter() {
+        return outgoingFilter;
+    }
+
+
 }

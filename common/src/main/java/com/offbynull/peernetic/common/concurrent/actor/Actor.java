@@ -17,9 +17,6 @@
 package com.offbynull.peernetic.common.concurrent.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.offbynull.peernetic.common.concurrent.pump.Message;
-import com.offbynull.peernetic.common.concurrent.pump.Pump;
-import com.offbynull.peernetic.common.concurrent.pump.PumpReader;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -28,13 +25,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 
 /**
- * {@link Actor} is an abstract class that should be extended by any class expected to receive messages from a {@link PumpReader} in
- * an isolated internal thread.
+ * {@link Actor} is an abstract class that should be extended by any class expected to implement the Actor model
+ * (http://en.wikipedia.org/wiki/Actor_model).
  * @author Kasra Faghihi
  */
 public abstract class Actor {
 
-    private Pump pump;
+    private ActorQueue queue;
     private InternalService internalService;
     private boolean daemon;
     
@@ -49,8 +46,8 @@ public abstract class Actor {
      * @throws IllegalStateException if the internal message pump is {@code null}
      */
     public Actor(boolean daemon) {
-        this.pump = createPump();
-        Validate.validState(pump != null);
+        this.queue = createQueue();
+        Validate.validState(queue != null);
         
         this.daemon = daemon;
         this.lock = new ReentrantLock();
@@ -58,10 +55,10 @@ public abstract class Actor {
     }
 
     /**
-     * Create the internal message pump. Called from constructor.
-     * @return a new message pump to be used by this actor, cannot be {@code null}
+     * Create the internal message queue. Called from constructor.
+     * @return a new message queue to be used by this actor, cannot be {@code null}
      */
-    protected abstract Pump createPump();
+    protected abstract ActorQueue createQueue();
 
     /**
      * Starts this {@link Actor} and waits for it to be ready.
@@ -93,10 +90,10 @@ public abstract class Actor {
     }
 
     /**
-     * Called when the internal {@link PumpReader} has messages available or the maximum wait duration has elapsed. Called from internally
-     * spawned thread  (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
+     * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from
+     * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
      * @param timestamp current timestamp
-     * @param messages messages from the internal {@link PumpReader}
+     * @param messages messages from the internal {@link ActorQueueReader}
      * @return maximum amount of time to wait until next invokation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
@@ -155,7 +152,7 @@ public abstract class Actor {
 
         @Override
         protected void run() throws Exception {
-            PumpReader reader = pump.getPumpReader();
+            ActorQueueReader reader = queue.getReader();
             
             try {
                 long waitUntil = Long.MAX_VALUE;

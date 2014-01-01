@@ -16,6 +16,6 @@
  */
 
 /**
- * Loosely coupled self-contained bulkhead.
+ * A simple implementation of the actor model: http://en.wikipedia.org/wiki/Actor_model.
  */
 package com.offbynull.peernetic.common.concurrent.actor;

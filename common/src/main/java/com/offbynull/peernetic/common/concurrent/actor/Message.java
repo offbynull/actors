@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.common.concurrent.pump;
+package com.offbynull.peernetic.common.concurrent.actor;
 
 import org.apache.commons.lang3.Validate;
 
@@ -23,7 +23,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class Message {
-    private PumpWriter responseWriter;
+    private ActorQueueWriter responseWriter;
     private Object message;
 
     /**
@@ -33,7 +33,7 @@ public final class Message {
      * @param message contents of message
      * @throws NullPointerException if {@code message} is {@code null}
      */
-    public Message(PumpWriter responseWriter, Object message) {
+    public Message(ActorQueueWriter responseWriter, Object message) {
         Validate.notNull(message);
         this.responseWriter = responseWriter;
         this.message = message;
@@ -43,7 +43,7 @@ public final class Message {
      * Gets the writer to feed responses for this message to. Can be {@code null}
      * @return writer to feed responses for this message to, or {@code null} if this message doesn't expect a response
      */
-    public PumpWriter getResponseWriter() {
+    public ActorQueueWriter getResponseWriter() {
         return responseWriter;
     }
 

@@ -29,23 +29,24 @@ public final class ByteBufferUtils {
 
     /**
      * Copy the remaining content of a {@link ByteBuffer} in to a new non-direct {@link ByteBuffer}. Equivalent to calling
-     * {@code copyContents(src, true)}.
+     * {@code copyContents(src, true, false)}.
      * @param src buffer to copy
      * @return new buffer with the remaining content in {@code src}
      * @throws NullPointerException if any arguments are {@code null}
      */
     public static ByteBuffer copyContents(ByteBuffer src) {
-        return copyContents(src, true);
+        return copyContents(src, true, false);
     }
     
     /**
      * Copy the remaining content of a {@link ByteBuffer} in to a new non-direct {@link ByteBuffer}.
      * @param src buffer to copy
      * @param incrementSrc of {@code true} increments {@code src}'s position
+     * @param incrementDst of {@code true} increments {@code dst}'s position
      * @return new buffer with the remaining content in {@code src}
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public static ByteBuffer copyContents(ByteBuffer src, boolean incrementSrc) {
+    public static ByteBuffer copyContents(ByteBuffer src, boolean incrementSrc, boolean incrementDst) {
         if (!incrementSrc) {
             src.mark();
         }
@@ -55,6 +56,10 @@ public final class ByteBufferUtils {
         
         if (!incrementSrc) {
             src.reset();
+        }
+        
+        if (!incrementDst) {
+            dst.flip();
         }
         
         return dst;

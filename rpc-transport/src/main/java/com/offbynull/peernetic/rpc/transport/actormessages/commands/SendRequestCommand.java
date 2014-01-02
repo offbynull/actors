@@ -40,8 +40,7 @@ public final class SendRequestCommand<A> implements TransportCommand {
         Validate.notNull(data);
         
         this.to = to;
-        this.data = ByteBufferUtils.copyContents(data, true);
-        this.data.flip();
+        this.data = ByteBufferUtils.copyContents(data);
     }
 
     /**

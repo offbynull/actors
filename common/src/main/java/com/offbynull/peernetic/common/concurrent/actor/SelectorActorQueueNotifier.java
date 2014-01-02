@@ -46,6 +46,10 @@ public final class SelectorActorQueueNotifier implements ActorQueueNotifier {
             } else {
                 selector.select(timeout);
             }
+            
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
         } catch (IOException ioe) {
             throw new IllegalStateException(ioe);
         }

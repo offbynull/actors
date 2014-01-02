@@ -95,7 +95,7 @@ public final class IncomingMessageManager<A> {
                 newRequests,
                 timedOutPendingRequests,
                 newResponses,
-                results.getNextTimeoutTimestamp());
+                results.getNextMaxTimestamp());
         
         newRequests = new LinkedList<>();
         newResponses = new LinkedList<>();

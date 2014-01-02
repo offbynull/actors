@@ -24,7 +24,8 @@ public final class OutgoingMessageManager<A> {
     
     private TimeoutManager<Long> queuedRequestTimeoutManager = new TimeoutManager<>();
     private TimeoutManager<Long> sentRequestTimeoutManager = new TimeoutManager<>();
-    private Map<Long, OutgoingRequest> requestMap = new HashMap<>();
+    private Map<Long, OutgoingRequest> requestIdLookup = new HashMap<>();
+    private Map<MessageId, Long> requestMessageIdLookup = new HashMap<>();
     private TimeoutManager<Long> queuedResponseTimeoutManager = new TimeoutManager<>();
     private LinkedList<SendEntity> queuedSends = new LinkedList<>();
 
@@ -57,13 +58,18 @@ public final class OutgoingMessageManager<A> {
             localTempBuffer = ByteBufferUtils.copyContents(tempBuffer);
         }
         
-        OutgoingRequest request = new OutgoingRequest(id, localTempBuffer, responder, to);
+        OutgoingRequest request = new OutgoingRequest(id, messageId, localTempBuffer, responder, to);
         
+        if (requestMessageIdLookup.containsKey(messageId)) {
+            // Duplicate hit. Don't add, just ignore
+            return;
+        }
         
         queuedSends.add(request);
         queuedRequestTimeoutManager.add(id, queueTimestampTimeout);
         sentRequestTimeoutManager.add(id, sentTimestampTimeout);
-        requestMap.put(id, request);
+        requestIdLookup.put(id, request);
+        requestMessageIdLookup.put(messageId, id);
     }
 
     public void outgoingResponse(long id, A to, ByteBuffer data, MessageId messageId, long queueTimestampTimeout) {
@@ -73,7 +79,7 @@ public final class OutgoingMessageManager<A> {
         
         tempBuffer.clear();
 
-        MessageMarker.writeRequestMarker(tempBuffer);
+        MessageMarker.writeResponseMarker(tempBuffer);
         messageId.writeId(tempBuffer);
         tempBuffer.put(data);
         tempBuffer.flip();
@@ -101,7 +107,7 @@ public final class OutgoingMessageManager<A> {
         if (sendEntity instanceof OutgoingMessageManager.OutgoingRequest) {
             OutgoingRequest req = (OutgoingRequest) sendEntity;
             queuedRequestTimeoutManager.cancel(req.getId());
-            packet = new Packet<>(req.getData(), req.getDestination());
+            packet = new Packet<>(req.getData(), req.getTo());
         } else if (sendEntity instanceof OutgoingMessageManager.OutgoingResponse) {
             OutgoingResponse resp = (OutgoingResponse) sendEntity;
             packet = new Packet<>(resp.getData(), resp.getDestination());
@@ -119,27 +125,34 @@ public final class OutgoingMessageManager<A> {
         TimeoutManagerResult<Long> timedOutQueuedRequests =  queuedRequestTimeoutManager.process(timestamp);
         for (Long id : timedOutQueuedRequests.getTimedout()) {
             sentRequestTimeoutManager.cancel(id);
-            OutgoingRequest request = requestMap.remove(id);
+            OutgoingRequest request = requestIdLookup.remove(id);
+            requestMessageIdLookup.remove(request.getMessageId());
             messageRespondersForFailures.add(request.getResponder());
         }
-        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedRequests.getNextTimeoutTimestamp());
+        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedRequests.getNextMaxTimestamp());
         
         TimeoutManagerResult<Long> timedOutSentRequests = sentRequestTimeoutManager.process(timestamp);
         for (Long id : timedOutSentRequests.getTimedout()) {
-            OutgoingRequest request = requestMap.remove(id);
+            OutgoingRequest request = requestIdLookup.remove(id);
+            requestMessageIdLookup.remove(request.getMessageId());
             messageRespondersForFailures.add(request.getResponder());
         }
-        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutSentRequests.getNextTimeoutTimestamp());
+        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutSentRequests.getNextMaxTimestamp());
         
         TimeoutManagerResult<Long> timedOutQueuedResponses = queuedResponseTimeoutManager.process(timestamp);
-        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedResponses.getNextTimeoutTimestamp());
+        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedResponses.getNextMaxTimestamp());
         
         return new OutgoingPacketManagerResult(messageRespondersForFailures, nextTimeoutTimestamp, queuedSends.size());
     }
 
-    public MessageResponder responseReturned(long id) {
-        sentRequestTimeoutManager.cancel(id);
-        OutgoingRequest request = requestMap.remove(id);
+    public MessageResponder responseReturned(MessageId messageId) {
+        Long internalId = requestMessageIdLookup.remove(messageId);
+        if (internalId == null) {
+            return null;
+        }
+        
+        sentRequestTimeoutManager.cancel(internalId);
+        OutgoingRequest request = requestIdLookup.remove(internalId);
         
         if (request == null) {
             return null;
@@ -176,15 +189,17 @@ public final class OutgoingMessageManager<A> {
     
     public final class OutgoingRequest implements SendEntity {
         private Long id;
+        private MessageId messageId;
         private ByteBuffer data;
         private MessageResponder responder;
-        private A destination;
+        private A to;
 
-        public OutgoingRequest(Long id, ByteBuffer data, MessageResponder responder, A destination) {
+        public OutgoingRequest(Long id, MessageId messageId, ByteBuffer data, MessageResponder responder, A to) {
             this.id = id;
             this.data = data;
             this.responder = responder;
-            this.destination = destination;
+            this.to = to;
+            this.messageId = messageId;
         }
 
         public Long getId() {
@@ -199,8 +214,12 @@ public final class OutgoingMessageManager<A> {
             return responder;
         }
 
-        public A getDestination() {
-            return destination;
+        public MessageId getMessageId() {
+            return messageId;
+        }
+
+        public A getTo() {
+            return to;
         }
     }
 

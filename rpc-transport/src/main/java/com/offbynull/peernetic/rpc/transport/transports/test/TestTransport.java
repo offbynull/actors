@@ -33,6 +33,7 @@ import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.Incom
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequest;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingResponse;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.PendingRequest;
+import com.offbynull.peernetic.rpc.transport.common.MessageId;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
 import java.io.IOException;
@@ -182,8 +183,8 @@ public final class TestTransport<A> extends Transport<A> {
         }
         
         for (IncomingResponse<A> incomingResponse : ipmResult.getNewIncomingResponses()) {
-            long id = incomingResponse.getId();
-            MessageResponder responder = outgoingPacketManager.responseReturned(id);
+            MessageId messageId = incomingResponse.getMessageId();
+            MessageResponder responder = outgoingPacketManager.responseReturned(messageId);
             
             if (responder == null) {
                 continue;

@@ -59,7 +59,10 @@ public final class TimeoutManager<R> {
     public void cancel(R key) {
         Validate.notNull(key);
         
-        keyMap.remove(key).cancel();
+        Entity entity = keyMap.remove(key);
+        if (entity != null) {
+            entity.cancel();
+        }
     }
 
     /**
@@ -99,6 +102,7 @@ public final class TimeoutManager<R> {
             }
             
             if (entity.isCancelled()) {
+                idQueue.poll();
                 continue;
             }
             

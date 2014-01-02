@@ -36,18 +36,15 @@ public final class SendResponseCommand<A> implements TransportCommand {
     public SendResponseCommand(ByteBuffer data) {
         Validate.notNull(data);
 
-        this.data = ByteBufferUtils.copyContents(data, true);
-        this.data.flip();
+        this.data = ByteBufferUtils.copyContents(data);
     }
 
     /**
      * Constructs a {@link SendResponseCommand}.
-     * @param to destination address
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SendResponseCommand(A to, byte[] data) {
-        Validate.notNull(to);
+    public SendResponseCommand(byte[] data) {
         Validate.notNull(data);
 
         this.data = ByteBuffer.allocate(data.length).put(data);

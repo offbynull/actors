@@ -35,6 +35,7 @@ import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.Incom
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequest;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingResponse;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.PendingRequest;
+import com.offbynull.peernetic.rpc.transport.common.MessageId;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.Packet;
 import java.io.IOException;
@@ -92,7 +93,6 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
 
         this.listenAddress = listenAddress;
-        this.selector = Selector.open();
 
         this.timeout = timeout;
         
@@ -103,6 +103,11 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
 
     @Override
     protected ActorQueue createQueue() {
+        try {
+            this.selector = Selector.open();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
         return new ActorQueue(new SelectorActorQueueNotifier(selector));
     }
 
@@ -221,8 +226,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         }
         
         for (IncomingResponse<InetSocketAddress> incomingResponse : ipmResult.getNewIncomingResponses()) {
-            long id = incomingResponse.getId();
-            MessageResponder responder = outgoingPacketManager.responseReturned(id);
+            MessageId messageId = incomingResponse.getMessageId();
+            MessageResponder responder = outgoingPacketManager.responseReturned(messageId);
             
             if (responder == null) {
                 continue;

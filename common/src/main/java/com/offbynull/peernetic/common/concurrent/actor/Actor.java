@@ -74,7 +74,7 @@ public abstract class Actor {
      * @return {@true} if this service hasn't been started yet, otherwise {@code false}
      */
     public final boolean isNew() {
-        return internalService.state() != Service.State.NEW;
+        return internalService.state() == Service.State.NEW;
     }
     
     /**

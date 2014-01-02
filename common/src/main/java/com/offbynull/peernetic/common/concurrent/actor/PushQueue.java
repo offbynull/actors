@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.common.concurrent.actor;
 
-import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
 import java.util.Collection;
 import java.util.Map.Entry;
 import org.apache.commons.collections4.MultiMap;
@@ -42,6 +41,7 @@ public final class PushQueue {
     /**
      * Queue an outgoing response.
      * @param dst key for the message this message is responding to
+     * @param id id for response
      * @param response response message content
      * @throws NullPointerException if any argument is {@code null}
      */

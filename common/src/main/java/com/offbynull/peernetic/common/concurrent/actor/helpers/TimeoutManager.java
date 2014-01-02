@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.common.concurrent.actor.helpers;
 
+import com.offbynull.peernetic.common.concurrent.actor.Actor;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,29 +25,49 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-public final class TimeoutManager<K> {
-    private Map<K, Entity> keyMap = new HashMap<>();
+/**
+ * Manages timeouts for a set of resources. Intended to be called periodically by an {@link Actor}.
+ * @author Kasra Faghihi
+ * @param <R> resource
+ */
+public final class TimeoutManager<R> {
+    private Map<R, Entity> keyMap = new HashMap<>();
     private LinkedList<Entity> idQueue = new LinkedList<>();
     
-    public void add(K key, long timeoutTimestamp) {
-        Validate.notNull(key);
+    /**
+     * Add a timeout for a resource.
+     * @param res resource
+     * @param maxTimestamp timestamp for which the resource expires@
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public void add(R res, long maxTimestamp) {
+        Validate.notNull(res);
         
-        Validate.isTrue(!keyMap.containsKey(key));
+        Validate.isTrue(!keyMap.containsKey(res));
         
-        Entity entity = new Entity(timeoutTimestamp, key);
+        Entity entity = new Entity(maxTimestamp, res);
         
-        keyMap.put(key, entity);
+        keyMap.put(res, entity);
         idQueue.addLast(entity);
     }
 
-    public void cancel(K key) {
+    /**
+     * Cancel the timeout for a resource.
+     * @param key resource
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public void cancel(R key) {
         Validate.notNull(key);
         
         keyMap.remove(key).cancel();
     }
 
-    public TimeoutManagerResult<K> flush() {
-        Set<K> pending = new HashSet<>();
+    /**
+     * Cancel the timeout for all resources that were added.
+     * @return all resources that were being tracked
+     */
+    public TimeoutManagerResult<R> flush() {
+        Set<R> pending = new HashSet<>();
         
         for (Entity entity : idQueue) {
             if (entity.isCancelled()) {
@@ -58,11 +79,16 @@ public final class TimeoutManager<K> {
         idQueue.clear();
         pending.clear();
         
-        return new TimeoutManagerResult(pending, 0L);
+        return new TimeoutManagerResult(pending, Long.MAX_VALUE);
     }
     
-    public TimeoutManagerResult<K> process(long currentTime) {
-        Set<K> timedOut = new HashSet<>();
+    /**
+     * Get expired resources.
+     * @param timestamp current timestamp
+     * @return expired resources
+     */
+    public TimeoutManagerResult<R> process(long timestamp) {
+        Set<R> timedOut = new HashSet<>();
         long waitDuration = 0L;
         
         while (true) {
@@ -76,12 +102,12 @@ public final class TimeoutManager<K> {
                 continue;
             }
             
-            if (currentTime >= entity.getTimeoutTimestamp()) {
+            if (timestamp >= entity.getMaxTimestamp()) {
                 timedOut.add(entity.getKey());
                 idQueue.pollFirst();
                 keyMap.remove(entity.getKey());
             } else {
-                waitDuration = entity.getTimeoutTimestamp() - currentTime;
+                waitDuration = entity.getMaxTimestamp() - timestamp;
                 if (waitDuration <= 0L) {
                     waitDuration = 1L;
                 }
@@ -92,40 +118,52 @@ public final class TimeoutManager<K> {
         return new TimeoutManagerResult<>(timedOut, waitDuration);
     }
     
-    public static final class TimeoutManagerResult<K> {
-        private Set<K> responses;
-        private long waitDuration;
+    /**
+     * Timeout manager results.
+     * @param <R> resource
+     */
+    public static final class TimeoutManagerResult<R> {
+        private Set<R> responses;
+        private long maxTimestamp;
 
-        private TimeoutManagerResult(Set<K> responses, long waitDuration) {
+        private TimeoutManagerResult(Set<R> responses, long maxTimestamp) {
             this.responses = Collections.unmodifiableSet(responses);
-            this.waitDuration = waitDuration;
+            this.maxTimestamp = maxTimestamp;
         }
 
-        public Set<K> getTimedout() {
+        /**
+         * Get expired resources.
+         * @return expired resource
+         */
+        public Set<R> getTimedout() {
             return responses;
         }
 
-        public long getNextTimeoutTimestamp() {
-            return waitDuration;
+        /**
+         * Get the next timestamp a resource will expire.
+         * @return next timestamp a resource will expire
+         */
+        public long getNextMaxTimestamp() {
+            return maxTimestamp;
         }
         
     }
     
     private final class Entity {
-        private long timeoutTimestamp;
-        private K key;
+        private long maxTimestamp;
+        private R key;
         private boolean cancelled;
 
-        private Entity(long timeoutTimestamp, K key) {
-            this.timeoutTimestamp = timeoutTimestamp;
+        private Entity(long maxTimestamp, R key) {
+            this.maxTimestamp = maxTimestamp;
             this.key = key;
         }
 
-        public long getTimeoutTimestamp() {
-            return timeoutTimestamp;
+        public long getMaxTimestamp() {
+            return maxTimestamp;
         }
 
-        public K getKey() {
+        public R getKey() {
             return key;
         }
         

@@ -72,6 +72,10 @@ public final class Message {
         return new MessageResponder();
     }
     
+    /**
+     * Holds on to information required for responding to a message. That information includes the writer to forwarded the response to and
+     * an ID referencing the original message.
+     */
     public final class MessageResponder {
         private MessageResponder() {
             // do not allow outside parties to instantiate
@@ -107,12 +111,26 @@ public final class Message {
         public ActorQueueWriter getWriter() {
             return writer;
         }
-        
+
+        /**
+         * Respond to the message this responder was taken from.
+         * @param content contents of the response
+         * @throws NullPointerException if any arguments are {@code null}
+         */
         public void respondImmediately(Object content) {
+            Validate.notNull(content);
             writer.push(Message.createResponseMessage(key, content));
         }
         
+        /**
+         * Push a response to the message this responder was taken from on to a {@link PushQueue}.
+         * @param queue {@link PushQueue} to push response to 
+         * @param content contents of the response
+         * @throws NullPointerException if any arguments are {@code null}
+         */
         public void respondDeferred(PushQueue queue, Object content) {
+            Validate.notNull(queue);
+            Validate.notNull(content);
             queue.queueResponseMessage(writer, key, content);
         }
     }

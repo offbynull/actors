@@ -61,13 +61,17 @@ public abstract class Actor {
      */
     protected abstract ActorQueue createQueue();
 
+    /**
+     * Gets a writer that feeds in to this actor.
+     * @return writer that feeds in this actor
+     */
     protected final ActorQueueWriter getSelfWriter() {
         return queue.getWriter();
     }
     
     /**
      * Checks to see if this {@link Service} is a new service. That is, checks to see if this service hasn't been started yet.
-     * @return 
+     * @return {@true} if this service hasn't been started yet, otherwise {@code false}
      */
     public final boolean isNew() {
         return internalService.state() != Service.State.NEW;

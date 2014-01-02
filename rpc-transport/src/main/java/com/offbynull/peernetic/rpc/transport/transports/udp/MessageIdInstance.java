@@ -16,16 +16,15 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import java.net.InetSocketAddress;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-final class MessageIdInstance {
-    private InetSocketAddress from;
+final class MessageIdInstance<A> {
+    private A from;
     private MessageId id;
     private PacketType type;
 
-    public MessageIdInstance(InetSocketAddress from, MessageId id, PacketType type) {
+    public MessageIdInstance(A from, MessageId id, PacketType type) {
         Validate.notNull(from);
         Validate.notNull(id);
         Validate.notNull(type);
@@ -34,7 +33,7 @@ final class MessageIdInstance {
         this.type = type;
     }
 
-    public InetSocketAddress getFrom() {
+    public A getFrom() {
         return from;
     }
 

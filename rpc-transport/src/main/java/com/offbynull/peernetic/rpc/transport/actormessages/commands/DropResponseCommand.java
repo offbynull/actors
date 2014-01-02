@@ -20,23 +20,5 @@ package com.offbynull.peernetic.rpc.transport.actormessages.commands;
  * Terminate response.
  * @author Kasra Faghihi
  */
-public final class TerminateResponseCommand {
-    private long id;
-
-    /**
-     * Constructs a {@link OutgoingResponse} object.
-     * @param id id
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    public TerminateResponseCommand(long id) {
-        this.id = id;
-    }
-    
-    /**
-     * Get Id.
-     * @return id 
-     */
-    public long getId() {
-        return id;
-    }
+public final class DropResponseCommand implements TransportCommand {
 }

@@ -24,21 +24,19 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class MessageArrivedEvent<A> {
+public final class RequestArrivedEvent<A> implements TransportEvent {
     private A from;
     private ByteBuffer data;
     private long arriveTime;
-    private long id;
 
     /**
      * Constructs an {@link IncomingMessage} object.
-     * @param id id
      * @param from source address
      * @param data message data
      * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public MessageArrivedEvent(long id, A from, ByteBuffer data, long arriveTime) {
+    public RequestArrivedEvent(A from, ByteBuffer data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);
         
@@ -46,7 +44,6 @@ public final class MessageArrivedEvent<A> {
         this.data = ByteBuffer.allocate(data.remaining()).put(data);
         this.arriveTime = arriveTime;
         this.data.flip();
-        this.id = id;
     }
 
     /**
@@ -56,7 +53,7 @@ public final class MessageArrivedEvent<A> {
      * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public MessageArrivedEvent(A from, byte[] data, long arriveTime) {
+    public RequestArrivedEvent(A from, byte[] data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);
         
@@ -88,13 +85,5 @@ public final class MessageArrivedEvent<A> {
      */
     public long getArriveTime() {
         return arriveTime;
-    }
-    
-    /**
-     * Get Id.
-     * @return id 
-     */
-    public long getId() {
-        return id;
     }
 }

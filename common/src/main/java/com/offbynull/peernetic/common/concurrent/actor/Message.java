@@ -36,7 +36,7 @@ public final class Message {
      * Get the contents of this message.
      * @return contents of this message
      */
-    public Object getMessage() {
+    public Object getContent() {
         return content;
     }
     
@@ -44,20 +44,36 @@ public final class Message {
      * Get the key for which this message is a response to.
      * @return key for which this message is a response to, or {@code null} if this message is not a response to another message
      */
-    public Object getResponseToKey() {
+    public Object getResponseToId() {
         return responseKey;
     }
     
     /**
-     * Get the key and writer to use for responses to this message.
-     * @return key and writer to use for responses to this message, or {@code null} if the message doesn't expect a response
+     * Get the key for which this message is a response to only if it matches a certain type.
+     * @param <T> type
+     * @param type type to check against
+     * @throws NullPointerException if any argument is {@code null}
+     * @return ID for which this message is a response to, or {@code null} if this message is not a response to another message / doesn't
+     * match the specified type
      */
-    public ResponseDetails getResponseDetails() {
-        return new ResponseDetails();
+    public <T> T getResponseToId(Class<T> type) {
+        if (responseKey == null) {
+            return null;
+        }
+
+        return responseKey.getClass() == type ? (T) responseKey : null;
     }
     
-    public final class ResponseDetails {
-        private ResponseDetails() {
+    /**
+     * Get the key to use for responses to this message.
+     * @return key to use for responses to this message, or {@code null} if the message doesn't expect a response
+     */
+    public MessageResponder getResponder() {
+        return new MessageResponder();
+    }
+    
+    public final class MessageResponder {
+        private MessageResponder() {
             // do not allow outside parties to instantiate
         }
         
@@ -65,16 +81,39 @@ public final class Message {
          * Get the ID expected by responses to this message.
          * @return ID expected by responses
          */
-        public Object getKey() {
+        public Object getId() {
             return key;
         }
 
+        /**
+         * Get the ID expected by responses to this message only if it matches a certain type.
+         * @param <T> type
+         * @param type type to check against
+         * @return ID expected by responses, or {@code null} if it doesn't exist or doesn't match the specified type
+         * @throws NullPointerException if any argument is {@code null}
+         */
+        public <T> T getId(Class<T> type) {
+            if (key == null) {
+                return null;
+            }
+            
+            return key.getClass() == type ? (T) key : null;
+        }
+        
         /**
          * Gets the writer to feed responses for this message to.
          * @return writer to feed responses for this message to
          */
         public ActorQueueWriter getWriter() {
             return writer;
+        }
+        
+        public void respondImmediately(Object content) {
+            writer.push(Message.createResponseMessage(key, content));
+        }
+        
+        public void respondDeferred(PushQueue queue, Object content) {
+            queue.queueResponseMessage(writer, key, content);
         }
     }
 

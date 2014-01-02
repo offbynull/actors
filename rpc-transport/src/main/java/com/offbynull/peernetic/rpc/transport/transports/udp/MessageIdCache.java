@@ -16,12 +16,11 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
-final class MessageIdCache {
+final class MessageIdCache<A> {
 
     private int capacity;
     private LinkedList<MessageIdInstance> queue;
@@ -35,7 +34,7 @@ final class MessageIdCache {
         this.set = new HashSet<>(capacity);
     }
 
-    public boolean add(InetSocketAddress from, MessageId id, PacketType type) {
+    public boolean add(A from, MessageId id, PacketType type) {
         MessageIdInstance idInstance = new MessageIdInstance(from, id, type);
 
         if (set.contains(idInstance)) {

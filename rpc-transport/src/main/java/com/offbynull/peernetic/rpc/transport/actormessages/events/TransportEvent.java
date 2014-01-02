@@ -1,5 +1,5 @@
 package com.offbynull.peernetic.rpc.transport.actormessages.events;
 
-public final class ResponseTimedOutEvent implements TransportEvent {
+public interface TransportEvent {
     
 }

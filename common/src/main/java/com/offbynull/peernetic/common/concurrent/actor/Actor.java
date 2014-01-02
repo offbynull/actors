@@ -93,12 +93,12 @@ public abstract class Actor {
      * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from
      * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
      * @param timestamp current timestamp
-     * @param messages messages from the internal {@link ActorQueueReader}
-     * @param responseQueue responses that get flushed at the end of each invocation of this method
+     * @param iterator messages from the internal {@link ActorQueueReader}
+     * @param pushQueue messages to send at the end of each invocation of this method
      * @return maximum amount of time to wait until next invokation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract long onStep(long timestamp, Iterator<Message> messages, ResponseQueue responseQueue) throws Exception;
+    protected abstract long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception;
     
     /**
      * Called to initialize this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
@@ -110,9 +110,10 @@ public abstract class Actor {
     /**
      * Called to shutdown this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
      * {@link #onStep(long, java.util.Iterator) }.
+     * @param pushQueue messages to send at the end of each invocation of this method
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract void onStop() throws Exception;
+    protected abstract void onStop(PushQueue pushQueue) throws Exception;
 
     private final class InternalService extends AbstractExecutionThreadService {
         @Override
@@ -143,7 +144,9 @@ public abstract class Actor {
 
         @Override
         protected void shutDown() throws Exception {
-            onStart();
+            PushQueue responseQueue = new PushQueue(queue.getWriter());
+            onStop(responseQueue);
+            responseQueue.flush();
         }
 
         @Override
@@ -158,7 +161,7 @@ public abstract class Actor {
             try {
                 long waitUntil = Long.MAX_VALUE;
 
-                ResponseQueue responseQueue = new ResponseQueue(queue.getWriter());
+                PushQueue responseQueue = new PushQueue(queue.getWriter());
                 while (true) {
                     Iterator<Message> messages = reader.pull(waitUntil);
 

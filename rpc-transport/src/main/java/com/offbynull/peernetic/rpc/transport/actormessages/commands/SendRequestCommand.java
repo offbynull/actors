@@ -25,30 +25,27 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class SendRequestCommand<A> {
+public final class SendRequestCommand<A> implements TransportCommand {
     private A to;
     private ByteBuffer data;
-    private long id;
 
     /**
-     * Constructs a {@link OutgoingMessage}.
-     * @param id id
+     * Constructs a {@link SendRequestCommand}.
      * @param to destination address
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SendRequestCommand(long id, A to, ByteBuffer data) {
+    public SendRequestCommand(A to, ByteBuffer data) {
         Validate.notNull(to);
         Validate.notNull(data);
         
         this.to = to;
         this.data = ByteBufferUtils.copyContents(data, true);
         this.data.flip();
-        this.id = id;
     }
 
     /**
-     * Constructs a {@link OutgoingMessage}.
+     * Constructs a {@link SendRequestCommand}.
      * @param to destination address
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
@@ -76,13 +73,5 @@ public final class SendRequestCommand<A> {
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();
-    }
-    
-    /**
-     * Get Id.
-     * @return id 
-     */
-    public long getId() {
-        return id;
     }
 }

@@ -16,15 +16,26 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
+import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
-import com.offbynull.peernetic.common.concurrent.actor.ResponseQueue;
+import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
+import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.common.concurrent.actor.SelectorActorQueueNotifier;
+import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
+import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.transports.udp.TimeoutManager.Result;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.SetDestinationCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.DropResponseCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseTimedOutEvent;
+import com.offbynull.peernetic.rpc.transport.transports.udp.OutgoingPacketManager.OutgoingPacketManagerResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -32,8 +43,8 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -45,15 +56,24 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     
     private InetSocketAddress listenAddress;
     private Selector selector;
-    
-    private int bufferSize;
+    private int selectionKey = SelectionKey.OP_READ;
+
     private int cacheSize;
     private long timeout;
     
     private DatagramChannel channel;
     private MessageIdGenerator idGenerator;
     private MessageIdCache idCache;
-    private TimeoutManager timeoutManager;
+    
+    private OutgoingPacketManager<InetSocketAddress> pendingPacketManager;
+    private TimeoutManager<MessageId, MessageResponder> sendingRequestTimeoutManager;
+    private TimeoutManager<Long, InetSocketAddress> processingResponseTimeoutManager;
+    
+    private ByteBuffer buffer;
+    
+    private long nextMessageKey;
+    
+    private ActorQueueWriter dstWriter;
 
     /**
      * Constructs a {@link UdpTransport} object.
@@ -79,9 +99,10 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         this.listenAddress = listenAddress;
         this.selector = Selector.open();
         
-        this.bufferSize = bufferSize;
         this.cacheSize = cacheSize;
         this.timeout = timeout;
+        
+        this.buffer = ByteBuffer.allocate(bufferSize);
     }
 
     @Override
@@ -93,7 +114,10 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     protected void onStart() throws Exception {
         idGenerator = new MessageIdGenerator();
         idCache = new MessageIdCache(cacheSize);
-        timeoutManager = new TimeoutManager(timeout);
+        
+        pendingPacketManager = new OutgoingPacketManager<>(); 
+        sendingRequestTimeoutManager = new TimeoutManager<>();
+        processingResponseTimeoutManager = new TimeoutManager<>();
 
         try {
             channel = DatagramChannel.open();
@@ -108,254 +132,225 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     }
     
     @Override
-    protected long onStep(long timestamp, Iterator<Message> messages, ResponseQueue responseQueue) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    protected void onStop() throws Exception {
-        IOUtils.closeQuietly(selector);
-        IOUtils.closeQuietly(channel);
-
-        for (OutgoingMessageResponseListener receiver : timeoutManager.pending().getTimedOut()) {
-            receiver.internalErrorOccurred(null);
+    protected long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception {
+        // process messages
+        while (iterator.hasNext()) {
+            Message msg = iterator.next();
+            Object content = msg.getContent();
+            
+            if (content instanceof SetDestinationCommand) {
+                SetDestinationCommand rc = (SetDestinationCommand) content;
+                dstWriter = rc.getWriter();
+            } else if (content instanceof SendRequestCommand) {
+                SendRequestCommand<InetSocketAddress> src = (SendRequestCommand) content;
+                MessageResponder key = msg.getResponder();
+                if (key == null) {
+                    continue;
+                }
+                
+                OutgoingMessage<InetSocketAddress> packet = new OutgoingMessage<>(src.getTo(), src.getData());
+                pendingPacketManager.addRequestPacket(timestamp + timeout, packet, key);
+            } else if (content instanceof SendResponseCommand) {
+                SendResponseCommand<InetSocketAddress> src = (SendResponseCommand) content;
+                Object id = msg.getResponseToId();
+                if (id == null || !(id instanceof Long)) {
+                    continue;
+                }
+                
+                InetSocketAddress sender = processingResponseTimeoutManager.remove((long) id);
+                if (sender == null) {
+                    continue;
+                }
+                
+                OutgoingMessage<InetSocketAddress> responsePacket = new OutgoingMessage<>(sender, src.getData());
+                pendingPacketManager.addResponsePacket(timestamp + timeout, responsePacket);
+            } else if (content instanceof DropResponseCommand) {
+                DropResponseCommand trc = (DropResponseCommand) content;
+                Object id = msg.getResponseToId();
+                if (id == null || !(id instanceof Long)) {
+                    continue;
+                }
+                
+                processingResponseTimeoutManager.remove((Long) id);
+            } 
         }
-    }
+        
+        
+        
+        // process timeouts and get the maximum amount to time until this method should be called again
+        long nextHitTime = 0L;
+        
+        OutgoingPacketManagerResult pmResult = pendingPacketManager.process(timestamp);
+        TimeoutManagerResult<MessageId, MessageResponder> sendingReqTmResult = sendingRequestTimeoutManager.evaluate(timestamp);
+        TimeoutManagerResult<Long, InetSocketAddress> processingRespTmResult =
+                processingResponseTimeoutManager.evaluate(timestamp);
+        
+        Collection<MessageResponder> requestNotSentOut = pmResult.getMessageRespondersForFailures();
+        for (MessageResponder key : requestNotSentOut) {
+            pushQueue.queueResponseMessage(key, new ResponseErroredEvent());
+        }
+        nextHitTime = Math.max(nextHitTime, pmResult.getNextTimeoutTimestamp());
+        
+        for (MessageResponder key : sendingReqTmResult.getTimedout().values()) {
+            pushQueue.queueResponseMessage(key, new ResponseTimedOutEvent());
+        }
+        nextHitTime = Math.max(nextHitTime, sendingReqTmResult.getDurationUntilNextTimeout());
 
-    
-    private final class EventLoop extends AbstractExecutionThreadService {
-
-
+          // No need to iterate over processingRespTmResult, we just won't process the response if/when Drop/SendResponseCommand comes in
+        nextHitTime = Math.max(nextHitTime, processingRespTmResult.getDurationUntilNextTimeout());
 
         
+        
+        // go through selected keys
+        IncomingFilter<InetSocketAddress> incomingFilter = getIncomingFilter();
+        OutgoingFilter<InetSocketAddress> outgoingFilter = getOutgoingFilter();
+        
+        Iterator keys = selector.selectedKeys().iterator();
+        while (keys.hasNext()) {
+            SelectionKey key = (SelectionKey) keys.next();
+            keys.remove();
 
-        @Override
-        protected void run() {
-            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+            if (!key.isValid()) {
+                continue;
+            }
 
-            int selectionKey = SelectionKey.OP_READ;
-            LinkedList<Event> internalEventQueue = new LinkedList<>();
-            LinkedList<Command> dumpedCommandQueue = new LinkedList<>();
-            while (true) {
-                // get current time
-                long currentTime = System.currentTimeMillis();
-                
-                // get outgoing data
-                commandQueue.drainTo(dumpedCommandQueue);
-                
-                // set selection key based on if there's commands available -- this works because the only commands available are send req
-                // and send resp
-                int newSelectionKey = SelectionKey.OP_READ;
-                if (!dumpedCommandQueue.isEmpty()) {
-                    newSelectionKey |= SelectionKey.OP_WRITE;
-                }
-                
-                if (newSelectionKey != selectionKey) {
-                    selectionKey = newSelectionKey;
-                    try {
-                        channel.register(selector, selectionKey);
-                    } catch (ClosedChannelException cce) {
-                        throw new RuntimeException(cce);
-                    }
-                }
-                
-                // get timed out channels + max amount of time to wait till next timeout
-                Result timeoutRes = timeoutManager.evaluate(currentTime);
-                long waitDuration = timeoutRes.getWaitDuration();
+            if (key.isReadable()) { // incoming data available
+                buffer.clear();
 
-                // go through receivers requestManager has removed for timing out and add timeout events for each of them
-                boolean timeoutEventAdded = false;
-                for (OutgoingMessageResponseListener<InetSocketAddress> receiver : timeoutRes.getTimedOut()) {
-                    internalEventQueue.add(new EventResponseTimedOut(receiver));
-                    
-                    timeoutEventAdded = true;
-                }
-                
-                // select
-                try {
-                    // if timeout event was added then don't wait, because we need to process those events
-                    if (timeoutEventAdded) {
-                        selector.selectNow();
-                    } else {
-                        selector.select(waitDuration);
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                InetSocketAddress from = (InetSocketAddress) channel.receive(buffer);
+                buffer.flip();
 
+                ByteBuffer tempBuffer = incomingFilter.filter(from, buffer);
 
-                
-                // stop if signalled
-                if (stop.get()) {
-                    return;
-                }
-                
-                // update current time
-                currentTime = System.currentTimeMillis();
-                
-                // go through selected keys
-                Iterator keys = selector.selectedKeys().iterator();
-                while (keys.hasNext()) {
-                    SelectionKey key = (SelectionKey) keys.next();
-                    keys.remove();
+                if (MessageMarker.isRequest(tempBuffer)) {
+                    MessageMarker.skipOver(tempBuffer);
 
-                    if (!key.isValid()) {
+                    MessageId id = MessageId.extractPrependedId(tempBuffer);
+                    MessageId.skipOver(tempBuffer);
+
+                    if (!idCache.add(from, id, PacketType.REQUEST)) {
+                        //throw new RuntimeException("Duplicate messageid encountered");
                         continue;
                     }
 
-                    if (key.isReadable()) { // incoming data available
-                        try {
-                            buffer.clear();
-                            
-                            InetSocketAddress from = (InetSocketAddress) channel.receive(buffer);
-                            buffer.flip();
-
-                            ByteBuffer tempBuffer = inFilter.filter(from, buffer);
-                            
-                            if (MessageMarker.isRequest(tempBuffer)) {
-                                MessageMarker.skipOver(tempBuffer);
-
-                                MessageId id = MessageId.extractPrependedId(tempBuffer);
-                                MessageId.skipOver(tempBuffer);
-                                
-                                if (!idCache.add(from, id, PacketType.REQUEST)) {
-                                    throw new RuntimeException("Duplicate messageid encountered");
-                                }
-
-                                IncomingMessage<InetSocketAddress> request = new IncomingMessage<>(from, tempBuffer, currentTime);
-
-                                EventRequestArrived eventRa = new EventRequestArrived(request, selector, id);
-                                internalEventQueue.add(eventRa);
-                            } else if (MessageMarker.isResponse(tempBuffer)) {
-                                MessageMarker.skipOver(tempBuffer);
-
-                                MessageId id = MessageId.extractPrependedId(tempBuffer);
-                                MessageId.skipOver(tempBuffer);
-                                
-                                if (!idCache.add(from, id, PacketType.RESPONSE)) {
-                                    throw new RuntimeException("Duplicate messageid encountered");
-                                }
-
-                                OutgoingMessageResponseListener<InetSocketAddress> receiver = timeoutManager.getResponseDetails(from, id);
-
-                                if (receiver != null) { // timeout may have lapsed already, don't do anything if it did
-                                    IncomingResponse<InetSocketAddress> response = new IncomingResponse<>(from, tempBuffer, currentTime);
-
-                                    EventResponseArrived eventRa = new EventResponseArrived(response, receiver);
-                                    internalEventQueue.add(eventRa);
-                                }
-                            } else {
-                                throw new IllegalStateException();
-                            }
-                        } catch (RuntimeException | IOException e) { // NOPMD
-                            // do nothing
-                        }
-                    } else if (key.isWritable()) { // ready for outgoing data
-                        try {
-                            Command command = dumpedCommandQueue.poll();
-
-                            if (command instanceof CommandSendRequest) {
-                                CommandSendRequest commandSr = (CommandSendRequest) command;
-
-                                OutgoingMessage<InetSocketAddress> request = commandSr.getMessage();
-                                OutgoingMessageResponseListener<InetSocketAddress> receiver = commandSr.getResponseListener();
-
-                                MessageId id = idGenerator.generate();
-
-                                buffer.clear();
-
-                                MessageMarker.writeRequestMarker(buffer);
-                                id.writeId(buffer);
-                                buffer.put(request.getData());
-                                
-                                buffer.flip();
-
-                                InetSocketAddress to = request.getTo();
-
-                                timeoutManager.addRequestId(to, id, receiver, currentTime);
-                                
-                                ByteBuffer tempBuffer = outFilter.filter(to, buffer);
-                                
-                                channel.send(tempBuffer, to);
-                            } else if (command instanceof CommandSendResponse) {
-                                CommandSendResponse commandSr = (CommandSendResponse) command;
-
-                                OutgoingResponse response = commandSr.getResponse();
-                                InetSocketAddress to = commandSr.getAddress();
-                                MessageId id = commandSr.getMessageId();
-
-                                buffer.clear();
-
-                                MessageMarker.writeResponseMarker(buffer);
-                                id.writeId(buffer);
-                                buffer.put(response.getData());
-                                
-                                buffer.flip();
-                                
-                                ByteBuffer tempBuffer = outFilter.filter(to, buffer);
-                                
-                                channel.send(tempBuffer, to);                        
-                            } else {
-                                throw new IllegalStateException();
-                            }
-                        } catch (RuntimeException | IOException e) { // NOPMD
-                            // do nothing
-                        }
-                    }
-                }
-                processEvents(internalEventQueue);
-                internalEventQueue.clear();
-            }
-        }
-
-        private void processEvents(LinkedList<Event> internalEventQueue) {
-            for (Event event : internalEventQueue) {
-                if (event instanceof EventRequestArrived) {
-                    EventRequestArrived request = (EventRequestArrived) event;
+                    long msgKey = nextMessageKey;
+                    nextMessageKey++;
                     
-                    IncomingMessage<InetSocketAddress> data = request.getRequest();
-                    Selector selector = request.getSelector();
-                    MessageId id = request.getId();
-                    UdpIncomingMessageResponseHandler responseSender = new UdpIncomingMessageResponseHandler(commandQueue, selector, id,
-                            data.getFrom());
+                    processingResponseTimeoutManager.put(msgKey, from, timestamp + timeout);
+                    
+                    RequestArrivedEvent<InetSocketAddress> msg = new RequestArrivedEvent<>(from, tempBuffer, timestamp);
+                    pushQueue.queueRespondableMessage(dstWriter, msgKey, msg);
+                } else if (MessageMarker.isResponse(tempBuffer)) {
+                    MessageMarker.skipOver(tempBuffer);
 
-                    try {
-                        handler.messageArrived(data, responseSender);
-                    } catch (RuntimeException re) {
-                        // don't bother notifying the others
+                    MessageId id = MessageId.extractPrependedId(tempBuffer);
+                    MessageId.skipOver(tempBuffer);
+
+                    if (!idCache.add(from, id, PacketType.RESPONSE)) {
+                        //throw new RuntimeException("Duplicate messageid encountered");
+                        continue;
+                    }
+
+                    MessageResponder responseKey = sendingRequestTimeoutManager.remove(id);
+
+                    if (responseKey == null) {
+                        continue;
+                    }
+
+                    ResponseArrivedEvent<InetSocketAddress> msg = new ResponseArrivedEvent<>(from, tempBuffer, timestamp);
+                    pushQueue.queueResponseMessage(responseKey, msg);
+                }
+            } else if (key.isWritable()) { // ready for outgoing data
+                OutgoingMessage<InetSocketAddress> outgoingPacket = pendingPacketManager.getNextOutgoingPacket();
+                if (outgoingPacket == null) {
+                    continue;
+                }
+
+                switch (outgoingPacket.getType()) {
+                    case REQUEST: {
+                        MessageId id = idGenerator.generate();
+
+                        buffer.clear();
+                        
+                        MessageMarker.writeRequestMarker(buffer);
+                        id.writeId(buffer);
+                        buffer.put(outgoingPacket.getData());
+                        buffer.flip();
+
+                        InetSocketAddress to = outgoingPacket.getAddress();
+                        ByteBuffer tempBuffer = outgoingFilter.filter(to, buffer);
+                        
+                        channel.send(tempBuffer, to);
+                        
+                        sendingRequestTimeoutManager.put(id, outgoingPacket.getResponseKey(), timestamp + timeout);
+
                         break;
                     }
-                } else if (event instanceof EventResponseArrived) {
-                    EventResponseArrived response = (EventResponseArrived) event;
-                    IncomingResponse<InetSocketAddress> data = response.getResponse();
+                    case RESPONSE: {
+                        MessageResponder responseKey = outgoingPacket.getResponseKey();
+                        Long id = responseKey.getId(Long.class);
+                        
+                        if (id == null) {
+                            continue;
+                        }
 
-                    try {
-                        response.getReceiver().responseArrived(data);
-                    } catch (RuntimeException re) { // NOPMD
-                        // do nothing
-                    }
-                } else if (event instanceof EventResponseTimedOut) {
-                    EventResponseTimedOut response = (EventResponseTimedOut) event;
+                        MessageIdInstance idInstance = processingResponseTimeoutManager.get(id);
+                        if (idInstance == null) {
+                            continue;
+                        }
 
-                    try {
-                        response.getReceiver().timedOut();
-                    } catch (RuntimeException re) { // NOPMD
-                        // do nothing
+                        InetSocketAddress to = outgoingPacket.getAddress();
+                        MessageId id = idInstance.getId();
+
+                        buffer.clear();
+
+                        MessageMarker.writeResponseMarker(buffer);
+                        id.writeId(buffer);
+                        buffer.put(outgoingPacket.getData());
+
+                        buffer.flip();
+
+                        ByteBuffer tempBuffer = outgoingFilter.filter(to, buffer);
+
+                        channel.send(tempBuffer, to);
+
+                        break;
                     }
+                    default:
+                        throw new IllegalStateException();
                 }
             }
         }
         
-
-        @Override
-        protected String serviceName() {
-            return UdpTransport.class.getSimpleName() + " Event Loop (" + listenAddress + ")";
+        
+        
+        // set selection key based on if there's commands available -- this works because the only commands available are send req
+        // and send resp
+        int newSelectionKey = SelectionKey.OP_READ;
+        if (iterator.hasNext()) {
+            newSelectionKey |= SelectionKey.OP_WRITE;
         }
 
-        @Override
-        protected void triggerShutdown() {
-            stop.set(true);
-            selector.wakeup();
+        if (newSelectionKey != selectionKey) {
+            selectionKey = newSelectionKey;
+            try {
+                channel.register(selector, selectionKey);
+            } catch (ClosedChannelException cce) {
+                throw new RuntimeException(cce);
+            }
+        }
+        
+        return timestamp + nextHitTime;
+    }
+
+    @Override
+    protected void onStop(PushQueue responseQueue) throws Exception {
+        IOUtils.closeQuietly(selector);
+        IOUtils.closeQuietly(channel);
+
+        for (MessageResponder responseKey : sendingRequestTimeoutManager.flush().getTimedout().values()) {
+            ResponseErroredEvent rtoEvent = new ResponseErroredEvent();
+            responseQueue.queueResponseMessage(responseKey, rtoEvent);
         }
     }
 }

@@ -22,51 +22,43 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Outgoing response.
+ * @param <A> address type
  * @author Kasra Faghihi
  */
-public final class SendResponseCommand {
+public final class SendResponseCommand<A> implements TransportCommand {
     private ByteBuffer data;
-    private long id;
 
     /**
-     * Constructs a {@link OutgoingResponse} object.
+     * Constructs a {@link SendResponseCommand}.
      * @param data message data
-     * @param id id
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SendResponseCommand(long id, ByteBuffer data) {
+    public SendResponseCommand(ByteBuffer data) {
         Validate.notNull(data);
-        
+
         this.data = ByteBufferUtils.copyContents(data, true);
         this.data.flip();
-        this.id = id;
     }
 
     /**
-     * Constructs a {@link OutgoingResponse} object.
-     * @param data response data
+     * Constructs a {@link SendResponseCommand}.
+     * @param to destination address
+     * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SendResponseCommand(byte[] data) {
+    public SendResponseCommand(A to, byte[] data) {
+        Validate.notNull(to);
         Validate.notNull(data);
-        
+
         this.data = ByteBuffer.allocate(data.length).put(data);
         this.data.flip();
     }
 
     /**
-     * Gets a read-only view of the response data.
-     * @return response data
+     * Gets a read-only view of the message data.
+     * @return message data
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();
-    }
-    
-    /**
-     * Get Id.
-     * @return id 
-     */
-    public long getId() {
-        return id;
     }
 }

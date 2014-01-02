@@ -64,12 +64,12 @@ public final class RandomLine<A> implements Line<A> {
     
 
     @Override
-    public List<Message<A>> depart(A from, A to, ByteBuffer data) {
+    public List<TransitMessage<A>> depart(A from, A to, ByteBuffer data) {
         int len = data.remaining();
         
         double repeatRate = randomDoubleBetween(repeatRatePerByteRange) * len;
         
-        List<Message<A>> packets = new LinkedList<>();
+        List<TransitMessage<A>> packets = new LinkedList<>();
         
         do {
             double dropRate = randomDoubleBetween(dropRatePerByteRange) * len;
@@ -83,7 +83,7 @@ public final class RandomLine<A> implements Line<A> {
             
             long arrivalTime = System.currentTimeMillis() + (long) duration + (long) jitter;
             
-            packets.add(new Message<>(from, to, data, arrivalTime));
+            packets.add(new TransitMessage<>(from, to, data, arrivalTime));
         } while (random.nextDouble() <= repeatRate);
         
         return packets;
@@ -96,6 +96,7 @@ public final class RandomLine<A> implements Line<A> {
     }
     
     @Override
-    public void arrive(Collection<Message<A>> packets) {
+    public Collection<TransitMessage<A>> arrive(Collection<TransitMessage<A>> packets) {
+        return packets;
     }
 }

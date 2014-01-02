@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class Message<A> {
+public final class TransitMessage<A> {
     private A from;
     private A to;
     private ByteBuffer data;
@@ -38,7 +38,7 @@ public final class Message<A> {
      * @param arriveTime time the packet should arrive at its destination
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public Message(A from, A to, ByteBuffer data, long arriveTime) {
+    public TransitMessage(A from, A to, ByteBuffer data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(to);
         Validate.notNull(data);

@@ -57,7 +57,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     
     private InetSocketAddress listenAddress;
     private Selector selector;
-    private int selectionKey = SelectionKey.OP_READ;
+    private int selectionKey;
 
     private long timeout;
     
@@ -68,6 +68,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     private long nextId;
     
     private ByteBuffer buffer;
+    
+    private int cacheSize;
     
     private ActorQueueWriter dstWriter;
 
@@ -95,6 +97,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         this.timeout = timeout;
         
         this.buffer = ByteBuffer.allocate(bufferSize);
+        
+        this.cacheSize = cacheSize;
     }
 
     @Override
@@ -104,11 +108,11 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
 
     @Override
     protected void onStart() throws Exception {
-        dstWriter = getWriter();
+        dstWriter = getDestinationWriter();
         Validate.validState(dstWriter != null);
         
         outgoingPacketManager = new OutgoingMessageManager<>(65535, getOutgoingFilter()); 
-        incomingPacketManager = new IncomingMessageManager<>(getIncomingFilter());
+        incomingPacketManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
 
         try {
             channel = DatagramChannel.open();
@@ -199,7 +203,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
                     continue;
                 }
 
-                channel.send(outgoingPacket.getData(), outgoingPacket.getDestination());
+                channel.send(outgoingPacket.getData(), outgoingPacket.getTo());
             }
         }
         
@@ -232,10 +236,9 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         }
         
         
-        // set selection key based on if there's commands available -- this works because the only commands available are send req
-        // and send resp
+        // set selection key based on if there's messages to go out
         int newSelectionKey = SelectionKey.OP_READ;
-        if (opmResult.isMorePacketsAvailable()) {
+        if (opmResult.getPacketsAvailable() > 0) {
             newSelectionKey |= SelectionKey.OP_WRITE;
         }
 
@@ -258,13 +261,13 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     }
 
     @Override
-    protected void onStop(PushQueue responseQueue) throws Exception {
+    protected void onStop(PushQueue pushQueue) throws Exception {
         IOUtils.closeQuietly(selector);
         IOUtils.closeQuietly(channel);
 
-//        for (MessageResponder responseKey : outgoingPacketManager.flush().getTimedout().values()) {
-//            ResponseErroredEvent rtoEvent = new ResponseErroredEvent();
-//            responseQueue.queueResponseMessage(responseKey, rtoEvent);
-//        }
+        for (MessageResponder responder : outgoingPacketManager.process(Long.MAX_VALUE).getMessageRespondersForFailures()) {
+            ResponseErroredEvent ree = new ResponseErroredEvent();
+            responder.respondDeferred(pushQueue, ree);
+        }
     }
 }

@@ -16,24 +16,28 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.test;
 
-import com.offbynull.peernetic.rpc.transport.IncomingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingMessage;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.peernetic.rpc.transport.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
+import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
+import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
+import com.offbynull.peernetic.common.concurrent.actor.Message;
+import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
+import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.DropResponseCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingPacketManagerResult;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequest;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingResponse;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.PendingRequest;
+import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager;
+import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Collection;
+import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -41,262 +45,175 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class TestTransport<A> implements Transport<A> {
+public final class TestTransport<A> extends Transport<A> {
 
-    private static final byte SEND_MARKER = 0;
-    private static final byte REPLY_MARKER = 1;
-    
-    private Lock lock;
-    private IncomingMessageListener<A> listener;
-    private IncomingFilter<A> inFilter;
-    private OutgoingFilter<A> outFilter;
-    private State state = State.UNKNOWN;
-    private int nextPacketId;
     private A address;
-    private TestHub<A> hub;
-    private TestHubSender<A> hubSender;
-    private TestHubReceiver<A> hubReceiver;
-    private Timer timeoutTimer;
-    private Map<Integer, PendingResponse> responseIdMap;
+
     private long timeout;
+    
+    private OutgoingMessageManager<A> outgoingPacketManager;
+    private IncomingMessageManager<A> incomingPacketManager;
+    private long nextId;
+    
+    private int cacheSize;
+    
+    private ActorQueueWriter dstWriter;
+    private ActorQueueWriter hubWriter;
 
     /**
      * Constructs a {@link TestTransport} object.
-     * @param address this object's address
-     * @param hub hub to connect to
-     * @param timeout timeout
+     * @param address address to listen on
+     * @param bufferSize buffer size
+     * @param cacheSize number of packet ids to cache
+     * @param timeout timeout duration
+     * @throws IOException on error
+     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
      * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code timeout < 1L} 
      */
-    public TestTransport(A address, TestHub<A> hub, long timeout) {
+    public TestTransport(A address, int cacheSize, long timeout, ActorQueueWriter hubWriter) throws IOException {
+        super(true);
+        
         Validate.notNull(address);
-        Validate.notNull(hub);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
-        
-        this.lock = new ReentrantLock();
-        
-        this.hub = hub;
+        Validate.notNull(hubWriter);
+
         this.address = address;
 
-        hubReceiver = new CustomTestHubReceiver();
-        hubSender = hub.addEndpoint(address, hubReceiver);
-
-        responseIdMap = new HashMap<>();
-        
         this.timeout = timeout;
+        
+        this.cacheSize = cacheSize;
+        this.hubWriter = hubWriter;
     }
 
     @Override
-    public void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> incomingMessageListener,
-            OutgoingFilter<A> outgoingFilter) throws IOException {
-        lock.lock();
-        try {
-            Validate.validState(state == State.UNKNOWN);
-
-            Validate.notNull(incomingFilter);
-            Validate.notNull(outgoingFilter);
-            Validate.notNull(incomingMessageListener);
-            
-            timeoutTimer = new Timer();
-            
-            this.listener = incomingMessageListener;
-            this.inFilter = incomingFilter;
-            this.outFilter = outgoingFilter;
-            hub.activateEndpoint(address);
-
-            state = State.STARTED;
-        } finally {
-            lock.unlock();
-        }
+    protected ActorQueue createQueue() {
+        return new ActorQueue();
     }
 
     @Override
-    public void stop() throws IOException {
-        lock.lock();
-        try {
-            Validate.validState(state == State.STARTED);
-            
-            timeoutTimer.cancel();
-            
-            state = State.STOPPED;
-        } finally {
-            lock.unlock();
-        }
-    }
+    protected void onStart() throws Exception {
+        dstWriter = getDestinationWriter();
+        Validate.validState(dstWriter != null);
+        
+        outgoingPacketManager = new OutgoingMessageManager<>(65535, getOutgoingFilter()); 
+        incomingPacketManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
 
-    @Override
-    public void sendMessage(OutgoingMessage<A> message, final OutgoingMessageResponseListener<A> listener) {
-        Validate.notNull(message);
-        Validate.notNull(listener);
-
-        lock.lock();
-        try {
-            Validate.validState(state == State.STARTED);
-            final int packetId = nextPacketId++;
-            
-            A to = message.getTo();
-
-            ByteBuffer buffer = message.getData();
-            ByteBuffer newBuffer = ByteBuffer.allocate(5 + buffer.remaining());
-
-            newBuffer.put(SEND_MARKER);
-            newBuffer.putInt(packetId);
-            newBuffer.put(buffer);
-            newBuffer.position(0);
-            
-            ByteBuffer tempBuffer = outFilter.filter(to, newBuffer);
-
-            hubSender.send(address, to, tempBuffer);
-            
-            TimerTask timerTask = new TimerTask() {
-
-                @Override
-                public void run() {
-                    lock.lock();
-                    try {
-                        PendingResponse pr = responseIdMap.remove(packetId);
-                        if (pr == null) {
-                            return;
-                        }
-                        
-                        pr.getListener().timedOut();
-                    } finally {
-                        lock.unlock();
-                    }
-                }
-            };
-            
-            responseIdMap.put(packetId, new PendingResponse(to, packetId, timerTask, listener));
-            timeoutTimer.schedule(timerTask, timeout);
-            timeoutTimer.purge();
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    private enum State {
-
-        UNKNOWN,
-        STARTED,
-        STOPPED
-    }
-
-    private final class CustomTestHubReceiver implements TestHubReceiver<A> {
-
-        @Override
-        public void incoming(Message<A> packet) {
-            A from = packet.getFrom();
-            ByteBuffer data = packet.getData();
-            
-            lock.lock();
-            try {
-                Validate.validState(state == State.STARTED);
-                
-                ByteBuffer tempBuffer = inFilter.filter(from, data);
-                
-                byte marker = data.get();
-                int packetId = data.getInt();
-                
-                switch (marker) {
-                    case SEND_MARKER: {
-                        IncomingMessage<A> message = new IncomingMessage<>(from, tempBuffer, System.currentTimeMillis());
-                        IncomingMessageResponseHandler handler = new CustomIncomingMessageResponseHandler(from, packetId);
-                        listener.messageArrived(message, handler);
-                        break;
-                    }
-                    case REPLY_MARKER: {
-                        PendingResponse pr = responseIdMap.get(packetId);
-                        
-                        if (pr == null || !pr.getAddress().equals(from)) {
-                            return;
-                        }
-                        
-                        responseIdMap.remove(packetId);
-                        
-                        pr.timerTask.cancel(); // BUG: THIS NEEDS TO BE SYNCHRONIZED BETTER. THERES A CHANCE CANCEL CAN GO THROUGH WHILE
-                                               // THE REPLY GETS PROCESSED
-                        
-                        OutgoingMessageResponseListener<A> listener = pr.getListener();
-                        IncomingResponse<A> response = new IncomingResponse(from, tempBuffer, System.currentTimeMillis());
-                        
-                        listener.responseArrived(response);
-                        break;
-                    }
-                    default:
-                        throw new IllegalArgumentException();
-                }
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
-    private final class CustomIncomingMessageResponseHandler implements IncomingMessageResponseHandler {
-
-        private A replyTo;
-        private int packetId;
-
-        public CustomIncomingMessageResponseHandler(A replyTo, int packetId) {
-            this.replyTo = replyTo;
-            this.packetId = packetId;
-        }
-
-        @Override
-        public void responseReady(OutgoingResponse response) {
-            lock.lock();
-            try {
-                Validate.validState(state == State.STARTED);
-                
-                ByteBuffer buffer = response.getData();
-                ByteBuffer newBuffer = ByteBuffer.allocate(5 + buffer.remaining());
-
-                newBuffer.put(REPLY_MARKER);
-                newBuffer.putInt(packetId);
-                newBuffer.put(buffer);
-                newBuffer.flip();
-                
-                ByteBuffer tempBuffer = outFilter.filter(replyTo, newBuffer);
-            
-                hubSender.send(address, replyTo, tempBuffer);
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        @Override
-        public void terminate() {
-            // do nothing
-        }
-
+        // bind to testhub here
+        Message msg = Message.createOneWayMessage(new ActivateEndpointCommand<>(address, getSelfWriter()));
+        hubWriter.push(msg);
     }
     
-    private final class PendingResponse {
-        private A address;
-        private int packetId;
-        private TimerTask timerTask;
-        private OutgoingMessageResponseListener<A> listener;
-
-        public PendingResponse(A address, int packetId, TimerTask timerTask, OutgoingMessageResponseListener<A> listener) {
-            this.address = address;
-            this.packetId = packetId;
-            this.timerTask = timerTask;
-            this.listener = listener;
+    @Override
+    protected long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception {
+        // process messages
+        while (iterator.hasNext()) {
+            Message msg = iterator.next();
+            Object content = msg.getContent();
+            
+            if (content instanceof SendRequestCommand) {
+                SendRequestCommand<A> src = (SendRequestCommand) content;
+                MessageResponder responder = msg.getResponder();
+                if (responder == null) {
+                    continue;
+                }
+                
+                long id = nextId++;
+                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + timeout, timestamp + timeout, responder);
+            } else if (content instanceof SendResponseCommand) {
+                SendResponseCommand<A> src = (SendResponseCommand) content;
+                Long id = msg.getResponseToId(Long.class);
+                if (id == null) {
+                    continue;
+                }
+                
+                PendingRequest<A> pendingRequest = incomingPacketManager.responseFormed(id);
+                if (pendingRequest == null) {
+                    continue;
+                }
+                
+                outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
+                        timestamp + timeout);
+            } else if (content instanceof DropResponseCommand) {
+                DropResponseCommand trc = (DropResponseCommand) content;
+                Long id = msg.getResponseToId(Long.class);
+                if (id == null) {
+                    continue;
+                }
+                
+                incomingPacketManager.responseFormed(id);
+            } else if (content instanceof SendMessageCommand) {
+                SendMessageCommand<A> imc = (SendMessageCommand) content;
+                
+                long id = nextId++;
+                incomingPacketManager.incomingData(id, imc.getFrom(), imc.getData(), timestamp + timeout);
+            }
+        }
+        
+        
+        
+        // process timeouts for outgoing requests
+        OutgoingPacketManagerResult opmResult = outgoingPacketManager.process(timestamp);
+        
+        Collection<MessageResponder> requestNotSentOut = opmResult.getMessageRespondersForFailures();
+        for (MessageResponder responder : requestNotSentOut) {
+            responder.respondDeferred(pushQueue, new ResponseErroredEvent());
         }
 
-        public A getAddress() {
-            return address;
+        
+        
+        int packetsAvailable = opmResult.getPacketsAvailable();
+        for (int i = 0; i < packetsAvailable; i++) {
+            ActivateEndpointCommand<A> cmd = new ActivateEndpointCommand<>(address, getSelfWriter());
+            pushQueue.queueOneWayMessage(hubWriter, cmd);
         }
-
-        public int getPacketId() {
-            return packetId;
+        
+        
+        
+        // process timeouts for incoming requests
+        IncomingPacketManagerResult<A> ipmResult = incomingPacketManager.process(timestamp);
+        
+        for (IncomingRequest<A> incomingRequest : ipmResult.getNewIncomingRequests()) {
+            RequestArrivedEvent<A> event = new RequestArrivedEvent<>(
+                    incomingRequest.getFrom(),
+                    incomingRequest.getData(),
+                    timestamp);
+            pushQueue.queueRespondableMessage(dstWriter, incomingRequest.getId(), event);
         }
-
-        public TimerTask getTimerTask() {
-            return timerTask;
+        
+        for (IncomingResponse<A> incomingResponse : ipmResult.getNewIncomingResponses()) {
+            long id = incomingResponse.getId();
+            MessageResponder responder = outgoingPacketManager.responseReturned(id);
+            
+            if (responder == null) {
+                continue;
+            }
+            
+            ResponseArrivedEvent<A> event = new ResponseArrivedEvent<>(
+                    incomingResponse.getFrom(),
+                    incomingResponse.getData(),
+                    timestamp);
+            responder.respondDeferred(pushQueue, event);
         }
-
-        public OutgoingMessageResponseListener<A> getListener() {
-            return listener;
-        }
+        
+        
+        // calculate max time until next invoke
+        long waitTime = Long.MAX_VALUE;
+        waitTime = Math.max(waitTime, opmResult.getNextTimeoutTimestamp());
+        waitTime = Math.max(waitTime, ipmResult.getNextTimeoutTimestamp());
+        
+        return waitTime;
     }
+
+    @Override
+    protected void onStop(PushQueue pushQueue) throws Exception {
+        for (MessageResponder responder : outgoingPacketManager.process(Long.MAX_VALUE).getMessageRespondersForFailures()) {
+            ResponseErroredEvent ree = new ResponseErroredEvent();
+            responder.respondDeferred(pushQueue, ree);
+        }
+        
+        Message msg = Message.createOneWayMessage(new DeactivateEndpointCommand<>(address));
+        hubWriter.push(msg);
+    }
+
 }

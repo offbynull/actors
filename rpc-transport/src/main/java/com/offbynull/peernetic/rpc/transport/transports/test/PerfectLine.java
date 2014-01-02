@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * A line implementation without any constraints or failures. Takes no time to transmit a message.
@@ -30,12 +29,13 @@ import java.util.List;
 public final class PerfectLine<A> implements Line<A> {
 
     @Override
-    public List<Message<A>> depart(A from, A to, ByteBuffer data) {
-        return new ArrayList<>(Arrays.asList(new Message<>(from, to, data, 0L)));
+    public Collection<TransitMessage<A>> depart(A from, A to, ByteBuffer data) {
+        return new ArrayList<>(Arrays.asList(new TransitMessage<>(from, to, data, Long.MIN_VALUE)));
     }
 
     @Override
-    public void arrive(Collection<Message<A>> packets) {
+    public Collection arrive(Collection<TransitMessage<A>> packets) {
+        return packets;
     }
     
 }

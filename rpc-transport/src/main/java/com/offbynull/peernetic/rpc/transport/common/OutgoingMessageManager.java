@@ -38,6 +38,10 @@ public final class OutgoingMessageManager<A> {
     
     public void outgoingRequest(long id, A to, ByteBuffer data, long queueTimestampTimeout, long sentTimestampTimeout,
             MessageResponder responder) {
+        Validate.notNull(to);
+        Validate.notNull(data);
+        Validate.notNull(responder);
+
         MessageId messageId = idGenerator.generate();
 
         tempBuffer.clear();
@@ -63,6 +67,10 @@ public final class OutgoingMessageManager<A> {
     }
 
     public void outgoingResponse(long id, A to, ByteBuffer data, MessageId messageId, long queueTimestampTimeout) {
+        Validate.notNull(to);
+        Validate.notNull(data);
+        Validate.notNull(messageId);
+        
         tempBuffer.clear();
 
         MessageMarker.writeRequestMarker(tempBuffer);
@@ -126,9 +134,7 @@ public final class OutgoingMessageManager<A> {
         TimeoutManagerResult<Long> timedOutQueuedResponses = queuedResponseTimeoutManager.process(timestamp);
         nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedResponses.getNextTimeoutTimestamp());
         
-        
-        boolean hasMore = !messageRespondersForFailures.isEmpty();
-        return new OutgoingPacketManagerResult(messageRespondersForFailures, nextTimeoutTimestamp, hasMore);
+        return new OutgoingPacketManagerResult(messageRespondersForFailures, nextTimeoutTimestamp, queuedSends.size());
     }
 
     public MessageResponder responseReturned(long id) {
@@ -144,19 +150,22 @@ public final class OutgoingMessageManager<A> {
 
     public static final class Packet<A> {
         private ByteBuffer data;
-        private A destination;
+        private A to;
 
-        public Packet(ByteBuffer data, A destination) {
+        public Packet(ByteBuffer data, A to) {
+            Validate.notNull(data);
+            Validate.notNull(to);
+            
             this.data = data;
-            this.destination = destination;
+            this.to = to;
         }
 
         public ByteBuffer getData() {
             return data;
         }
 
-        public A getDestination() {
-            return destination;
+        public A getTo() {
+            return to;
         }
         
     }
@@ -222,13 +231,13 @@ public final class OutgoingMessageManager<A> {
     public static final class OutgoingPacketManagerResult {
         private Collection<MessageResponder> messageRespondersForFailures;
         private long nextTimeoutTimestamp;
-        private boolean morePacketsAvailable;
+        private int packetsAvailable;
 
         private OutgoingPacketManagerResult(Collection<MessageResponder> messageRespondersForFailures, long nextTimeoutTimestamp,
-                boolean morePacketsAvailable) {
+                int packetsAvailable) {
             this.messageRespondersForFailures = Collections.unmodifiableCollection(messageRespondersForFailures);
             this.nextTimeoutTimestamp = nextTimeoutTimestamp;
-            this.morePacketsAvailable = morePacketsAvailable;
+            this.packetsAvailable = packetsAvailable;
         }
 
         public Collection<MessageResponder> getMessageRespondersForFailures() {
@@ -239,8 +248,8 @@ public final class OutgoingMessageManager<A> {
             return nextTimeoutTimestamp;
         }
 
-        public boolean isMorePacketsAvailable() {
-            return morePacketsAvailable;
+        public int getPacketsAvailable() {
+            return packetsAvailable;
         }
         
     }

@@ -16,18 +16,16 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.test;
 
-import org.apache.commons.lang3.Validate;
+import java.io.Serializable;
+import java.util.Comparator;
 
-final class CommandRemoveEndpoint<A> implements Command {
-    private A address;
+final class TransitMessageArriveTimeComparator implements Comparator<TransitMessage>, Serializable {
+    
+    private static final long serialVersionUID = 0L;
 
-    public CommandRemoveEndpoint(A address) {
-        Validate.notNull(address);
-        
-        this.address = address;
+    @Override
+    public int compare(TransitMessage o1, TransitMessage o2) {
+        return Long.compare(o1.getArriveTime(), o2.getArriveTime());
     }
-
-    public A getAddress() {
-        return address;
-    }
+    
 }

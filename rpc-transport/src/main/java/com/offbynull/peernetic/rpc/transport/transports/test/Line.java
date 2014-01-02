@@ -27,17 +27,17 @@ import java.util.List;
  */
 public interface Line<A> {
     /**
-     * Generate {@link Message} objects for an outgoing message.
+     * Generate {@link TransitMessage} objects for an outgoing message.
      * @param from source
      * @param to destination
      * @param data contents
-     * @return list of {@link Message} objects
+     * @return list of {@link TransitMessage} objects
      */
-    List<Message<A>> depart(A from, A to, ByteBuffer data);
+    Collection<TransitMessage<A>> depart(A from, A to, ByteBuffer data);
     
     /**
-     * Signals that {@link Message} objects that were created by this line have arrived.
-     * @param messages {@link Message} objects that have arrived
+     * Signals that {@link TransitMessage} objects that were created by this line have arrived.
+     * @param messages {@link TransitMessage} objects that have arrived
      */
-    void arrive(Collection<Message<A>> messages);
+    Collection<TransitMessage<A>> arrive(Collection<TransitMessage<A>> messages);
 }

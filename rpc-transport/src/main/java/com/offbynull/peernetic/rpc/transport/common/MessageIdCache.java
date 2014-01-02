@@ -35,6 +35,9 @@ public final class MessageIdCache<A> {
     }
 
     public boolean add(A from, MessageId id, MessageType type) {
+        Validate.notNull(id);
+        Validate.notNull(type);
+        
         MessageIdInstance idInstance = new MessageIdInstance(from, id, type);
 
         if (set.contains(idInstance)) {

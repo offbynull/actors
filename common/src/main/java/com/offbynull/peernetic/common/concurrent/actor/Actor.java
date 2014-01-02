@@ -61,6 +61,10 @@ public abstract class Actor {
      */
     protected abstract ActorQueue createQueue();
 
+    protected final ActorQueueWriter getSelfWriter() {
+        return queue.getWriter();
+    }
+    
     /**
      * Checks to see if this {@link Service} is a new service. That is, checks to see if this service hasn't been started yet.
      * @return 

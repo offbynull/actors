@@ -7,6 +7,7 @@ import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -17,7 +18,7 @@ import org.apache.commons.lang3.Validate;
 
 public final class IncomingMessageManager<A> {
     private IncomingFilter<A> incomingFilter;
-    private MessageIdCache<A> messageIdCache = new MessageIdCache<>(1024);
+    private MessageIdCache<A> messageIdCache;
 
     private TimeoutManager<Long> pendingRequestTimeoutManager = new TimeoutManager<>();
     private Map<Long, PendingRequest<A>> pendingRequestLookup = new HashMap<>();
@@ -25,16 +26,21 @@ public final class IncomingMessageManager<A> {
     private List<IncomingRequest<A>> newRequests = new ArrayList<>();
     private List<IncomingResponse<A>> newResponses = new ArrayList<>();
 
-    public IncomingMessageManager(IncomingFilter<A> incomingFilter) {
+    public IncomingMessageManager(int cacheSize, IncomingFilter<A> incomingFilter) {
         Validate.notNull(incomingFilter);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
         
         this.incomingFilter = incomingFilter;
+        messageIdCache = new MessageIdCache<>(cacheSize);
     }
     
     public void incomingData(long id, A from, ByteBuffer data, long maxTimestamp) {
+        Validate.notNull(from);
+        Validate.notNull(data);
+        
         ByteBuffer localTempBuffer = incomingFilter.filter(from, data);
         
-        if (localTempBuffer == localTempBuffer) {
+        if (localTempBuffer == data) {
             localTempBuffer = ByteBufferUtils.copyContents(localTempBuffer);
         }
 
@@ -108,6 +114,10 @@ public final class IncomingMessageManager<A> {
         private MessageId messageId;
 
         public IncomingRequest(long id, A from, ByteBuffer data, MessageId messageId) {
+            Validate.notNull(from);
+            Validate.notNull(data);
+            Validate.notNull(messageId);
+            
             this.id = id;
             this.from = from;
             this.data = data;
@@ -137,6 +147,9 @@ public final class IncomingMessageManager<A> {
         private MessageId messageId;
 
         public PendingRequest(long id, A from, MessageId messageId) {
+            Validate.notNull(from);
+            Validate.notNull(messageId);
+            
             this.id = id;
             this.from = from;
             this.messageId = messageId;
@@ -162,6 +175,10 @@ public final class IncomingMessageManager<A> {
         private MessageId messageId;
 
         public IncomingResponse(long id, A from, ByteBuffer data, MessageId messageId) {
+            Validate.notNull(from);
+            Validate.notNull(data);
+            Validate.notNull(messageId);
+            
             this.id = id;
             this.from = from;
             this.data = data;
@@ -195,9 +212,13 @@ public final class IncomingMessageManager<A> {
                 Collection<PendingRequest<A>> timedOutIncomingRequests,
                 Collection<IncomingResponse<A>> newIncomingResponses,
                 long nextTimeoutTimestamp) {
-            this.newIncomingRequests = newIncomingRequests;
-            this.timedOutIncomingRequests = timedOutIncomingRequests;
-            this.newIncomingResponses = newIncomingResponses;
+            Validate.notNull(newIncomingRequests);
+            Validate.notNull(timedOutIncomingRequests);
+            Validate.notNull(newIncomingResponses);
+            
+            this.newIncomingRequests = Collections.unmodifiableCollection(newIncomingRequests);
+            this.timedOutIncomingRequests = Collections.unmodifiableCollection(timedOutIncomingRequests);
+            this.newIncomingResponses = Collections.unmodifiableCollection(newIncomingResponses);
             this.nextTimeoutTimestamp = nextTimeoutTimestamp;
         }
 

@@ -29,6 +29,7 @@ import org.apache.commons.lang3.Validate;
 public final class TestTransportFactory<A> implements TransportFactory<A> {
 
     private TestHub<A> hub;
+    private int cacheSize = 4096;
     private long timeout = 10000;
     private A address;
 
@@ -64,6 +65,24 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
         this.hub = hub;
     }
 
+    /**
+     * Gets the cache size for message ids.
+     * @return cache size
+     */
+    public int getMessageIdCacheSize() {
+        return cacheSize;
+    }
+
+    /**
+     * Sets the cache size for message ids.
+     * @param cacheSize cache size
+     * @throws IllegalArgumentException if {@code cacheSize < 0}
+     */
+    public void setMessageIdCacheSize(int cacheSize) {
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, cacheSize);
+        this.cacheSize = cacheSize;
+    }
+    
     /**
      * Gets the timeout.
      * @return timeout
@@ -102,7 +121,7 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     
     @Override
     public Transport<A> createTransport() throws IOException {
-        return new TestTransport<>(address, hub, timeout);
+        return new TestTransport<>(address, cacheSize, timeout, hub.getWriter());
     }
     
 }

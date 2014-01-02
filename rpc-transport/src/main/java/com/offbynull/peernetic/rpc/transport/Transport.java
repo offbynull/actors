@@ -31,7 +31,7 @@ public abstract class Transport<A> extends Actor {
 
     private volatile IncomingFilter<A> incomingFilter = new NullIncomingFilter<>();
     private volatile OutgoingFilter<A> outgoingFilter = new NullOutgoingFilter<>();
-    private volatile ActorQueueWriter writer;
+    private volatile ActorQueueWriter dstWriter;
     
     /**
      * Constructs a {@link Transport} object.
@@ -41,11 +41,11 @@ public abstract class Transport<A> extends Actor {
         super(daemon);
     }
 
-    public final void setWriter(ActorQueueWriter writer) {
+    public final void setDestinationWriter(ActorQueueWriter writer) {
         Validate.notNull(writer);
         Validate.validState(isNew());
         
-        this.writer = writer;
+        this.dstWriter = writer;
     }
 
     public void setIncomingFilter(IncomingFilter<A> incomingFilter) {
@@ -62,8 +62,14 @@ public abstract class Transport<A> extends Actor {
         this.outgoingFilter = outgoingFilter;
     }
     
+    // our writer, so people can write to us
     public ActorQueueWriter getWriter() {
-        return writer;
+        return super.getSelfWriter();
+    }
+    
+    // writer that we notify of events
+    protected final ActorQueueWriter getDestinationWriter() {
+        return dstWriter;
     }
     
     /**

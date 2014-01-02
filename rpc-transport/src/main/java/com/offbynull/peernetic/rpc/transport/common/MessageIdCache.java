@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
 import java.util.HashSet;
 import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
-final class MessageIdCache<A> {
+public final class MessageIdCache<A> {
 
     private int capacity;
     private LinkedList<MessageIdInstance> queue;
@@ -34,7 +34,7 @@ final class MessageIdCache<A> {
         this.set = new HashSet<>(capacity);
     }
 
-    public boolean add(A from, MessageId id, PacketType type) {
+    public boolean add(A from, MessageId id, MessageType type) {
         MessageIdInstance idInstance = new MessageIdInstance(from, id, type);
 
         if (set.contains(idInstance)) {

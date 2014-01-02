@@ -17,6 +17,9 @@
 package com.offbynull.peernetic.rpc.transport;
 
 import com.offbynull.peernetic.common.concurrent.actor.Actor;
+import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
+import com.offbynull.peernetic.rpc.transport.filters.nil.NullIncomingFilter;
+import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -26,25 +29,43 @@ import org.apache.commons.lang3.Validate;
  */
 public abstract class Transport<A> extends Actor {
 
-    private IncomingFilter<A> incomingFilter;
-    private OutgoingFilter<A> outgoingFilter;
+    private volatile IncomingFilter<A> incomingFilter = new NullIncomingFilter<>();
+    private volatile OutgoingFilter<A> outgoingFilter = new NullOutgoingFilter<>();
+    private volatile ActorQueueWriter writer;
     
     /**
      * Constructs a {@link Transport} object.
-     * @param incomingFilter incoming filter
-     * @param outgoingFilter outgoing filter
      * @param daemon daemon thread
-     * @throws NullPointerException if any arguments are {@code null}
      */
-    public Transport(IncomingFilter<A> incomingFilter, OutgoingFilter<A> outgoingFilter, boolean daemon) {
+    public Transport(boolean daemon) {
         super(daemon);
-        Validate.notNull(incomingFilter);
-        Validate.notNull(outgoingFilter);
-        
-        this.incomingFilter = incomingFilter;
-        this.outgoingFilter = outgoingFilter;
     }
 
+    public final void setWriter(ActorQueueWriter writer) {
+        Validate.notNull(writer);
+        Validate.validState(isNew());
+        
+        this.writer = writer;
+    }
+
+    public void setIncomingFilter(IncomingFilter<A> incomingFilter) {
+        Validate.notNull(incomingFilter);
+        Validate.validState(isNew());
+        
+        this.incomingFilter = incomingFilter;
+    }
+
+    public void setOutgoingFilter(OutgoingFilter<A> outgoingFilter) {
+        Validate.notNull(outgoingFilter);
+        Validate.validState(isNew());
+        
+        this.outgoingFilter = outgoingFilter;
+    }
+    
+    public ActorQueueWriter getWriter() {
+        return writer;
+    }
+    
     /**
      * Get the incoming filter for this transport.
      * @return incoming filter

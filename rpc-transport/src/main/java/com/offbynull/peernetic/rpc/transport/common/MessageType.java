@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
-enum PacketType {
+public enum MessageType {
     REQUEST, RESPONSE
     
 }

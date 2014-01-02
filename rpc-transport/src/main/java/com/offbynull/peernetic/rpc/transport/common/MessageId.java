@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-final class MessageId {
+public final class MessageId {
     private byte[] id;
 
     public MessageId(byte[] id) {

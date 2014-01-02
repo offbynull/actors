@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager.TimeoutManagerResult;
@@ -7,18 +7,31 @@ import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.commons.lang3.Validate;
 
-final class IncomingPacketManager<A> {
+public final class IncomingMessageManager<A> {
     private IncomingFilter<A> incomingFilter;
-    private MessageIdCache<A> messageIdCache;
+    private MessageIdCache<A> messageIdCache = new MessageIdCache<>(1024);
 
-    private TimeoutManager<IncomingRequest<A>> pendingRequestTimeoutManager = new TimeoutManager<>();
+    private TimeoutManager<Long> pendingRequestTimeoutManager = new TimeoutManager<>();
+    private Map<Long, PendingRequest<A>> pendingRequestLookup = new HashMap<>();
     
     private List<IncomingRequest<A>> newRequests = new ArrayList<>();
     private List<IncomingResponse<A>> newResponses = new ArrayList<>();
+
+    public IncomingMessageManager(IncomingFilter<A> incomingFilter) {
+        Validate.notNull(incomingFilter);
+        
+        this.incomingFilter = incomingFilter;
+    }
     
-    public void incomingData(A from, ByteBuffer data, long maxTimestamp) {
+    public void incomingData(long id, A from, ByteBuffer data, long maxTimestamp) {
         ByteBuffer localTempBuffer = incomingFilter.filter(from, data);
         
         if (localTempBuffer == localTempBuffer) {
@@ -31,14 +44,16 @@ final class IncomingPacketManager<A> {
             MessageId messageId = MessageId.extractPrependedId(localTempBuffer);
             MessageId.skipOver(localTempBuffer);
 
-            if (!messageIdCache.add(from, messageId, PacketType.RESPONSE)) {
+            if (!messageIdCache.add(from, messageId, MessageType.REQUEST)) {
                 //throw new RuntimeException("Duplicate messageid encountered");
                 return;
             }
             
-            IncomingRequest<A> request = new IncomingRequest<>(from, localTempBuffer, messageId);
+            IncomingRequest<A> request = new IncomingRequest<>(id, from, localTempBuffer, messageId);
+            PendingRequest<A> pending = new PendingRequest<>(id, from, messageId);
             
-            pendingRequestTimeoutManager.add(request, maxTimestamp);
+            pendingRequestTimeoutManager.add(id, maxTimestamp);
+            pendingRequestLookup.put(id, pending);
             newRequests.add(request);
         } else if (MessageMarker.isResponse(localTempBuffer)) {
             MessageMarker.skipOver(localTempBuffer);
@@ -46,25 +61,38 @@ final class IncomingPacketManager<A> {
             MessageId messageId = MessageId.extractPrependedId(localTempBuffer);
             MessageId.skipOver(localTempBuffer);
 
-            if (!messageIdCache.add(from, messageId, PacketType.RESPONSE)) {
+            if (!messageIdCache.add(from, messageId, MessageType.RESPONSE)) {
                 //throw new RuntimeException("Duplicate messageid encountered");
                 return;
             }
             
-            IncomingResponse<A> response = new IncomingResponse<>(from, localTempBuffer, messageId);
+            IncomingResponse<A> response = new IncomingResponse<>(id, from, localTempBuffer, messageId);
             newResponses.add(response);
         }
     }
     
-    public void executionComplete(someobjecthere id) {
+    public PendingRequest<A> responseFormed(long id) {
         pendingRequestTimeoutManager.cancel(id);
+        return pendingRequestLookup.remove(id);
     }
     
     public IncomingPacketManagerResult<A> process(long timestamp) {
-        TimeoutManagerResult<IncomingRequest<A>> results = pendingRequestTimeoutManager.process(timestamp);
+        TimeoutManagerResult<Long> results = pendingRequestTimeoutManager.process(timestamp);
+        Set<Long> timedOutIds = results.getTimedout();
         
-        IncomingPacketManagerResult<A> ret = new IncomingPacketManagerResult<>(newRequests, results.getTimedout(), newResponses,
+        Set<PendingRequest<A>> timedOutPendingRequests = new HashSet<>();
+        for (Long timedOutId : timedOutIds) {
+            timedOutPendingRequests.add(pendingRequestLookup.remove(timedOutId));
+        }
+        
+        IncomingPacketManagerResult<A> ret = new IncomingPacketManagerResult<>(
+                newRequests,
+                timedOutPendingRequests,
+                newResponses,
                 results.getNextTimeoutTimestamp());
+        
+        newRequests = new LinkedList<>();
+        newResponses = new LinkedList<>();
         
         return ret;
     }
@@ -73,12 +101,14 @@ final class IncomingPacketManager<A> {
         
     }
 
-    private static final class IncomingRequest<A> implements ReceiveEntity {
+    public static final class IncomingRequest<A> implements ReceiveEntity {
+        private long id;
         private A from;
         private ByteBuffer data;
         private MessageId messageId;
 
-        public IncomingRequest(A from, ByteBuffer data, MessageId messageId) {
+        public IncomingRequest(long id, A from, ByteBuffer data, MessageId messageId) {
+            this.id = id;
             this.from = from;
             this.data = data;
             this.messageId = messageId;
@@ -94,17 +124,21 @@ final class IncomingPacketManager<A> {
 
         public MessageId getMessageId() {
             return messageId;
+        }
+
+        public long getId() {
+            return id;
         }
     }
 
-    private static final class IncomingResponse<A> implements ReceiveEntity {
+    public static final class PendingRequest<A> implements ReceiveEntity {
+        private long id;
         private A from;
-        private ByteBuffer data;
         private MessageId messageId;
 
-        public IncomingResponse(A from, ByteBuffer data, MessageId messageId) {
+        public PendingRequest(long id, A from, MessageId messageId) {
+            this.id = id;
             this.from = from;
-            this.data = data;
             this.messageId = messageId;
         }
 
@@ -112,23 +146,53 @@ final class IncomingPacketManager<A> {
             return from;
         }
 
-        public ByteBuffer getData() {
-            return data;
-        }
-
         public MessageId getMessageId() {
             return messageId;
+        }
+
+        public long getId() {
+            return id;
         }
     }
     
-    static final class IncomingPacketManagerResult<A> {
+    public static final class IncomingResponse<A> implements ReceiveEntity {
+        private long id;
+        private A from;
+        private ByteBuffer data;
+        private MessageId messageId;
+
+        public IncomingResponse(long id, A from, ByteBuffer data, MessageId messageId) {
+            this.id = id;
+            this.from = from;
+            this.data = data;
+            this.messageId = messageId;
+        }
+
+        public A getFrom() {
+            return from;
+        }
+
+        public ByteBuffer getData() {
+            return data;
+        }
+
+        public MessageId getMessageId() {
+            return messageId;
+        }
+
+        public long getId() {
+            return id;
+        }
+    }
+    
+    public static final class IncomingPacketManagerResult<A> {
         private Collection<IncomingRequest<A>> newIncomingRequests;
-        private Collection<IncomingRequest<A>> timedOutIncomingRequests;
+        private Collection<PendingRequest<A>> timedOutIncomingRequests;
         private Collection<IncomingResponse<A>> newIncomingResponses;
         private long nextTimeoutTimestamp;
 
         public IncomingPacketManagerResult(Collection<IncomingRequest<A>> newIncomingRequests,
-                Collection<IncomingRequest<A>> timedOutIncomingRequests,
+                Collection<PendingRequest<A>> timedOutIncomingRequests,
                 Collection<IncomingResponse<A>> newIncomingResponses,
                 long nextTimeoutTimestamp) {
             this.newIncomingRequests = newIncomingRequests;
@@ -141,7 +205,7 @@ final class IncomingPacketManager<A> {
             return newIncomingRequests;
         }
 
-        public Collection<IncomingRequest<A>> getTimedOutIncomingRequests() {
+        public Collection<PendingRequest<A>> getTimedOutIncomingRequests() {
             return timedOutIncomingRequests;
         }
 

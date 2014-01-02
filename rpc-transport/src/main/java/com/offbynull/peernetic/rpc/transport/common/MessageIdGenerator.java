@@ -14,19 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Random;
 
-final class MessageIdGenerator {
+public final class MessageIdGenerator {
     private Random random;
     
     public MessageIdGenerator() {
-        SecureRandom secureRandom = new SecureRandom();
-        
-        random = new Random(secureRandom.nextLong());
+        try {
+            random = SecureRandom.getInstance("SHA1PRNG");
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new IllegalStateException(nsae);
+        }
     }
 
     public MessageId generate() {

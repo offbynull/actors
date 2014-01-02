@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
 import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
@@ -13,8 +13,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.Validate;
 
-final class OutgoingPacketManager<A> {
+public final class OutgoingMessageManager<A> {
     private ByteBuffer tempBuffer;
 
     private OutgoingFilter<A> outgoingFilter;
@@ -26,10 +27,16 @@ final class OutgoingPacketManager<A> {
     private Map<Long, OutgoingRequest> requestMap = new HashMap<>();
     private TimeoutManager<Long> queuedResponseTimeoutManager = new TimeoutManager<>();
     private LinkedList<SendEntity> queuedSends = new LinkedList<>();
+
+    public OutgoingMessageManager(int bufferSize, OutgoingFilter<A> outgoingFilter) {
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, bufferSize);
+        Validate.notNull(outgoingFilter);
+        
+        this.tempBuffer = ByteBuffer.allocate(bufferSize);
+        this.outgoingFilter = outgoingFilter;
+    }
     
-    private long nextId;
-    
-    public void outgoingRequest(A to, ByteBuffer data, long queueTimestampTimeout, long sentTimestampTimeout,
+    public void outgoingRequest(long id, A to, ByteBuffer data, long queueTimestampTimeout, long sentTimestampTimeout,
             MessageResponder responder) {
         MessageId messageId = idGenerator.generate();
 
@@ -46,7 +53,6 @@ final class OutgoingPacketManager<A> {
             localTempBuffer = ByteBufferUtils.copyContents(tempBuffer);
         }
         
-        long id = nextId++;
         OutgoingRequest request = new OutgoingRequest(id, localTempBuffer, responder, to);
         
         
@@ -56,9 +62,7 @@ final class OutgoingPacketManager<A> {
         requestMap.put(id, request);
     }
 
-    public void outgoingResponse(A to, ByteBuffer data, long queueTimestampTimeout) {
-        MessageId messageId = idGenerator.generate();
-
+    public void outgoingResponse(long id, A to, ByteBuffer data, MessageId messageId, long queueTimestampTimeout) {
         tempBuffer.clear();
 
         MessageMarker.writeRequestMarker(tempBuffer);
@@ -71,8 +75,7 @@ final class OutgoingPacketManager<A> {
         if (localTempBuffer == tempBuffer) {
             localTempBuffer = ByteBufferUtils.copyContents(tempBuffer);
         }
-        
-        long id = nextId++;
+
         OutgoingResponse response = new OutgoingResponse(id, localTempBuffer, to);
         
         
@@ -87,11 +90,11 @@ final class OutgoingPacketManager<A> {
         }
         
         Packet<A> packet;
-        if (sendEntity instanceof OutgoingPacketManager.OutgoingRequest) {
+        if (sendEntity instanceof OutgoingMessageManager.OutgoingRequest) {
             OutgoingRequest req = (OutgoingRequest) sendEntity;
             queuedRequestTimeoutManager.cancel(req.getId());
             packet = new Packet<>(req.getData(), req.getDestination());
-        } else if (sendEntity instanceof OutgoingPacketManager.OutgoingResponse) {
+        } else if (sendEntity instanceof OutgoingMessageManager.OutgoingResponse) {
             OutgoingResponse resp = (OutgoingResponse) sendEntity;
             packet = new Packet<>(resp.getData(), resp.getDestination());
         } else {
@@ -128,7 +131,18 @@ final class OutgoingPacketManager<A> {
         return new OutgoingPacketManagerResult(messageRespondersForFailures, nextTimeoutTimestamp, hasMore);
     }
 
-    static final class Packet<A> {
+    public MessageResponder responseReturned(long id) {
+        sentRequestTimeoutManager.cancel(id);
+        OutgoingRequest request = requestMap.remove(id);
+        
+        if (request == null) {
+            return null;
+        }
+        
+        return request.getResponder();
+    }
+
+    public static final class Packet<A> {
         private ByteBuffer data;
         private A destination;
 
@@ -147,11 +161,11 @@ final class OutgoingPacketManager<A> {
         
     }
 
-    private interface SendEntity {
+    public interface SendEntity {
         
     }
     
-    private final class OutgoingRequest implements SendEntity {
+    public final class OutgoingRequest implements SendEntity {
         private Long id;
         private ByteBuffer data;
         private MessageResponder responder;
@@ -181,7 +195,7 @@ final class OutgoingPacketManager<A> {
         }
     }
 
-    private final class OutgoingResponse implements SendEntity {
+    public final class OutgoingResponse implements SendEntity {
         private Long id;
         private ByteBuffer data;
         private A destination;
@@ -205,7 +219,7 @@ final class OutgoingPacketManager<A> {
         }
     }
     
-    final class OutgoingPacketManagerResult {
+    public static final class OutgoingPacketManagerResult {
         private Collection<MessageResponder> messageRespondersForFailures;
         private long nextTimeoutTimestamp;
         private boolean morePacketsAvailable;

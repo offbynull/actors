@@ -14,17 +14,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.common;
 
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-final class MessageIdInstance<A> {
+public final class MessageIdInstance<A> {
     private A from;
     private MessageId id;
-    private PacketType type;
+    private MessageType type;
 
-    public MessageIdInstance(A from, MessageId id, PacketType type) {
+    public MessageIdInstance(A from, MessageId id, MessageType type) {
         Validate.notNull(from);
         Validate.notNull(id);
         Validate.notNull(type);
@@ -41,7 +41,7 @@ final class MessageIdInstance<A> {
         return id;
     }
 
-    public PacketType getType() {
+    public MessageType getType() {
         return type;
     }
 

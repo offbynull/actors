@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.common.concurrent.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.google.common.util.concurrent.Service;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -60,6 +61,14 @@ public abstract class Actor {
      */
     protected abstract ActorQueue createQueue();
 
+    /**
+     * Checks to see if this {@link Service} is a new service. That is, checks to see if this service hasn't been started yet.
+     * @return 
+     */
+    public final boolean isNew() {
+        return internalService.state() != Service.State.NEW;
+    }
+    
     /**
      * Starts this {@link Actor} and waits for it to be ready.
      * @throws IllegalStateException if this method was called previously on this object, or if this actor failed (encountered an exception

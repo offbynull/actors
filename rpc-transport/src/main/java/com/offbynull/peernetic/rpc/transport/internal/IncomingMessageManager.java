@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.common;
+package com.offbynull.peernetic.rpc.transport.internal;
 
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager.TimeoutManagerResult;

@@ -27,7 +27,7 @@ import com.offbynull.peernetic.rpc.transport.IncomingMessage;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.services.nat.NatHelperService.ConnectionType;
 import com.offbynull.peernetic.rpc.services.nat.NatHelperCallable.Result;
 import java.io.IOException;
@@ -131,7 +131,7 @@ public final class NatHelperCallable implements Callable<Result> {
             TransportFactory<InetSocketAddress> transportFactory, byte[] expected) throws InterruptedException,
             IOException {
         
-        Transport<InetSocketAddress> transport = transportFactory.createTransport();
+        TransportActor<InetSocketAddress> transport = transportFactory.createTransport();
 
         try {
             final ArrayBlockingQueue<ByteBuffer> bufferHolder = new ArrayBlockingQueue<>(1);

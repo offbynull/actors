@@ -23,7 +23,7 @@ import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.commons.lang3.Validate;
@@ -37,7 +37,7 @@ public final class Rpc<A> implements Closeable {
 
     private boolean closed;
 
-    private Transport<A> transport;
+    private TransportActor<A> transport;
 
     private ServiceRouter<A> serviceRouter;
     private ServiceAccessor<A> serviceAccessor;

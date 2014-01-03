@@ -16,28 +16,28 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager;
-import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
 import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.common.concurrent.actor.SelectorActorQueueNotifier;
-import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.DropResponseCommand;
-import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingPacketManagerResult;
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequest;
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequestInfo;
-import com.offbynull.peernetic.rpc.transport.common.MessageId;
-import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
-import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.Packet;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.internal.DropResponseCommand;
+import com.offbynull.peernetic.rpc.transport.internal.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.internal.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.internal.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingPacketManagerResult;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingRequest;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingResponse;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingRequestInfo;
+import com.offbynull.peernetic.rpc.transport.internal.MessageId;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingPacketManagerResult;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.Packet;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -54,7 +54,7 @@ import org.apache.commons.lang3.Validate;
  * A UDP transport implementation.
  * @author Kasra Faghihi
  */
-public final class UdpTransport extends Transport<InetSocketAddress> {
+public final class UdpTransport extends TransportActor<InetSocketAddress> {
     
     private InetSocketAddress listenAddress;
     private Selector selector;
@@ -187,7 +187,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         // process timeouts for outgoing requests
         OutgoingPacketManagerResult opmResult = outgoingPacketManager.process(timestamp);
         
-        Collection<MessageResponder> respondersForFailures = opmResult.getMessageRespondersForFailures();
+        Collection<MessageResponder> respondersForFailures = opmResult.getListenersForFailures();
         for (MessageResponder responder : respondersForFailures) {
             responder.respondDeferred(pushQueue, new ResponseErroredEvent());
         }
@@ -280,7 +280,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         IOUtils.closeQuietly(selector);
         IOUtils.closeQuietly(channel);
 
-        for (MessageResponder responder : outgoingPacketManager.process(Long.MAX_VALUE).getMessageRespondersForFailures()) {
+        for (MessageResponder responder : outgoingPacketManager.process(Long.MAX_VALUE).getListenersForFailures()) {
             ResponseErroredEvent ree = new ResponseErroredEvent();
             responder.respondDeferred(pushQueue, ree);
         }

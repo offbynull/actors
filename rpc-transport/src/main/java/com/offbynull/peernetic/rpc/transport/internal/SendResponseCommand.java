@@ -14,61 +14,41 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.internal;
 
+import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Incoming request.
- * @author Kasra Faghihi
+ * Outgoing response.
  * @param <A> address type
+ * @author Kasra Faghihi
  */
-public final class RequestArrivedEvent<A> {
-    private A from;
+public final class SendResponseCommand<A> {
     private ByteBuffer data;
-    private long arriveTime;
 
     /**
-     * Constructs an {@link RequestArrivedEvent} object.
-     * @param from source address
+     * Constructs a {@link SendResponseCommand}.
      * @param data message data
-     * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public RequestArrivedEvent(A from, ByteBuffer data, long arriveTime) {
-        Validate.notNull(from);
+    public SendResponseCommand(ByteBuffer data) {
         Validate.notNull(data);
-        
-        this.from = from;
-        this.data = ByteBuffer.allocate(data.remaining()).put(data);
-        this.arriveTime = arriveTime;
-        this.data.flip();
+
+        this.data = ByteBufferUtils.copyContents(data);
     }
 
     /**
-     * Constructs an {@link RequestArrivedEvent} object.
-     * @param from source address
+     * Constructs a {@link SendResponseCommand}.
      * @param data message data
-     * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public RequestArrivedEvent(A from, byte[] data, long arriveTime) {
-        Validate.notNull(from);
+    public SendResponseCommand(byte[] data) {
         Validate.notNull(data);
-        
-        this.from = from;
+
         this.data = ByteBuffer.allocate(data.length).put(data);
-        this.arriveTime = arriveTime;
         this.data.flip();
-    }
-
-    /**
-     * Get source address.
-     * @return source address
-     */
-    public A getFrom() {
-        return from;
     }
 
     /**
@@ -77,13 +57,5 @@ public final class RequestArrivedEvent<A> {
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();
-    }
-
-    /**
-     * Gets the arrival time.
-     * @return arrival time
-     */
-    public long getArriveTime() {
-        return arriveTime;
     }
 }

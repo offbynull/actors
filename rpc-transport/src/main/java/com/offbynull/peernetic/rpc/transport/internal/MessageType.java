@@ -14,12 +14,20 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.internal;
 
 /**
- * Response errored.
+ * Message type.
  * @author Kasra Faghihi
  */
-public final class ResponseErroredEvent {
+public enum MessageType {
+    /**
+     * Request message.
+     */
+    REQUEST,
+    /**
+     * Response message.
+     */
+    RESPONSE
     
 }

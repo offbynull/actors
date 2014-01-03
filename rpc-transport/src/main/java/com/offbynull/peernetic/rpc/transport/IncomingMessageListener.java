@@ -14,20 +14,24 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.common;
+package com.offbynull.peernetic.rpc.transport;
+
+import java.nio.ByteBuffer;
 
 /**
- * Message type.
+ * A listener that gets triggered when a new message arrives.
  * @author Kasra Faghihi
+ * @param <A> address type
  */
-public enum MessageType {
+public interface IncomingMessageListener<A> {
     /**
-     * Request message.
+     * Indicates that a message has arrived.
+     * Implementations must be thread-safe <b>AND MUST NEVER BLOCK</b>. It is your responsibility to avoid blocking. Blocking in this method
+     * may block the underlying {@link Transport}.
+     * @param from sender
+     * @param message message
+     * @param responseCallback response handler
+     * @throws NullPointerException if any of the arguments are {@code null}
      */
-    REQUEST,
-    /**
-     * Response message.
-     */
-    RESPONSE
-    
+    void messageArrived(A from, ByteBuffer message, IncomingMessageResponseListener responseCallback);
 }

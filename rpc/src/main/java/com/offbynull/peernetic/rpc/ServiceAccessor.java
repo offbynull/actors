@@ -26,15 +26,15 @@ import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibCapturer;
 import com.offbynull.peernetic.rpc.transport.IncomingResponse;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.transport.TransportHelper;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 final class ServiceAccessor<A> {
-    private Transport<A> transport;
+    private TransportActor<A> transport;
 
-    public ServiceAccessor(Transport<A> transport) {
+    public ServiceAccessor(TransportActor<A> transport) {
         Validate.notNull(transport);
         
         this.transport = transport;

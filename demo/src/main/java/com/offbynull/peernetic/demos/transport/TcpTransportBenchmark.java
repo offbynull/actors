@@ -28,7 +28,7 @@ import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -49,7 +49,7 @@ import java.util.Map;
  */
 public final class TcpTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 2;
-    private static Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
+    private static Map<InetSocketAddress, TransportActor<InetSocketAddress>> transports = new HashMap<>();
     
     private TcpTransportBenchmark() {
         // do nothing
@@ -66,7 +66,7 @@ public final class TcpTransportBenchmark {
             tcpTransportFactory.setListenAddress(new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i));
 
             InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-            Transport transport = tcpTransportFactory.createTransport();
+            TransportActor transport = tcpTransportFactory.createTransport();
             transport.start(new CompositeIncomingFilter<>(Collections.<IncomingFilter<Integer>>emptyList()),
                     new EchoIncomingMessageListener(),
                     new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<Integer>>emptyList()));

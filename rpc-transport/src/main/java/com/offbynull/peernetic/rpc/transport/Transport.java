@@ -16,109 +16,46 @@
  */
 package com.offbynull.peernetic.rpc.transport;
 
-import com.offbynull.peernetic.common.concurrent.actor.Actor;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
-import com.offbynull.peernetic.rpc.transport.filters.nil.NullIncomingFilter;
-import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
-import org.apache.commons.lang3.Validate;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
- * An abstract base-class for network transport implementations. Actor-based and uses messages:
- * <ul>
- * <li>{@link SendRequestCommand}</li>
- * <li>{@link SendResponseCommand}</li>
- * <li>{@link DropResponseCommand}</li>
- * <li>{@link RequestArrivedEvent}</li>
- * <li>{@link ResponseArrivedEvent}</li>
- * <li>{@link ResponseErroredEvent}</li>
- * </ul>
+ * An interface to send, receive, and reply to messages over a network. Implementations must be thread-safe.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public abstract class Transport<A> extends Actor {
-
-    private volatile IncomingFilter<A> incomingFilter = new NullIncomingFilter<>();
-    private volatile OutgoingFilter<A> outgoingFilter = new NullOutgoingFilter<>();
-    private volatile ActorQueueWriter dstWriter;
-    
+public interface Transport<A> {
     /**
-     * Constructs a {@link Transport} object.
-     * @param daemon daemon thread
-     */
-    public Transport(boolean daemon) {
-        super(daemon);
-    }
-
-    /**
-     * Set the writer that this transport notifies of events. Can only be called before {@link #start() }.
-     * @param writer writer to notify of events
+     * Starts the transport. Equivalent to calling {@code start(new NullIncomingFilter(), listener, new NullOutgoingFilter())}.
+     * @param listener listener for incoming messages
+     * @throws IOException on error
+     * @throws IllegalStateException if already started or stopped
      * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalStateException if called after {@link #start() }
      */
-    public final void setDestinationWriter(ActorQueueWriter writer) {
-        Validate.notNull(writer);
-        Validate.validState(isNew());
-        
-        this.dstWriter = writer;
-    }
+    void start(IncomingMessageListener<A> listener) throws IOException;
 
     /**
-     * Set the incoming filter. Can only be called before {@link #start() }.
+     * Starts the transport.
      * @param incomingFilter incoming filter
+     * @param listener listener for incoming messages
+     * @param outgoingFilter outgoing filter
+     * @throws IllegalStateException if already running or stopped, or fails to start up for whatever reason
      * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalStateException if called after {@link #start() }
      */
-    public final void setIncomingFilter(IncomingFilter<A> incomingFilter) {
-        Validate.notNull(incomingFilter);
-        Validate.validState(isNew());
-        
-        this.incomingFilter = incomingFilter;
-    }
+    void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> listener, OutgoingFilter<A> outgoingFilter);
 
     /**
-     * Set the outgoing filter. Can only be called before {@link #start() }.
-     * @param outgoingFilter incoming filter
+     * Stops the transport. Cannot be restarted once stopped.
+     */
+    void stop();
+    
+    /**
+     * Queues a message to be sent out. The behaviour of this method is undefined if the transport isn't in a started state. Implementations
+     * of this method must not block.
+     * @param to recipient
+     * @param message message contents
+     * @param listener handles message responses
      * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalStateException if called after {@link #start() }
      */
-    public final void setOutgoingFilter(OutgoingFilter<A> outgoingFilter) {
-        Validate.notNull(outgoingFilter);
-        Validate.validState(isNew());
-        
-        this.outgoingFilter = outgoingFilter;
-    }
-    
-    /**
-     * Get the writer others can use to write to this transport.
-     * @return writer others can use to write to this transport
-     */
-    public final ActorQueueWriter getWriter() {
-        return super.getSelfWriter();
-    }
-    
-    /**
-     * Get the writer to notify of events.
-     * @return writer to notify of events
-     */
-    protected final ActorQueueWriter getDestinationWriter() {
-        return dstWriter;
-    }
-    
-    /**
-     * Get the incoming filter for this transport.
-     * @return incoming filter
-     */
-    protected final IncomingFilter<A> getIncomingFilter() {
-        return incomingFilter;
-    }
-
-    /**
-     * Get the outgoing filter for this transport.
-     * @return outgoing filter
-     */
-    protected final OutgoingFilter<A> getOutgoingFilter() {
-        return outgoingFilter;
-    }
-
-
+    void sendMessage(A to, ByteBuffer message, OutgoingMessageResponseListener listener);
 }

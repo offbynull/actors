@@ -14,76 +14,77 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.internal;
 
+import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
+import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Incoming response.
+ * Outgoing request.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class ResponseArrivedEvent<A> {
-    private A from;
+public final class SendRequestCommand<A> {
+    private A to;
     private ByteBuffer data;
-    private long arriveTime;
+    private OutgoingMessageResponseListener listener;
 
     /**
-     * Constructs an {@link ResponseArrivedEvent} object.
-     * @param from source address
-     * @param data response data
-     * @param arriveTime arrival time
+     * Constructs a {@link SendRequestCommand}.
+     * @param to destination address
+     * @param data message data
+     * @param listener listener
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public ResponseArrivedEvent(A from, ByteBuffer data, long arriveTime) {
-        Validate.notNull(from);
+    public SendRequestCommand(A to, ByteBuffer data, OutgoingMessageResponseListener listener) {
+        Validate.notNull(to);
         Validate.notNull(data);
+        Validate.notNull(listener);
         
-        this.from = from;
-        this.data = ByteBuffer.allocate(data.remaining()).put(data);
-        this.arriveTime = arriveTime;
-        this.data.flip();
+        this.to = to;
+        this.data = ByteBufferUtils.copyContents(data);
+        this.listener = listener;
     }
 
     /**
-     * Constructs an {@link ResponseArrivedEvent} object.
-     * @param from source address
-     * @param data response data
-     * @param arriveTime arrival time
+     * Constructs a {@link SendRequestCommand}.
+     * @param to destination address
+     * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public ResponseArrivedEvent(A from, byte[] data, long arriveTime) {
-        Validate.notNull(from);
+    public SendRequestCommand(A to, byte[] data) {
+        Validate.notNull(to);
         Validate.notNull(data);
         
-        this.from = from;
+        this.to = to;
         this.data = ByteBuffer.allocate(data.length).put(data);
-        this.arriveTime = arriveTime;
         this.data.flip();
     }
 
     /**
-     * Get source address.
-     * @return source address
+     * Get destination address.
+     * @return destination address
      */
-    public A getFrom() {
-        return from;
+    public A getTo() {
+        return to;
     }
 
     /**
-     * Gets a read-only view of the response data.
-     * @return response data
+     * Get a read-only view of the message data.
+     * @return message data
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();
     }
 
     /**
-     * Gets the arrival time.
-     * @return arrival time
+     * Get listener to invoke when a response is ready.
+     * @return listener
      */
-    public long getArriveTime() {
-        return arriveTime;
+    public OutgoingMessageResponseListener getListener() {
+        return listener;
     }
+    
 }

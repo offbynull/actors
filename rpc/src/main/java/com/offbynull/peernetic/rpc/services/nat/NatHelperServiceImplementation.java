@@ -24,7 +24,7 @@ import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.TerminateIncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.transport.TransportHelper;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransport;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransport;
@@ -57,7 +57,7 @@ public final class NatHelperServiceImplementation implements NatHelperService {
 
     @Override
     public TestPortResult testPort(ConnectionType type, int port, byte[] challenge) {
-        Transport transport = null;
+        TransportActor transport = null;
         try {
             if (challenge.length != 8) {
                 throw new RuntimeException();

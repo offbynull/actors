@@ -14,8 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.rpc.transport.internal;
 
 /**
- * Common classes shared between transport implementations.
+ * Terminate response.
+ * @author Kasra Faghihi
  */
-package com.offbynull.peernetic.rpc.transport.common;
+public final class DropResponseCommand {
+}

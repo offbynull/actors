@@ -21,12 +21,12 @@ import com.offbynull.peernetic.common.concurrent.actor.ActorQueueReader;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
-import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
-import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.internal.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.internal.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
 import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
 import com.offbynull.peernetic.rpc.transport.transports.test.TestTransport;
@@ -53,7 +53,7 @@ public final class TestTransportBenchmark {
      */
     public static void main(String[] args) throws Throwable {
         TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
-        List<Transport<Integer>> transports = new ArrayList<>();
+        List<TransportActor<Integer>> transports = new ArrayList<>();
         List<ActorQueueWriter> writers  = new ArrayList<>();
 
         hub.start();
@@ -63,7 +63,7 @@ public final class TestTransportBenchmark {
         ActorQueueReader mainReader = mainQueue.getReader();
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
             TestTransportFactory<Integer> transportFactory = new TestTransportFactory<>(hub, i);
-            Transport<Integer> transport = transportFactory.createTransport();
+            TransportActor<Integer> transport = transportFactory.createTransport();
             
             transport.setDestinationWriter(mainWriter);
             transport.start();

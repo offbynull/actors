@@ -141,8 +141,7 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     
     @Override
     public Transport<A> createTransport() throws IOException {
-        return new TestTransport<>(address, cacheSize, outgoingResponseTimeout, incomingResponseTimeout,
-                hub.getWriter());
+        return new TestTransport<>(address, cacheSize, outgoingResponseTimeout, incomingResponseTimeout, hub);
     }
     
 }

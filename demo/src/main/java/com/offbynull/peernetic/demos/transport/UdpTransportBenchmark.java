@@ -21,12 +21,12 @@ import com.offbynull.peernetic.common.concurrent.actor.ActorQueueReader;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransportFactory;
-import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
-import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.Transport;
+import com.offbynull.peernetic.rpc.transport.internal.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.internal.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.internal.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -52,7 +52,7 @@ public final class UdpTransportBenchmark {
      * @throws Throwable on error
      */
     public static void main(String[] args) throws Throwable {
-        Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
+        Map<InetSocketAddress, TransportActor<InetSocketAddress>> transports = new HashMap<>();
         Map<InetSocketAddress, ActorQueueWriter> writers = new HashMap<>();
 
 
@@ -63,7 +63,7 @@ public final class UdpTransportBenchmark {
             final UdpTransportFactory udpTransportFactory = new UdpTransportFactory();
             InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
             udpTransportFactory.setListenAddress(addr);
-            Transport transport = udpTransportFactory.createTransport();
+            TransportActor transport = udpTransportFactory.createTransport();
             
             transport.setDestinationWriter(mainWriter);
             transport.start();

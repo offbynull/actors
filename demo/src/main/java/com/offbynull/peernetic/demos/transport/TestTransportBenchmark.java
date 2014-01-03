@@ -20,29 +20,29 @@ import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueReader;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
-import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransportFactory;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
 import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
 import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
 import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
 import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransport;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
+import com.offbynull.peernetic.rpc.transport.transports.test.TestTransport;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 /**
- * Benchmarks {@link UdpTransport}.
+ * Benchmarks {@link TestTransport}.
  * @author Kasra Faghihi
  */
-public final class UdpTransportBenchmark {
+public final class TestTransportBenchmark {
     private static final int NUM_OF_TRANSPORTS = 30;
     
-    private UdpTransportBenchmark() {
+    private TestTransportBenchmark() {
         // do nothing
     }
     
@@ -52,39 +52,35 @@ public final class UdpTransportBenchmark {
      * @throws Throwable on error
      */
     public static void main(String[] args) throws Throwable {
-        Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
-        Map<InetSocketAddress, ActorQueueWriter> writers = new HashMap<>();
+        TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
+        List<Transport<Integer>> transports = new ArrayList<>();
+        List<ActorQueueWriter> writers  = new ArrayList<>();
 
+        hub.start();
 
         ActorQueue mainQueue = new ActorQueue();
         ActorQueueWriter mainWriter = mainQueue.getWriter();
         ActorQueueReader mainReader = mainQueue.getReader();
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
-            final UdpTransportFactory udpTransportFactory = new UdpTransportFactory();
-            InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-            udpTransportFactory.setListenAddress(addr);
-            Transport transport = udpTransportFactory.createTransport();
+            TestTransportFactory<Integer> transportFactory = new TestTransportFactory<>(hub, i);
+            Transport<Integer> transport = transportFactory.createTransport();
             
             transport.setDestinationWriter(mainWriter);
             transport.start();
-            
-            writers.put(addr, transport.getWriter());
-            transports.put(addr, transport);
+
+            writers.add(transport.getWriter());
+            transports.add(transport);
         }
-        
+
         long id = 0;
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
-            InetSocketAddress fromAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-            ActorQueueWriter fromWriter = writers.get(fromAddr);
+            ActorQueueWriter writer = writers.get(i);
             for (int j = 0; j < NUM_OF_TRANSPORTS; j++) {
                 if (i == j) {
                     continue;
                 }
                 
-                InetSocketAddress toAddr = new InetSocketAddress(InetAddress.getLocalHost(),
-                        10000 + ((i + 1) % NUM_OF_TRANSPORTS)); // NOPMD
-                
-                sendTimestamp(fromWriter, id, mainWriter, toAddr);
+                sendTimestamp(writer, id, mainWriter, j);
             }
         }
         
@@ -98,11 +94,11 @@ public final class UdpTransportBenchmark {
                 Object content = msg.getContent();
 
                 if (content instanceof RequestArrivedEvent) {
-                    RequestArrivedEvent<InetSocketAddress> rae = (RequestArrivedEvent<InetSocketAddress>) content;
-                    SendResponseCommand<InetSocketAddress> src = new SendResponseCommand<>(rae.getData());
+                    RequestArrivedEvent<Integer> rae = (RequestArrivedEvent<Integer>) content;
+                    SendResponseCommand<Integer> src = new SendResponseCommand(rae.getData());
                     msg.getResponder().respondImmediately(src);
                 } else if (content instanceof ResponseArrivedEvent) {
-                    ResponseArrivedEvent<InetSocketAddress> rae = (ResponseArrivedEvent<InetSocketAddress>) content;
+                    ResponseArrivedEvent<Integer> rae = (ResponseArrivedEvent<Integer>) content;
                     long oldTime = rae.getData().getLong();
                     
                     count++;
@@ -113,7 +109,7 @@ public final class UdpTransportBenchmark {
                         accumulatedTime = 0L;
                     }
                     
-                    InetSocketAddress address = rae.getFrom();
+                    int address = rae.getFrom();
                     ActorQueueWriter writerForAddress = writers.get(address);
                     sendTimestamp(writerForAddress, id, mainWriter, address);
                 } else if (content instanceof ResponseErroredEvent) {
@@ -124,7 +120,7 @@ public final class UdpTransportBenchmark {
         }
     }
 
-    private static void sendTimestamp(ActorQueueWriter src, long id, ActorQueueWriter dst, InetSocketAddress address) {
+    private static void sendTimestamp(ActorQueueWriter src, long id, ActorQueueWriter dst, int address) {
         ByteBuffer buffer = ByteBuffer.allocate(8);
         buffer.putLong(0, System.currentTimeMillis());
         src.push(Message.createRespondableMessage(id, dst, new SendRequestCommand(address, buffer)));

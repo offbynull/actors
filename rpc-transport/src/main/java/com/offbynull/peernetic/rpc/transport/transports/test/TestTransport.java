@@ -36,6 +36,7 @@ import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.Pendi
 import com.offbynull.peernetic.rpc.transport.common.MessageId;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
+import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.Packet;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -50,7 +51,8 @@ public final class TestTransport<A> extends Transport<A> {
 
     private A address;
 
-    private long timeout;
+    private long outgoingResponseTimeout;
+    private long incomingResponseTimeout;
     
     private OutgoingMessageManager<A> outgoingPacketManager;
     private IncomingMessageManager<A> incomingPacketManager;
@@ -71,17 +73,20 @@ public final class TestTransport<A> extends Transport<A> {
      * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public TestTransport(A address, int cacheSize, long timeout, ActorQueueWriter hubWriter) throws IOException {
+    public TestTransport(A address, int cacheSize, long outgoingResponseTimeout,
+            long incomingResponseTimeout, ActorQueueWriter hubWriter) throws IOException {
         super(true);
         
         Validate.notNull(address);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, incomingResponseTimeout);
         Validate.notNull(hubWriter);
 
         this.address = address;
 
-        this.timeout = timeout;
+        this.outgoingResponseTimeout = outgoingResponseTimeout;
+        this.incomingResponseTimeout = incomingResponseTimeout;
         
         this.cacheSize = cacheSize;
         this.hubWriter = hubWriter;
@@ -120,7 +125,8 @@ public final class TestTransport<A> extends Transport<A> {
                 }
                 
                 long id = nextId++;
-                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + timeout, timestamp + timeout, responder);
+                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + 1L,
+                        timestamp + outgoingResponseTimeout, responder);
             } else if (content instanceof SendResponseCommand) {
                 SendResponseCommand<A> src = (SendResponseCommand) content;
                 Long id = msg.getResponseToId(Long.class);
@@ -134,7 +140,7 @@ public final class TestTransport<A> extends Transport<A> {
                 }
                 
                 outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
-                        timestamp + timeout);
+                        timestamp + 1L);
             } else if (content instanceof DropResponseCommand) {
                 DropResponseCommand trc = (DropResponseCommand) content;
                 Long id = msg.getResponseToId(Long.class);
@@ -143,11 +149,11 @@ public final class TestTransport<A> extends Transport<A> {
                 }
                 
                 incomingPacketManager.responseFormed(id);
-            } else if (content instanceof SendMessageCommand) {
-                SendMessageCommand<A> imc = (SendMessageCommand) content;
+            } else if (content instanceof ReceiveMessageEvent) {
+                ReceiveMessageEvent<A> rme = (ReceiveMessageEvent) content;
                 
                 long id = nextId++;
-                incomingPacketManager.incomingData(id, imc.getFrom(), imc.getData(), timestamp + timeout);
+                incomingPacketManager.incomingData(id, rme.getFrom(), rme.getData(), timestamp + incomingResponseTimeout);
             }
         }
         
@@ -156,17 +162,21 @@ public final class TestTransport<A> extends Transport<A> {
         // process timeouts for outgoing requests
         OutgoingPacketManagerResult opmResult = outgoingPacketManager.process(timestamp);
         
-        Collection<MessageResponder> requestNotSentOut = opmResult.getMessageRespondersForFailures();
-        for (MessageResponder responder : requestNotSentOut) {
+        Collection<MessageResponder> respondersForFailures = opmResult.getMessageRespondersForFailures();
+        for (MessageResponder responder : respondersForFailures) {
             responder.respondDeferred(pushQueue, new ResponseErroredEvent());
         }
 
         
         
-        int packetsAvailable = opmResult.getPacketsAvailable();
-        for (int i = 0; i < packetsAvailable; i++) {
-            ActivateEndpointCommand<A> cmd = new ActivateEndpointCommand<>(address, getSelfWriter());
-            pushQueue.queueOneWayMessage(hubWriter, cmd);
+        Packet<A> packet;
+        while ((packet = outgoingPacketManager.getNextOutgoingPacket()) != null) {
+            if (packet == null) {
+                break;
+            }
+            
+            SendMessageCommand<A> smc = new SendMessageCommand(address, packet.getTo(), packet.getData());
+            pushQueue.queueOneWayMessage(hubWriter, smc);
         }
         
         
@@ -200,8 +210,8 @@ public final class TestTransport<A> extends Transport<A> {
         
         // calculate max time until next invoke
         long waitTime = Long.MAX_VALUE;
-        waitTime = Math.max(waitTime, opmResult.getNextTimeoutTimestamp());
-        waitTime = Math.max(waitTime, ipmResult.getNextTimeoutTimestamp());
+        waitTime = Math.min(waitTime, opmResult.getNextTimeoutTimestamp());
+        waitTime = Math.min(waitTime, ipmResult.getNextTimeoutTimestamp());
         
         return waitTime;
     }

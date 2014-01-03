@@ -30,7 +30,8 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
 
     private TestHub<A> hub;
     private int cacheSize = 4096;
-    private long timeout = 10000;
+    private long incomingResponseTimeout = 10000L; 
+    private long outgoingResponseTimeout = 10000L; 
     private A address;
 
     /**
@@ -82,23 +83,42 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, cacheSize);
         this.cacheSize = cacheSize;
     }
-    
+
     /**
-     * Gets the timeout.
-     * @return timeout
+     * Gets the incoming response timeout.
+     * @return incoming response timeout
      */
-    public long getTimeout() {
-        return timeout;
+    public long getIncomingResponseTimeout() {
+        return incomingResponseTimeout;
     }
 
     /**
-     * Sets the timeout.
-     * @param timeout timeout
-     * @throws IllegalArgumentException if {@code timeout <= 0}
+     * Gets the outgoing response timeout
+     * @return outgoing response timeout
      */
-    public void setTimeout(long timeout) {
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
-        this.timeout = timeout;
+    public long getOutgoingResponseTimeout() {
+        return outgoingResponseTimeout;
+    }
+
+
+    /**
+     * Sets the incoming response timeout.
+     * @param incomingResponseTimeout timeout
+     * @throws IllegalArgumentException if {@code incomingResponseTimeout <= 0}
+     */
+    public void setIncomingResponseTimeout(long incomingResponseTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, incomingResponseTimeout);
+        this.incomingResponseTimeout = incomingResponseTimeout;
+    }
+
+    /**
+     * Sets the outgoing response timeout.
+     * @param outgoingResponseTimeout timeout
+     * @throws IllegalArgumentException if {@code outgoingResponseTimeout <= 0}
+     */
+    public void setOutgoingResponseTimeout(long outgoingResponseTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
+        this.outgoingResponseTimeout = outgoingResponseTimeout;
     }
 
     /**
@@ -121,7 +141,8 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     
     @Override
     public Transport<A> createTransport() throws IOException {
-        return new TestTransport<>(address, cacheSize, timeout, hub.getWriter());
+        return new TestTransport<>(address, cacheSize, outgoingResponseTimeout, incomingResponseTimeout,
+                hub.getWriter());
     }
     
 }

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.udp;
+package com.offbynull.peernetic.rpc.transport.transports.test;
 
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
@@ -25,11 +25,9 @@ import com.offbynull.peernetic.rpc.transport.actormessages.events.RequestArrived
 import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseArrivedEvent;
 import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseErroredEvent;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -37,24 +35,20 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public final class UdpTransportTest {
+public final class TestTransportTest {
     
     private static final long TIMEOUT_DURATION = 500;
-    private static final int BUFFER_SIZE = 500;
     private static final int ID_CACHE_SIZE = 1024;
 
-    private UdpTransport transport1;
-    private UdpTransport transport2;
-    private int port1;
-    private int port2;
-    private static AtomicInteger nextPort;
+    private TestHub<Integer> hub;
+    private TestTransport<Integer> transport1;
+    private TestTransport<Integer> transport2;
 
-    public UdpTransportTest() {
+    public TestTransportTest() {
     }
 
     @BeforeClass
     public static void setUpClass() {
-        nextPort = new AtomicInteger(12000);
     }
 
     @AfterClass
@@ -63,24 +57,22 @@ public final class UdpTransportTest {
 
     @Before
     public void setUp() throws IOException {
-        port1 = nextPort.getAndIncrement();
-        transport1 = new UdpTransport(new InetSocketAddress(InetAddress.getLocalHost(), port1), BUFFER_SIZE, ID_CACHE_SIZE, 50L,
-                TIMEOUT_DURATION, TIMEOUT_DURATION);
-        
-        port2 = nextPort.getAndIncrement();
-        transport2 = new UdpTransport(new InetSocketAddress(InetAddress.getLocalHost(), port2), BUFFER_SIZE, ID_CACHE_SIZE, 50L,
-                TIMEOUT_DURATION, TIMEOUT_DURATION);
+        hub = new TestHub<>(new PerfectLine<Integer>());
+        transport1 = new TestTransport(1, ID_CACHE_SIZE, TIMEOUT_DURATION, TIMEOUT_DURATION, hub.getWriter());
+        transport2 = new TestTransport(2, ID_CACHE_SIZE, TIMEOUT_DURATION, TIMEOUT_DURATION, hub.getWriter());
+        hub.start();
     }
 
     @After
     public void tearDown() throws IOException {
+        hub.stop();
     }
 
     @Test
-    public void selfUdpTest() throws Throwable {
+    public void selfTestTest() throws Throwable {
         ActorQueue fakeQueue = new ActorQueue();
                     
-        InetSocketAddress to = new InetSocketAddress(InetAddress.getLocalHost(), port1);
+        Integer to = 1;
         byte[] reqData = "HIEVERYBODY! :)".getBytes();
         byte[] respData = "THIS IS THE RESPONSE".getBytes();
         Message msg;
@@ -127,11 +119,11 @@ public final class UdpTransportTest {
     }
 
     @Test
-    public void normalUdpTest() throws Throwable {
+    public void normalTestTest() throws Throwable {
         ActorQueue fakeQueue = new ActorQueue();
                     
-        InetSocketAddress transport1To = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        InetSocketAddress transport2To = new InetSocketAddress(InetAddress.getLocalHost(), port2);
+        Integer transport1To = 1;
+        Integer transport2To = 2;
         byte[] reqData = "HIEVERYBODY! :)".getBytes();
         byte[] respData = "THIS IS THE RESPONSE".getBytes();
         Message msg;
@@ -182,11 +174,11 @@ public final class UdpTransportTest {
     }
 
     @Test
-    public void terminatedUdpTest() throws Throwable {
+    public void terminatedTestTest() throws Throwable {
         ActorQueue fakeQueue = new ActorQueue();
                     
-        InetSocketAddress transport1To = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        InetSocketAddress transport2To = new InetSocketAddress(InetAddress.getLocalHost(), port2);
+        Integer transport1To = 1;
+        Integer transport2To = 2;
         byte[] reqData = "HIEVERYBODY! :)".getBytes();
         Message msg;
         Iterator<Message> msgIt;
@@ -235,11 +227,11 @@ public final class UdpTransportTest {
     }
 
     @Test
-    public void noResponseUdpTest() throws Throwable {
+    public void noResponseTestTest() throws Throwable {
         ActorQueue fakeQueue = new ActorQueue();
                     
-        InetSocketAddress transport1To = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        InetSocketAddress transport2To = new InetSocketAddress(InetAddress.getLocalHost(), port2);
+        Integer transport1To = 1;
+        Integer transport2To = 2;
         byte[] reqData = "HIEVERYBODY! :)".getBytes();
         Message msg;
         Iterator<Message> msgIt;

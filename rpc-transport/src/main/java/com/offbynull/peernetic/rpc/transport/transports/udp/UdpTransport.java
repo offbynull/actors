@@ -60,7 +60,9 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     private Selector selector;
     private int selectionKey;
 
-    private long timeout;
+    private long packetFlushTimeout;
+    private long outgoingResponseTimeout;
+    private long incomingResponseTimeout;
     
     private DatagramChannel channel;
     
@@ -79,22 +81,29 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
      * @param listenAddress address to listen on
      * @param bufferSize buffer size
      * @param cacheSize number of packet ids to cache
-     * @param timeout timeout duration
+     * @param packetFlushTimeout timeout duration for outgoing packets to get flushed in to the selector
+     * @param outgoingResponseTimeout timeout duration for responses for outgoing requests to arrive
+     * @param incomingResponseTimeout timeout duration for responses for incoming requests to be processed
      * @throws IOException on error
      * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long timeout) throws IOException {
+    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long packetFlushTimeout,
+            long outgoingResponseTimeout, long incomingResponseTimeout) throws IOException {
         super(true);
         
         Validate.notNull(listenAddress);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, bufferSize);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, packetFlushTimeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, incomingResponseTimeout);
 
         this.listenAddress = listenAddress;
 
-        this.timeout = timeout;
+        this.packetFlushTimeout = packetFlushTimeout;
+        this.outgoingResponseTimeout = outgoingResponseTimeout;
+        this.incomingResponseTimeout = incomingResponseTimeout;
         
         this.buffer = ByteBuffer.allocate(bufferSize);
         
@@ -146,7 +155,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
                 }
                 
                 long id = nextId++;
-                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + timeout, timestamp + timeout, responder);
+                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + packetFlushTimeout,
+                        timestamp + outgoingResponseTimeout, responder);
             } else if (content instanceof SendResponseCommand) {
                 SendResponseCommand<InetSocketAddress> src = (SendResponseCommand) content;
                 Long id = msg.getResponseToId(Long.class);
@@ -160,7 +170,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
                 }
                 
                 outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
-                        timestamp + timeout);
+                        timestamp + packetFlushTimeout);
             } else if (content instanceof DropResponseCommand) {
                 DropResponseCommand trc = (DropResponseCommand) content;
                 Long id = msg.getResponseToId(Long.class);
@@ -177,8 +187,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         // process timeouts for outgoing requests
         OutgoingPacketManagerResult opmResult = outgoingPacketManager.process(timestamp);
         
-        Collection<MessageResponder> requestNotSentOut = opmResult.getMessageRespondersForFailures();
-        for (MessageResponder responder : requestNotSentOut) {
+        Collection<MessageResponder> respondersForFailures = opmResult.getMessageRespondersForFailures();
+        for (MessageResponder responder : respondersForFailures) {
             responder.respondDeferred(pushQueue, new ResponseErroredEvent());
         }
 
@@ -201,7 +211,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
                 buffer.flip();
                 
                 long id = nextId++;
-                incomingPacketManager.incomingData(id, from, buffer, timestamp + timeout);
+                incomingPacketManager.incomingData(id, from, buffer, timestamp + incomingResponseTimeout);
             } else if (key.isWritable()) { // ready for outgoing data
                 Packet<InetSocketAddress> outgoingPacket = outgoingPacketManager.getNextOutgoingPacket();
                 if (outgoingPacket == null) {
@@ -259,8 +269,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         
         // calculate max time until next invoke
         long waitTime = Long.MAX_VALUE;
-        waitTime = Math.max(waitTime, opmResult.getNextTimeoutTimestamp());
-        waitTime = Math.max(waitTime, ipmResult.getNextTimeoutTimestamp());
+        waitTime = Math.min(waitTime, opmResult.getNextTimeoutTimestamp());
+        waitTime = Math.min(waitTime, ipmResult.getNextTimeoutTimestamp());
         
         return waitTime;
     }

@@ -100,6 +100,7 @@ public final class TestHub<A> extends Actor {
                 break;
             }
 
+            outgoingPackets.add(topPacket);
             transitMessageQueue.poll(); // remove
         }
 

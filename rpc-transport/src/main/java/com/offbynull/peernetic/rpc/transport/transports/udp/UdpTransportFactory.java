@@ -29,7 +29,9 @@ import org.apache.commons.lang3.Validate;
 public final class UdpTransportFactory implements TransportFactory<InetSocketAddress> {
     private int bufferSize = 65535;
     private int cacheSize = 4096;
-    private long timeout = 10000L; 
+    private long packetFlushTimeout = 10000L; 
+    private long incomingResponseTimeout = 10000L; 
+    private long outgoingResponseTimeout = 10000L; 
     private InetSocketAddress listenAddress = new InetSocketAddress(15000);
 
     /**
@@ -69,21 +71,57 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
     }
 
     /**
-     * Gets the timeout.
+     * Gets the packet flush timeout.
      * @return timeout
      */
-    public long getTimeout() {
-        return timeout;
+    public long getPacketFlushTimeout() {
+        return packetFlushTimeout;
     }
 
     /**
-     * Sets the timeout.
-     * @param timeout timeout
-     * @throws IllegalArgumentException if {@code timeout <= 0}
+     * Gets the incoming response timeout.
+     * @return incoming response timeout
      */
-    public void setTimeout(long timeout) {
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
-        this.timeout = timeout;
+    public long getIncomingResponseTimeout() {
+        return incomingResponseTimeout;
+    }
+
+    /**
+     * Gets the outgoing response timeout
+     * @return outgoing response timeout
+     */
+    public long getOutgoingResponseTimeout() {
+        return outgoingResponseTimeout;
+    }
+
+    /**
+     * Sets the packet flush timeout.
+     * @param packetFlushTimeout timeout
+     * @throws IllegalArgumentException if {@code packetFlushTimeout <= 0}
+     */
+    public void setPacketFlushTimeout(long packetFlushTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, packetFlushTimeout);
+        this.packetFlushTimeout = packetFlushTimeout;
+    }
+
+    /**
+     * Sets the incoming response timeout.
+     * @param incomingResponseTimeout timeout
+     * @throws IllegalArgumentException if {@code incomingResponseTimeout <= 0}
+     */
+    public void setIncomingResponseTimeout(long incomingResponseTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, incomingResponseTimeout);
+        this.incomingResponseTimeout = incomingResponseTimeout;
+    }
+
+    /**
+     * Sets the outgoing response timeout.
+     * @param outgoingResponseTimeout timeout
+     * @throws IllegalArgumentException if {@code outgoingResponseTimeout <= 0}
+     */
+    public void setOutgoingResponseTimeout(long outgoingResponseTimeout) {
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
+        this.outgoingResponseTimeout = outgoingResponseTimeout;
     }
 
     /**
@@ -106,7 +144,7 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
 
     @Override
     public Transport<InetSocketAddress> createTransport() throws IOException {
-        return new UdpTransport(listenAddress, bufferSize, cacheSize, timeout);
+        return new UdpTransport(listenAddress, bufferSize, cacheSize, packetFlushTimeout, outgoingResponseTimeout, incomingResponseTimeout);
     }
     
 }

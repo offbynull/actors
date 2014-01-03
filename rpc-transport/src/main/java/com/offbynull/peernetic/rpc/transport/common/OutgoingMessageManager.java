@@ -97,10 +97,17 @@ public final class OutgoingMessageManager<A> {
     }
 
     public Packet<A> getNextOutgoingPacket() {
-        SendEntity sendEntity = queuedSends.poll();
-        
-        if (sendEntity == null) {
-            return null;
+        SendEntity sendEntity = null;
+        while (true) {
+            sendEntity = queuedSends.poll();
+            
+            if (sendEntity == null) {
+                return null;
+            }
+            
+            if (!sendEntity.isCancelled()) {
+                break;
+            }
         }
         
         Packet<A> packet;
@@ -120,7 +127,7 @@ public final class OutgoingMessageManager<A> {
 
     public OutgoingPacketManagerResult process(long timestamp) {
         Set<MessageResponder> messageRespondersForFailures = new HashSet<>();
-        long nextTimeoutTimestamp = Long.MAX_VALUE;
+        long maxTimestamp = Long.MAX_VALUE;
         
         TimeoutManagerResult<Long> timedOutQueuedRequests =  queuedRequestTimeoutManager.process(timestamp);
         for (Long id : timedOutQueuedRequests.getTimedout()) {
@@ -128,21 +135,23 @@ public final class OutgoingMessageManager<A> {
             OutgoingRequest request = requestIdLookup.remove(id);
             requestMessageIdLookup.remove(request.getMessageId());
             messageRespondersForFailures.add(request.getResponder());
+            request.cancel();
         }
-        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedRequests.getNextMaxTimestamp());
+        maxTimestamp = Math.min(maxTimestamp, timedOutQueuedRequests.getNextMaxTimestamp());
         
         TimeoutManagerResult<Long> timedOutSentRequests = sentRequestTimeoutManager.process(timestamp);
         for (Long id : timedOutSentRequests.getTimedout()) {
             OutgoingRequest request = requestIdLookup.remove(id);
             requestMessageIdLookup.remove(request.getMessageId());
             messageRespondersForFailures.add(request.getResponder());
+            request.cancel();
         }
-        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutSentRequests.getNextMaxTimestamp());
+        maxTimestamp = Math.min(maxTimestamp, timedOutSentRequests.getNextMaxTimestamp());
         
         TimeoutManagerResult<Long> timedOutQueuedResponses = queuedResponseTimeoutManager.process(timestamp);
-        nextTimeoutTimestamp = Math.min(nextTimeoutTimestamp, timedOutQueuedResponses.getNextMaxTimestamp());
+        maxTimestamp = Math.min(maxTimestamp, timedOutQueuedResponses.getNextMaxTimestamp());
         
-        return new OutgoingPacketManagerResult(messageRespondersForFailures, nextTimeoutTimestamp, queuedSends.size());
+        return new OutgoingPacketManagerResult(messageRespondersForFailures, maxTimestamp, queuedSends.size());
     }
 
     public MessageResponder responseReturned(MessageId messageId) {
@@ -183,11 +192,20 @@ public final class OutgoingMessageManager<A> {
         
     }
 
-    public interface SendEntity {
+    public abstract class SendEntity {
+        private boolean cancelled;
+
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        public void cancel() {
+            this.cancelled = true;
+        }
         
     }
     
-    public final class OutgoingRequest implements SendEntity {
+    public final class OutgoingRequest extends SendEntity {
         private Long id;
         private MessageId messageId;
         private ByteBuffer data;
@@ -223,7 +241,7 @@ public final class OutgoingMessageManager<A> {
         }
     }
 
-    public final class OutgoingResponse implements SendEntity {
+    public final class OutgoingResponse extends SendEntity {
         private Long id;
         private ByteBuffer data;
         private A destination;

@@ -23,7 +23,15 @@ import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An abstract base-class for network transport implementations.
+ * An abstract base-class for network transport implementations. Actor-based and uses messages:
+ * <ul>
+ * <li>{@link SendRequestCommand}</li>
+ * <li>{@link SendResponseCommand}</li>
+ * <li>{@link DropResponseCommand}</li>
+ * <li>{@link RequestArrivedEvent}</li>
+ * <li>{@link ResponseArrivedEvent}</li>
+ * <li>{@link ResponseErroredEvent}</li>
+ * </ul>
  * @author Kasra Faghihi
  * @param <A> address type
  */

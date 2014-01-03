@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.rpc.transport.common;
 
 import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
@@ -15,9 +31,20 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Manages outgoing messages.
+ * <p/>
+ * New outgoing requests should be piped in to {@link #outgoingRequest(long, java.lang.Object, java.nio.ByteBuffer, long, long,
+ * com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder) }. New outgoing responses should be piped in to
+ * {@link #outgoingResponse(long, java.lang.Object, java.nio.ByteBuffer, com.offbynull.peernetic.rpc.transport.common.MessageId, long) }.
+ * Requests will be tracked internally until a response for the request arrives
+ * ({@link #responseReturned(com.offbynull.peernetic.rpc.transport.common.MessageId) }) or until a timeout is reached. Responses won't.
+ * Requests / responses that have been pushed in will be returned one-by-one as {@link #getNextOutgoingPacket() } is called.
+ * Timed out requests will be returned by {@link #process(long) }. 
+ * @author Kasra Faghihi
+ * @param <A> address type
+ */
 public final class OutgoingMessageManager<A> {
-    private ByteBuffer tempBuffer;
-
     private OutgoingFilter<A> outgoingFilter;
     
     private MessageIdGenerator idGenerator = new MessageIdGenerator();
@@ -29,14 +56,27 @@ public final class OutgoingMessageManager<A> {
     private TimeoutManager<Long> queuedResponseTimeoutManager = new TimeoutManager<>();
     private LinkedList<SendEntity> queuedSends = new LinkedList<>();
 
-    public OutgoingMessageManager(int bufferSize, OutgoingFilter<A> outgoingFilter) {
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, bufferSize);
+    /**
+     * Constructs a {@link OutgoingMessageManager} object.
+     * @param outgoingFilter outgoing filter
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public OutgoingMessageManager(OutgoingFilter<A> outgoingFilter) {
         Validate.notNull(outgoingFilter);
         
-        this.tempBuffer = ByteBuffer.allocate(bufferSize);
         this.outgoingFilter = outgoingFilter;
     }
     
+    /**
+     * Called when a request is ready to go out. Request are tracked internally until either a response comes in for the request
+     * ({@link #responseReturned(com.offbynull.peernetic.rpc.transport.common.MessageId) }) or a timeout is reached.
+     * @param id internal id
+     * @param to destination address
+     * @param data request data
+     * @param queueTimestampTimeout maximum amount of time this request can take to go on the network before being discarded
+     * @param sentTimestampTimeout maximum amount of time to wait for a response for this request
+     * @param responder responder to use for issuing a response or error
+     */
     public void outgoingRequest(long id, A to, ByteBuffer data, long queueTimestampTimeout, long sentTimestampTimeout,
             MessageResponder responder) {
         Validate.notNull(to);
@@ -45,9 +85,9 @@ public final class OutgoingMessageManager<A> {
 
         MessageId messageId = idGenerator.generate();
 
-        tempBuffer.clear();
+        ByteBuffer tempBuffer = ByteBuffer.allocate(data.remaining() + MessageMarker.MARKER_SIZE + 32);
 
-        MessageMarker.writeRequestMarker(tempBuffer);
+        MessageMarker.writeMarker(tempBuffer, MessageType.REQUEST);
         messageId.writeId(tempBuffer);
         tempBuffer.put(data);
         tempBuffer.flip();
@@ -61,7 +101,7 @@ public final class OutgoingMessageManager<A> {
         OutgoingRequest request = new OutgoingRequest(id, messageId, localTempBuffer, responder, to);
         
         if (requestMessageIdLookup.containsKey(messageId)) {
-            // Duplicate hit. Don't add, just ignore
+            // Duplicate hit. This should never happen. If it does, just ignore this packet
             return;
         }
         
@@ -72,14 +112,22 @@ public final class OutgoingMessageManager<A> {
         requestMessageIdLookup.put(messageId, id);
     }
 
+    /**
+     * Called when a response is ready to go out.
+     * @param id internal id
+     * @param to destination address
+     * @param data response data
+     * @param messageId message id this response is for
+     * @param queueTimestampTimeout maximum amount of time this request can take to go on the network before being discarded
+     */
     public void outgoingResponse(long id, A to, ByteBuffer data, MessageId messageId, long queueTimestampTimeout) {
         Validate.notNull(to);
         Validate.notNull(data);
         Validate.notNull(messageId);
         
-        tempBuffer.clear();
+        ByteBuffer tempBuffer = ByteBuffer.allocate(data.remaining() + 1 + 32);
 
-        MessageMarker.writeResponseMarker(tempBuffer);
+        MessageMarker.writeMarker(tempBuffer, MessageType.RESPONSE);
         messageId.writeId(tempBuffer);
         tempBuffer.put(data);
         tempBuffer.flip();
@@ -96,6 +144,10 @@ public final class OutgoingMessageManager<A> {
         queuedSends.add(response);
     }
 
+    /**
+     * Get the next packet in the outgoing queue.
+     * @return next packet in the outgoing queue, or {@code null} if no more packets are available
+     */
     public Packet<A> getNextOutgoingPacket() {
         SendEntity sendEntity = null;
         while (true) {
@@ -112,11 +164,11 @@ public final class OutgoingMessageManager<A> {
         
         Packet<A> packet;
         if (sendEntity instanceof OutgoingMessageManager.OutgoingRequest) {
-            OutgoingRequest req = (OutgoingRequest) sendEntity;
+            OutgoingRequest<A> req = (OutgoingRequest) sendEntity;
             queuedRequestTimeoutManager.cancel(req.getId());
             packet = new Packet<>(req.getData(), req.getTo());
         } else if (sendEntity instanceof OutgoingMessageManager.OutgoingResponse) {
-            OutgoingResponse resp = (OutgoingResponse) sendEntity;
+            OutgoingResponse<A> resp = (OutgoingResponse<A>) sendEntity;
             packet = new Packet<>(resp.getData(), resp.getDestination());
         } else {
             throw new IllegalStateException();
@@ -125,6 +177,13 @@ public final class OutgoingMessageManager<A> {
         return packet;
     }
 
+    /**
+     * Called once per step. Returns the request packets that have timed out (both from waiting too long to be flushed to the network and
+     * from waiting too long for a response to arrive) as well as the next timestamp this method should be called.
+     * again.
+     * @param timestamp current timestamp
+     * @return new request/responses, timed out requests, and the next time this method should be called again
+     */
     public OutgoingPacketManagerResult process(long timestamp) {
         Set<MessageResponder> messageRespondersForFailures = new HashSet<>();
         long maxTimestamp = Long.MAX_VALUE;
@@ -154,7 +213,15 @@ public final class OutgoingMessageManager<A> {
         return new OutgoingPacketManagerResult(messageRespondersForFailures, maxTimestamp, queuedSends.size());
     }
 
+    /**
+     * Called when a response comes in.
+     * @param messageId message id of the request this response is for
+     * @return responder for the request that the response is for, or {@code null} if the internal reference to the request no longer exists
+     * (because it timed out or never existed in the first place)
+     */
     public MessageResponder responseReturned(MessageId messageId) {
+        Validate.notNull(messageId);
+        
         Long internalId = requestMessageIdLookup.remove(messageId);
         if (internalId == null) {
             return null;
@@ -170,11 +237,15 @@ public final class OutgoingMessageManager<A> {
         return request.getResponder();
     }
 
+    /**
+     * An outgoing packet.
+     * @param <A> address type
+     */
     public static final class Packet<A> {
         private ByteBuffer data;
         private A to;
 
-        public Packet(ByteBuffer data, A to) {
+        private Packet(ByteBuffer data, A to) {
             Validate.notNull(data);
             Validate.notNull(to);
             
@@ -182,17 +253,25 @@ public final class OutgoingMessageManager<A> {
             this.to = to;
         }
 
+        /**
+         * Get data.
+         * @return data
+         */
         public ByteBuffer getData() {
             return data;
         }
 
+        /**
+         * Get destination address.
+         * @return destination address
+         */
         public A getTo() {
             return to;
         }
         
     }
 
-    public abstract class SendEntity {
+    private static class SendEntity {
         private boolean cancelled;
 
         public boolean isCancelled() {
@@ -205,7 +284,7 @@ public final class OutgoingMessageManager<A> {
         
     }
     
-    public final class OutgoingRequest extends SendEntity {
+    private static final class OutgoingRequest<A> extends SendEntity {
         private Long id;
         private MessageId messageId;
         private ByteBuffer data;
@@ -213,6 +292,12 @@ public final class OutgoingMessageManager<A> {
         private A to;
 
         public OutgoingRequest(Long id, MessageId messageId, ByteBuffer data, MessageResponder responder, A to) {
+            Validate.notNull(id);
+            Validate.notNull(messageId);
+            Validate.notNull(data);
+            Validate.notNull(responder);
+            Validate.notNull(to);
+
             this.id = id;
             this.data = data;
             this.responder = responder;
@@ -241,12 +326,15 @@ public final class OutgoingMessageManager<A> {
         }
     }
 
-    public final class OutgoingResponse extends SendEntity {
+    private static final class OutgoingResponse<A> extends SendEntity {
         private Long id;
         private ByteBuffer data;
         private A destination;
 
-        public OutgoingResponse(Long id, ByteBuffer data, A destination) {
+        private OutgoingResponse(Long id, ByteBuffer data, A destination) {
+            Validate.notNull(id);
+            Validate.notNull(data);
+            Validate.notNull(destination);
             this.id = id;
             this.data = data;
             this.destination = destination;
@@ -265,26 +353,44 @@ public final class OutgoingMessageManager<A> {
         }
     }
     
+    /**
+     * Return type of {@link #process(long) }. Contains timed out requests / the next timestamp a request will timeout / an
+     * <b>estimation</b> of the number of packets available to be read.
+     */
     public static final class OutgoingPacketManagerResult {
         private Collection<MessageResponder> messageRespondersForFailures;
-        private long nextTimeoutTimestamp;
+        private long maxTimestamp;
         private int packetsAvailable;
 
-        private OutgoingPacketManagerResult(Collection<MessageResponder> messageRespondersForFailures, long nextTimeoutTimestamp,
+        private OutgoingPacketManagerResult(Collection<MessageResponder> messageRespondersForFailures, long maxTimestamp,
                 int packetsAvailable) {
+            Validate.noNullElements(messageRespondersForFailures);
+            Validate.inclusiveBetween(0, Integer.MAX_VALUE, packetsAvailable);
             this.messageRespondersForFailures = Collections.unmodifiableCollection(messageRespondersForFailures);
-            this.nextTimeoutTimestamp = nextTimeoutTimestamp;
+            this.maxTimestamp = maxTimestamp;
             this.packetsAvailable = packetsAvailable;
         }
 
+        /**
+         * Get the responders for timed out requests.
+         * @return responders for timed out requests
+         */
         public Collection<MessageResponder> getMessageRespondersForFailures() {
             return messageRespondersForFailures;
         }
 
-        public long getNextTimeoutTimestamp() {
-            return nextTimeoutTimestamp;
+        /**
+         * Get the next timestamp that a request will time out.
+         * @return next timestamp that a request will time out
+         */
+        public long getMaxTimestamp() {
+            return maxTimestamp;
         }
 
+        /**
+         * Get the <b>estimated</b> number of packets available to be read.
+         * @return <b>estimated</b> number of packets available to be read
+         */
         public int getPacketsAvailable() {
             return packetsAvailable;
         }

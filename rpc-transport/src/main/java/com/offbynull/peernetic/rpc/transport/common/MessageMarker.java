@@ -19,73 +19,48 @@ package com.offbynull.peernetic.rpc.transport.common;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-public final class MessageMarker {
+final class MessageMarker {
+    /**
+     * Number of bytes for a marker.
+     */
+    public static final int MARKER_SIZE = 1;
+    
+    private static final byte REQUEST_MARKER = 0;
+    private static final byte RESPONSE_MARKER = 1;
+    
     private MessageMarker() {
         // Do nothing
     }
     
-    public static void writeRequestMarker(ByteBuffer data) {
+    public static void writeMarker(ByteBuffer data, MessageType type) {
+        Validate.notNull(data);
+        Validate.notNull(type);
+        Validate.isTrue(data.remaining() >= 1);
+        
+        switch (type) {
+            case REQUEST:
+                data.put(REQUEST_MARKER);
+                break;
+            case RESPONSE:
+                data.put(RESPONSE_MARKER);
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+    }
+    
+    public static MessageType readMarker(ByteBuffer data) {
         Validate.notNull(data);
         Validate.isTrue(data.remaining() >= 1);
         
-        data.put((byte) 0);
-    }
-    
-    public static void writeResponseMarker(ByteBuffer data) {
-        Validate.notNull(data);
-        Validate.isTrue(data.remaining() >= 1);
-        
-        data.put((byte) 1);
-    }
-    
-    public static byte[] prependRequestMarker(byte[] data) {
-        Validate.notNull(data);
-        
-        byte[] ret = new byte[data.length + 1];
-        ret[0] = 0;
-        System.arraycopy(data, 0, ret, 1, data.length);
-        return ret;
-    }
-    
-    public static byte[] prependResponseMarker(byte[] data) {
-        Validate.notNull(data);
-        
-        byte[] ret = new byte[data.length + 1];
-        ret[0] = 1;
-        System.arraycopy(data, 0, ret, 1, data.length);
-        return ret;
-    }
-    
-    public static boolean isRequest(byte[] data) {
-        Validate.notNull(data);
-        
-        return isRequest(ByteBuffer.wrap(data));
-    }
-    
-    public static boolean isResponse(byte[] data) {
-        Validate.notNull(data);
-        
-        return isResponse(ByteBuffer.wrap(data));
-    }
-    
-    public static boolean isRequest(ByteBuffer data) {
-        Validate.notNull(data);
-        
-        if (data.remaining() == 0) {
-            return false;
+        switch (data.get()) {
+            case REQUEST_MARKER:
+                return MessageType.REQUEST;
+            case RESPONSE_MARKER:
+                return MessageType.RESPONSE;
+            default:
+                return null;
         }
-        
-        return data.get(data.position()) == 0;
-    }
-    
-    public static boolean isResponse(ByteBuffer data) {
-        Validate.notNull(data);
-        
-        if (data.remaining() == 0) {
-            return false;
-        }
-        
-        return data.get(data.position()) == 1;
     }
     
     public static void skipOver(ByteBuffer data) {

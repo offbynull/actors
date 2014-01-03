@@ -20,14 +20,19 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
-public final class MessageIdCache<A> {
+/**
+ * A fixed-size cache of {@link MessageId}s. Used to throw away duplicate messages.
+ * @author Kasra Faghihi
+ * @param <A> address type
+ */
+final class MessageIdCache<A> {
 
     private int capacity;
     private LinkedList<MessageIdInstance> queue;
     private HashSet<MessageIdInstance> set;
 
     public MessageIdCache(int capacity) {
-        Validate.inclusiveBetween(1, Integer.MAX_VALUE, capacity);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, capacity);
 
         this.capacity = capacity;
         this.queue = new LinkedList<>();

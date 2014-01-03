@@ -19,7 +19,7 @@ package com.offbynull.peernetic.rpc.transport.common;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-public final class MessageIdInstance<A> {
+final class MessageIdInstance<A> {
     private A from;
     private MessageId id;
     private MessageType type;

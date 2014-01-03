@@ -14,29 +14,29 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.actormessages.events;
+package com.offbynull.peernetic.rpc.transport;
 
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Incoming response.
+ * Incoming request.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class ResponseArrivedEvent<A> implements TransportEvent {
+public final class RequestArrivedEvent<A> {
     private A from;
     private ByteBuffer data;
     private long arriveTime;
 
     /**
-     * Constructs an {@link IncomingResponse} object.
+     * Constructs an {@link RequestArrivedEvent} object.
      * @param from source address
-     * @param data response data
+     * @param data message data
      * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public ResponseArrivedEvent(A from, ByteBuffer data, long arriveTime) {
+    public RequestArrivedEvent(A from, ByteBuffer data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);
         
@@ -47,13 +47,13 @@ public final class ResponseArrivedEvent<A> implements TransportEvent {
     }
 
     /**
-     * Constructs an {@link IncomingResponse} object.
+     * Constructs an {@link RequestArrivedEvent} object.
      * @param from source address
-     * @param data response data
+     * @param data message data
      * @param arriveTime arrival time
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public ResponseArrivedEvent(A from, byte[] data, long arriveTime) {
+    public RequestArrivedEvent(A from, byte[] data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(data);
         
@@ -72,8 +72,8 @@ public final class ResponseArrivedEvent<A> implements TransportEvent {
     }
 
     /**
-     * Gets a read-only view of the response data.
-     * @return response data
+     * Gets a read-only view of the message data.
+     * @return message data
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();

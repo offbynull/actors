@@ -20,75 +20,60 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Encapsulates a message id.
+ * @author Kasra Faghihi
+ */
 public final class MessageId {
+    /**
+     * Number of bytes for a message id.
+     */
+    public static final int MESSAGE_ID_SIZE = 16;
+    
     private byte[] id;
 
+    /**
+     * Constructs a {@link MessageId} object.
+     * @param id message id
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@link id} is not 16 bytes long
+     */
     public MessageId(byte[] id) {
-        Validate.isTrue(id.length == 16);
+        Validate.isTrue(id.length == MESSAGE_ID_SIZE);
         
         this.id = Arrays.copyOf(id, id.length);
     }
-
-    public byte[] prependId(byte[] buffer) {
-        Validate.notNull(buffer);
-        
-        ByteBuffer ret = ByteBuffer.allocate(16 + buffer.length);
-        ret.put(id);
-        ret.put(buffer);
-        
-        return ret.array();
-    }
     
+    /**
+     * Write in to a {@link ByteBuffer}.
+     * @param buffer buffer to write to
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code buffer} has less than 16 bytes remaining
+     */
     public void writeId(ByteBuffer buffer) {
         Validate.notNull(buffer);
-        Validate.isTrue(buffer.remaining() >= 16);
+        Validate.isTrue(buffer.remaining() >= MESSAGE_ID_SIZE);
         
         buffer.put(id);
     }
 
-    public static MessageId extractPrependedId(byte[] buffer) {
+    /**
+     * Read from a {@link ByteBuffer}.
+     * @param buffer buffer to read from
+     * @return {@link MessageId} read from the buffer
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code buffer} has less than 16 bytes remaining
+     */
+    public static MessageId readId(ByteBuffer buffer) {
         Validate.notNull(buffer);
+        Validate.isTrue(buffer.remaining() >= MESSAGE_ID_SIZE);
         
-        return extractPrependedId(ByteBuffer.wrap(buffer));
-    }
-
-    public static MessageId extractPrependedId(ByteBuffer buffer) {
-        Validate.notNull(buffer);
-        
-        byte[] extractedId = new byte[16];
-        buffer.mark();
+        byte[] extractedId = new byte[MESSAGE_ID_SIZE];
         buffer.get(extractedId);
-        buffer.reset();
         
         return new MessageId(extractedId);
     }
 
-    public static byte[] removePrependedId(byte[] buffer) {
-        Validate.notNull(buffer);
-        
-        return removePrependedId(ByteBuffer.wrap(buffer));
-    }
-    
-    public static byte[] removePrependedId(ByteBuffer buffer) {
-        Validate.notNull(buffer);
-        
-        byte[] extractedData = new byte[buffer.remaining() - 16];
-        
-        buffer.mark();
-        buffer.position(buffer.position() + 16);
-        buffer.get(extractedData);
-        buffer.reset();
-        
-        return extractedData;
-    }
-
-    public static void skipOver(ByteBuffer data) {
-        Validate.notNull(data);
-        Validate.isTrue(data.remaining() > 0);
-        
-        data.position(data.position() + 16);
-    }
-    
     @Override
     public int hashCode() {
         int hash = 7;
@@ -109,11 +94,6 @@ public final class MessageId {
             return false;
         }
         return true;
-    }
-
-    @Override
-    public String toString() {
-        return "PacketId{" + "id=" + Arrays.toString(id) + '}';
     }
     
 }

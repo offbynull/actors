@@ -25,16 +25,16 @@ import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
 import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.common.concurrent.actor.SelectorActorQueueNotifier;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.DropResponseCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.DropResponseCommand;
+import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingPacketManagerResult;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequest;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.PendingRequest;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequestInfo;
 import com.offbynull.peernetic.rpc.transport.common.MessageId;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.Packet;
@@ -125,7 +125,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         dstWriter = getDestinationWriter();
         Validate.validState(dstWriter != null);
         
-        outgoingPacketManager = new OutgoingMessageManager<>(65535, getOutgoingFilter()); 
+        outgoingPacketManager = new OutgoingMessageManager<>(getOutgoingFilter()); 
         incomingPacketManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
 
         try {
@@ -164,7 +164,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
                     continue;
                 }
                 
-                PendingRequest<InetSocketAddress> pendingRequest = incomingPacketManager.responseFormed(id);
+                IncomingRequestInfo<InetSocketAddress> pendingRequest = incomingPacketManager.responseFormed(id);
                 if (pendingRequest == null) {
                     continue;
                 }
@@ -172,7 +172,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
                 outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
                         timestamp + packetFlushTimeout);
             } else if (content instanceof DropResponseCommand) {
-                DropResponseCommand trc = (DropResponseCommand) content;
+                //DropResponseCommand trc = (DropResponseCommand) content;
                 Long id = msg.getResponseToId(Long.class);
                 if (id == null) {
                     continue;
@@ -269,8 +269,8 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         
         // calculate max time until next invoke
         long waitTime = Long.MAX_VALUE;
-        waitTime = Math.min(waitTime, opmResult.getNextTimeoutTimestamp());
-        waitTime = Math.min(waitTime, ipmResult.getNextTimeoutTimestamp());
+        waitTime = Math.min(waitTime, opmResult.getMaxTimestamp());
+        waitTime = Math.min(waitTime, ipmResult.getMaxTimestamp());
         
         return waitTime;
     }

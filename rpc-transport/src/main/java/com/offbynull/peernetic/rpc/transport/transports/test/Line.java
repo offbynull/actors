@@ -18,7 +18,6 @@ package com.offbynull.peernetic.rpc.transport.transports.test;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Controls how messages are sent in a hub. For example, depending on the line, a message may be dropped/duplicated/corrupted/slow/fast...
@@ -36,8 +35,9 @@ public interface Line<A> {
     Collection<TransitMessage<A>> depart(A from, A to, ByteBuffer data);
     
     /**
-     * Signals that {@link TransitMessage} objects that were created by this line have arrived.
+     * Signals that {@link TransitMessage} objects that were created by this line have arrived. Implementations can modify the arrivals.
      * @param messages {@link TransitMessage} objects that have arrived
+     * @return modified messages
      */
     Collection<TransitMessage<A>> arrive(Collection<TransitMessage<A>> messages);
 }

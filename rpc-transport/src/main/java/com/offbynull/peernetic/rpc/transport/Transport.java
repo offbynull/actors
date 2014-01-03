@@ -41,6 +41,12 @@ public abstract class Transport<A> extends Actor {
         super(daemon);
     }
 
+    /**
+     * Set the writer that this transport notifies of events. Can only be called before {@link #start() }.
+     * @param writer writer to notify of events
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if called after {@link #start() }
+     */
     public final void setDestinationWriter(ActorQueueWriter writer) {
         Validate.notNull(writer);
         Validate.validState(isNew());
@@ -48,26 +54,44 @@ public abstract class Transport<A> extends Actor {
         this.dstWriter = writer;
     }
 
-    public void setIncomingFilter(IncomingFilter<A> incomingFilter) {
+    /**
+     * Set the incoming filter. Can only be called before {@link #start() }.
+     * @param incomingFilter incoming filter
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if called after {@link #start() }
+     */
+    public final void setIncomingFilter(IncomingFilter<A> incomingFilter) {
         Validate.notNull(incomingFilter);
         Validate.validState(isNew());
         
         this.incomingFilter = incomingFilter;
     }
 
-    public void setOutgoingFilter(OutgoingFilter<A> outgoingFilter) {
+    /**
+     * Set the outgoing filter. Can only be called before {@link #start() }.
+     * @param outgoingFilter incoming filter
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if called after {@link #start() }
+     */
+    public final void setOutgoingFilter(OutgoingFilter<A> outgoingFilter) {
         Validate.notNull(outgoingFilter);
         Validate.validState(isNew());
         
         this.outgoingFilter = outgoingFilter;
     }
     
-    // our writer, so people can write to us
-    public ActorQueueWriter getWriter() {
+    /**
+     * Get the writer others can use to write to this transport.
+     * @return writer others can use to write to this transport
+     */
+    public final ActorQueueWriter getWriter() {
         return super.getSelfWriter();
     }
     
-    // writer that we notify of events
+    /**
+     * Get the writer to notify of events.
+     * @return writer to notify of events
+     */
     protected final ActorQueueWriter getDestinationWriter() {
         return dstWriter;
     }

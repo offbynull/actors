@@ -18,12 +18,12 @@ package com.offbynull.peernetic.rpc.transport.transports.test;
 
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.DropResponseCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.DropResponseCommand;
+import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;

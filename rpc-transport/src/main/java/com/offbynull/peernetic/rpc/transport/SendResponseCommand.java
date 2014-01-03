@@ -14,56 +14,41 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.actormessages.commands;
+package com.offbynull.peernetic.rpc.transport;
 
 import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Outgoing message.
- * @author Kasra Faghihi
+ * Outgoing response.
  * @param <A> address type
+ * @author Kasra Faghihi
  */
-public final class SendRequestCommand<A> implements TransportCommand {
-    private A to;
+public final class SendResponseCommand<A> {
     private ByteBuffer data;
 
     /**
-     * Constructs a {@link SendRequestCommand}.
-     * @param to destination address
+     * Constructs a {@link SendResponseCommand}.
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SendRequestCommand(A to, ByteBuffer data) {
-        Validate.notNull(to);
+    public SendResponseCommand(ByteBuffer data) {
         Validate.notNull(data);
-        
-        this.to = to;
+
         this.data = ByteBufferUtils.copyContents(data);
     }
 
     /**
-     * Constructs a {@link SendRequestCommand}.
-     * @param to destination address
+     * Constructs a {@link SendResponseCommand}.
      * @param data message data
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public SendRequestCommand(A to, byte[] data) {
-        Validate.notNull(to);
+    public SendResponseCommand(byte[] data) {
         Validate.notNull(data);
-        
-        this.to = to;
+
         this.data = ByteBuffer.allocate(data.length).put(data);
         this.data.flip();
-    }
-
-    /**
-     * Get destination address.
-     * @return destination address
-     */
-    public A getTo() {
-        return to;
     }
 
     /**

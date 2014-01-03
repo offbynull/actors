@@ -14,20 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.test;
+package com.offbynull.peernetic.rpc.transport;
 
-import org.apache.commons.lang3.Validate;
-
-final class DeactivateEndpointCommand<A> {
-    private A address;
-
-    public DeactivateEndpointCommand(A address) {
-        Validate.notNull(address);
-        
-        this.address = address;
-    }
-
-    public A getAddress() {
-        return address;
-    } 
+/**
+ * Terminate response.
+ * @author Kasra Faghihi
+ */
+public final class DropResponseCommand {
 }

@@ -60,7 +60,11 @@ public final class TestHub<A> extends Actor {
         return new ActorQueue();
     }
 
-    public final ActorQueueWriter getWriter() {
+    /**
+     * Get the writer to write to this hub.
+     * @return writer to write to this hub
+     */
+    public ActorQueueWriter getWriter() {
         return getSelfWriter();
     }
 

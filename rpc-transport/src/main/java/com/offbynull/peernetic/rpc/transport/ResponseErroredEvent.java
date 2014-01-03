@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.actormessages.commands;
+package com.offbynull.peernetic.rpc.transport;
 
 /**
- * Terminate response.
+ * Response errored.
  * @author Kasra Faghihi
  */
-public final class DropResponseCommand implements TransportCommand {
+public final class ResponseErroredEvent {
+    
 }

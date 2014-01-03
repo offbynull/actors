@@ -93,7 +93,7 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     }
 
     /**
-     * Gets the outgoing response timeout
+     * Gets the outgoing response timeout.
      * @return outgoing response timeout
      */
     public long getOutgoingResponseTimeout() {

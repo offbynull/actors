@@ -21,7 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Random;
 
-public final class MessageIdGenerator {
+final class MessageIdGenerator {
     private Random random;
     
     public MessageIdGenerator() {

@@ -22,17 +22,17 @@ import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.common.concurrent.actor.Message.MessageResponder;
 import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.DropResponseCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.commands.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.actormessages.events.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.DropResponseCommand;
+import com.offbynull.peernetic.rpc.transport.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.SendResponseCommand;
+import com.offbynull.peernetic.rpc.transport.RequestArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.ResponseArrivedEvent;
+import com.offbynull.peernetic.rpc.transport.ResponseErroredEvent;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingPacketManagerResult;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequest;
 import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.PendingRequest;
+import com.offbynull.peernetic.rpc.transport.common.IncomingMessageManager.IncomingRequestInfo;
 import com.offbynull.peernetic.rpc.transport.common.MessageId;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager;
 import com.offbynull.peernetic.rpc.transport.common.OutgoingMessageManager.OutgoingPacketManagerResult;
@@ -66,9 +66,10 @@ public final class TestTransport<A> extends Transport<A> {
     /**
      * Constructs a {@link TestTransport} object.
      * @param address address to listen on
-     * @param bufferSize buffer size
      * @param cacheSize number of packet ids to cache
-     * @param timeout timeout duration
+     * @param outgoingResponseTimeout timeout duration for responses for outgoing requests to arrive
+     * @param incomingResponseTimeout timeout duration for responses for incoming requests to be processed
+     * @param hubWriter writer to {@link TestHub}
      * @throws IOException on error
      * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
      * @throws NullPointerException if any arguments are {@code null}
@@ -102,7 +103,7 @@ public final class TestTransport<A> extends Transport<A> {
         dstWriter = getDestinationWriter();
         Validate.validState(dstWriter != null);
         
-        outgoingPacketManager = new OutgoingMessageManager<>(65535, getOutgoingFilter()); 
+        outgoingPacketManager = new OutgoingMessageManager<>(getOutgoingFilter()); 
         incomingPacketManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
 
         // bind to testhub here
@@ -134,7 +135,7 @@ public final class TestTransport<A> extends Transport<A> {
                     continue;
                 }
                 
-                PendingRequest<A> pendingRequest = incomingPacketManager.responseFormed(id);
+                IncomingRequestInfo<A> pendingRequest = incomingPacketManager.responseFormed(id);
                 if (pendingRequest == null) {
                     continue;
                 }
@@ -142,7 +143,7 @@ public final class TestTransport<A> extends Transport<A> {
                 outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
                         timestamp + 1L);
             } else if (content instanceof DropResponseCommand) {
-                DropResponseCommand trc = (DropResponseCommand) content;
+                //DropResponseCommand trc = (DropResponseCommand) content;
                 Long id = msg.getResponseToId(Long.class);
                 if (id == null) {
                     continue;
@@ -171,10 +172,6 @@ public final class TestTransport<A> extends Transport<A> {
         
         Packet<A> packet;
         while ((packet = outgoingPacketManager.getNextOutgoingPacket()) != null) {
-            if (packet == null) {
-                break;
-            }
-            
             SendMessageCommand<A> smc = new SendMessageCommand(address, packet.getTo(), packet.getData());
             pushQueue.queueOneWayMessage(hubWriter, smc);
         }
@@ -210,8 +207,8 @@ public final class TestTransport<A> extends Transport<A> {
         
         // calculate max time until next invoke
         long waitTime = Long.MAX_VALUE;
-        waitTime = Math.min(waitTime, opmResult.getNextTimeoutTimestamp());
-        waitTime = Math.min(waitTime, ipmResult.getNextTimeoutTimestamp());
+        waitTime = Math.min(waitTime, opmResult.getMaxTimestamp());
+        waitTime = Math.min(waitTime, ipmResult.getMaxTimestamp());
         
         return waitTime;
     }

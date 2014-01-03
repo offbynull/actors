@@ -16,7 +16,18 @@
  */
 package com.offbynull.peernetic.rpc.transport.common;
 
+/**
+ * Message type.
+ * @author Kasra Faghihi
+ */
 public enum MessageType {
-    REQUEST, RESPONSE
+    /**
+     * Request message.
+     */
+    REQUEST,
+    /**
+     * Response message.
+     */
+    RESPONSE
     
 }

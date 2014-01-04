@@ -22,8 +22,10 @@ import com.offbynull.peernetic.rpc.invoke.InvokerFactory;
 import com.offbynull.peernetic.rpc.invoke.PostInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.PreInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.Serializer;
+import com.offbynull.peernetic.rpc.invoke.filters.sanity.AvoidObjectMethodsPreInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
 import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -40,8 +42,9 @@ public final class ReflectionInvokerFactory implements InvokerFactory {
     private ExecutorService executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
     private Serializer serializer = new XStreamSerializer();
     private Deserializer deserializer = new XStreamDeserializer();
-    private List<PreInvokeFilter> preInvokeFilters = Collections.emptyList();
-    private List<PostInvokeFilter> postInvokeFilters = Collections.emptyList();
+    private List<? extends PreInvokeFilter> preInvokeFilters =
+            Collections.unmodifiableList(Arrays.asList(new AvoidObjectMethodsPreInvokeFilter()));
+    private List<? extends PostInvokeFilter> postInvokeFilters = Collections.emptyList();
 
     /**
      * Set the executor to created invokers should use.
@@ -81,7 +84,7 @@ public final class ReflectionInvokerFactory implements InvokerFactory {
      * @param preInvokeFilters preinvokation filters
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    public void setPreInvokeFilters(List<PreInvokeFilter> preInvokeFilters) {
+    public void setPreInvokeFilters(List<? extends PreInvokeFilter> preInvokeFilters) {
         Validate.noNullElements(preInvokeFilters);
         this.preInvokeFilters = Collections.unmodifiableList(preInvokeFilters);
     }
@@ -91,7 +94,7 @@ public final class ReflectionInvokerFactory implements InvokerFactory {
      * @param postInvokeFilters postinvokation filters
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    public void setPostInvokeFilters(List<PostInvokeFilter> postInvokeFilters) {
+    public void setPostInvokeFilters(List<? extends PostInvokeFilter> postInvokeFilters) {
         Validate.noNullElements(postInvokeFilters);
         this.postInvokeFilters = Collections.unmodifiableList(postInvokeFilters);
     }

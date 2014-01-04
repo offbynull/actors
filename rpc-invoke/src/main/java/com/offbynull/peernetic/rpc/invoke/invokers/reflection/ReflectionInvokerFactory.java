@@ -22,8 +22,8 @@ import com.offbynull.peernetic.rpc.invoke.InvokerFactory;
 import com.offbynull.peernetic.rpc.invoke.PostInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.PreInvokeFilter;
 import com.offbynull.peernetic.rpc.invoke.Serializer;
-import com.offbynull.peernetic.rpc.invoke.serializers.java.JavaDeserializer;
-import com.offbynull.peernetic.rpc.invoke.serializers.java.JavaSerializer;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -32,17 +32,23 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A factory for {@link ReflectionInvoker} objects.
+ * @author Kasra Faghihi
+ */
 public final class ReflectionInvokerFactory implements InvokerFactory {
     private ExecutorService executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
-    private Serializer serializer = new JavaSerializer();
-    private Deserializer deserializer = new JavaDeserializer();
+    private Serializer serializer = new XStreamSerializer();
+    private Deserializer deserializer = new XStreamDeserializer();
     private List<PreInvokeFilter> preInvokeFilters = Collections.emptyList();
     private List<PostInvokeFilter> postInvokeFilters = Collections.emptyList();
 
-    public ExecutorService getExecutor() {
-        return executor;
-    }
-
+    /**
+     * Set the executor to created invokers should use.
+     * @param executor executor
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code executor} is shutdown or terminated
+     */
     public void setExecutor(ExecutorService executor) {
         Validate.notNull(executor);
         Validate.isTrue(!executor.isShutdown());
@@ -50,37 +56,41 @@ public final class ReflectionInvokerFactory implements InvokerFactory {
         this.executor = executor;
     }
 
-    public Serializer getSerializer() {
-        return serializer;
-    }
-
+    /**
+     * Set the serializer to created invokers should use.
+     * @param serializer serializer
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void setSerializer(Serializer serializer) {
         Validate.notNull(serializer);
         this.serializer = serializer;
     }
 
-    public Deserializer getDeserializer() {
-        return deserializer;
-    }
-
+    /**
+     * Set the deserializer to created invokers should use.
+     * @param deserializer deserializer
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void setDeserializer(Deserializer deserializer) {
         Validate.notNull(deserializer);
         this.deserializer = deserializer;
     }
 
-    public List<PreInvokeFilter> getPreInvokeFilters() {
-        return preInvokeFilters;
-    }
-
+    /**
+     * Set the pre-invokation filters created invokers should use.
+     * @param preInvokeFilters preinvokation filters
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
     public void setPreInvokeFilters(List<PreInvokeFilter> preInvokeFilters) {
         Validate.noNullElements(preInvokeFilters);
         this.preInvokeFilters = Collections.unmodifiableList(preInvokeFilters);
     }
 
-    public List<PostInvokeFilter> getPostInvokeFilters() {
-        return postInvokeFilters;
-    }
-
+    /**
+     * Set the post-invokation filters created invokers should use.
+     * @param postInvokeFilters postinvokation filters
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
     public void setPostInvokeFilters(List<PostInvokeFilter> postInvokeFilters) {
         Validate.noNullElements(postInvokeFilters);
         this.postInvokeFilters = Collections.unmodifiableList(postInvokeFilters);

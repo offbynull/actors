@@ -35,14 +35,6 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
     private InetSocketAddress listenAddress = new InetSocketAddress(15000);
 
     /**
-     * Gets the buffer size.
-     * @return buffer size
-     */
-    public int getBufferSize() {
-        return bufferSize;
-    }
-
-    /**
      * Sets the transport buffer size.
      * @param bufferSize buffer size
      * @throws IllegalArgumentException if {@code bufferSize < 0}
@@ -53,14 +45,6 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
     }
 
     /**
-     * Gets the cache size for message ids.
-     * @return cache size
-     */
-    public int getMessageIdCacheSize() {
-        return cacheSize;
-    }
-
-    /**
      * Sets the cache size for message ids.
      * @param cacheSize cache size
      * @throws IllegalArgumentException if {@code cacheSize < 0}
@@ -68,30 +52,6 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
     public void setMessageIdCacheSize(int cacheSize) {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, cacheSize);
         this.cacheSize = cacheSize;
-    }
-
-    /**
-     * Gets the packet flush timeout.
-     * @return timeout
-     */
-    public long getPacketFlushTimeout() {
-        return packetFlushTimeout;
-    }
-
-    /**
-     * Gets the incoming response timeout.
-     * @return incoming response timeout
-     */
-    public long getIncomingResponseTimeout() {
-        return incomingResponseTimeout;
-    }
-
-    /**
-     * Gets the outgoing response timeout.
-     * @return outgoing response timeout
-     */
-    public long getOutgoingResponseTimeout() {
-        return outgoingResponseTimeout;
     }
 
     /**
@@ -122,14 +82,6 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
     public void setOutgoingResponseTimeout(long outgoingResponseTimeout) {
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
         this.outgoingResponseTimeout = outgoingResponseTimeout;
-    }
-
-    /**
-     * Gets the listen address.
-     * @return listen address
-     */
-    public InetSocketAddress getListenAddress() {
-        return listenAddress;
     }
 
     /**

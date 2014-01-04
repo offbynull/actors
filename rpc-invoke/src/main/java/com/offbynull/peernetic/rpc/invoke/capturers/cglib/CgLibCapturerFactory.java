@@ -20,28 +20,34 @@ import com.offbynull.peernetic.rpc.invoke.Capturer;
 import com.offbynull.peernetic.rpc.invoke.CapturerFactory;
 import com.offbynull.peernetic.rpc.invoke.Deserializer;
 import com.offbynull.peernetic.rpc.invoke.Serializer;
-import com.offbynull.peernetic.rpc.invoke.serializers.java.JavaDeserializer;
-import com.offbynull.peernetic.rpc.invoke.serializers.java.JavaSerializer;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamDeserializer;
+import com.offbynull.peernetic.rpc.invoke.serializers.xstream.XStreamSerializer;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A factory for {@link CglibCapturer} objects.
+ * @author Kasra Faghihi
+ */
 public final class CgLibCapturerFactory implements CapturerFactory {
 
-    private Serializer serializer = new JavaSerializer();
-    private Deserializer deserializer = new JavaDeserializer();
-    
-    public Serializer getSerializer() {
-        return serializer;
-    }
+    private Serializer serializer = new XStreamSerializer();
+    private Deserializer deserializer = new XStreamDeserializer();
 
+    /**
+     * Set the serializer to created capturer should use.
+     * @param serializer serializer
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void setSerializer(Serializer serializer) {
         Validate.notNull(serializer);
         this.serializer = serializer;
     }
 
-    public Deserializer getDeserializer() {
-        return deserializer;
-    }
-
+    /**
+     * Set the deserializer to created capturer should use.
+     * @param deserializer deserializer
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void setDeserializer(Deserializer deserializer) {
         Validate.notNull(deserializer);
         this.deserializer = deserializer;

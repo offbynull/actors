@@ -49,11 +49,7 @@ public final class RpcConfig<A> {
     private List<IncomingFilter<A>> incomingFilters = Collections.emptyList();
     private List<OutgoingFilter<A>> outgoingFilters = Collections.emptyList();
 
-    /**
-     * Get the invoker factory for creating {@link Invoker}s that performs RPC method invocations.
-     * @return invoker factory
-     */
-    public InvokerFactory getInvokerFactory() {
+    InvokerFactory getInvokerFactory() {
         return invokerFactory;
     }
 
@@ -67,11 +63,7 @@ public final class RpcConfig<A> {
         this.invokerFactory = invokerFactory;
     }
 
-    /**
-     * Get the capturer factory for creating {@link Capturer}s that proxy RPC service interfaces.
-     * @return capturer factory
-     */
-    public CapturerFactory getCapturerFactory() {
+    CapturerFactory getCapturerFactory() {
         return capturerFactory;
     }
 
@@ -85,11 +77,7 @@ public final class RpcConfig<A> {
         this.capturerFactory = capturerFactory;
     }
 
-    /**
-     * Get the async capturer factory for creating {@link AsyncCapturer}s that proxy RPC service async interfaces.
-     * @return async capturer factory
-     */
-    public AsyncCapturerFactory getAsyncCapturerFactory() {
+    AsyncCapturerFactory getAsyncCapturerFactory() {
         return asyncCapturerFactory;
     }
 
@@ -103,11 +91,7 @@ public final class RpcConfig<A> {
         this.asyncCapturerFactory = asyncCapturerFactory;
     }
 
-    /**
-     * Get the extra key-value pairs to be passed to {@link InvokeThreadInformation} on each method invocation.
-     * @return extra invocation data
-     */
-    public Map<? extends Object, ? extends Object> getExtraInvokeInfo() {
+    Map<? extends Object, ? extends Object> getExtraInvokeInfo() {
         return extraInvokeInfo;
     }
 
@@ -125,11 +109,7 @@ public final class RpcConfig<A> {
         this.extraInvokeInfo = Collections.unmodifiableMap(new HashMap<>(invokeDataMap));
     }
 
-    /**
-     * Get {@link IncomingFilter}s to be applied to incoming data.
-     * @return outgoing filters
-     */
-    public List<IncomingFilter<A>> getIncomingFilters() {
+    List<IncomingFilter<A>> getIncomingFilters() {
         return incomingFilters;
     }
 
@@ -143,11 +123,7 @@ public final class RpcConfig<A> {
         this.incomingFilters = Collections.unmodifiableList(new ArrayList<>(incomingFilters));
     }
 
-    /**
-     * Get {@link OutgoingFilter}s to be applied to outgoing data.
-     * @return outgoing filters
-     */
-    public List<OutgoingFilter<A>> getOutgoingFilters() {
+    List<OutgoingFilter<A>> getOutgoingFilters() {
         return outgoingFilters;
     }
 

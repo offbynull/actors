@@ -25,6 +25,9 @@ import org.apache.commons.lang3.tuple.Pair;
  * @author Kasra Faghihi
  */
 public final class InvokeData {
+    
+    private static final long serialVersionUID = 0L;
+    
     private String methodName;
     private Pair<Object, String>[] arguments;
 

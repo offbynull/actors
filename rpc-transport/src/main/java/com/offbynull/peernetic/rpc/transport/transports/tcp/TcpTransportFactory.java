@@ -33,14 +33,6 @@ public final class TcpTransportFactory implements TransportFactory<InetSocketAdd
     private InetSocketAddress listenAddress = new InetSocketAddress(15000);
 
     /**
-     * Gets the maximum number of bytes to read per message.
-     * @return read limit
-     */
-    public int getReadLimit() {
-        return readLimit;
-    }
-
-    /**
      * Sets the maximum number of bytes to read per message.
      * @param readLimit read limit
      * @throws IllegalArgumentException if {@code readLimit < 0}
@@ -48,14 +40,6 @@ public final class TcpTransportFactory implements TransportFactory<InetSocketAdd
     public void setReadLimit(int readLimit) {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, readLimit);
         this.readLimit = readLimit;
-    }
-
-    /**
-     * Gets the maximum number of bytes to write per message.
-     * @return write limit
-     */
-    public int getWriteLimit() {
-        return writeLimit;
     }
 
     /**
@@ -69,14 +53,6 @@ public final class TcpTransportFactory implements TransportFactory<InetSocketAdd
     }
 
     /**
-     * Gets the timeout.
-     * @return timeout
-     */
-    public long getTimeout() {
-        return timeout;
-    }
-
-    /**
      * Sets the timeout.
      * @param timeout timeout
      * @throws IllegalArgumentException if {@code timeout <= 0}
@@ -84,14 +60,6 @@ public final class TcpTransportFactory implements TransportFactory<InetSocketAdd
     public void setTimeout(long timeout) {
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         this.timeout = timeout;
-    }
-
-    /**
-     * Gets the listen address.
-     * @return listen address
-     */
-    public InetSocketAddress getListenAddress() {
-        return listenAddress;
     }
 
     /**

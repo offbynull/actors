@@ -49,14 +49,6 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     }
 
     /**
-     * Gets the hub.
-     * @return hub
-     */
-    public TestHub<A> getHub() {
-        return hub;
-    }
-
-    /**
      * Sets the hub.
      * @param hub hub
      * @throws NullPointerException if any arguments are {@code null}
@@ -67,14 +59,6 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     }
 
     /**
-     * Gets the cache size for message ids.
-     * @return cache size
-     */
-    public int getMessageIdCacheSize() {
-        return cacheSize;
-    }
-
-    /**
      * Sets the cache size for message ids.
      * @param cacheSize cache size
      * @throws IllegalArgumentException if {@code cacheSize < 0}
@@ -82,22 +66,6 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     public void setMessageIdCacheSize(int cacheSize) {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, cacheSize);
         this.cacheSize = cacheSize;
-    }
-
-    /**
-     * Gets the incoming response timeout.
-     * @return incoming response timeout
-     */
-    public long getIncomingResponseTimeout() {
-        return incomingResponseTimeout;
-    }
-
-    /**
-     * Gets the outgoing response timeout.
-     * @return outgoing response timeout
-     */
-    public long getOutgoingResponseTimeout() {
-        return outgoingResponseTimeout;
     }
 
 
@@ -119,14 +87,6 @@ public final class TestTransportFactory<A> implements TransportFactory<A> {
     public void setOutgoingResponseTimeout(long outgoingResponseTimeout) {
         Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
         this.outgoingResponseTimeout = outgoingResponseTimeout;
-    }
-
-    /**
-     * Gets the address.
-     * @return address
-     */
-    public A getAddress() {
-        return address;
     }
 
     /**

@@ -21,20 +21,13 @@ import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.common.concurrent.actor.SelectorActorQueueNotifier;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.internal.DefaultIncomingResponseListener;
-import com.offbynull.peernetic.rpc.transport.internal.DropResponseCommand;
 import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager;
 import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingPacketManagerResult;
-import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingRequest;
-import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.internal.MessageId;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingMessageManagerResult;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.Packet;
-import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
 import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.internal.TransportImplementationUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -42,7 +35,6 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Collection;
 import java.util.Iterator;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
@@ -61,8 +53,8 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
     
     private DatagramChannel channel;
 
-    private OutgoingMessageManager<InetSocketAddress> outgoingPacketManager;
-    private IncomingMessageManager<InetSocketAddress> incomingPacketManager;
+    private OutgoingMessageManager<InetSocketAddress> outgoingMessageManager;
+    private IncomingMessageManager<InetSocketAddress> incomingMessageManager;
     private long nextId;
 
     private ByteBuffer buffer;
@@ -103,8 +95,8 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
 
     @Override
     protected void onStart() throws Exception {
-        outgoingPacketManager = new OutgoingMessageManager<>(getOutgoingFilter()); 
-        incomingPacketManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
+        outgoingMessageManager = new OutgoingMessageManager<>(getOutgoingFilter()); 
+        incomingMessageManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
         incomingMessageListener = getIncomingMessageListener();
 
         try {
@@ -126,52 +118,14 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
         // process commands
         while (iterator.hasNext()) {
             Message msg = iterator.next();
-            Object content = msg.getContent();
-
-            if (content instanceof SendRequestCommand) {
-                SendRequestCommand<InetSocketAddress> src = (SendRequestCommand) content;
-                OutgoingMessageResponseListener listener = src.getListener();
-
-                long id = nextId++;
-                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + packetFlushTimeout,
-                        timestamp + outgoingResponseTimeout, listener);
-            } else if (content instanceof SendResponseCommand) {
-                SendResponseCommand<InetSocketAddress> src = (SendResponseCommand) content;
-                Long id = msg.getResponseToId(Long.class);
-                if (id == null) {
-                    continue;
-                }
-
-                IncomingMessageManager.IncomingRequestInfo<InetSocketAddress> pendingRequest = incomingPacketManager.responseFormed(id);
-                if (pendingRequest == null) {
-                    continue;
-                }
-
-                outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
-                        timestamp + packetFlushTimeout);
-            } else if (content instanceof DropResponseCommand) {
-                //DropResponseCommand trc = (DropResponseCommand) content;
-                Long id = msg.getResponseToId(Long.class);
-                if (id == null) {
-                    continue;
-                }
-
-                incomingPacketManager.responseFormed(id);
-            }
+            TransportImplementationUtils.processActorCommand(timestamp, nextId++, msg, outgoingMessageManager, incomingMessageManager,
+                    packetFlushTimeout, outgoingResponseTimeout);
         }
 
 
 
         // process timeouts for outgoing requests
-        OutgoingMessageManager.OutgoingPacketManagerResult opmResult = outgoingPacketManager.process(timestamp);
-
-        Collection<OutgoingMessageResponseListener> listenersForFailures = opmResult.getListenersForFailures();
-        for (OutgoingMessageResponseListener outgoingResponseListener : listenersForFailures) {
-            try {
-                outgoingResponseListener.errorOccurred("Timeout");
-            } catch (RuntimeException re) { // NOPMD
-            }
-        }
+        OutgoingMessageManagerResult ommResult = TransportImplementationUtils.processOutgoing(timestamp, outgoingMessageManager);
 
 
         
@@ -192,9 +146,9 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
                 buffer.flip();
                 
                 long id = nextId++;
-                incomingPacketManager.incomingData(id, from, buffer, timestamp + incomingResponseTimeout);
+                incomingMessageManager.incomingData(id, from, buffer, timestamp + incomingResponseTimeout);
             } else if (key.isWritable()) { // ready for outgoing data
-                Packet<InetSocketAddress> outgoingPacket = outgoingPacketManager.getNextOutgoingPacket();
+                Packet<InetSocketAddress> outgoingPacket = outgoingMessageManager.getNextOutgoingPacket();
                 if (outgoingPacket == null) {
                     continue;
                 }
@@ -206,32 +160,14 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
 
 
         // process timeouts for incoming requests
-        IncomingPacketManagerResult<InetSocketAddress> ipmResult = incomingPacketManager.process(timestamp);
+        IncomingPacketManagerResult<InetSocketAddress> immResult = TransportImplementationUtils.processIncoming(timestamp,
+                incomingMessageManager, outgoingMessageManager, incomingMessageListener, getSelfWriter());
 
-        for (IncomingRequest<InetSocketAddress> incomingRequest : ipmResult.getNewIncomingRequests()) {
-            IncomingMessageResponseListener incomingMessageResponseListener =
-                    new DefaultIncomingResponseListener(incomingRequest.getId(), getSelfWriter());
-            incomingMessageListener.messageArrived(incomingRequest.getFrom(), incomingRequest.getData(), incomingMessageResponseListener);
-        }
-
-        for (IncomingResponse<InetSocketAddress> incomingResponse : ipmResult.getNewIncomingResponses()) {
-            MessageId messageId = incomingResponse.getMessageId();
-            OutgoingMessageResponseListener outgoingMessageResponseListener = outgoingPacketManager.responseReturned(messageId);
-
-            if (outgoingMessageResponseListener == null) {
-                continue;
-            }
-
-            try {
-                outgoingMessageResponseListener.responseArrived(incomingResponse.getData());
-            } catch (RuntimeException re) { // NOPMD
-            }
-        }
 
 
         // set selection key based on if there's messages to go out
         int newSelectionKey = SelectionKey.OP_READ;
-        if (opmResult.getPacketsAvailable() > 0) {
+        if (ommResult.getPacketsAvailable() > 0) {
             newSelectionKey |= SelectionKey.OP_WRITE;
         }
 
@@ -247,8 +183,8 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
 
         // calculate max time until next invoke
         long waitTime = Long.MAX_VALUE;
-        waitTime = Math.min(waitTime, opmResult.getMaxTimestamp());
-        waitTime = Math.min(waitTime, ipmResult.getMaxTimestamp());
+        waitTime = Math.min(waitTime, immResult.getMaxTimestamp());
+        waitTime = Math.min(waitTime, ommResult.getMaxTimestamp());
 
         return waitTime;
     }
@@ -258,11 +194,6 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
         IOUtils.closeQuietly(selector);
         IOUtils.closeQuietly(channel);
 
-        for (OutgoingMessageResponseListener listener : outgoingPacketManager.process(Long.MAX_VALUE).getListenersForFailures()) {
-            try {
-                listener.errorOccurred("Shutdown");
-            } catch (RuntimeException re) { // NOPMD
-            }
-        }
+        TransportImplementationUtils.shutdownNotify(outgoingMessageManager);
     }
 }

@@ -185,7 +185,7 @@ public final class OutgoingMessageManager<A> {
      * @param timestamp current timestamp
      * @return new request/responses, timed out requests, and the next time this method should be called again
      */
-    public OutgoingPacketManagerResult process(long timestamp) {
+    public OutgoingMessageManagerResult process(long timestamp) {
         Set<OutgoingMessageResponseListener> listenersForFailures = new HashSet<>();
         long maxTimestamp = Long.MAX_VALUE;
         
@@ -211,7 +211,7 @@ public final class OutgoingMessageManager<A> {
         TimeoutManagerResult<Long> timedOutQueuedResponses = queuedResponseTimeoutManager.process(timestamp);
         maxTimestamp = Math.min(maxTimestamp, timedOutQueuedResponses.getNextMaxTimestamp());
         
-        return new OutgoingPacketManagerResult(listenersForFailures, maxTimestamp, queuedSends.size());
+        return new OutgoingMessageManagerResult(listenersForFailures, maxTimestamp, queuedSends.size());
     }
 
     /**
@@ -358,12 +358,12 @@ public final class OutgoingMessageManager<A> {
      * Return type of {@link #process(long) }. Contains timed out requests / the next timestamp a request will timeout / an
      * <b>estimation</b> of the number of packets available to be read.
      */
-    public static final class OutgoingPacketManagerResult {
+    public static final class OutgoingMessageManagerResult {
         private Collection<OutgoingMessageResponseListener> listenersForFailures;
         private long maxTimestamp;
         private int packetsAvailable;
 
-        private OutgoingPacketManagerResult(Collection<OutgoingMessageResponseListener> listenersForFailures, long maxTimestamp,
+        private OutgoingMessageManagerResult(Collection<OutgoingMessageResponseListener> listenersForFailures, long maxTimestamp,
                 int packetsAvailable) {
             Validate.noNullElements(listenersForFailures);
             Validate.inclusiveBetween(0, Integer.MAX_VALUE, packetsAvailable);

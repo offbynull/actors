@@ -21,22 +21,13 @@ import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.internal.DefaultIncomingResponseListener;
-import com.offbynull.peernetic.rpc.transport.internal.DropResponseCommand;
 import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager;
 import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingPacketManagerResult;
-import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingRequestInfo;
-import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.internal.MessageId;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
-import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingPacketManagerResult;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingMessageManagerResult;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.Packet;
-import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
 import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
-import java.util.Collection;
+import com.offbynull.peernetic.rpc.transport.internal.TransportImplementationUtils;
 import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
 
@@ -49,8 +40,8 @@ final class TestTransportActor<A> extends TransportActor<A> {
     private long outgoingResponseTimeout;
     private long incomingResponseTimeout;
 
-    private OutgoingMessageManager<A> outgoingPacketManager;
-    private IncomingMessageManager<A> incomingPacketManager;
+    private OutgoingMessageManager<A> outgoingMessageManager;
+    private IncomingMessageManager<A> incomingMessageManager;
     private long nextId;
 
     private int cacheSize;
@@ -83,8 +74,8 @@ final class TestTransportActor<A> extends TransportActor<A> {
 
     @Override
     protected void onStart() throws Exception {
-        outgoingPacketManager = new OutgoingMessageManager<>(getOutgoingFilter()); 
-        incomingPacketManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
+        outgoingMessageManager = new OutgoingMessageManager<>(getOutgoingFilter()); 
+        incomingMessageManager = new IncomingMessageManager<>(cacheSize, getIncomingFilter());
         incomingMessageListener = getIncomingMessageListener();
         
 
@@ -100,58 +91,26 @@ final class TestTransportActor<A> extends TransportActor<A> {
             Message msg = iterator.next();
             Object content = msg.getContent();
 
-            if (content instanceof SendRequestCommand) {
-                SendRequestCommand<A> src = (SendRequestCommand) content;
-                OutgoingMessageResponseListener listener = src.getListener();
-
-                long id = nextId++;
-                outgoingPacketManager.outgoingRequest(id, src.getTo(), src.getData(), timestamp + 1L,
-                        timestamp + outgoingResponseTimeout, listener);
-            } else if (content instanceof SendResponseCommand) {
-                SendResponseCommand<A> src = (SendResponseCommand) content;
-                Long id = msg.getResponseToId(Long.class);
-                if (id == null) {
-                    continue;
-                }
-
-                IncomingRequestInfo<A> pendingRequest = incomingPacketManager.responseFormed(id);
-                if (pendingRequest == null) {
-                    continue;
-                }
-
-                outgoingPacketManager.outgoingResponse(id, pendingRequest.getFrom(), src.getData(), pendingRequest.getMessageId(),
-                        timestamp + 1L);
-            } else if (content instanceof DropResponseCommand) {
-                //DropResponseCommand trc = (DropResponseCommand) content;
-                Long id = msg.getResponseToId(Long.class);
-                if (id == null) {
-                    continue;
-                }
-
-                incomingPacketManager.responseFormed(id);
-            } else if (content instanceof ReceiveMessageEvent) {
+            if (content instanceof ReceiveMessageEvent) {
                 ReceiveMessageEvent<A> rme = (ReceiveMessageEvent) content;
 
                 long id = nextId++;
-                incomingPacketManager.incomingData(id, rme.getFrom(), rme.getData(), timestamp + incomingResponseTimeout);
+                incomingMessageManager.incomingData(id, rme.getFrom(), rme.getData(), timestamp + incomingResponseTimeout);
+            } else {
+                TransportImplementationUtils.processActorCommand(timestamp, nextId++, msg, outgoingMessageManager, incomingMessageManager,
+                        1L, outgoingResponseTimeout);
             }
         }
 
 
 
-        // process timeouts for outgoing requests and write new outgoing requests
-        OutgoingPacketManagerResult opmResult = outgoingPacketManager.process(timestamp);
+        // process timeouts for outgoing requests
+        OutgoingMessageManagerResult ommResult = TransportImplementationUtils.processOutgoing(timestamp, outgoingMessageManager);
 
-        Collection<OutgoingMessageResponseListener> listenersForFailures = opmResult.getListenersForFailures();
-        for (OutgoingMessageResponseListener outgoingResponseListener : listenersForFailures) {
-            try {
-                outgoingResponseListener.errorOccurred("Timeout");
-            } catch (RuntimeException re) { // NOPMD
-            }
-        }
+        
 
         Packet<A> packet;
-        while ((packet = outgoingPacketManager.getNextOutgoingPacket()) != null) {
+        while ((packet = outgoingMessageManager.getNextOutgoingPacket()) != null) {
             // forward outgoing packet to hub
             SendMessageCommand<A> smc = new SendMessageCommand(address, packet.getTo(), packet.getData());
             pushQueue.queueOneWayMessage(hubWriter, smc);
@@ -160,47 +119,24 @@ final class TestTransportActor<A> extends TransportActor<A> {
 
 
         // process timeouts for incoming requests
-        IncomingPacketManagerResult<A> ipmResult = incomingPacketManager.process(timestamp);
+        IncomingPacketManagerResult<A> immResult = TransportImplementationUtils.processIncoming(timestamp,
+                incomingMessageManager, outgoingMessageManager, incomingMessageListener, getSelfWriter());
 
-        for (IncomingMessageManager.IncomingRequest<A> incomingRequest : ipmResult.getNewIncomingRequests()) {
-            IncomingMessageResponseListener incomingMessageResponseListener =
-                    new DefaultIncomingResponseListener(incomingRequest.getId(), getSelfWriter());
-            incomingMessageListener.messageArrived(incomingRequest.getFrom(), incomingRequest.getData(), incomingMessageResponseListener);
-        }
-
-        for (IncomingResponse<A> incomingResponse : ipmResult.getNewIncomingResponses()) {
-            MessageId messageId = incomingResponse.getMessageId();
-            OutgoingMessageResponseListener outgoingMessageResponseListener = outgoingPacketManager.responseReturned(messageId);
-
-            if (outgoingMessageResponseListener == null) {
-                continue;
-            }
-
-            try {
-                outgoingMessageResponseListener.responseArrived(incomingResponse.getData());
-            } catch (RuntimeException re) { // NOPMD
-            }
-        }
 
 
         // calculate max time until next invoke
         long waitTime = Long.MAX_VALUE;
-        waitTime = Math.min(waitTime, opmResult.getMaxTimestamp());
-        waitTime = Math.min(waitTime, ipmResult.getMaxTimestamp());
+        waitTime = Math.min(waitTime, immResult.getMaxTimestamp());
+        waitTime = Math.min(waitTime, ommResult.getMaxTimestamp());
 
         return waitTime;
     }
 
     @Override
     protected void onStop(PushQueue pushQueue) throws Exception {
-        for (OutgoingMessageResponseListener listener : outgoingPacketManager.process(Long.MAX_VALUE).getListenersForFailures()) {
-            try {
-                listener.errorOccurred("Shutdown");
-            } catch (RuntimeException re) { // NOPMD
-            }
-        }
-
         Message msg = Message.createOneWayMessage(new DeactivateEndpointCommand<>(address));
         hubWriter.push(msg);
+
+        TransportImplementationUtils.shutdownNotify(outgoingMessageManager);
     }
 }

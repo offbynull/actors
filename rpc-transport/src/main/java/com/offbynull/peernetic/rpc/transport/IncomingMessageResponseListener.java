@@ -26,7 +26,7 @@ public interface IncomingMessageResponseListener {
     /**
      * Indicates that a response is ready to go out.
      * Implementations <b>MUST NEVER BLOCK</b>. It is your responsibility to avoid blocking.
-     * @param response response to send out
+     * @param response response to send out (caller still owns the reference to this, a copy is made by the callee)
      * @throws NullPointerException if any arguments are {@code null}
      */
     void responseReady(ByteBuffer response);

@@ -29,7 +29,7 @@ public interface IncomingMessageListener<A> {
      * Implementations must be thread-safe <b>AND MUST NEVER BLOCK</b>. It is your responsibility to avoid blocking. Blocking in this method
      * may block the underlying {@link Transport}.
      * @param from sender
-     * @param message message
+     * @param message message (it is safe to hold on to this, you don't need to copy it)
      * @param responseCallback response handler
      * @throws NullPointerException if any of the arguments are {@code null}
      */

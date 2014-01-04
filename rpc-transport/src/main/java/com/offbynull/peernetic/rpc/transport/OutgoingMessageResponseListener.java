@@ -27,7 +27,7 @@ public interface OutgoingMessageResponseListener {
      * Indicates that a response has arrived.
      * Implementations must be thread-safe <b>AND MUST NEVER BLOCK</b>. It is your responsibility to avoid blocking. Blocking in this method
      * may block the underlying {@link Transport}.
-     * @param response response
+     * @param response response (it is safe to hold on to this, you don't need to copy it)
      * @throws NullPointerException if any arguments are {@code null}
      */
     void responseArrived(ByteBuffer response);
@@ -35,7 +35,8 @@ public interface OutgoingMessageResponseListener {
      * Indicates that an internal error occurred.
      * Implementations must be thread-safe <b>AND MUST NEVER BLOCK</b>. It is your responsibility to avoid blocking. Blocking in this method
      * may block the underlying {@link Transport}.
-     * @param error exception or other object that caused or describes the error (if any -- may be {@code null)}
+     * @param error exception or other object that caused or describes the error -- may be {@code nul}) (it is safe to hold on to this, you
+     * don't need to copy it)
      */
     void errorOccurred(Object error);
 }

@@ -18,9 +18,6 @@ package com.offbynull.peernetic.rpc.services.nat;
 
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.RpcConfig;
-import com.offbynull.peernetic.rpc.services.nat.NatHelperCallable;
-import com.offbynull.peernetic.rpc.services.nat.NatHelperService;
-import com.offbynull.peernetic.rpc.services.nat.NatHelperServiceImplementation;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
 import java.net.InetSocketAddress;
 import junit.framework.Assert;

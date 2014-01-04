@@ -23,18 +23,16 @@ import com.offbynull.peernetic.rpc.invoke.Capturer;
 import com.offbynull.peernetic.rpc.invoke.CapturerHandler;
 import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibAsyncCapturer;
 import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibCapturer;
-import com.offbynull.peernetic.rpc.transport.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.TransportUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 final class ServiceAccessor<A> {
-    private TransportActor<A> transport;
+    private Transport<A> transport;
 
-    public ServiceAccessor(TransportActor<A> transport) {
+    public ServiceAccessor(Transport<A> transport) {
         Validate.notNull(transport);
         
         this.transport = transport;
@@ -59,10 +57,7 @@ final class ServiceAccessor<A> {
                     buffer.put(data);
                     buffer.position(0);
                     
-                    OutgoingMessage<A> message = new OutgoingMessage<>(address, buffer);
-                    
-                    IncomingResponse<A> response = TransportUtils.sendAndWait(transport, message);
-                    ByteBuffer resp = response.getData();
+                    ByteBuffer resp = TransportUtils.sendAndWait(transport, address, buffer);
                     byte[] respArray = new byte[resp.remaining()];
                     resp.get(respArray);
                     
@@ -109,13 +104,10 @@ final class ServiceAccessor<A> {
                     buffer.put(data);
                     buffer.position(0);
                     
-                    OutgoingMessage<A> message = new OutgoingMessage<>(address, buffer);
-                    
-                    transport.sendMessage(message, new OutgoingMessageResponseListener<A>() {
+                    transport.sendMessage(address, buffer, new OutgoingMessageResponseListener() {
 
                         @Override
-                        public void responseArrived(IncomingResponse<A> response) {
-                            ByteBuffer resp = response.getData();
+                        public void responseArrived(ByteBuffer resp) {
                             byte[] respArray = new byte[resp.remaining()];
                             resp.get(respArray);
                             
@@ -123,12 +115,7 @@ final class ServiceAccessor<A> {
                         }
 
                         @Override
-                        public void internalErrorOccurred(Throwable error) {
-                            responseHandler.responseFailed(throwOnCommFailure);
-                        }
-
-                        @Override
-                        public void timedOut() {
+                        public void errorOccurred(Object error) {
                             responseHandler.responseFailed(throwOnCommFailure);
                         }
                     });

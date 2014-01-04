@@ -20,10 +20,8 @@ import static com.offbynull.peernetic.rpc.ListerService.SERVICE_ID;
 import com.offbynull.peernetic.rpc.invoke.Invoker;
 import com.offbynull.peernetic.rpc.invoke.InvokerListener;
 import com.offbynull.peernetic.rpc.invoke.invokers.reflection.ReflectionInvoker;
-import com.offbynull.peernetic.rpc.transport.IncomingMessage;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -140,11 +138,8 @@ final class ServiceRouter<A> {
     private final class ServerMessageToInvokeCallback implements IncomingMessageListener<A> {
 
         @Override
-        public void messageArrived(IncomingMessage<A> message, IncomingMessageResponseHandler responseCallback) {
-            ByteBuffer buffer = message.getData();
-            A from = message.getFrom();
-            
-            int id = buffer.getInt();
+        public void messageArrived(A from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+            int id = message.getInt();
             
             ServiceEntry serviceEntry;
             lock.readLock().lock();
@@ -159,8 +154,8 @@ final class ServiceRouter<A> {
                 return;
             }
             
-            byte[] dataWithoutId = new byte[buffer.remaining()];
-            buffer.get(dataWithoutId);
+            byte[] dataWithoutId = new byte[message.remaining()];
+            message.get(dataWithoutId);
             
             Map<Object, Object> invokeInfo = new HashMap<>();
             invokeInfo.put(RpcInvokeKeys.FROM_ADDRESS, from);
@@ -170,14 +165,14 @@ final class ServiceRouter<A> {
             Invoker invoker = serviceEntry.getInvoker();
             invoker.invoke(dataWithoutId, new InvokeResponseToServerResponseCallback(responseCallback), invokeInfo);
         }
-        
+       
     }
     
     private final class InvokeResponseToServerResponseCallback implements InvokerListener {
         
-        private IncomingMessageResponseHandler serverCallback;
+        private IncomingMessageResponseListener serverCallback;
 
-        public InvokeResponseToServerResponseCallback(IncomingMessageResponseHandler serverCallback) {
+        public InvokeResponseToServerResponseCallback(IncomingMessageResponseListener serverCallback) {
             Validate.notNull(serverCallback);
             
             this.serverCallback = serverCallback;
@@ -190,8 +185,7 @@ final class ServiceRouter<A> {
 
         @Override
         public void invokationFinised(byte[] data) {
-            OutgoingResponse response = new OutgoingResponse(data);
-            serverCallback.responseReady(response);
+            serverCallback.responseReady(ByteBuffer.wrap(data));
         }
     }
 }

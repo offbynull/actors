@@ -20,16 +20,11 @@ import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
 import com.offbynull.peernetic.rpc.transport.TransportFactory;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransportFactory;
-import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
-import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingMessage;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.services.nat.NatHelperService.ConnectionType;
 import com.offbynull.peernetic.rpc.services.nat.NatHelperCallable.Result;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -38,7 +33,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Random;
@@ -54,11 +48,6 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class NatHelperCallable implements Callable<Result> {
-    
-    private static final IncomingFilter<InetSocketAddress> EMPTY_INCOMING_FILTER =
-            new CompositeIncomingFilter<>(Collections.<IncomingFilter<InetSocketAddress>>emptyList());
-    private static final OutgoingFilter<InetSocketAddress> EMPTY_OUTGOING_FILTER =
-            new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<InetSocketAddress>>emptyList());
     
     private static final int MIN_PORT = 10001;
     private static final int MAX_PORT = 65535;
@@ -131,18 +120,18 @@ public final class NatHelperCallable implements Callable<Result> {
             TransportFactory<InetSocketAddress> transportFactory, byte[] expected) throws InterruptedException,
             IOException {
         
-        TransportActor<InetSocketAddress> transport = transportFactory.createTransport();
+        Transport<InetSocketAddress> transport = transportFactory.createTransport();
 
         try {
             final ArrayBlockingQueue<ByteBuffer> bufferHolder = new ArrayBlockingQueue<>(1);
-            transport.start(EMPTY_INCOMING_FILTER, new IncomingMessageListener<InetSocketAddress>() {
+            transport.start(new IncomingMessageListener<InetSocketAddress>() {
 
                 @Override
-                public void messageArrived(IncomingMessage<InetSocketAddress> message, IncomingMessageResponseHandler responseCallback) {
-                    bufferHolder.add(message.getData());
+                public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+                    bufferHolder.add(message);
                     responseCallback.terminate();
                 }
-            }, EMPTY_OUTGOING_FILTER);
+            });
 
             service.testPort(type, port, expected);
 
@@ -158,7 +147,7 @@ public final class NatHelperCallable implements Callable<Result> {
         } finally {
             try {
                 transport.stop();
-            } catch (IOException | RuntimeException e) { // NOPMD
+            } catch (RuntimeException e) { // NOPMD
                 // do nothing
             }
         }

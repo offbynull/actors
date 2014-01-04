@@ -208,7 +208,8 @@ public class UnstructuredOverlayTest {
 
         public OverlayEntry(int address, UnstructuredOverlayListener<Integer> listener) throws IOException {
             TestTransportFactory<Integer> fakeTransportFactory = new TestTransportFactory<>(fakeHub, address);
-            fakeTransportFactory.setTimeout(200L);
+            fakeTransportFactory.setIncomingResponseTimeout(200L);
+            fakeTransportFactory.setOutgoingResponseTimeout(200L);
             rpc = new Rpc<>(fakeTransportFactory);
             
             UnstructuredOverlayConfig<Integer> uoConfig = new UnstructuredOverlayConfig<>();

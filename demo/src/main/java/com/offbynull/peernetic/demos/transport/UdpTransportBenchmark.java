@@ -16,23 +16,21 @@
  */
 package com.offbynull.peernetic.demos.transport;
 
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueueReader;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
-import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransportFactory;
-import com.offbynull.peernetic.rpc.transport.internal.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.internal.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.internal.ResponseErroredEvent;
-import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
+import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
+import com.offbynull.peernetic.rpc.transport.IncomingFilter;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
+import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
+import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -40,7 +38,8 @@ import java.util.Map;
  * @author Kasra Faghihi
  */
 public final class UdpTransportBenchmark {
-    private static final int NUM_OF_TRANSPORTS = 30;
+    private static final int NUM_OF_TRANSPORTS = 50;
+    private static Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
     
     private UdpTransportBenchmark() {
         // do nothing
@@ -52,82 +51,79 @@ public final class UdpTransportBenchmark {
      * @throws Throwable on error
      */
     public static void main(String[] args) throws Throwable {
-        Map<InetSocketAddress, TransportActor<InetSocketAddress>> transports = new HashMap<>();
-        Map<InetSocketAddress, ActorQueueWriter> writers = new HashMap<>();
-
-
-        ActorQueue mainQueue = new ActorQueue();
-        ActorQueueWriter mainWriter = mainQueue.getWriter();
-        ActorQueueReader mainReader = mainQueue.getReader();
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
             final UdpTransportFactory udpTransportFactory = new UdpTransportFactory();
+            udpTransportFactory.setListenAddress(new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i));
+
             InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-            udpTransportFactory.setListenAddress(addr);
-            TransportActor transport = udpTransportFactory.createTransport();
-            
-            transport.setDestinationWriter(mainWriter);
-            transport.start();
-            
-            writers.put(addr, transport.getWriter());
+            Transport transport = udpTransportFactory.createTransport();
+            transport.start(new CompositeIncomingFilter<>(Collections.<IncomingFilter<Integer>>emptyList()),
+                    new EchoIncomingMessageListener(),
+                    new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<Integer>>emptyList()));
             transports.put(addr, transport);
         }
         
-        long id = 0;
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
-            InetSocketAddress fromAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-            ActorQueueWriter fromWriter = writers.get(fromAddr);
             for (int j = 0; j < NUM_OF_TRANSPORTS; j++) {
                 if (i == j) {
                     continue;
                 }
                 
+                InetSocketAddress fromAddr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
                 InetSocketAddress toAddr = new InetSocketAddress(InetAddress.getLocalHost(),
                         10000 + ((i + 1) % NUM_OF_TRANSPORTS)); // NOPMD
-                
-                sendTimestamp(fromWriter, id, mainWriter, toAddr);
+                issueMessage(fromAddr, toAddr);
             }
         }
         
-        int count = 0;
-        long accumulatedTime = 0L;
-        
         while (true) {
-            Iterator<Message> msgIt = mainReader.pull(0L);
-            while (msgIt.hasNext()) {
-                Message msg = msgIt.next();
-                Object content = msg.getContent();
+            Thread.sleep(1000L);
+        }
+    }
+    
+    private static void issueMessage(InetSocketAddress from, InetSocketAddress to) {
+        final long time = System.currentTimeMillis();
 
-                if (content instanceof RequestArrivedEvent) {
-                    RequestArrivedEvent<InetSocketAddress> rae = (RequestArrivedEvent<InetSocketAddress>) content;
-                    SendResponseCommand<InetSocketAddress> src = new SendResponseCommand<>(rae.getData());
-                    msg.getResponder().respondImmediately(src);
-                } else if (content instanceof ResponseArrivedEvent) {
-                    ResponseArrivedEvent<InetSocketAddress> rae = (ResponseArrivedEvent<InetSocketAddress>) content;
-                    long oldTime = rae.getData().getLong();
-                    
-                    count++;
-                    accumulatedTime += System.currentTimeMillis() - oldTime;
-                    if (count == 10000) {
-                        System.out.println(accumulatedTime / 10000L);
-                        count = 0;
-                        accumulatedTime = 0L;
-                    }
-                    
-                    InetSocketAddress address = rae.getFrom();
-                    ActorQueueWriter writerForAddress = writers.get(address);
-                    sendTimestamp(writerForAddress, id, mainWriter, address);
-                } else if (content instanceof ResponseErroredEvent) {
-                    //ResponseErroredEvent ree = (ResponseErroredEvent) content;
-                    System.out.println("TIMEOUT");
-                }
-            }
+        ByteBuffer data = ByteBuffer.allocate(8);
+        data.putLong(0, time);
+
+        transports.get(to).sendMessage(from, data, new ReportAndReissueOutgoingMessageResponseListener(from, to));
+    }
+
+    private static final class EchoIncomingMessageListener implements IncomingMessageListener<InetSocketAddress> {
+
+        @Override
+        public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+            responseCallback.responseReady(message);
         }
     }
 
-    private static void sendTimestamp(ActorQueueWriter src, long id, ActorQueueWriter dst, InetSocketAddress address) {
-        ByteBuffer buffer = ByteBuffer.allocate(8);
-        buffer.putLong(0, System.currentTimeMillis());
-        src.push(Message.createRespondableMessage(id, dst, new SendRequestCommand(address, buffer)));
-        id++;
+    private static final class ReportAndReissueOutgoingMessageResponseListener
+            implements OutgoingMessageResponseListener {
+        private static volatile int counter;
+        private InetSocketAddress from;
+        private InetSocketAddress to;
+
+        public ReportAndReissueOutgoingMessageResponseListener(InetSocketAddress from, InetSocketAddress to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        @Override
+        public void responseArrived(ByteBuffer response) {
+            long diff = System.currentTimeMillis() - response.getLong(response.position());
+            int count = counter++;
+            if (count % 10000 == 0) {
+                System.out.println("Response time: " + diff + "(" + count + ")");
+            }
+            
+            issueMessage(from, to);
+        }
+
+        @Override
+        public void errorOccurred(Object error) {
+            System.err.println("ERROR: " + error);
+            issueMessage(from, to);
+        }
     }
 }

@@ -66,8 +66,8 @@ public final class Rpc<A> implements Closeable {
         try {
             transport = transportFactory.createTransport();
 
-            serviceRouter = new ServiceRouter<>(conf.getInvokerExecutorService(), this, conf.getExtraInvokeInfo());
-            serviceAccessor = new ServiceAccessor<>(transport);
+            serviceRouter = new ServiceRouter<>(conf.getInvokerFactory(), this, conf.getExtraInvokeInfo());
+            serviceAccessor = new ServiceAccessor<>(transport, conf.getCapturerFactory(), conf.getAsyncCapturerFactory());
 
             IncomingMessageListener<A> listener = serviceRouter.getIncomingMessageListener();
             

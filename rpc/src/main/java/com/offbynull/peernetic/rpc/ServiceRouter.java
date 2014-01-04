@@ -18,8 +18,8 @@ package com.offbynull.peernetic.rpc;
 
 import static com.offbynull.peernetic.rpc.ListerService.SERVICE_ID;
 import com.offbynull.peernetic.rpc.invoke.Invoker;
+import com.offbynull.peernetic.rpc.invoke.InvokerFactory;
 import com.offbynull.peernetic.rpc.invoke.InvokerListener;
-import com.offbynull.peernetic.rpc.invoke.invokers.reflection.ReflectionInvoker;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
 import java.nio.ByteBuffer;
@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.Validate;
@@ -44,17 +43,17 @@ final class ServiceRouter<A> {
     
     private Map<Integer, ServiceEntry> invokerMap;
     
-    private ExecutorService executorService;
+    private InvokerFactory invokerFactory;
     private Map<? extends Object, ? extends Object> extraInvokeInfo;
     private Rpc rpc;
     
 
-    public ServiceRouter(ExecutorService executorService, Rpc<A> rpc, Map<? extends Object, ? extends Object> extraInvokeDataMap) {
-        Validate.notNull(executorService);
+    public ServiceRouter(InvokerFactory invokerFactory, Rpc<A> rpc, Map<? extends Object, ? extends Object> extraInvokeDataMap) {
+        Validate.notNull(invokerFactory);
         Validate.notNull(rpc);
         Validate.notNull(extraInvokeDataMap);
     
-        this.executorService = executorService;
+        this.invokerFactory = invokerFactory;
         this.rpc = rpc;
         this.extraInvokeInfo = extraInvokeDataMap;
         
@@ -119,7 +118,7 @@ final class ServiceRouter<A> {
         public ServiceEntry(int id, Object object) {
             this.id = id;
             this.object = object;
-            invoker = new ReflectionInvoker(object, executorService);
+            invoker = invokerFactory.createInvoker(object);
         }
 
         public int getId() {

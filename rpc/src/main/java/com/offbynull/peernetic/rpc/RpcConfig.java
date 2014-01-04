@@ -16,7 +16,16 @@
  */
 package com.offbynull.peernetic.rpc;
 
+import com.offbynull.peernetic.rpc.invoke.AsyncCapturer;
+import com.offbynull.peernetic.rpc.invoke.AsyncCapturerFactory;
+import com.offbynull.peernetic.rpc.invoke.Capturer;
+import com.offbynull.peernetic.rpc.invoke.CapturerFactory;
 import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;
+import com.offbynull.peernetic.rpc.invoke.Invoker;
+import com.offbynull.peernetic.rpc.invoke.InvokerFactory;
+import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CgLibAsyncCapturerFactory;
+import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CgLibCapturerFactory;
+import com.offbynull.peernetic.rpc.invoke.invokers.reflection.ReflectionInvokerFactory;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import java.util.ArrayList;
@@ -24,10 +33,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -36,30 +41,66 @@ import org.apache.commons.lang3.Validate;
  * @param <A> address type
  */
 public final class RpcConfig<A> {
-    
-    private ExecutorService invokerExecutorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 1, TimeUnit.SECONDS,
-            new LinkedBlockingQueue<Runnable>());
+
+    private InvokerFactory invokerFactory = new ReflectionInvokerFactory();
+    private CapturerFactory capturerFactory = new CgLibCapturerFactory();
+    private AsyncCapturerFactory asyncCapturerFactory = new CgLibAsyncCapturerFactory();
     private Map<? extends Object, ? extends Object> extraInvokeInfo = Collections.emptyMap();
     private List<IncomingFilter<A>> incomingFilters = Collections.emptyList();
     private List<OutgoingFilter<A>> outgoingFilters = Collections.emptyList();
 
     /**
-     * Get the {@link ExecutorService} to be used by the method invoker.
-     * @return invoker {@link ExecutorService}
+     * Get the invoker factory for creating {@link Invoker}s that performs RPC method invocations.
+     * @return invoker factory
      */
-    public ExecutorService getInvokerExecutorService() {
-        return invokerExecutorService;
+    public InvokerFactory getInvokerFactory() {
+        return invokerFactory;
     }
 
     /**
-     * Set the {@link ExecutorService} to be used by the method invoker. Shuts down the previously set {@link ExecutorService}.
-     * @param invokerExecutorService invoker {@link ExecutorService}
-     * @throws NullPointerException if any arguments are {@code null}
+     * Set the invoker factory for creating {@link Invoker}s that performs RPC method invocations.
+     * @param invokerFactory invoker factory
+     * @throws NullPointerException if any argument is {@code null}
      */
-    public void setInvokerExecutorService(ExecutorService invokerExecutorService) {
-        Validate.notNull(invokerExecutorService);
-        this.invokerExecutorService.shutdownNow();
-        this.invokerExecutorService = invokerExecutorService;
+    public void setInvokerFactory(InvokerFactory invokerFactory) {
+        Validate.notNull(invokerFactory);
+        this.invokerFactory = invokerFactory;
+    }
+
+    /**
+     * Get the capturer factory for creating {@link Capturer}s that proxy RPC service interfaces.
+     * @return capturer factory
+     */
+    public CapturerFactory getCapturerFactory() {
+        return capturerFactory;
+    }
+
+    /**
+     * Set the capturer factory for creating {@link Capturer}s that proxy RPC service interfaces.
+     * @param capturerFactory capturer factory
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public void setCapturerFactory(CapturerFactory capturerFactory) {
+        Validate.notNull(capturerFactory);
+        this.capturerFactory = capturerFactory;
+    }
+
+    /**
+     * Get the async capturer factory for creating {@link AsyncCapturer}s that proxy RPC service async interfaces.
+     * @return async capturer factory
+     */
+    public AsyncCapturerFactory getAsyncCapturerFactory() {
+        return asyncCapturerFactory;
+    }
+
+    /**
+     * Set the async capturer factory for creating {@link AsyncCapturer}s that proxy RPC service async interfaces.
+     * @param asyncCapturerFactory async capturer factory
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public void setAsyncCapturerFactory(AsyncCapturerFactory asyncCapturerFactory) {
+        Validate.notNull(asyncCapturerFactory);
+        this.asyncCapturerFactory = asyncCapturerFactory;
     }
 
     /**

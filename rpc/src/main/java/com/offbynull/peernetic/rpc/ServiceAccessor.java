@@ -17,12 +17,12 @@
 package com.offbynull.peernetic.rpc;
 
 import com.offbynull.peernetic.rpc.invoke.AsyncCapturer;
+import com.offbynull.peernetic.rpc.invoke.AsyncCapturerFactory;
 import com.offbynull.peernetic.rpc.invoke.AsyncCapturerHandler;
 import com.offbynull.peernetic.rpc.invoke.AsyncCapturerHandlerCallback;
 import com.offbynull.peernetic.rpc.invoke.Capturer;
+import com.offbynull.peernetic.rpc.invoke.CapturerFactory;
 import com.offbynull.peernetic.rpc.invoke.CapturerHandler;
-import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibAsyncCapturer;
-import com.offbynull.peernetic.rpc.invoke.capturers.cglib.CglibCapturer;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.TransportUtils;
@@ -31,11 +31,17 @@ import org.apache.commons.lang3.Validate;
 
 final class ServiceAccessor<A> {
     private Transport<A> transport;
+    private CapturerFactory capturerFactory;
+    private AsyncCapturerFactory asyncCapturerFactory;
 
-    public ServiceAccessor(Transport<A> transport) {
+    public ServiceAccessor(Transport<A> transport, CapturerFactory capturerFactory, AsyncCapturerFactory asyncCapturerFactory) {
         Validate.notNull(transport);
+        Validate.notNull(capturerFactory);
+        Validate.notNull(asyncCapturerFactory);
         
         this.transport = transport;
+        this.capturerFactory = capturerFactory;
+        this.asyncCapturerFactory = asyncCapturerFactory;
     }
     
     public <T> T accessService(final A address, final int serviceId, Class<T> type, final RuntimeException throwOnCommFailure,
@@ -46,7 +52,7 @@ final class ServiceAccessor<A> {
         Validate.notNull(throwOnInvokeFailure);
         
         
-        Capturer<T> capturer = new CglibCapturer<>(type);
+        Capturer<T> capturer = capturerFactory.createCapturer(type);
         T obj = capturer.createInstance(new CapturerHandler() {
 
             @Override
@@ -88,7 +94,7 @@ final class ServiceAccessor<A> {
         Validate.notNull(throwOnInvokeFailure);
         
         
-        AsyncCapturer<T, AT> capturer = new CglibAsyncCapturer<>(type, asyncType);
+        AsyncCapturer<T, AT> capturer = asyncCapturerFactory.createAsyncCapturer(type, asyncType);
         AT obj = capturer.createInstance(new AsyncCapturerHandler() {
 
             @Override

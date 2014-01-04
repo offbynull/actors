@@ -39,7 +39,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -207,7 +206,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
         
         try {
             executor.execute(r);
-        } catch (RejectedExecutionException ree) {
+        } catch (RuntimeException ree) {
             callback.invocationFailed(ree);
         }
     }

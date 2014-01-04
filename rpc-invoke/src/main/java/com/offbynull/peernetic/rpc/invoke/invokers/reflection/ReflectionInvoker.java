@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -64,7 +65,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
      * {@link AvoidObjectMethodsPreInvokeFilter} as a filter.
      * @param object object to invoke on
      * @param executor executor to use for invokations
-     * @throws NullPointerException if {@code object} is {@code null}
+     * @throws NullPointerException if any argument is {@code null}
      */
     public ReflectionInvoker(T object, ExecutorService executor) {
         this(object, executor,
@@ -82,8 +83,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
      * @param deserializer serializer to use for result data
      * @param preInvokeFilters pre invoke filters
      * @param postInvokeFilters post invoke filters
-     * @throws NullPointerException if any arguments other than {@code executor} are {@code null}, or if any element within a collection is
-     * {@code null}
+     * @throws NullPointerException if any arguments is {@code null}, or if any element within a collection is {@code null}
      */
     public ReflectionInvoker(T object, ExecutorService executor,
             Serializer serializer, Deserializer deserializer,
@@ -205,10 +205,10 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
             }
         };
         
-        if (executor == null) {
-            r.run();
-        } else {
+        try {
             executor.execute(r);
+        } catch (RejectedExecutionException ree) {
+            callback.invokationFailed(ree);
         }
     }
 

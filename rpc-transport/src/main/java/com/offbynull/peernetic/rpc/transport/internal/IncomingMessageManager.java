@@ -36,9 +36,9 @@ import org.apache.commons.lang3.Validate;
  * Manages incoming messages.
  * <p/>
  * When a new packet comes in, pipe it in to {@link #incomingData(long, java.lang.Object, java.nio.ByteBuffer, long) }. If the packet is
- * determined to be a request, it'll be returned on the next invokation of {@link #process(long) } and remain tracked internally until a
+ * determined to be a request, it'll be returned on the next invocation of {@link #process(long) } and remain tracked internally until a
  * response is ready {@link #responseFormed(long) } or until a timeout has been reached. If the packet is determined to be a response, it'll
- * be returned on the next invokation of {@link #process(long) } and discarded.
+ * be returned on the next invocation of {@link #process(long) } and discarded.
  * <p/>
  * A {@link MessageIdCache} is used to remove duplicate requests / responses.
  * @author Kasra Faghihi

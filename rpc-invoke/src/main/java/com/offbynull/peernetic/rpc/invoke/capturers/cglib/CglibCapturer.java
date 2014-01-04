@@ -34,9 +34,9 @@ import net.sf.cglib.proxy.MethodProxy;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Provides the ability to proxy a non-final class or interface such that method invokations are processed by some external source.
- * Invokations are sent to the external source as a serialized byte array, and each invokation waits for the external source to give back
- * either a result to be returned by the invokation or a {@link Throwable} to be thrown from the invokation. {@link CapturerHandler} is the
+ * Provides the ability to proxy a non-final class or interface such that method invocations are processed by some external source.
+ * Invocations are sent to the external source as a serialized byte array, and each invocation waits for the external source to give back
+ * either a result to be returned by the invocation or a {@link Throwable} to be thrown from the invocation. {@link CapturerHandler} is the
  * processing mechanism.
  * @author Kasra Faghihi
  * @param <T> proxy type
@@ -60,7 +60,7 @@ public final class CglibCapturer<T> implements Capturer<T> {
     /**
      * Constructs a {@link Capturer} object.
      * @param cls class type to proxy
-     * @param serializer serializer to use for invokation data
+     * @param serializer serializer to use for invocation data
      * @param deserializer serializer to use for result data
      * @throws NullPointerException if any arguments are {@code null}
      */
@@ -98,19 +98,19 @@ public final class CglibCapturer<T> implements Capturer<T> {
                 try {
                     inData = serializer.serializeMethodCall(invokeData);
                 } catch (RuntimeException e) {
-                    callback.invokationFailed(e);
+                    callback.invocationFailed(e);
                     throw e;
                 }
                 
                 // Call
-                byte[] outData = callback.invokationTriggered(inData);
+                byte[] outData = callback.invocationTriggered(inData);
                 
                 // Deserialize output
                 DeserializerResult dr;
                 try {
                     dr = deserializer.deserialize(outData);
                 } catch (RuntimeException e) {
-                    callback.invokationFailed(e);
+                    callback.invocationFailed(e);
                     throw e;
                 }
 
@@ -120,7 +120,7 @@ public final class CglibCapturer<T> implements Capturer<T> {
                         try {
                             CapturerUtils.validateReturn(method, result);
                         } catch (RuntimeException e) {
-                            callback.invokationFailed(e);
+                            callback.invocationFailed(e);
                             throw e;
                         }
                         
@@ -129,7 +129,7 @@ public final class CglibCapturer<T> implements Capturer<T> {
                         try {
                             CapturerUtils.validateThrowable(method, result);
                         } catch (RuntimeException e) {
-                            callback.invokationFailed(e);
+                            callback.invocationFailed(e);
                             throw e;
                         }
                         

@@ -24,15 +24,15 @@ package com.offbynull.peernetic.rpc.invoke;
 public interface CapturerHandler {
     /**
      * Indicates that a method on a proxy object was called.
-     * @param data serialized invokation data
+     * @param data serialized invocation data
      * @return serialized result data
      * @throws NullPointerException if any argument are {@code null}
      */
-    byte[] invokationTriggered(byte[] data);
+    byte[] invocationTriggered(byte[] data);
     /**
-     * Indicates that a method invokation on a proxy object failed.
+     * Indicates that a method invocation on a proxy object failed.
      * @param err error thrown
      * @throws NullPointerException if any argument are {@code null}
      */
-    void invokationFailed(Throwable err);
+    void invocationFailed(Throwable err);
 }

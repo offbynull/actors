@@ -14,20 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
-
-import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 
 /**
- * Performs an async invokation.
- * @author Kasra Faghihi
+ * Provides a mechanism to chain async RPC invocations together.
  */
-public interface InvokationChainStep {
-
-    /**
-     * Performs an async invokation.
-     * @param resultListener result listener to pass in to async invokation
-     */
-    void doInvoke(AsyncResultListener resultListener);
-    
-}
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;

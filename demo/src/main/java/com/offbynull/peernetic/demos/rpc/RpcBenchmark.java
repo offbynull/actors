@@ -117,7 +117,7 @@ public final class RpcBenchmark {
         }
         
         @Override
-        public void invokationReturned(Long object) {
+        public void invocationReturned(Long object) {
             long diff = System.currentTimeMillis() - object;
             System.out.println("Response time: " + diff);
             
@@ -125,12 +125,12 @@ public final class RpcBenchmark {
         }
 
         @Override
-        public void invokationThrew(Throwable err) {
+        public void invocationThrew(Throwable err) {
             System.err.println("THREW: " + err);
         }
 
         @Override
-        public void invokationFailed(Object err) {
+        public void invocationFailed(Object err) {
             System.err.println("FAILED");
         }
         

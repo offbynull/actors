@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;
 
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import java.util.ArrayList;
@@ -23,25 +23,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A helper class to chain async invokations.
+ * A helper class to chain async invocations.
  * @author Kasra Faghihi
  */
-public final class InvokationChain {
+public final class InvocationChain {
     
-    private InvokationChainStepResultHandler resultHandler;
-    private InvokationChainStepErrorHandler errorHandler;
-    private List<InvokationChainStep> steps;
+    private InvocationChainStepResultHandler resultHandler;
+    private InvocationChainStepErrorHandler errorHandler;
+    private List<InvocationChainStep> steps;
 
     /**
      * 
-     * @param resultHandler called when an invokation successfully returns a result
-     * @param errorHandler called when an invokation throws an exception or has a comm error
-     * @param steps steps that perform invokations in the invokation chain
+     * @param resultHandler called when an invocation successfully returns a result
+     * @param errorHandler called when an invocation throws an exception or has a comm error
+     * @param steps steps that perform invocations in the invocation chain
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      * @throws IllegalArgumentException if {@code steps} is empty
      */
-    public InvokationChain(InvokationChainStepResultHandler resultHandler,
-            InvokationChainStepErrorHandler errorHandler, List<InvokationChainStep> steps) {
+    public InvocationChain(InvocationChainStepResultHandler resultHandler,
+            InvocationChainStepErrorHandler errorHandler, List<InvocationChainStep> steps) {
         Validate.noNullElements(steps);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, steps.size());
         Validate.notNull(resultHandler);
@@ -53,14 +53,14 @@ public final class InvokationChain {
     }
     
     /**
-     * Starts the async invokation chain.
+     * Starts the async invocation chain.
      */
     public void start() {
         AsyncResultListener<?> asyncResultListener = new AsyncResultListener<Object>() {
             private AtomicInteger idx = new AtomicInteger();
 
             @Override
-            public void invokationReturned(Object object) {
+            public void invocationReturned(Object object) {
                 int stepIndex = idx.getAndIncrement();
                 if (!resultHandler.handleResult(steps.get(stepIndex), stepIndex, object)) {
                     return;
@@ -75,12 +75,12 @@ public final class InvokationChain {
             }
 
             @Override
-            public void invokationThrew(Throwable err) {
+            public void invocationThrew(Throwable err) {
                 handleError(ErrorType.METHOD_THROW, err);
             }
 
             @Override
-            public void invokationFailed(Object err) {
+            public void invocationFailed(Object err) {
                 handleError(ErrorType.FAILURE, err);
             }
             

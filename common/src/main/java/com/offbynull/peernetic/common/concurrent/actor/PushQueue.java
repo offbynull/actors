@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 /**
  * Queue of messages to be sent out.
  * <p/>
- * Messages get queued up in each {@link Actor#onStep(long, java.util.Iterator) } invokation and are sent out once the invokation completes.
+ * Messages get queued up in each {@link Actor#onStep(long, java.util.Iterator) } invocation and are sent out once the invocation completes.
  * @author Kasra Faghihi
  */
 public final class PushQueue {

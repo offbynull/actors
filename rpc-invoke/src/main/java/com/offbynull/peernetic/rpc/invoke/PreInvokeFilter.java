@@ -17,16 +17,16 @@
 package com.offbynull.peernetic.rpc.invoke;
 
 /**
- * Inspects and potentially makes changes to an incoming invokation.
+ * Inspects and potentially makes changes to an incoming invocation.
  * @author Kasra Faghihi
  */
 public interface PreInvokeFilter {
     /**
-     * Validates/inspects/modifies incoming invokation data.
-     * @param data invokation data
+     * Validates/inspects/modifies incoming invocation data.
+     * @param data invocation data
      * @throws NullPointerException if any arguments are {@code null}
      * @throws RuntimeException on validation error
-     * @return modified invokation data (must never be {@code null})
+     * @return modified invocation data (must never be {@code null})
      */
     InvokeData filter(InvokeData data);
 }

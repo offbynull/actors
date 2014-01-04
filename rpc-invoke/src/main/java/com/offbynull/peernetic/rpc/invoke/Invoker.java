@@ -29,21 +29,21 @@ public interface Invoker<T> extends Closeable {
     /**
      * Invoke a method.
      * <p/>
-     * May block until the invokation completes or may return right away.
-     * @param data serialized invokation data
+     * May block until the invocation completes or may return right away.
+     * @param data serialized invocation data
      * @param callback listener
      * @throws NullPointerException if any arguments are {@code null}
      */
     void invoke(final byte[] data, final InvokerListener callback);
 
     /**
-     * Invoke a method. This version of {@code invoke} allows adding in extra parameters to the invokation through the
+     * Invoke a method. This version of {@code invoke} allows adding in extra parameters to the invocation through the
      * {@link InvokeThreadInformation} class.
      * <p/>
-     * May block until the invokation completes or may return right away.
-     * @param data serialized invokation data
+     * May block until the invocation completes or may return right away.
+     * @param data serialized invocation data
      * @param callback listener
-     * @param info extra information to pass in to invokation
+     * @param info extra information to pass in to invocation
      * @throws NullPointerException if any arguments are {@code null}
      */
     void invoke(final byte[] data, final InvokerListener callback, Map<? extends Object, ? extends Object> info);

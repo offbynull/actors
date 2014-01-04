@@ -22,15 +22,15 @@ package com.offbynull.peernetic.rpc.invoke;
  */
 public interface InvokerListener {
     /**
-     * Indicates that the invokation failed.
+     * Indicates that the invocation failed.
      * @param t exception
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void invokationFailed(Throwable t);
+    void invocationFailed(Throwable t);
     /**
-     * Indicates that the invokation was successful.
+     * Indicates that the invocation was successful.
      * @param data serialized result or throwable
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void invokationFinised(byte[] data);
+    void invocationFinised(byte[] data);
 }

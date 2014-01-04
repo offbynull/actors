@@ -179,12 +179,12 @@ final class ServiceRouter<A> {
         }
         
         @Override
-        public void invokationFailed(Throwable t) {
+        public void invocationFailed(Throwable t) {
             serverCallback.terminate();
         }
 
         @Override
-        public void invokationFinised(byte[] data) {
+        public void invocationFinised(byte[] data) {
             serverCallback.responseReady(ByteBuffer.wrap(data));
         }
     }

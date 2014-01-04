@@ -19,7 +19,7 @@ package com.offbynull.peernetic.rpc;
 import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;
 
 /**
- * Special keys set in {@link InvokeThreadInformation} for each RPC invokation.
+ * Special keys set in {@link InvokeThreadInformation} for each RPC invocation.
  * @author Kasra Faghihi
  */
 public enum RpcInvokeKeys {

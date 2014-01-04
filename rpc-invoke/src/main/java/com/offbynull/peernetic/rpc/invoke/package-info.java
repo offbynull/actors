@@ -16,7 +16,7 @@
  */
 
 /**
- * Provides facilities to serialize/de-serialize method invokations.
+ * Provides facilities to serialize/de-serialize method invocations.
  */
 
 package com.offbynull.peernetic.rpc.invoke;

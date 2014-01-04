@@ -123,7 +123,7 @@ public final class Rpc<A> implements Closeable {
     }
 
     /**
-     * Access a remote service asynchronously. Throws a {@link RuntimeException} on communication/invokation failure. Must not block in
+     * Access a remote service asynchronously. Throws a {@link RuntimeException} on communication/invocation failure. Must not block in
      * {@link AsyncResultListener}.
      * @param address destination address
      * @param id service id
@@ -149,7 +149,7 @@ public final class Rpc<A> implements Closeable {
      * @param type service type class
      * @param asyncType service async type class
      * @param throwOnCommFailure exception to throw on communication failure
-     * @param throwOnInvokeFailure exception to throw on invokation failure
+     * @param throwOnInvokeFailure exception to throw on invocation failure
      * @param <T> service type
      * @param <AT> asynchronous service type
      * @return an object of type {@code type} that accesses the service at {@code id}
@@ -165,7 +165,7 @@ public final class Rpc<A> implements Closeable {
     }
 
     /**
-     * Access a remote service. Times out after 10 seconds. Throws a {@link RuntimeException} on communication/invokation failure.
+     * Access a remote service. Times out after 10 seconds. Throws a {@link RuntimeException} on communication/invocation failure.
      * @param address destination address
      * @param id service id
      * @param type service type class
@@ -187,7 +187,7 @@ public final class Rpc<A> implements Closeable {
      * @param id service id
      * @param type service type class
      * @param throwOnCommFailure exception to throw on communication failure
-     * @param throwOnInvokeFailure exception to throw on invokation failure
+     * @param throwOnInvokeFailure exception to throw on invocation failure
      * @param <T> service type
      * @return an object of type {@code type} that accesses the service at {@code id}
      * @throws IllegalStateException if closed

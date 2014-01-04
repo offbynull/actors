@@ -19,12 +19,12 @@ package com.offbynull.peernetic.rpc.invoke;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Interface for deserializing method invokations and invokation results.
+ * Interface for deserializing method invocations and invocation results.
  * @author Kasra Faghihi
  */
 public interface Deserializer {
     /**
-     * Deserialize method invokation or invokation result.
+     * Deserialize method invocation or invocation result.
      * @param data serialized data
      * @return deserialized object
      */

@@ -45,7 +45,7 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 /**
- * Invokes methods on an object based on serialized data using Java reflections. Optionally allows the invokations to get executed through a
+ * Invokes methods on an object based on serialized data using Java reflections. Optionally allows the invocations to get executed through a
  * user-defined {@link ExecutorService}.
  * @param <T> type
  * @author Kasra Faghihi
@@ -64,7 +64,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
      * Constructs an {@link ReflectionInvoker} object with {@link XStreamSerializer} / {@link XStreamDeserializer} for serialization and
      * {@link AvoidObjectMethodsPreInvokeFilter} as a filter.
      * @param object object to invoke on
-     * @param executor executor to use for invokations
+     * @param executor executor to use for invocations
      * @throws NullPointerException if any argument is {@code null}
      */
     public ReflectionInvoker(T object, ExecutorService executor) {
@@ -78,8 +78,8 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
     /**
      * Constructs a {@link ReflectionInvoker} object.
      * @param object object to invoke on
-     * @param executor executor to use for invokations
-     * @param serializer serializer to use for invokation data
+     * @param executor executor to use for invocations
+     * @param serializer serializer to use for invocation data
      * @param deserializer serializer to use for result data
      * @param preInvokeFilters pre invoke filters
      * @param postInvokeFilters post invoke filters
@@ -134,7 +134,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
                     
                     invokeData = (InvokeData) dr.getResult();
                 } catch (RuntimeException | IOException ioe) {
-                    callback.invokationFailed(ioe);
+                    callback.invocationFailed(ioe);
                     return;
                 }
 
@@ -144,7 +144,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
                         invokeData = filter.filter(invokeData);
                     }
                 } catch (RuntimeException re) {
-                    callback.invokationFailed(re);
+                    callback.invocationFailed(re);
                     return;
                 }
                 
@@ -162,7 +162,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
                     result = new Result(ResultType.THROW, ex.getCause());
                 } catch (RuntimeException | NoSuchMethodException | IllegalAccessException ex) {
                     // throws npe if method expects primitves
-                    callback.invokationFailed(ex);
+                    callback.invocationFailed(ex);
                     return;
                 } finally {
                     InvokeThreadInformation.removeInvokeThreadInfo();
@@ -174,7 +174,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
                         result = filter.filter(result);
                     }
                 } catch (RuntimeException re) {
-                    callback.invokationFailed(re);
+                    callback.invocationFailed(re);
                     return;
                 }
                 
@@ -192,15 +192,15 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
                             throw new IllegalStateException();
                     }
                 } catch (RuntimeException re) {
-                    callback.invokationFailed(re);
+                    callback.invocationFailed(re);
                     return;
                 }
                 
                 // Send
                 try {
-                    callback.invokationFinised(outData);
+                    callback.invocationFinised(outData);
                 } catch (RuntimeException re) { // NOPMD
-                    // don't bother calling invokationFailed here, we've already attempted to end the invokation by calling finish
+                    // don't bother calling invocationFailed here, we've already attempted to end the invocation by calling finish
                 }
             }
         };
@@ -208,7 +208,7 @@ public final class ReflectionInvoker<T> implements Invoker<T> {
         try {
             executor.execute(r);
         } catch (RejectedExecutionException ree) {
-            callback.invokationFailed(ree);
+            callback.invocationFailed(ree);
         }
     }
 

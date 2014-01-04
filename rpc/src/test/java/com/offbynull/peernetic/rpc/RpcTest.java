@@ -133,17 +133,17 @@ public class RpcTest {
         listerService.listServices(new AsyncResultListener<ListerService.Services>() {
 
             @Override
-            public void invokationReturned(ListerService.Services object) {
+            public void invocationReturned(ListerService.Services object) {
                 queue.add(object);
             }
 
             @Override
-            public void invokationThrew(Throwable err) {
+            public void invocationThrew(Throwable err) {
                 queue.add(err);
             }
 
             @Override
-            public void invokationFailed(Object err) {
+            public void invocationFailed(Object err) {
                 queue.add(err);
             }
         }, 0, Integer.MAX_VALUE);

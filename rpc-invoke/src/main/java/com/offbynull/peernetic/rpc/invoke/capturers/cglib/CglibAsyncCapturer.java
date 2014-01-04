@@ -37,7 +37,7 @@ import net.sf.cglib.proxy.MethodProxy;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Provides the ability to proxy a asynchronous interface such that method invokations are processed by some external source. This class
+ * Provides the ability to proxy a asynchronous interface such that method invocations are processed by some external source. This class
  * essentially does what {@link Capturer} does, but does so using an asynchronous interface. That is, this class expects to proxy an
  * interface where the method signatures of the interface resemble that of a non-final class/interface that you would pass in to
  * {@link Capturer}. The difference between the method signatures are that..
@@ -90,7 +90,7 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
      * Constructs a {@link Capturer} object.
      * @param cls proxy type
      * @param asyncCls proxy async type
-     * @param serializer serializer to use for invokation data
+     * @param serializer serializer to use for invocation data
      * @param deserializer serializer to use for result data
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if methods declared in {@code asyncCls} don't have an equivalent in {@code cls}
@@ -131,7 +131,7 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
                 try {
                     Validate.notNull(args[0], "First argument must be non-null");
                 } catch (NullPointerException e) {
-                    callback.invokationFailed(e);
+                    callback.invocationFailed(e);
                     throw e;
                 }
                 
@@ -149,12 +149,12 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
                 try {
                     inData = serializer.serializeMethodCall(invokeData);
                 } catch (RuntimeException e) {
-                    callback.invokationFailed(e);
+                    callback.invocationFailed(e);
                     throw e;
                 }
                 
                 // Call
-                callback.invokationTriggered(inData, new AsyncCapturerHandlerCallback() {
+                callback.invocationTriggered(inData, new AsyncCapturerHandlerCallback() {
 
                     @Override
                     public void responseArrived(byte[] outData) {
@@ -163,7 +163,7 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
                         try {
                             dr = deserializer.deserialize(outData);
                         } catch (RuntimeException e) {
-                            callback.invokationFailed(e);
+                            callback.invocationFailed(e);
                             throw e;
                         }
 
@@ -175,11 +175,11 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
                                 try {
                                     CapturerUtils.validateReturn(syncMethod, ret);
                                 } catch (RuntimeException re) {
-                                    resultListener.invokationFailed(re);
+                                    resultListener.invocationFailed(re);
                                     throw re;
                                 }
                                 
-                                resultListener.invokationReturned(dr.getResult());
+                                resultListener.invocationReturned(dr.getResult());
                                 break;
                             }
                             case METHOD_THROW: {
@@ -189,11 +189,11 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
                                 try {
                                     CapturerUtils.validateThrowable(syncMethod, ret);
                                 } catch (RuntimeException re) {
-                                    resultListener.invokationFailed(re);
+                                    resultListener.invocationFailed(re);
                                     throw re;
                                 }
                                 
-                                resultListener.invokationThrew((Throwable) ret);
+                                resultListener.invocationThrew((Throwable) ret);
                                 break;
                             }
                             default: {
@@ -203,7 +203,7 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
                                             + SerializationType.METHOD_THROW + " but found "
                                             + dr);
                                 } catch (RuntimeException e) {
-                                    resultListener.invokationFailed(e);
+                                    resultListener.invocationFailed(e);
                                     throw e;
                                 }
                             }
@@ -212,7 +212,7 @@ public final class CglibAsyncCapturer<T, AT> implements AsyncCapturer<T, AT> {
 
                     @Override
                     public void responseFailed(Throwable err) {
-                        resultListener.invokationFailed(err);                        
+                        resultListener.invocationFailed(err);                        
                     }
                 });
                 

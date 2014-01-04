@@ -17,14 +17,14 @@
 package com.offbynull.peernetic.rpc.invoke;
 
 /**
- * Interface for serializing method invokations and invokation results.
+ * Interface for serializing method invocations and invocation results.
  * @author Kasra Faghihi
  */
 public interface Serializer {
     /**
-     * Serialize method invokation.
-     * @param invokeData invokation data
-     * @return serialized method invokation
+     * Serialize method invocation.
+     * @param invokeData invocation data
+     * @return serialized method invocation
      * @throws NullPointerException if any arguments are {@code null}
      */
     byte[] serializeMethodCall(InvokeData invokeData);

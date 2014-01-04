@@ -16,6 +16,6 @@
  */
 
 /**
- * Invokers that use reflections to perform method invokations.
+ * Invokers that use reflections to perform method invocations.
  */
 package com.offbynull.peernetic.rpc.invoke.invokers.reflection;

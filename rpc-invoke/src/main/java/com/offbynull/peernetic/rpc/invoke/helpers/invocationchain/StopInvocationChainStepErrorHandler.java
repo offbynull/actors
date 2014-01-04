@@ -14,23 +14,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;
 
 /**
- * Handles async invokation results.
+ * Stops the invocation chain on any error.
  * @author Kasra Faghihi
  */
-public interface InvokationChainStepResultHandler {
+public final class StopInvocationChainStepErrorHandler implements InvocationChainStepErrorHandler {
 
-    /**
-     * Handles async invokation results.
-     * @param step step that the result is for
-     * @param stepIndex index of {@code step}
-     * @param result result
-     * @return {@code true} to continue the invokation chain, {@code false} to stop
-     * @throws NullPointerException if any arguments other than {@code result} are {@code null}
-     * @throws IllegalArgumentException if any numeric arguments are negative
-     */
-    boolean handleResult(InvokationChainStep step, int stepIndex, Object result);
+    @Override
+    public ErrorOperation handleError(InvocationChainStep step, int stepIndex, ErrorType type, Object error) {
+        return ErrorOperation.STOP;
+    }
     
 }

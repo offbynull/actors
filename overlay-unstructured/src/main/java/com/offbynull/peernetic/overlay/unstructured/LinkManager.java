@@ -18,12 +18,12 @@ package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
-import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.ErrorOperation;
-import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.ErrorType;
-import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainBuilder;
-import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainStep;
-import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainStepErrorHandler;
-import com.offbynull.peernetic.rpc.invoke.helpers.invokationchain.InvokationChainStepResultHandler;
+import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.ErrorOperation;
+import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.ErrorType;
+import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.InvocationChainBuilder;
+import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.InvocationChainStep;
+import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.InvocationChainStepErrorHandler;
+import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.InvocationChainStepResultHandler;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -367,9 +367,9 @@ final class LinkManager<A> {
     }
     
     private void invokeKeepAlive(final UnstructuredServiceAsync<A> service, final A address, final byte[] secret) {
-        InvokationChainBuilder builder = new InvokationChainBuilder();
+        InvocationChainBuilder builder = new InvocationChainBuilder();
         
-        builder.addStep(new InvokationChainStep() {
+        builder.addStep(new InvocationChainStep() {
 
             @Override
             public void doInvoke(AsyncResultListener resultListener) {
@@ -377,7 +377,7 @@ final class LinkManager<A> {
             }
         });
         
-        builder.addStep(new InvokationChainStep() {
+        builder.addStep(new InvocationChainStep() {
 
             @Override
             public void doInvoke(AsyncResultListener resultListener) {
@@ -385,19 +385,19 @@ final class LinkManager<A> {
             }
         });
         
-        builder.setErrorHandler(new InvokationChainStepErrorHandler() {
+        builder.setErrorHandler(new InvocationChainStepErrorHandler() {
 
             @Override
-            public ErrorOperation handleError(InvokationChainStep step, int stepIndex, ErrorType type, Object error) {
+            public ErrorOperation handleError(InvocationChainStep step, int stepIndex, ErrorType type, Object error) {
                 internalRemoveOutgoingLink(address);
                 return ErrorOperation.STOP;
             }
         });
         
-        builder.setResultHandler(new InvokationChainStepResultHandler() {
+        builder.setResultHandler(new InvocationChainStepResultHandler() {
 
             @Override
-            public boolean handleResult(InvokationChainStep step, int stepIndex, Object result) {
+            public boolean handleResult(InvocationChainStep step, int stepIndex, Object result) {
                 if (stepIndex == 0) {
                     internalAddToAddressCache((State<A>) result);
                 } else if (stepIndex == 1) {
@@ -418,9 +418,9 @@ final class LinkManager<A> {
     }
     
     private void invokeJoin(final UnstructuredServiceAsync<A> service, final A address, final byte[] secret) {
-        InvokationChainBuilder builder = new InvokationChainBuilder();
+        InvocationChainBuilder builder = new InvocationChainBuilder();
         
-        builder.addStep(new InvokationChainStep() {
+        builder.addStep(new InvocationChainStep() {
 
             @Override
             public void doInvoke(AsyncResultListener resultListener) {
@@ -428,7 +428,7 @@ final class LinkManager<A> {
             }
         });
         
-        builder.addStep(new InvokationChainStep() {
+        builder.addStep(new InvocationChainStep() {
 
             @Override
             public void doInvoke(AsyncResultListener resultListener) {
@@ -436,10 +436,10 @@ final class LinkManager<A> {
             }
         });
         
-        builder.setResultHandler(new InvokationChainStepResultHandler() {
+        builder.setResultHandler(new InvocationChainStepResultHandler() {
 
             @Override
-            public boolean handleResult(InvokationChainStep step, int stepIndex, Object result) {
+            public boolean handleResult(InvocationChainStep step, int stepIndex, Object result) {
                 if (stepIndex == 0) {
                     internalAddToAddressCache((State<A>) result);
                 } else if (stepIndex == 1) {

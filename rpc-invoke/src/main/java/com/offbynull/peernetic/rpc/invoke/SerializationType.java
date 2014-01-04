@@ -17,13 +17,13 @@
 package com.offbynull.peernetic.rpc.invoke;
 
 /**
- * Type of serialized invokation data.
+ * Type of serialized invocation data.
  * @author Kasra Faghihi
  */
 public enum SerializationType {
 
     /**
-     * Method invokation data.
+     * Method invocation data.
      */
     METHOD_CALL,
     /**

@@ -135,18 +135,18 @@ public final class InvokeTest {
         FakeObject client = capturer.createInstance(new CapturerHandler() {
 
             @Override
-            public byte[] invokationTriggered(byte[] data) {
+            public byte[] invocationTriggered(byte[] data) {
                 final Exchanger<byte[]> exchanger = new Exchanger<>();
 
                 invoker.invoke(data, new InvokerListener() {
 
                     @Override
-                    public void invokationFailed(Throwable t) {
+                    public void invocationFailed(Throwable t) {
                         failFlag.set(true);
                     }
 
                     @Override
-                    public void invokationFinised(byte[] data) {
+                    public void invocationFinised(byte[] data) {
                         try {
                             exchanger.exchange(data);
                         } catch (InterruptedException ex) {
@@ -166,7 +166,7 @@ public final class InvokeTest {
             }
 
             @Override
-            public void invokationFailed(Throwable err) {
+            public void invocationFailed(Throwable err) {
                 failFlag.set(true);
                 throw new RuntimeException(err);
             }

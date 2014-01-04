@@ -28,7 +28,7 @@ public interface ActorQueueNotifier {
      */
     void await(long timeout) throws InterruptedException;
     /**
-     * Causes the first {@link #await(long) } invokation that has not yet returned to return immediately.
+     * Causes the first {@link #await(long) } invocation that has not yet returned to return immediately.
      * <p/>
      * If another thread is currently blocked in an invocation of {@link #await(long) } then that invocation will return immediately. If no
      * {@link #await(long) } is not in progress then the next invocation of one of these methods will return immediately. Subsequent

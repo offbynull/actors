@@ -24,15 +24,15 @@ package com.offbynull.peernetic.rpc.invoke;
 public class AsyncResultAdapter<T> implements AsyncResultListener<T> {
 
     @Override
-    public void invokationReturned(T object) {
+    public void invocationReturned(T object) {
     }
 
     @Override
-    public void invokationThrew(Throwable err) {
+    public void invocationThrew(Throwable err) {
     }
 
     @Override
-    public void invokationFailed(Object err) {
+    public void invocationFailed(Object err) {
     }
     
 }

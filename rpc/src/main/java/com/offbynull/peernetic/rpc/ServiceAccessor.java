@@ -50,7 +50,7 @@ final class ServiceAccessor<A> {
         T obj = capturer.createInstance(new CapturerHandler() {
 
             @Override
-            public byte[] invokationTriggered(byte[] data) {
+            public byte[] invocationTriggered(byte[] data) {
                 try {
                     ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
                     buffer.putInt(serviceId);
@@ -71,7 +71,7 @@ final class ServiceAccessor<A> {
             }
 
             @Override
-            public void invokationFailed(Throwable err) {
+            public void invocationFailed(Throwable err) {
                 throw throwOnInvokeFailure;
             }
         });
@@ -92,12 +92,12 @@ final class ServiceAccessor<A> {
         AT obj = capturer.createInstance(new AsyncCapturerHandler() {
 
             @Override
-            public void invokationFailed(Throwable err) {
+            public void invocationFailed(Throwable err) {
                 throw throwOnInvokeFailure;
             }
 
             @Override
-            public void invokationTriggered(byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
+            public void invocationTriggered(byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
                 try {
                     ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
                     buffer.putInt(serviceId);

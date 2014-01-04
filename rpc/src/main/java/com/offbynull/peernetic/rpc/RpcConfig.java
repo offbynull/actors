@@ -63,16 +63,16 @@ public final class RpcConfig<A> {
     }
 
     /**
-     * Get the extra key-value pairs to be passed to {@link InvokeThreadInformation} on each method invokation.
-     * @return extra invokation data
+     * Get the extra key-value pairs to be passed to {@link InvokeThreadInformation} on each method invocation.
+     * @return extra invocation data
      */
     public Map<? extends Object, ? extends Object> getExtraInvokeInfo() {
         return extraInvokeInfo;
     }
 
     /**
-     * Set the extra key-value pairs to be passed to {@link InvokeThreadInformation} on each method invokation.
-     * @param invokeDataMap extra invokation data
+     * Set the extra key-value pairs to be passed to {@link InvokeThreadInformation} on each method invocation.
+     * @param invokeDataMap extra invocation data
      * @throws NullPointerException if any arguments are null
      */
     public void setExtraInvokeInfo(Map<? extends Object, ? extends Object> invokeDataMap) {

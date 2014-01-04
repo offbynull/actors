@@ -112,7 +112,7 @@ public abstract class Actor {
      * @param timestamp current timestamp
      * @param iterator messages from the internal {@link ActorQueueReader}
      * @param pushQueue messages to send at the end of each invocation of this method
-     * @return maximum amount of time to wait until next invokation of this method, or a negative value to shutdown the service
+     * @return maximum amount of time to wait until next invocation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
     protected abstract long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception;

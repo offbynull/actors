@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.rpc.invoke;
 
 /**
- * Provides the ability to proxy a asynchronous interface such that method invokations are processed by some external source. This class
+ * Provides the ability to proxy a asynchronous interface such that method invocations are processed by some external source. This class
  * essentially does what {@link Capturer} does, but does so using an asynchronous interface. That is, this class expects to proxy an
  * interface where the method signatures of the interface resemble that of a non-final class/interface that you would pass in to
  * {@link Capturer}. The difference between the method signatures are that..

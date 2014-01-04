@@ -19,16 +19,16 @@ package com.offbynull.peernetic.rpc.invoke;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Inspects and potentially makes changes to an incoming invokation's result/exception.
+ * Inspects and potentially makes changes to an incoming invocation's result/exception.
  * @author Kasra Faghihi
  */
 public interface PostInvokeFilter {
     /**
-     * Validates/inspects/modifies incoming invokation's result/exception.
-     * @param result invokation result (must never be {@code null})
+     * Validates/inspects/modifies incoming invocation's result/exception.
+     * @param result invocation result (must never be {@code null})
      * @throws RuntimeException on validation error
      * @throws NullPointerException if any arguments are {@code null}
-     * @return modified invokation result/exception
+     * @return modified invocation result/exception
      */
     Result filter(Result result);
     
@@ -47,7 +47,7 @@ public interface PostInvokeFilter {
     }
     
     /**
-     * Encapsulates a result/exception from a method invokation.
+     * Encapsulates a result/exception from a method invocation.
      */
     final class Result {
         private ResultType type;

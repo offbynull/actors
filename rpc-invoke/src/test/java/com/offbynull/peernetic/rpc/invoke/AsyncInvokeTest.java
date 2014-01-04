@@ -237,7 +237,7 @@ public final class AsyncInvokeTest {
         }
         
         @Override
-        public void invokationReturned(T object) {
+        public void invocationReturned(T object) {
             successFlag.set(true);
             try {
                 finishExchanger.exchange(object);
@@ -246,7 +246,7 @@ public final class AsyncInvokeTest {
         }
 
         @Override
-        public void invokationThrew(Throwable err) {
+        public void invocationThrew(Throwable err) {
             failFlag.set(true);
             try {
                 finishExchanger.exchange(err);
@@ -255,7 +255,7 @@ public final class AsyncInvokeTest {
         }
 
         @Override
-        public void invokationFailed(Object err) {
+        public void invocationFailed(Object err) {
             failFlag.set(true);
             try {
                 finishExchanger.exchange(err);
@@ -272,7 +272,7 @@ public final class AsyncInvokeTest {
         FakeObjectAsync client = capturer.createInstance(new AsyncCapturerHandler() {
 
             @Override
-            public void invokationTriggered(final byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
+            public void invocationTriggered(final byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
 
                 Runnable r = new Runnable() {
 
@@ -281,12 +281,12 @@ public final class AsyncInvokeTest {
                         invoker.invoke(data, new InvokerListener() {
 
                             @Override
-                            public void invokationFailed(Throwable t) {
+                            public void invocationFailed(Throwable t) {
                                 responseHandler.responseFailed(t);
                             }
 
                             @Override
-                            public void invokationFinised(byte[] outData) {
+                            public void invocationFinised(byte[] outData) {
                                 responseHandler.responseArrived(outData);
                             }
                         }, invokeInfo);
@@ -297,7 +297,7 @@ public final class AsyncInvokeTest {
             }
 
             @Override
-            public void invokationFailed(Throwable err) {
+            public void invocationFailed(Throwable err) {
                 failFlag.set(true);
             }
         });
@@ -314,7 +314,7 @@ public final class AsyncInvokeTest {
         AT client = capturer.createInstance(new AsyncCapturerHandler() {
 
             @Override
-            public void invokationTriggered(final byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
+            public void invocationTriggered(final byte[] data, final AsyncCapturerHandlerCallback responseHandler) {
 
                 Runnable r = new Runnable() {
 
@@ -323,12 +323,12 @@ public final class AsyncInvokeTest {
                         invoker.invoke(data, new InvokerListener() {
 
                             @Override
-                            public void invokationFailed(Throwable t) {
+                            public void invocationFailed(Throwable t) {
                                 responseHandler.responseFailed(t);
                             }
 
                             @Override
-                            public void invokationFinised(byte[] outData) {
+                            public void invocationFinised(byte[] outData) {
                                 responseHandler.responseArrived(outData);
                             }
                         }, invokeInfo);
@@ -339,7 +339,7 @@ public final class AsyncInvokeTest {
             }
 
             @Override
-            public void invokationFailed(Throwable err) {
+            public void invocationFailed(Throwable err) {
                 failFlag.set(true);
             }
         });

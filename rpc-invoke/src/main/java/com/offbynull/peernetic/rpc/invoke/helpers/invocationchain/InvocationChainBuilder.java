@@ -14,27 +14,27 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Builder for {@link InvokationChain}.
+ * Builder for {@link InvocationChain}.
  * @author Kasra F
  */
-public final class InvokationChainBuilder {
-    private List<InvokationChainStep> steps = new ArrayList<>();
-    private InvokationChainStepErrorHandler errorHandler = new StopInvokationChainStepErrorHandler();
-    private InvokationChainStepResultHandler resultHandler = new ContinueInvokationChainStepResultHandler();
+public final class InvocationChainBuilder {
+    private List<InvocationChainStep> steps = new ArrayList<>();
+    private InvocationChainStepErrorHandler errorHandler = new StopInvocationChainStepErrorHandler();
+    private InvocationChainStepResultHandler resultHandler = new ContinueInvocationChainStepResultHandler();
 
     /**
      * Set the error handler.
      * @param errorHandler error handler
      * @return this
      */
-    public InvokationChainBuilder setErrorHandler(InvokationChainStepErrorHandler errorHandler) {
+    public InvocationChainBuilder setErrorHandler(InvocationChainStepErrorHandler errorHandler) {
         Validate.notNull(errorHandler);
         this.errorHandler = errorHandler;
         return this;
@@ -45,28 +45,28 @@ public final class InvokationChainBuilder {
      * @param resultHandler result handler
      * @return this
      */
-    public InvokationChainBuilder setResultHandler(InvokationChainStepResultHandler resultHandler) {
+    public InvocationChainBuilder setResultHandler(InvocationChainStepResultHandler resultHandler) {
         Validate.notNull(resultHandler);
         this.resultHandler = resultHandler;
         return this;
     }
 
     /**
-     * Add an invokation step.
-     * @param step invokation step
+     * Add an invocation step.
+     * @param step invocation step
      * @return this
      */
-    public InvokationChainBuilder addStep(InvokationChainStep step) {
+    public InvocationChainBuilder addStep(InvocationChainStep step) {
         Validate.notNull(step);
         steps.add(step);
         return this;
     }
     
     /**
-     * Build {@link InvokationChain}.
+     * Build {@link InvocationChain}.
      * @return build
      */
-    public InvokationChain build() {
-        return new InvokationChain(resultHandler, errorHandler, steps);
+    public InvocationChain build() {
+        return new InvocationChain(resultHandler, errorHandler, steps);
     }
 }

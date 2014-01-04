@@ -14,8 +14,21 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;
 
 /**
- * Provides a mechanism to chain async RPC invokations together.
+ * Specifies error type.
+ * @author Kasra Faghihi
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
+public enum ErrorType {
+
+    /**
+     * Communication failure.
+     */
+    FAILURE,
+    /**
+     * Method invocation threw an exception.
+     */
+    METHOD_THROW
+
+}

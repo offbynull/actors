@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;
 
 /**
  * Specifies how errors are to be handled.
@@ -23,15 +23,15 @@ package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
 public enum ErrorOperation {
 
     /**
-     * Retry the invokation step that failed.
+     * Retry the invocation step that failed.
      */
     RETRY,
     /**
-     * Continue to the next invokation step.
+     * Continue to the next invocation step.
      */
     CONTINUE,
     /**
-     * Stop the invokation chain.
+     * Stop the invocation chain.
      */
     STOP
 

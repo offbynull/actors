@@ -17,9 +17,9 @@
 package com.offbynull.peernetic.rpc.invoke;
 
 /**
- * Provides the ability to proxy a non-final class or interface such that method invokations are processed by some external source.
- * Invokations are sent to the external source as a serialized byte array, and each invokation waits for the external source to give back
- * either a result to be returned by the invokation or a {@link Throwable} to be thrown from the invokation. {@link CapturerHandler} is the
+ * Provides the ability to proxy a non-final class or interface such that method invocations are processed by some external source.
+ * Invocations are sent to the external source as a serialized byte array, and each invocation waits for the external source to give back
+ * either a result to be returned by the invocation or a {@link Throwable} to be thrown from the invocation. {@link CapturerHandler} is the
  * processing mechanism.
  * @author Kasra Faghihi
  * @param <T> proxy type

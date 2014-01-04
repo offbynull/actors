@@ -14,21 +14,24 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.invoke.helpers.invokationchain;
+package com.offbynull.peernetic.rpc.invoke.helpers.invocationchain;
 
 /**
- * Specifies error type.
+ * Handles async invocation errors.
  * @author Kasra Faghihi
  */
-public enum ErrorType {
+public interface InvocationChainStepErrorHandler {
 
     /**
-     * Communication failure.
+     * Handles async invocation errors.
+     * @param step step that the result is for
+     * @param stepIndex index of {@code step}
+     * @param type type of error encountered
+     * @param error error
+     * @return how to handle the error encountered
+     * @throws NullPointerException if any arguments other than {@code error} are {@code null}
+     * @throws IllegalArgumentException if any numeric arguments are negative
      */
-    FAILURE,
-    /**
-     * Method invokation threw an exception.
-     */
-    METHOD_THROW
-
+    ErrorOperation handleError(InvocationChainStep step, int stepIndex, ErrorType type, Object error);
+    
 }

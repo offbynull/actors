@@ -57,9 +57,7 @@ public final class UdpTransportBenchmark {
 
             InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
             Transport transport = udpTransportFactory.createTransport();
-            transport.start(new CompositeIncomingFilter<>(Collections.<IncomingFilter<Integer>>emptyList()),
-                    new EchoIncomingMessageListener(),
-                    new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<Integer>>emptyList()));
+            transport.start(new EchoIncomingMessageListener());
             transports.put(addr, transport);
         }
         

@@ -17,23 +17,14 @@
 package com.offbynull.peernetic.demos.transport;
 
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransportFactory;
-import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
-import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingMessage;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseHandler;
-import com.offbynull.peernetic.rpc.transport.IncomingResponse;
-import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.OutgoingResponse;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,8 +39,8 @@ import java.util.Map;
  * @author Kasra Faghihi
  */
 public final class TcpTransportBenchmark {
-    private static final int NUM_OF_TRANSPORTS = 2;
-    private static Map<InetSocketAddress, TransportActor<InetSocketAddress>> transports = new HashMap<>();
+    private static final int NUM_OF_TRANSPORTS = 50;
+    private static Map<InetSocketAddress, Transport<InetSocketAddress>> transports = new HashMap<>();
     
     private TcpTransportBenchmark() {
         // do nothing
@@ -66,10 +57,8 @@ public final class TcpTransportBenchmark {
             tcpTransportFactory.setListenAddress(new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i));
 
             InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), 10000 + i);
-            TransportActor transport = tcpTransportFactory.createTransport();
-            transport.start(new CompositeIncomingFilter<>(Collections.<IncomingFilter<Integer>>emptyList()),
-                    new EchoIncomingMessageListener(),
-                    new CompositeOutgoingFilter<>(Collections.<OutgoingFilter<Integer>>emptyList()));
+            Transport transport = tcpTransportFactory.createTransport();
+            transport.start(new EchoIncomingMessageListener());
             transports.put(addr, transport);
         }
         
@@ -85,6 +74,10 @@ public final class TcpTransportBenchmark {
                 issueMessage(fromAddr, toAddr);
             }
         }
+        
+        while (true) {
+            Thread.sleep(1000L);
+        }
     }
     
     private static void issueMessage(InetSocketAddress from, InetSocketAddress to) {
@@ -93,21 +86,20 @@ public final class TcpTransportBenchmark {
         ByteBuffer data = ByteBuffer.allocate(8);
         data.putLong(0, time);
 
-        OutgoingMessage<InetSocketAddress> message = new OutgoingMessage<>(from, data);
-        transports.get(to).sendMessage(message, new ReportAndReissueOutgoingMessageResponseListener(from, to));
+        transports.get(to).sendMessage(from, data, new ReportAndReissueOutgoingMessageResponseListener(from, to));
     }
 
     private static final class EchoIncomingMessageListener implements IncomingMessageListener<InetSocketAddress> {
 
         @Override
-        public void messageArrived(IncomingMessage<InetSocketAddress> message, IncomingMessageResponseHandler responseCallback) {
-            ByteBuffer data = message.getData();
-            responseCallback.responseReady(new OutgoingResponse(data));
+        public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+            responseCallback.responseReady(message);
         }
     }
 
     private static final class ReportAndReissueOutgoingMessageResponseListener
-            implements OutgoingMessageResponseListener<InetSocketAddress> {
+            implements OutgoingMessageResponseListener {
+        private static volatile int counter;
         private InetSocketAddress from;
         private InetSocketAddress to;
 
@@ -117,22 +109,19 @@ public final class TcpTransportBenchmark {
         }
 
         @Override
-        public void responseArrived(IncomingResponse<InetSocketAddress> response) {
-            long diff = System.currentTimeMillis() - response.getData().getLong(0);
-            System.out.println("Response time: " + diff);
+        public void responseArrived(ByteBuffer response) {
+            long diff = System.currentTimeMillis() - response.getLong(response.position());
+            int count = counter++;
+            if (count % 10000 == 0) {
+                System.out.println("Response time: " + diff + "(" + count + ")");
+            }
             
             issueMessage(from, to);
         }
 
         @Override
-        public void internalErrorOccurred(Throwable error) {
+        public void errorOccurred(Object error) {
             System.err.println("ERROR: " + error);
-            issueMessage(from, to);
-        }
-
-        @Override
-        public void timedOut() {
-            System.err.println("TIMEDOUT");
             issueMessage(from, to);
         }
     }

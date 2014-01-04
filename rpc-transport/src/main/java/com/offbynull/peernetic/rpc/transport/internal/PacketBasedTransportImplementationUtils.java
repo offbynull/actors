@@ -138,7 +138,11 @@ public final class PacketBasedTransportImplementationUtils {
         for (IncomingRequest<A> incomingRequest : ipmResult.getNewIncomingRequests()) {
             IncomingMessageResponseListener incomingMessageResponseListener =
                     new DefaultIncomingResponseListener(incomingRequest.getId(), selfWriter);
-            incomingMessageListener.messageArrived(incomingRequest.getFrom(), incomingRequest.getData(), incomingMessageResponseListener);
+            try {
+                incomingMessageListener.messageArrived(incomingRequest.getFrom(), incomingRequest.getData(),
+                        incomingMessageResponseListener);
+            } catch (RuntimeException re) { // NOPMD
+            }
         }
  
         // notify of incoming response to outgoing requests

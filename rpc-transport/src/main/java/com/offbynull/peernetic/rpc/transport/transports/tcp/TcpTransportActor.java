@@ -245,12 +245,18 @@ final class TcpTransportActor extends TransportActor<InetSocketAddress> {
 
                         if (info instanceof OutgoingMessageChannelInfo) {
                             OutgoingMessageResponseListener listener = ((OutgoingMessageChannelInfo) info).getResponseHandler();
-                            listener.responseArrived(filteredInData);
+                            try {
+                                listener.responseArrived(filteredInData);
+                            } catch (RuntimeException re) { // NOPMD
+                            }
 
                             killSocketSilently(id);
                         } else if (info instanceof IncomingMessageChannelInfo) {
                             IncomingMessageResponseListener responseCallback = new DefaultIncomingResponseListener(id, getSelfWriter());
-                            incomingMessageListener.messageArrived(from, filteredInData, responseCallback);
+                            try {
+                                incomingMessageListener.messageArrived(from, filteredInData, responseCallback);
+                            } catch (RuntimeException re) { // NOPMD
+                            }
 
                             key.interestOps(0); // don't need to read anymore, when we get a response, we register op_write
                         } else {
@@ -314,7 +320,10 @@ final class TcpTransportActor extends TransportActor<InetSocketAddress> {
             killSocketSilently(id);
             if (info instanceof OutgoingMessageChannelInfo) {
                 OutgoingMessageResponseListener listener = ((OutgoingMessageChannelInfo) info).getResponseHandler();
-                listener.errorOccurred(error);
+                try {
+                    listener.errorOccurred(error);
+                } catch (RuntimeException re) { //NOPMD
+                }
             }
         } else {
             timeoutManager.cancel(id); // needs to be called again if info == null, in case this was added but the idToChannelInfoMap

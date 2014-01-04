@@ -34,7 +34,7 @@ import java.util.List;
  * @author Kasra Faghihi
  */
 public final class RpcBenchmark {
-    private static final int NUM_OF_TRANSPORTS = 100;
+    private static final int NUM_OF_TRANSPORTS = 10;
     private static TestHub<Integer> fakeHub = new TestHub<>(new PerfectLine<Integer>());
     private static List<Client> clients = new ArrayList<>();
     
@@ -63,7 +63,12 @@ public final class RpcBenchmark {
         }
 
         for (int i = 0; i < NUM_OF_TRANSPORTS; i++) {
-            issueMessage(i, (i + 1) % NUM_OF_TRANSPORTS);
+            for (int j = 0; j < NUM_OF_TRANSPORTS; j++) {
+                if (i == j) {
+                    continue;
+                }
+                issueMessage(i, j);
+            }
         }
     }
     
@@ -108,6 +113,7 @@ public final class RpcBenchmark {
     }
     
     private static final class ResultListener implements AsyncResultListener<Long> {
+        private static volatile int counter;
         private int from;
         private int to;
 
@@ -119,7 +125,11 @@ public final class RpcBenchmark {
         @Override
         public void invocationReturned(Long object) {
             long diff = System.currentTimeMillis() - object;
-            System.out.println("Response time: " + diff);
+            int count = counter++;
+            if (count % 10000 == 0) {
+                System.out.println("Response time: " + diff + "(" + count + ")");
+            }
+            
             
             issueMessage(from, to);
         }

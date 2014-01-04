@@ -17,19 +17,14 @@
 package com.offbynull.peernetic.demos.transport;
 
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransportFactory;
-import com.offbynull.peernetic.rpc.transport.CompositeIncomingFilter;
-import com.offbynull.peernetic.rpc.transport.CompositeOutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
-import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 

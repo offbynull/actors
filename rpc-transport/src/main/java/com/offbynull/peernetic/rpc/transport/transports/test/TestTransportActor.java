@@ -27,7 +27,7 @@ import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingMessageManagerResult;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.Packet;
 import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
-import com.offbynull.peernetic.rpc.transport.internal.TransportImplementationUtils;
+import com.offbynull.peernetic.rpc.transport.internal.PacketBasedTransportImplementationUtils;
 import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
 
@@ -97,15 +97,15 @@ final class TestTransportActor<A> extends TransportActor<A> {
                 long id = nextId++;
                 incomingMessageManager.incomingData(id, rme.getFrom(), rme.getData(), timestamp + incomingResponseTimeout);
             } else {
-                TransportImplementationUtils.processActorCommand(timestamp, nextId++, msg, outgoingMessageManager, incomingMessageManager,
-                        1L, outgoingResponseTimeout);
+                PacketBasedTransportImplementationUtils.processActorCommand(timestamp, nextId++, msg, outgoingMessageManager,
+                        incomingMessageManager, 1L, outgoingResponseTimeout);
             }
         }
 
 
 
         // process timeouts for outgoing requests
-        OutgoingMessageManagerResult ommResult = TransportImplementationUtils.processOutgoing(timestamp, outgoingMessageManager);
+        OutgoingMessageManagerResult ommResult = PacketBasedTransportImplementationUtils.processOutgoing(timestamp, outgoingMessageManager);
 
         
 
@@ -119,7 +119,7 @@ final class TestTransportActor<A> extends TransportActor<A> {
 
 
         // process timeouts for incoming requests
-        IncomingPacketManagerResult<A> immResult = TransportImplementationUtils.processIncoming(timestamp,
+        IncomingPacketManagerResult<A> immResult = PacketBasedTransportImplementationUtils.processIncoming(timestamp,
                 incomingMessageManager, outgoingMessageManager, incomingMessageListener, getSelfWriter());
 
 
@@ -137,6 +137,6 @@ final class TestTransportActor<A> extends TransportActor<A> {
         Message msg = Message.createOneWayMessage(new DeactivateEndpointCommand<>(address));
         hubWriter.push(msg);
 
-        TransportImplementationUtils.shutdownNotify(outgoingMessageManager);
+        PacketBasedTransportImplementationUtils.shutdownNotify(outgoingMessageManager);
     }
 }

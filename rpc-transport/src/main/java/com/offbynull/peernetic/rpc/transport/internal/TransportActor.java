@@ -114,7 +114,7 @@ public abstract class TransportActor<A> extends Actor {
     }
 
     /**
-     * Get writer used for sending message to this transport.
+     * Public version of {@link #getSelfWriter() }.
      * @return writer
      */
     public final ActorQueueWriter getInternalWriter() {

@@ -27,7 +27,7 @@ import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingMessageManagerResult;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.Packet;
 import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
-import com.offbynull.peernetic.rpc.transport.internal.TransportImplementationUtils;
+import com.offbynull.peernetic.rpc.transport.internal.PacketBasedTransportImplementationUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -118,14 +118,14 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
         // process commands
         while (iterator.hasNext()) {
             Message msg = iterator.next();
-            TransportImplementationUtils.processActorCommand(timestamp, nextId++, msg, outgoingMessageManager, incomingMessageManager,
-                    packetFlushTimeout, outgoingResponseTimeout);
+            PacketBasedTransportImplementationUtils.processActorCommand(timestamp, nextId++, msg, outgoingMessageManager,
+                    incomingMessageManager, packetFlushTimeout, outgoingResponseTimeout);
         }
 
 
 
         // process timeouts for outgoing requests
-        OutgoingMessageManagerResult ommResult = TransportImplementationUtils.processOutgoing(timestamp, outgoingMessageManager);
+        OutgoingMessageManagerResult ommResult = PacketBasedTransportImplementationUtils.processOutgoing(timestamp, outgoingMessageManager);
 
 
         
@@ -160,7 +160,7 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
 
 
         // process timeouts for incoming requests
-        IncomingPacketManagerResult<InetSocketAddress> immResult = TransportImplementationUtils.processIncoming(timestamp,
+        IncomingPacketManagerResult<InetSocketAddress> immResult = PacketBasedTransportImplementationUtils.processIncoming(timestamp,
                 incomingMessageManager, outgoingMessageManager, incomingMessageListener, getSelfWriter());
 
 
@@ -194,6 +194,6 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
         IOUtils.closeQuietly(selector);
         IOUtils.closeQuietly(channel);
 
-        TransportImplementationUtils.shutdownNotify(outgoingMessageManager);
+        PacketBasedTransportImplementationUtils.shutdownNotify(outgoingMessageManager);
     }
 }

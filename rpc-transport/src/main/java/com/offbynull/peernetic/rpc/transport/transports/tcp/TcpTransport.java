@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.transports.test;
+package com.offbynull.peernetic.rpc.transport.transports.tcp;
 
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
@@ -25,53 +25,49 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.filters.nil.NullIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A {@link TransportActor} used for testing. Backed by a {@link TestHub}.
+ * A TCP transport implementation.
  * @author Kasra Faghihi
- * @param <A> address type
  */
-public final class TestTransport<A> implements Transport<A> {
-
-    private TestTransportActor<A> transportActor;
+public final class TcpTransport implements Transport<InetSocketAddress> {
+    
+    private TcpTransportActor transportActor;
     private ActorQueueWriter writer;
 
     /**
-     * Constructs a {@link TestTransport} object.
-     * @param address address to listen on
-     * @param cacheSize number of packet ids to cache
-     * @param outgoingResponseTimeout timeout duration for responses for outgoing requests to arrive
-     * @param incomingResponseTimeout timeout duration for responses for incoming requests to be processed
-     * @param hub test hub
+     * Constructs a {@link TcpTransport} object.
+     * @param listenAddress address to listen on
+     * @param readLimit max number of bytes allowed to read
+     * @param writeLimit max number of bytes allowed to write
+     * @param timeout timeout duration for which a tcp connection will remain (must complete a request-response transaction in this time)
+     * @throws IOException on error
      * @throws IllegalArgumentException if any numeric argument is non-positive (less than 1)
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public TestTransport(A address, int cacheSize, long outgoingResponseTimeout,
-                long incomingResponseTimeout, TestHub<A> hub) {
-        Validate.notNull(address);
-        Validate.inclusiveBetween(1, Integer.MAX_VALUE, cacheSize);
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, outgoingResponseTimeout);
-        Validate.inclusiveBetween(1L, Long.MAX_VALUE, incomingResponseTimeout);
-        Validate.notNull(hub);
+    public TcpTransport(InetSocketAddress listenAddress, int readLimit, int writeLimit, long timeout) throws IOException {
+        Validate.notNull(listenAddress);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, readLimit);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, writeLimit);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
         
-        transportActor = new TestTransportActor<>(address, cacheSize, outgoingResponseTimeout, incomingResponseTimeout,
-                hub.getInternalWriter());
+        transportActor = new TcpTransportActor(listenAddress, readLimit, writeLimit, timeout);
         writer = transportActor.getInternalWriter();
-    }
-    
-    
-    @Override
-    public void start(IncomingMessageListener<A> listener) throws IOException {
-        start(new NullIncomingFilter<A>(), listener, new NullOutgoingFilter<A>());
     }
 
     @Override
-    public void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> listener, OutgoingFilter<A> outgoingFilter) {
+    public void start(IncomingMessageListener<InetSocketAddress> listener) throws IOException {
+        start(new NullIncomingFilter<InetSocketAddress>(), listener, new NullOutgoingFilter<InetSocketAddress>());
+    }
+
+    @Override
+    public void start(IncomingFilter<InetSocketAddress> incomingFilter, IncomingMessageListener<InetSocketAddress> listener,
+            OutgoingFilter<InetSocketAddress> outgoingFilter) {
         Validate.notNull(incomingFilter);
         Validate.notNull(listener);
         Validate.notNull(outgoingFilter);
@@ -89,7 +85,7 @@ public final class TestTransport<A> implements Transport<A> {
     }
 
     @Override
-    public void sendMessage(A to, ByteBuffer message, OutgoingMessageResponseListener listener) {
+    public void sendMessage(InetSocketAddress to, ByteBuffer message, OutgoingMessageResponseListener listener) {
         writer.push(Message.createOneWayMessage(new SendRequestCommand(to, message, listener)));
     }
 }

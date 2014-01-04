@@ -167,7 +167,7 @@ public final class IncomingMessageManager<A> {
                 newRequests,
                 timedOutPendingRequests,
                 newResponses,
-                results.getNextMaxTimestamp());
+                results.getNextTimeoutTimestamp());
         
         newRequests = new LinkedList<>();
         newResponses = new LinkedList<>();

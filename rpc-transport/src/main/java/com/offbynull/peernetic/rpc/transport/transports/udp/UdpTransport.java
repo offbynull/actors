@@ -49,7 +49,7 @@ public final class UdpTransport implements Transport<InetSocketAddress> {
      * @param outgoingResponseTimeout timeout duration for responses for outgoing requests to arrive
      * @param incomingResponseTimeout timeout duration for responses for incoming requests to be processed
      * @throws IOException on error
-     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
+     * @throws IllegalArgumentException if any numeric argument is non-positive (less than 1)
      * @throws NullPointerException if any arguments are {@code null}
      */
     public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long packetFlushTimeout,

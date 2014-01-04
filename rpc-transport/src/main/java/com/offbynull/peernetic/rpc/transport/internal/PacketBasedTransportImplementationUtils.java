@@ -30,11 +30,12 @@ import java.util.Collection;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A utility class that contains common code for {@link Transport} implementations.
+ * A utility class that contains common code for packet-based {@link Transport} implementations. Packet-based means that there is no
+ * packet ordering or abstracted connections or reliability.
  * @author Kasra Faghihi
  */
-public final class TransportImplementationUtils {
-    private TransportImplementationUtils() {
+public final class PacketBasedTransportImplementationUtils {
+    private PacketBasedTransportImplementationUtils() {
         
     }
     

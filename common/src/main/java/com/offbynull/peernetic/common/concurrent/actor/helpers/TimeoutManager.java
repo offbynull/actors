@@ -147,7 +147,7 @@ public final class TimeoutManager<R> {
          * Get the next timestamp a resource will expire.
          * @return next timestamp a resource will expire
          */
-        public long getNextMaxTimestamp() {
+        public long getNextTimeoutTimestamp() {
             return maxTimestamp;
         }
         

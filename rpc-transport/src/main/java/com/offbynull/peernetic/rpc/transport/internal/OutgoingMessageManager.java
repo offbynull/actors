@@ -197,7 +197,7 @@ public final class OutgoingMessageManager<A> {
             listenersForFailures.add(request.getListener());
             request.cancel();
         }
-        maxTimestamp = Math.min(maxTimestamp, timedOutQueuedRequests.getNextMaxTimestamp());
+        maxTimestamp = Math.min(maxTimestamp, timedOutQueuedRequests.getNextTimeoutTimestamp());
         
         TimeoutManagerResult<Long> timedOutSentRequests = sentRequestTimeoutManager.process(timestamp);
         for (Long id : timedOutSentRequests.getTimedout()) {
@@ -206,10 +206,10 @@ public final class OutgoingMessageManager<A> {
             listenersForFailures.add(request.getListener());
             request.cancel();
         }
-        maxTimestamp = Math.min(maxTimestamp, timedOutSentRequests.getNextMaxTimestamp());
+        maxTimestamp = Math.min(maxTimestamp, timedOutSentRequests.getNextTimeoutTimestamp());
         
         TimeoutManagerResult<Long> timedOutQueuedResponses = queuedResponseTimeoutManager.process(timestamp);
-        maxTimestamp = Math.min(maxTimestamp, timedOutQueuedResponses.getNextMaxTimestamp());
+        maxTimestamp = Math.min(maxTimestamp, timedOutQueuedResponses.getNextTimeoutTimestamp());
         
         return new OutgoingMessageManagerResult(listenersForFailures, maxTimestamp, queuedSends.size());
     }

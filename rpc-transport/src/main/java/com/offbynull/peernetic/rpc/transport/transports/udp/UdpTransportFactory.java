@@ -16,8 +16,8 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.TransportFactory;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
@@ -143,7 +143,7 @@ public final class UdpTransportFactory implements TransportFactory<InetSocketAdd
     }
 
     @Override
-    puTransportActorsport<InetSocketAddress> createTransport() throws IOException {
+    public Transport<InetSocketAddress> createTransport() throws IOException {
         return new UdpTransport(listenAddress, bufferSize, cacheSize, packetFlushTimeout, outgoingResponseTimeout, incomingResponseTimeout);
     }
     

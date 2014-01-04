@@ -27,7 +27,7 @@ import com.offbynull.peernetic.rpc.transport.IncomingResponse;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
-import com.offbynull.peernetic.rpc.transport.TransportHelper;
+import com.offbynull.peernetic.rpc.transport.TransportUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
@@ -61,7 +61,7 @@ final class ServiceAccessor<A> {
                     
                     OutgoingMessage<A> message = new OutgoingMessage<>(address, buffer);
                     
-                    IncomingResponse<A> response = TransportHelper.sendAndWait(transport, message);
+                    IncomingResponse<A> response = TransportUtils.sendAndWait(transport, message);
                     ByteBuffer resp = response.getData();
                     byte[] respArray = new byte[resp.remaining()];
                     resp.get(respArray);

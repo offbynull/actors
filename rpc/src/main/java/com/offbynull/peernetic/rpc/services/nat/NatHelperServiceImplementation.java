@@ -25,7 +25,7 @@ import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.OutgoingMessage;
 import com.offbynull.peernetic.rpc.transport.TerminateIncomingMessageListener;
 import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
-import com.offbynull.peernetic.rpc.transport.TransportHelper;
+import com.offbynull.peernetic.rpc.transport.TransportUtils;
 import com.offbynull.peernetic.rpc.transport.transports.tcp.TcpTransport;
 import com.offbynull.peernetic.rpc.transport.transports.udp.UdpTransport;
 import java.io.IOException;
@@ -84,7 +84,7 @@ public final class NatHelperServiceImplementation implements NatHelperService {
             
             InetSocketAddress inetTo = new InetSocketAddress(inetFrom.getAddress(), port);
             OutgoingMessage<InetSocketAddress> outgoingMessage = new OutgoingMessage<>(inetTo, challenge);
-            TransportHelper.sendAndForget(transport, outgoingMessage);
+            TransportUtils.sendAndForget(transport, outgoingMessage);
 
             return TestPortResult.SUCCESS; // sendAndForget will close the transport for us once it's finished
         } catch (IOException | RuntimeException e) {

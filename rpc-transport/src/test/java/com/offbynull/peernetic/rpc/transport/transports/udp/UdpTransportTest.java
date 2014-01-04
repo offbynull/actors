@@ -16,19 +16,12 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
-import com.offbynull.peernetic.common.concurrent.actor.Message;
-import com.offbynull.peernetic.rpc.transport.internal.DropResponseCommand;
-import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
-import com.offbynull.peernetic.rpc.transport.internal.RequestArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.internal.ResponseArrivedEvent;
-import com.offbynull.peernetic.rpc.transport.internal.ResponseErroredEvent;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
+import com.offbynull.peernetic.rpc.transport.IncomingMessageResponseListener;
+import com.offbynull.peernetic.rpc.transport.TransportUtils;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -45,8 +38,8 @@ public final class UdpTransportTest {
 
     private UdpTransport transport1;
     private UdpTransport transport2;
-    private int port1;
-    private int port2;
+    private InetSocketAddress address1;
+    private InetSocketAddress address2;
     private static AtomicInteger nextPort;
 
     public UdpTransportTest() {
@@ -63,13 +56,11 @@ public final class UdpTransportTest {
 
     @Before
     public void setUp() throws IOException {
-        port1 = nextPort.getAndIncrement();
-        transport1 = new UdpTransport(new InetSocketAddress(InetAddress.getLocalHost(), port1), BUFFER_SIZE, ID_CACHE_SIZE, 50L,
-                TIMEOUT_DURATION, TIMEOUT_DURATION);
+        address1 = new InetSocketAddress("localhost", nextPort.getAndIncrement());
+        transport1 = new UdpTransport(address1, BUFFER_SIZE, ID_CACHE_SIZE, 50L, TIMEOUT_DURATION, TIMEOUT_DURATION);
         
-        port2 = nextPort.getAndIncrement();
-        transport2 = new UdpTransport(new InetSocketAddress(InetAddress.getLocalHost(), port2), BUFFER_SIZE, ID_CACHE_SIZE, 50L,
-                TIMEOUT_DURATION, TIMEOUT_DURATION);
+        address2 = new InetSocketAddress("localhost", nextPort.getAndIncrement());
+        transport2 = new UdpTransport(address2, BUFFER_SIZE, ID_CACHE_SIZE, 50L, TIMEOUT_DURATION, TIMEOUT_DURATION);
     }
 
     @After
@@ -78,212 +69,119 @@ public final class UdpTransportTest {
 
     @Test
     public void selfUdpTest() throws Throwable {
-        ActorQueue fakeQueue = new ActorQueue();
-                    
-        InetSocketAddress to = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        byte[] reqData = "HIEVERYBODY! :)".getBytes();
-        byte[] respData = "THIS IS THE RESPONSE".getBytes();
-        Message msg;
-        Iterator<Message> msgIt;
+        IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+                byte[] data = new byte[message.remaining()];
+                message.get(data);
+
+                if (new String(data).equals("HIEVERYBODY! :)")) {
+                    responseCallback.responseReady(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()));
+                } else {
+                    responseCallback.terminate();
+                }
+            }
+        };
 
         try {
-            transport1.setDestinationWriter(fakeQueue.getWriter());
-            transport1.start();
-            
-            
-            // write message to self
-            msg = Message.createRespondableMessage(0, fakeQueue.getWriter(),
-                    new SendRequestCommand<>(to, ByteBuffer.wrap(reqData)));
-            transport1.getWriter().push(msg);
-            
-            // wait for self to get msg
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
-            
-            msg = msgIt.next();
-            RequestArrivedEvent<InetSocketAddress> requestArrivedEvent = (RequestArrivedEvent<InetSocketAddress>) msg.getContent();
-            
-            Assert.assertEquals(ByteBuffer.wrap(reqData), requestArrivedEvent.getData());
-            Assert.assertEquals(to, requestArrivedEvent.getFrom());
-            
-            // respond to self
-            msg.getResponder().respondImmediately(new SendResponseCommand<>(ByteBuffer.wrap(respData)));
-            
-            // wait for self to get resp
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
+            transport1.start(listener);
 
-            msg = msgIt.next();
-            ResponseArrivedEvent<InetSocketAddress> responseArrivedEvent = (ResponseArrivedEvent<InetSocketAddress>) msg.getContent();
-            
-            Assert.assertEquals(ByteBuffer.wrap(respData), responseArrivedEvent.getData());
-            Assert.assertEquals(to, responseArrivedEvent.getFrom());
+            InetSocketAddress to = address1;
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            ByteBuffer incomingResponse = TransportUtils.<InetSocketAddress>sendAndWait(transport1, to, ByteBuffer.wrap(data));
+
+            Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse);
         } finally {
             transport1.stop();
         }
-        
-        msgIt = fakeQueue.getReader().pull(1000L);
-        Assert.assertFalse(msgIt.hasNext());
     }
 
     @Test
     public void normalUdpTest() throws Throwable {
-        ActorQueue fakeQueue = new ActorQueue();
-                    
-        InetSocketAddress transport1To = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        InetSocketAddress transport2To = new InetSocketAddress(InetAddress.getLocalHost(), port2);
-        byte[] reqData = "HIEVERYBODY! :)".getBytes();
-        byte[] respData = "THIS IS THE RESPONSE".getBytes();
-        Message msg;
-        Iterator<Message> msgIt;
+        IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+                byte[] data = new byte[message.remaining()];
+                message.get(data);
+
+                if (new String(data).equals("HIEVERYBODY! :)")) {
+                    responseCallback.responseReady(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()));
+                } else {
+                    responseCallback.terminate();
+                }
+            }
+        };
+        
+        IncomingMessageListener<InetSocketAddress> termListener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+                responseCallback.terminate();
+            }
+        };
 
         try {
-            transport1.setDestinationWriter(fakeQueue.getWriter());
-            transport1.start();
-            
-            transport2.setDestinationWriter(fakeQueue.getWriter());
-            transport2.start();
-            
-            
-            // write message to transport2 from transport1
-            msg = Message.createRespondableMessage(0, fakeQueue.getWriter(),
-                    new SendRequestCommand<>(transport2To, ByteBuffer.wrap(reqData)));
-            transport1.getWriter().push(msg);
-            
-            // wait for msg to arrive on transport2
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
-            
-            msg = msgIt.next();
-            RequestArrivedEvent<InetSocketAddress> requestArrivedEvent = (RequestArrivedEvent<InetSocketAddress>) msg.getContent();
-            
-            Assert.assertEquals(ByteBuffer.wrap(reqData), requestArrivedEvent.getData());
-            Assert.assertEquals(transport1To, requestArrivedEvent.getFrom());
-            
-            // respond back to transport1 from transport2
-            msg.getResponder().respondImmediately(new SendResponseCommand<>(ByteBuffer.wrap(respData)));
-            
-            // wait for transport1 to get resp
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
+            transport1.start(listener);
+            transport2.start(termListener);
 
-            msg = msgIt.next();
-            ResponseArrivedEvent<InetSocketAddress> responseArrivedEvent = (ResponseArrivedEvent<InetSocketAddress>) msg.getContent();
-            
-            Assert.assertEquals(ByteBuffer.wrap(respData), responseArrivedEvent.getData());
-            Assert.assertEquals(transport2To, responseArrivedEvent.getFrom());
+            InetSocketAddress to = address1;
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            ByteBuffer incomingResponse = TransportUtils.sendAndWait(transport2, to, ByteBuffer.wrap(data));
+
+            Assert.assertEquals(ByteBuffer.wrap("THIS IS THE RESPONSE".getBytes()), incomingResponse);
         } finally {
             transport1.stop();
             transport2.stop();
         }
-        
-        msgIt = fakeQueue.getReader().pull(1000L);
-        Assert.assertFalse(msgIt.hasNext());
     }
 
     @Test
     public void terminatedUdpTest() throws Throwable {
-        ActorQueue fakeQueue = new ActorQueue();
-                    
-        InetSocketAddress transport1To = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        InetSocketAddress transport2To = new InetSocketAddress(InetAddress.getLocalHost(), port2);
-        byte[] reqData = "HIEVERYBODY! :)".getBytes();
-        Message msg;
-        Iterator<Message> msgIt;
+        IncomingMessageListener<InetSocketAddress> termListener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+                responseCallback.terminate();
+            }
+        };
 
         try {
-            transport1.setDestinationWriter(fakeQueue.getWriter());
-            transport1.start();
-            
-            transport2.setDestinationWriter(fakeQueue.getWriter());
-            transport2.start();
-            
-            
-            // write message to transport2 from transport1
-            msg = Message.createRespondableMessage(0, fakeQueue.getWriter(),
-                    new SendRequestCommand<>(transport2To, ByteBuffer.wrap(reqData)));
-            transport1.getWriter().push(msg);
-            
-            // wait for msg to arrive on transport2
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
-            
-            msg = msgIt.next();
-            RequestArrivedEvent<InetSocketAddress> requestArrivedEvent = (RequestArrivedEvent<InetSocketAddress>) msg.getContent();
-            
-            Assert.assertEquals(ByteBuffer.wrap(reqData), requestArrivedEvent.getData());
-            Assert.assertEquals(transport1To, requestArrivedEvent.getFrom());
-            
-            // respond back to transport1 from transport2
-            msg.getResponder().respondImmediately(new DropResponseCommand());
-            
-            // wait for transport1 to get resp
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
+            transport1.start(termListener);
+            transport2.start(termListener);
 
-            msg = msgIt.next();
-            ResponseErroredEvent responseArrivedEvent = (ResponseErroredEvent) msg.getContent();
-            
-            Assert.assertEquals(0, msg.getResponseToId());
+            InetSocketAddress to = address2;
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            ByteBuffer incomingResponse = TransportUtils.sendAndWait(transport1, to, ByteBuffer.wrap(data));
+
+            Assert.assertNull(incomingResponse);
         } finally {
             transport1.stop();
             transport2.stop();
         }
-        
-        msgIt = fakeQueue.getReader().pull(1000L);
-        Assert.assertFalse(msgIt.hasNext());
     }
 
     @Test
     public void noResponseUdpTest() throws Throwable {
-        ActorQueue fakeQueue = new ActorQueue();
-                    
-        InetSocketAddress transport1To = new InetSocketAddress(InetAddress.getLocalHost(), port1);
-        InetSocketAddress transport2To = new InetSocketAddress(InetAddress.getLocalHost(), port2);
-        byte[] reqData = "HIEVERYBODY! :)".getBytes();
-        Message msg;
-        Iterator<Message> msgIt;
+        IncomingMessageListener<InetSocketAddress> listener = new IncomingMessageListener<InetSocketAddress>() {
+
+            @Override
+            public void messageArrived(InetSocketAddress from, ByteBuffer message, IncomingMessageResponseListener responseCallback) {
+                responseCallback.terminate();
+            }
+        };
 
         try {
-            transport1.setDestinationWriter(fakeQueue.getWriter());
-            transport1.start();
+            transport2.start(listener);
             
-            transport2.setDestinationWriter(fakeQueue.getWriter());
-            transport2.start();
-            
-            
-            // write message to transport2 from transport1
-            msg = Message.createRespondableMessage(0, fakeQueue.getWriter(),
-                    new SendRequestCommand<>(transport2To, ByteBuffer.wrap(reqData)));
-            transport1.getWriter().push(msg);
-            
-            // wait for msg to arrive on transport2
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
-            
-            msg = msgIt.next();
-            RequestArrivedEvent<InetSocketAddress> requestArrivedEvent = (RequestArrivedEvent<InetSocketAddress>) msg.getContent();
-            
-            Assert.assertEquals(ByteBuffer.wrap(reqData), requestArrivedEvent.getData());
-            Assert.assertEquals(transport1To, requestArrivedEvent.getFrom());
-            
-            // don't bother responding back to transport1 from transport2
-            //msg.getResponder().respondImmediately(new DropResponseCommand());
-            
-            // wait for transport1 to get resp
-            msgIt = fakeQueue.getReader().pull(2000L);
-            Assert.assertTrue(msgIt.hasNext());
+            InetSocketAddress to = new InetSocketAddress("www.microsoft.com", 12345);
+            byte[] data = "HIEVERYBODY! :)".getBytes();
+            ByteBuffer incomingResponse = TransportUtils.sendAndWait(transport2, to, ByteBuffer.wrap(data));
 
-            msg = msgIt.next();
-            ResponseErroredEvent responseArrivedEvent = (ResponseErroredEvent) msg.getContent();
-            
-            Assert.assertEquals(0, msg.getResponseToId());
+            Assert.assertNull(incomingResponse);
         } finally {
-            transport1.stop();
             transport2.stop();
         }
-        
-        msgIt = fakeQueue.getReader().pull(1000L);
-        Assert.assertFalse(msgIt.hasNext());
     }
 }

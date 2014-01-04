@@ -41,6 +41,16 @@ public final class TestTransport<A> implements Transport<A> {
     private TestTransportActor<A> transportActor;
     private ActorQueueWriter writer;
 
+    /**
+     * Constructs a {@link TestTransport} object.
+     * @param address address to listen on
+     * @param cacheSize number of packet ids to cache
+     * @param outgoingResponseTimeout timeout duration for responses for outgoing requests to arrive
+     * @param incomingResponseTimeout timeout duration for responses for incoming requests to be processed
+     * @param hub test hub
+     * @throws IllegalArgumentException if port is out of range, or if any of the other arguments are {@code <= 0};
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public TestTransport(A address, int cacheSize, long outgoingResponseTimeout,
                 long incomingResponseTimeout, TestHub<A> hub) {
         Validate.notNull(address);
@@ -65,7 +75,7 @@ public final class TestTransport<A> implements Transport<A> {
         
         transportActor.setIncomingFilter(incomingFilter);
         transportActor.setOutgoingFilter(outgoingFilter);
-        transportActor.setIncomingFilter(listener);
+        transportActor.setIncomingMessageListener(listener);
         
         transportActor.start();
     }

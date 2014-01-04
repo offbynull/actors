@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.rpc.transport.internal;
 
 import com.offbynull.peernetic.common.concurrent.actor.Actor;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
@@ -33,9 +32,6 @@ import org.apache.commons.lang3.Validate;
  * <li>{@link SendRequestCommand}</li>
  * <li>{@link SendResponseCommand}</li>
  * <li>{@link DropResponseCommand}</li>
- * <li>{@link RequestArrivedEvent}</li>
- * <li>{@link ResponseArrivedEvent}</li>
- * <li>{@link ResponseErroredEvent}</li>
  * </ul>
  * @author Kasra Faghihi
  * @param <A> address type
@@ -53,11 +49,6 @@ public abstract class TransportActor<A> extends Actor {
     public TransportActor(boolean daemon) {
         super(daemon);
     }
-
-    @Override
-    protected final ActorQueue createQueue() {
-        return new ActorQueue();
-    }
     
     /**
      * Set the incoming message listener. Can only be called before {@link #start() }.
@@ -65,7 +56,7 @@ public abstract class TransportActor<A> extends Actor {
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalStateException if called after {@link #start() }
      */
-    public final void setIncomingFilter(IncomingMessageListener<A> incomingMessageListener) {
+    public final void setIncomingMessageListener(IncomingMessageListener<A> incomingMessageListener) {
         Validate.notNull(incomingMessageListener);
         Validate.validState(isNew());
         
@@ -102,7 +93,7 @@ public abstract class TransportActor<A> extends Actor {
      * Get the incoming message listener for this transport.
      * @return incoming message listener
      */
-    public IncomingMessageListener<A> getIncomingMessageListener() {
+    public final IncomingMessageListener<A> getIncomingMessageListener() {
         return incomingMessageListener;
     }
     

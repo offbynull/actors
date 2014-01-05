@@ -54,15 +54,19 @@ public final class TimeoutManager<R> {
     /**
      * Cancel the timeout for a resource.
      * @param key resource
+     * @return {@code true} if {@code key} was active and was canceled, {@code false} otherwise
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public void cancel(R key) {
+    public boolean cancel(R key) {
         Validate.notNull(key);
         
         Entity entity = keyMap.remove(key);
         if (entity != null) {
             entity.cancel();
+            return true;
         }
+        
+        return false;
     }
 
     /**

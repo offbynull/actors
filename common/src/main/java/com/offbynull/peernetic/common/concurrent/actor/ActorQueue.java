@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ActorQueue {
-    private LinkedList<Iterator<Message>> internalQueue;
+    private LinkedList<Iterator<Outgoing>> internalQueue;
     private Lock internalQueueLock;
     private ActorQueueReader reader;
     private ActorQueueWriter writer;
@@ -73,5 +73,15 @@ public final class ActorQueue {
      */
     public ActorQueueWriter getWriter() {
         return writer;
+    }
+
+    void close() {
+        internalQueueLock.lock();
+        try {
+            reader.close();
+            writer.close();
+        } finally {
+            internalQueueLock.unlock();
+        }
     }
 }

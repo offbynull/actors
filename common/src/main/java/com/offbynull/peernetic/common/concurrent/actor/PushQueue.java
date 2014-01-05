@@ -16,10 +16,9 @@
  */
 package com.offbynull.peernetic.common.concurrent.actor;
 
-import java.util.Collection;
-import java.util.Map.Entry;
+import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
+import java.util.Map;
 import org.apache.commons.collections4.MultiMap;
-import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -29,75 +28,43 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class PushQueue {
-    private MultiMap<ActorQueueWriter, Message> queue = new MultiValueMap<>();
-    private ActorQueueWriter self;
+    private MultiMap<Endpoint, Outgoing> outgoingQueue;
+    
+    private TimeoutManager<Object> requestTimeoutManager;
+    private Map<Object, IncomingRequest> requestIdMap;
+    
+    private long nextRequestId;
 
-    PushQueue(ActorQueueWriter selfWriter) {
-        Validate.notNull(selfWriter);
+    PushQueue(MultiMap<Endpoint, Outgoing> outgoingQueue, TimeoutManager<Object> responseTimeoutManager) {
+        Validate.notNull(outgoingQueue);
+        Validate.notNull(responseTimeoutManager);
         
-        this.self = selfWriter;
+        this.outgoingQueue = outgoingQueue;
+        this.requestTimeoutManager = responseTimeoutManager;
     }
     
-    /**
-     * Queue an outgoing response.
-     * @param dst key for the message this message is responding to
-     * @param id id for response
-     * @param response response message content
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void queueResponseMessage(ActorQueueWriter dst, Object id, Object response) {
-        Validate.notNull(dst);
-        Validate.notNull(id);
-        Validate.notNull(response);
-        
-        Message responseMsg;
-        responseMsg = Message.createResponseMessage(id, response);
-        
-        queue.put(dst, responseMsg);
+    public void push(Endpoint destination, Object content) {
+        outgoingQueue.put(destination, new OutgoingRequest(null, destination, content));
+    }
+    
+    public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
+        outgoingQueue.put(destination, new OutgoingRequest(nextRequestId++, destination, content));
     }
 
-    /**
-     * Queue an outgoing message that doesn't expect a response.
-     * @param dst outgoing writer
-     * @param content message content
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void queueOneWayMessage(ActorQueueWriter dst, Object content) {
-        Validate.notNull(dst);
-        Validate.notNull(content);
+    public boolean pushResponse(IncomingRequest request, Endpoint destination, Object content) {
+        Object requestId = request.getId();
         
-        Message message = Message.createOneWayMessage(content);
-        queue.put(dst, message);
-    }
-
-    /**
-     * Queue an outgoing message that can be responded to.
-     * @param dst outgoing writer
-     * @param key key for this message
-     * @param content message content
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void queueRequestMessage(ActorQueueWriter dst, Object key, Object content) {
-        Validate.notNull(dst);
-        Validate.notNull(key);
-        Validate.notNull(content);
-        
-        Message message = Message.createRequestMessage(key, self, content);
-        queue.put(dst, message);
-    }
-
-    void flush() {
-        for (Entry<ActorQueueWriter, Object> entry : queue.entrySet()) {
-            ActorQueueWriter respondTo = entry.getKey();
-            Collection<Message> responses = (Collection<Message>) entry.getValue();
-            
-            respondTo.push(responses);
+        if (requestId == null) {
+            return false;
         }
         
-        queue.clear();
-    }
-
-    MultiMap<ActorQueueWriter, Message> get() {
-        return queue;
+        if (requestTimeoutManager.cancel(requestId)) {
+            requestIdMap.remove(requestId);
+            outgoingQueue.put(destination, new OutgoingRequest(null, destination, content));
+            
+            return true;
+        }
+        
+        return false;
     }
 }

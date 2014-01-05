@@ -30,12 +30,13 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ActorQueueReader {
-    private LinkedList<Iterator<Message>> queue;
+    private boolean closed;
+    private LinkedList<Iterator<Outgoing>> queue;
     private Lock lock;
     private Condition condition;
     private ActorQueueNotifier notifier;
 
-    ActorQueueReader(LinkedList<Iterator<Message>> queue, Lock lock, ActorQueueNotifier notifier) {
+    ActorQueueReader(LinkedList<Iterator<Outgoing>> queue, Lock lock, ActorQueueNotifier notifier) {
         Validate.notNull(queue);
         Validate.notNull(lock);
         Validate.notNull(notifier);
@@ -45,7 +46,7 @@ public final class ActorQueueReader {
         this.notifier = notifier;
     }
 
-    ActorQueueReader(LinkedList<Iterator<Message>> queue, Lock lock, Condition condition) {
+    ActorQueueReader(LinkedList<Iterator<Outgoing>> queue, Lock lock, Condition condition) {
         Validate.notNull(queue);
         Validate.notNull(lock);
         Validate.notNull(condition);
@@ -62,7 +63,7 @@ public final class ActorQueueReader {
      * @return messages from the owning {@link ActorQueue}
      * @throws InterruptedException if thread is interrupted
      */
-    public Iterator<Message> pull(long timeout) throws InterruptedException {
+    public Iterator<Outgoing> pull(long timeout) throws InterruptedException {
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, timeout);
         
         LinkedList<Iterator> dst = new LinkedList<>();
@@ -70,8 +71,16 @@ public final class ActorQueueReader {
         if (notifier == null) {
             lock.lock();
             try {
+                if (closed) {
+                    return IteratorUtils.emptyIterator();
+                }
+
                 if (queue.isEmpty()) { 
                     condition.await(timeout, TimeUnit.MILLISECONDS);
+                }
+                
+                if (closed) {
+                    return IteratorUtils.emptyIterator();
                 }
 
                 dst.addAll(queue);
@@ -84,6 +93,10 @@ public final class ActorQueueReader {
             
             lock.lock();
             try {
+                if (closed) {
+                    return IteratorUtils.emptyIterator();
+                }
+                
                 dst.addAll(queue);
                 queue.clear();
             } finally {
@@ -99,4 +112,24 @@ public final class ActorQueueReader {
         return IteratorUtils.unmodifiableIterator(chain);
     }
     
+    void close() {
+        if (notifier == null) {
+            lock.lock();
+            try {
+                closed = true;
+                condition.signalAll();
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            lock.lock();
+            try {
+                closed = true;
+            } finally {
+                lock.unlock();
+            }
+            
+            notifier.wakeup();
+        }
+    }
 }

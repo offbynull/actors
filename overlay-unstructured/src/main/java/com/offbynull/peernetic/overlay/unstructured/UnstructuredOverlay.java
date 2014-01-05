@@ -20,6 +20,7 @@ import com.offbynull.peernetic.common.concurrent.actor.Actor;
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
+import com.offbynull.peernetic.common.concurrent.actor.helpers.NotifyManager;
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import com.offbynull.peernetic.rpc.Rpc;
@@ -51,7 +52,7 @@ public final class UnstructuredOverlay<A> extends Actor {
     private Map<A, ByteBuffer> outgoingLinks; // address to secret
     private TimeoutManager<A> outgoingLinkStaleTimeoutManager;
     private TimeoutManager<A> outgoingLinkExpireTimeoutManager;
-    private TimeoutManager<Object> addressCacheNotifyManager;
+    private NotifyManager addressCacheNotifyManager;
     private int maxIncomingLinks;
     private int maxOutgoingLinks;
     private Set<A> pendingJoinQueue;
@@ -118,7 +119,7 @@ public final class UnstructuredOverlay<A> extends Actor {
         outgoingLinks = new HashMap<>();
         outgoingLinkStaleTimeoutManager = new TimeoutManager<>();
         outgoingLinkExpireTimeoutManager = new TimeoutManager<>();
-        addressCacheNotifyManager = new TimeoutManager<>();
+        addressCacheNotifyManager = new NotifyManager();
         random = SecureRandom.getInstance("SHA1PRNG");
         pendingJoinQueue = new HashSet<>();
 
@@ -242,13 +243,9 @@ public final class UnstructuredOverlay<A> extends Actor {
             listener.linkDestroyed(this, LinkType.OUTGOING, address);
         }
         
-        TimeoutManagerResult<Object> addressCacheNotify = addressCacheNotifyManager.process(timestamp);
-        if (!addressCacheNotify.getTimedout().isEmpty()) { //NOPMD
+        if (addressCacheNotifyManager.process(timestamp)) {
             listener.addressCacheEmpty(this);
-        }
-        
-        if (addressCacheNotifyManager.isEmpty()) {
-            addressCacheNotifyManager.add(new Object(), timestamp + addressCacheEmptyNotifyDuration);
+            addressCacheNotifyManager.reset(timestamp + addressCacheEmptyNotifyDuration);
         }
         
         while (outgoingLinks.size() != maxOutgoingLinks && !addressCache.isEmpty() && pendingJoinQueue.size() < maxJoinAttemptsAtOnce) {
@@ -269,7 +266,7 @@ public final class UnstructuredOverlay<A> extends Actor {
         }
         
         long nextTimestamp = Long.MAX_VALUE;
-        nextTimestamp = Math.min(nextTimestamp, addressCacheNotify.getNextTimeoutTimestamp());
+        nextTimestamp = Math.min(nextTimestamp, addressCacheNotifyManager.getNextTimeoutTimestamp());
         nextTimestamp = Math.min(nextTimestamp, expiredIncoming.getNextTimeoutTimestamp());
         nextTimestamp = Math.min(nextTimestamp, staleOutgoing.getNextTimeoutTimestamp());
         nextTimestamp = Math.min(nextTimestamp, expiredOutgoing.getNextTimeoutTimestamp());

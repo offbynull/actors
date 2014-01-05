@@ -18,8 +18,12 @@ package com.offbynull.peernetic.common.concurrent.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
+import com.offbynull.peernetic.common.concurrent.actor.endpoints.local.LocalEndpoint;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
@@ -33,14 +37,15 @@ import org.apache.commons.lang3.Validate;
  */
 public abstract class Actor {
 
-    private ActorQueue queue;
     private InternalService internalService;
     private boolean daemon;
-    
+
+    private volatile ActorQueue queue;
     private volatile boolean shutdownRequested;
     private volatile Thread serviceThread;
     
-    private Lock lock;
+    private Map<Object, Object> startupMap;
+    private Lock actorLock; // do not use lock in internalService
 
     /**
      * Constructs an {@link Actor} object.
@@ -48,26 +53,43 @@ public abstract class Actor {
      * @throws IllegalStateException if the internal message pump is {@code null}
      */
     public Actor(boolean daemon) {
-        this.queue = createQueue();
         Validate.validState(queue != null);
         
         this.daemon = daemon;
-        this.lock = new ReentrantLock();
+        this.actorLock = new ReentrantLock();
         this.internalService = new InternalService();
+        this.startupMap = Collections.synchronizedMap(new HashMap<>());
+    }
+    
+    /**
+     * Pushes a key-value pair in to the map that gets passed in to {@link #onStart(long, java.util.Map) }.
+     * @param key key -- must be immutable
+     * @param value value -- must be immutable
+     * @throws IllegalStateException if the actor has already been started
+     */
+    protected final void putInStartupMap(Object key, Object value) {
+        actorLock.lock();
+        try {
+            Validate.validState(isNew());
+            startupMap.put(key, value);
+        } finally {
+            actorLock.unlock();
+        }
     }
 
     /**
-     * Create the internal message queue. Called from constructor.
-     * @return a new message queue to be used by this actor, cannot be {@code null}
+     * Gets the point that can be used to send messages to this actor.
+     * @return endpoint for this actor
+     * @throws IllegalStateException if actor isn't currently running
      */
-    protected abstract ActorQueue createQueue();
-
-    /**
-     * Gets a writer that feeds in to this actor.
-     * @return writer that feeds in this actor
-     */
-    protected final ActorQueueWriter getSelfWriter() {
-        return queue.getWriter();
+    public final Endpoint getEndpoint() {
+        actorLock.lock();
+        try {
+            Validate.validState(internalService.state() == Service.State.RUNNING);
+            return new LocalEndpoint(queue);
+        } finally {
+            actorLock.unlock();
+        }
     }
     
     /**
@@ -84,12 +106,12 @@ public abstract class Actor {
      * during execution)
      */
     public final void start() {
-        lock.lock();
+        actorLock.lock();
         try {
             internalService.startAsync(); // throws ISE if already started
             internalService.awaitRunning(); // throws ISE if in failed state (exception during startup)
         } finally {
-            lock.unlock();
+            actorLock.unlock();
         }
     }
 
@@ -98,22 +120,22 @@ public abstract class Actor {
      * @throws IllegalStateException if actor is in a failed state (encountered an exception during execution)
      */
     public final void stop() {
-        lock.lock();
+        actorLock.lock();
         try {
             internalService.stopAsync(); // throws ISE if already started
             internalService.awaitTerminated(); // throws ISE if in failed state (exception during running or shutdown)
         } finally {
-            lock.unlock();
+            actorLock.unlock();
         }
     }
 
     final void readyForTesting() {
-        lock.lock();
+        actorLock.lock();
         try {
             Validate.validState(isNew());
             internalService.stopAsync();
         } finally {
-            lock.unlock();
+            actorLock.unlock();
         }
     }
     
@@ -142,27 +164,32 @@ public abstract class Actor {
      * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from
      * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
      * @param timestamp current timestamp
-     * @param iterator messages from the internal {@link ActorQueueReader}
-     * @param pushQueue messages to send at the end of each invocation of this method
+     * @param pullQueue messages received
+     * @param pushQueue messages to sen
      * @return maximum amount of time to wait until next invocation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception;
+    protected abstract long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception;
     
     /**
      * Called to initialize this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
      * {@link #onStop() }.
+     * @param timestamp current timestamp
+     * @param initVars variables to initialize this actor -- values in this map are passed in through
+     * {@link #putInStartupMap(java.lang.Object, java.lang.Object) }.
+     * @return new queue to use for this actor
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract void onStart() throws Exception;
+    protected abstract ActorQueue onStart(long timestamp, Map<Object, Object> initVars) throws Exception;
 
     /**
      * Called to shutdown this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
      * {@link #onStep(long, java.util.Iterator) }.
+     * @param timestamp current timestamp
      * @param pushQueue messages to send at the end of each invocation of this method
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract void onStop(PushQueue pushQueue) throws Exception;
+    protected abstract void onStop(long timestamp, PushQueue pushQueue) throws Exception;
 
     private final class InternalService extends AbstractExecutionThreadService {
         @Override
@@ -187,6 +214,7 @@ public abstract class Actor {
 
         @Override
         protected void triggerShutdown() {
+            queue.close();
             shutdownRequested = true;
             serviceThread.interrupt();
         }
@@ -194,13 +222,15 @@ public abstract class Actor {
         @Override
         protected void shutDown() throws Exception {
             PushQueue responseQueue = new PushQueue(queue.getWriter());
-            onStop(responseQueue);
+            onStop(System.currentTimeMillis(), responseQueue);
             responseQueue.flush();
         }
 
         @Override
         protected void startUp() throws Exception {
-            onStart();
+            Map<Object, Object> map = new HashMap<>(startupMap);
+            startupMap.clear();
+            queue = onStart(System.currentTimeMillis(), map);
         }
 
         @Override
@@ -212,7 +242,7 @@ public abstract class Actor {
 
                 PushQueue responseQueue = new PushQueue(queue.getWriter());
                 while (true) {
-                    Iterator<Message> messages = reader.pull(waitUntil);
+                    Iterator<Outgoing> messages = reader.pull(waitUntil);
 
                     long preStepTime = System.currentTimeMillis();
                     long nextStepTime = onStep(preStepTime, messages, responseQueue);

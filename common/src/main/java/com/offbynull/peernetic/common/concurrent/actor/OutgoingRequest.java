@@ -8,7 +8,6 @@ public final class OutgoingRequest implements Outgoing {
     private Object content;
 
     OutgoingRequest(Object id, Endpoint destination, Object content) {
-        Validate.notNull(id);
         Validate.notNull(destination);
         Validate.notNull(content);
         

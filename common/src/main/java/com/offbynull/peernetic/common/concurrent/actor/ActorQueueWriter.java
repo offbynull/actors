@@ -20,7 +20,6 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -32,12 +31,12 @@ import org.apache.commons.lang3.Validate;
  */
 public final class ActorQueueWriter {
     private boolean closed;
-    private LinkedList<Iterator<Outgoing>> queue;
+    private LinkedList<Collection<Incoming>> queue;
     private Lock lock;
     private Condition condition;
     private ActorQueueNotifier notifier;
 
-    ActorQueueWriter(LinkedList<Iterator<Outgoing>> queue, Lock lock, ActorQueueNotifier notifier) {
+    ActorQueueWriter(LinkedList<Collection<Incoming>> queue, Lock lock, ActorQueueNotifier notifier) {
         Validate.notNull(queue);
         Validate.notNull(lock);
         Validate.notNull(notifier);
@@ -47,7 +46,7 @@ public final class ActorQueueWriter {
         this.notifier = notifier;
     }
 
-    ActorQueueWriter(LinkedList<Iterator<Outgoing>> queue, Lock lock, Condition condition) {
+    ActorQueueWriter(LinkedList<Collection<Incoming>> queue, Lock lock, Condition condition) {
         Validate.notNull(queue);
         Validate.notNull(lock);
         Validate.notNull(condition);
@@ -62,7 +61,7 @@ public final class ActorQueueWriter {
      * @param messages from the owning {@link ActorQueue}
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    public void push(Collection<Outgoing> messages) {
+    public void push(Collection<Incoming> messages) {
         Validate.noNullElements(messages);
     
         if (notifier == null) {
@@ -72,7 +71,7 @@ public final class ActorQueueWriter {
                     return;
                 }
                 
-                queue.add(new ArrayList<>(messages).iterator());
+                queue.add(new ArrayList<>(messages));
                 condition.signal();
             } finally {
                 lock.unlock();
@@ -83,7 +82,7 @@ public final class ActorQueueWriter {
                 if (closed) {
                     return;
                 }
-                queue.add(new ArrayList<>(messages).iterator());
+                queue.add(new ArrayList<>(messages));
             } finally {
                 lock.unlock();
             }
@@ -97,7 +96,7 @@ public final class ActorQueueWriter {
      * @param messages from the owning {@link ActorQueue}
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      */
-    public void push(Outgoing ... messages) {
+    public void push(Incoming ... messages) {
         push(Arrays.asList(messages));
     }
     

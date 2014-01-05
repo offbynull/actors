@@ -1,27 +1,27 @@
 package com.offbynull.peernetic.common.concurrent.actor;
 
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
 
 public final class PullQueue {
     private TimeoutManager<Object> responseTimeoutManager;
-    private ArrayList<Incoming> incomingList;
-    private int requestPointer;
-    private int responsePointer;
+    private Iterator<Incoming> requestPointer;
+    private Iterator<Incoming> responsePointer;
 
-    PullQueue(TimeoutManager<Object> responseTimeoutManager, ArrayList<Incoming> incomingList) {
+    PullQueue(TimeoutManager<Object> responseTimeoutManager, Collection<Incoming> incoming) {
         Validate.notNull(responseTimeoutManager);
-        Validate.noNullElements(incomingList);
+        Validate.noNullElements(incoming);
         
         this.responseTimeoutManager = responseTimeoutManager;
-        this.incomingList = incomingList;
+        this.requestPointer = incoming.iterator();
+        this.responsePointer = incoming.iterator();
     }
 
     public IncomingRequest pullRequest() {
-        while (requestPointer < incomingList.size()) {
-            Incoming incoming = incomingList.get(requestPointer);
-            requestPointer++;
+        while (requestPointer.hasNext()) {
+            Incoming incoming = requestPointer.next();
             
             if (incoming instanceof IncomingRequest) {
                 return (IncomingRequest) incoming;
@@ -32,9 +32,8 @@ public final class PullQueue {
     }
     
     public IncomingResponse pullResponse() {
-        while (responsePointer < incomingList.size()) {
-            Incoming incoming = incomingList.get(responsePointer);
-            responsePointer++;
+        while (responsePointer.hasNext()) {
+            Incoming incoming = responsePointer.next();
             
             if (incoming instanceof IncomingResponse) {
                 IncomingResponse response = (IncomingResponse) incoming;

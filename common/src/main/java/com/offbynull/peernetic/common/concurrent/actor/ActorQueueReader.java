@@ -16,13 +16,13 @@
  */
 package com.offbynull.peernetic.common.concurrent.actor;
 
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
-import org.apache.commons.collections4.IteratorUtils;
-import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -31,12 +31,12 @@ import org.apache.commons.lang3.Validate;
  */
 public final class ActorQueueReader {
     private boolean closed;
-    private LinkedList<Iterator<Outgoing>> queue;
+    private LinkedList<Collection<Incoming>> queue;
     private Lock lock;
     private Condition condition;
     private ActorQueueNotifier notifier;
 
-    ActorQueueReader(LinkedList<Iterator<Outgoing>> queue, Lock lock, ActorQueueNotifier notifier) {
+    ActorQueueReader(LinkedList<Collection<Incoming>> queue, Lock lock, ActorQueueNotifier notifier) {
         Validate.notNull(queue);
         Validate.notNull(lock);
         Validate.notNull(notifier);
@@ -46,7 +46,7 @@ public final class ActorQueueReader {
         this.notifier = notifier;
     }
 
-    ActorQueueReader(LinkedList<Iterator<Outgoing>> queue, Lock lock, Condition condition) {
+    ActorQueueReader(LinkedList<Collection<Incoming>> queue, Lock lock, Condition condition) {
         Validate.notNull(queue);
         Validate.notNull(lock);
         Validate.notNull(condition);
@@ -63,16 +63,16 @@ public final class ActorQueueReader {
      * @return messages from the owning {@link ActorQueue}
      * @throws InterruptedException if thread is interrupted
      */
-    public Iterator<Outgoing> pull(long timeout) throws InterruptedException {
+    public Collection<Incoming> pull(long timeout) throws InterruptedException {
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, timeout);
         
-        LinkedList<Iterator> dst = new LinkedList<>();
+        LinkedList<Collection<Incoming>> dst = new LinkedList<>();
         
         if (notifier == null) {
             lock.lock();
             try {
                 if (closed) {
-                    return IteratorUtils.emptyIterator();
+                    return Collections.emptySet();
                 }
 
                 if (queue.isEmpty()) { 
@@ -80,7 +80,7 @@ public final class ActorQueueReader {
                 }
                 
                 if (closed) {
-                    return IteratorUtils.emptyIterator();
+                    return Collections.emptySet();
                 }
 
                 dst.addAll(queue);
@@ -94,7 +94,7 @@ public final class ActorQueueReader {
             lock.lock();
             try {
                 if (closed) {
-                    return IteratorUtils.emptyIterator();
+                    return Collections.emptySet();
                 }
                 
                 dst.addAll(queue);
@@ -104,12 +104,17 @@ public final class ActorQueueReader {
             }
         }
         
-        IteratorChain chain = new IteratorChain();
-        for (Iterator batch : dst) {
-            chain.addIterator(batch);
+        int size = 0;
+        for (Collection<Incoming> batch : dst) {
+            size += batch.size();
         }
         
-        return IteratorUtils.unmodifiableIterator(chain);
+        ArrayList<Incoming> incoming = new ArrayList<>(size);
+        for (Collection<Incoming> batch : dst) {
+            incoming.addAll(batch);
+        }
+        
+        return Collections.unmodifiableCollection(incoming);
     }
     
     void close() {

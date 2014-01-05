@@ -19,15 +19,17 @@ package com.offbynull.peernetic.common.concurrent.actor;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
 import com.offbynull.peernetic.common.concurrent.actor.endpoints.local.LocalEndpoint;
+import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -45,6 +47,7 @@ public abstract class Actor {
     private volatile Thread serviceThread;
     
     private Map<Object, Object> startupMap;
+    private Map<Class<? extends Endpoint>, EndpointHandler<?>> endpointHandlerMap;
     private Lock actorLock; // do not use lock in internalService
 
     /**
@@ -57,8 +60,9 @@ public abstract class Actor {
         
         this.daemon = daemon;
         this.actorLock = new ReentrantLock();
-        this.internalService = new InternalService();
         this.startupMap = Collections.synchronizedMap(new HashMap<>());
+        this.endpointHandlerMap = Collections.synchronizedMap(new HashMap<Class<? extends Endpoint>, EndpointHandler<?>>());
+        this.internalService = new InternalService();
     }
     
     /**
@@ -66,8 +70,11 @@ public abstract class Actor {
      * @param key key -- must be immutable
      * @param value value -- must be immutable
      * @throws IllegalStateException if the actor has already been started
+     * @throws NullPointerException if {@code key} is {@code null}
      */
     protected final void putInStartupMap(Object key, Object value) {
+        Validate.notNull(key);
+        
         actorLock.lock();
         try {
             Validate.validState(isNew());
@@ -77,6 +84,27 @@ public abstract class Actor {
         }
     }
 
+    /**
+     * Register an endpoint handler with this actor. Must be registered before actor starts.
+     * @param <E> endpoint type
+     * @param type endpoint type
+     * @param handler handler for {@code type}
+     * @throws IllegalStateException if the actor has already been started
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public final <E extends Endpoint> void registerEndpointHandler(Class<E> type, EndpointHandler<E> handler) {
+        Validate.notNull(type);
+        Validate.notNull(handler);
+        
+        actorLock.lock();
+        try {
+            Validate.validState(isNew());
+            endpointHandlerMap.put(type, handler);
+        } finally {
+            actorLock.unlock();
+        }
+    }
+    
     /**
      * Gets the point that can be used to send messages to this actor.
      * @return endpoint for this actor
@@ -139,25 +167,19 @@ public abstract class Actor {
         }
     }
     
-    final void testOnStart() throws Exception {
-        internalService.stopAsync();
-        onStart();
+    final void testOnStart(long timestamp, Map<Object, Object> initVars) throws Exception {
+        internalService.stopAsync(); // just in case
+        onStart(timestamp, initVars);
     }
 
-    final PushQueue testOnStep(long timestamp, Collection<Message> messages) throws Exception {
-        internalService.stopAsync();
-        ActorQueue throwAwayQueue = new ActorQueue();
-        PushQueue pushQueue = new PushQueue(throwAwayQueue.getWriter());
-        onStep(timestamp, messages.iterator(), pushQueue);
-        return pushQueue;
+    final long testOnStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
+        internalService.stopAsync(); // just in case
+        return onStep(timestamp, pullQueue, pushQueue);
     }
 
-    final PushQueue testOnStop() throws Exception {
-        internalService.stopAsync();
-        ActorQueue throwAwayQueue = new ActorQueue();
-        PushQueue pushQueue = new PushQueue(throwAwayQueue.getWriter());
-        onStop(pushQueue);
-        return pushQueue;
+    final void testOnStop(long timestamp, PushQueue pushQueue) throws Exception {
+        internalService.stopAsync(); // just in case
+        onStop(timestamp, pushQueue);
     }
     
     /**
@@ -192,6 +214,10 @@ public abstract class Actor {
     protected abstract void onStop(long timestamp, PushQueue pushQueue) throws Exception;
 
     private final class InternalService extends AbstractExecutionThreadService {
+        private IdCounter requestIdCounter = new IdCounter();
+        private TimeoutManager<Object> requestIdTracker = new TimeoutManager<>(); // tracks ids and times them out
+        private Map<Class<? extends Endpoint>, EndpointHandler<?>> internalEndpointHandlerMap;
+        
         @Override
         protected Executor executor() {
             return new Executor() {
@@ -221,16 +247,25 @@ public abstract class Actor {
 
         @Override
         protected void shutDown() throws Exception {
-            PushQueue responseQueue = new PushQueue(queue.getWriter());
-            onStop(System.currentTimeMillis(), responseQueue);
-            responseQueue.flush();
+            MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
+            
+            PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, outgoingMap);
+            onStop(System.currentTimeMillis(), pushQueue);
+
+            sendOutgoing(outgoingMap);
         }
 
         @Override
         protected void startUp() throws Exception {
-            Map<Object, Object> map = new HashMap<>(startupMap);
+            Map<Object, Object> internalStartupMap = new HashMap<>(startupMap); // copy incase map is held on to, startUp map being copied
+                                                                                // is synchronized -- don't want overhead as this will never
+                                                                                // change once it hits starup
+            internalEndpointHandlerMap = new HashMap<>(endpointHandlerMap); // copy so we are using our own version, endpointHandlerMap
+                                                                            // being copied is synchronized -- don't want overhead as this
+                                                                            // will never change once it hits starup
             startupMap.clear();
-            queue = onStart(System.currentTimeMillis(), map);
+            endpointHandlerMap.clear();
+            queue = onStart(System.currentTimeMillis(), internalStartupMap);
         }
 
         @Override
@@ -240,28 +275,46 @@ public abstract class Actor {
             try {
                 long waitUntil = Long.MAX_VALUE;
 
-                PushQueue responseQueue = new PushQueue(queue.getWriter());
                 while (true) {
-                    Iterator<Outgoing> messages = reader.pull(waitUntil);
+                    long processTimeoutsTime = System.currentTimeMillis();
+                    long nextResponseTimeoutTime = requestIdTracker.process(processTimeoutsTime).getNextTimeoutTimestamp();
+                    waitUntil = Math.min(waitUntil, nextResponseTimeoutTime);
+                    
+                    Collection<Incoming> messages = reader.pull(waitUntil);
 
-                    long preStepTime = System.currentTimeMillis();
-                    long nextStepTime = onStep(preStepTime, messages, responseQueue);
+                    MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
+                    PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, outgoingMap);
+                    PullQueue pullQueue = new PullQueue(requestIdTracker, messages);
 
-                    responseQueue.flush();
+                    long startStepTime = System.currentTimeMillis();
+                    long nextStepTime = onStep(startStepTime, pullQueue, pushQueue);
+                    
+                    sendOutgoing(outgoingMap);
                     
                     if (nextStepTime < 0L) {
                         return;
                     }
 
-                    long postStepTime = System.currentTimeMillis();
-
-                    waitUntil = Math.max(nextStepTime - postStepTime, 0L);
+                    long stopStepTime = System.currentTimeMillis();
+                    waitUntil = Math.max(stopStepTime - nextStepTime, 0L);
                 }
             } catch (InterruptedException ie) {
                 if (shutdownRequested) {
                     Thread.interrupted(); // clear interrupted status and return from method so shutdown sequence can take place
                 } else {
                     throw ie; // shutdown wasn't requested but internal thread was interrupted, push exception up the chain
+                }
+            }
+        }
+        
+        private void sendOutgoing(MultiMap<Endpoint, Outgoing> outgoingMap) {
+            for (Map.Entry<Endpoint, Object> entry : outgoingMap.entrySet()) {
+                Endpoint dstEndpoint = entry.getKey();
+                Collection<Outgoing> outgoing = (Collection<Outgoing>) entry.getValue();
+
+                EndpointHandler handler = internalEndpointHandlerMap.get(dstEndpoint.getClass());
+                if (handler != null) {
+                    handler.push(getEndpoint(), dstEndpoint, outgoing);
                 }
             }
         }

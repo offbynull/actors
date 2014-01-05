@@ -28,27 +28,28 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class PushQueue {
-    private MultiMap<Endpoint, Outgoing> outgoingQueue;
+    private MultiMap<Endpoint, Outgoing> outgoingMap;
     
     private TimeoutManager<Object> requestTimeoutManager;
     private Map<Object, IncomingRequest> requestIdMap;
     
-    private long nextRequestId;
+    private IdCounter idCounter;
 
-    PushQueue(MultiMap<Endpoint, Outgoing> outgoingQueue, TimeoutManager<Object> responseTimeoutManager) {
-        Validate.notNull(outgoingQueue);
+    PushQueue(IdCounter idCounter, TimeoutManager<Object> responseTimeoutManager, MultiMap<Endpoint, Outgoing> outgoingMap) {
+        Validate.notNull(outgoingMap);
         Validate.notNull(responseTimeoutManager);
         
-        this.outgoingQueue = outgoingQueue;
+        this.outgoingMap = outgoingMap;
         this.requestTimeoutManager = responseTimeoutManager;
+        this.idCounter = idCounter;
     }
     
     public void push(Endpoint destination, Object content) {
-        outgoingQueue.put(destination, new OutgoingRequest(null, destination, content));
+        outgoingMap.put(destination, new OutgoingRequest(null, destination, content));
     }
     
     public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
-        outgoingQueue.put(destination, new OutgoingRequest(nextRequestId++, destination, content));
+        outgoingMap.put(destination, new OutgoingRequest(idCounter.getNext(), destination, content));
     }
 
     public boolean pushResponse(IncomingRequest request, Endpoint destination, Object content) {
@@ -60,7 +61,7 @@ public final class PushQueue {
         
         if (requestTimeoutManager.cancel(requestId)) {
             requestIdMap.remove(requestId);
-            outgoingQueue.put(destination, new OutgoingRequest(null, destination, content));
+            outgoingMap.put(destination, new OutgoingRequest(null, destination, content));
             
             return true;
         }

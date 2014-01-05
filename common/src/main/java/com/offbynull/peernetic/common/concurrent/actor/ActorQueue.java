@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.common.concurrent.actor;
 
 import java.nio.channels.Selector;
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ActorQueue {
-    private LinkedList<Iterator<Outgoing>> internalQueue;
+    private LinkedList<Collection<Incoming>> internalQueue;
     private Lock internalQueueLock;
     private ActorQueueReader reader;
     private ActorQueueWriter writer;

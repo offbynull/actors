@@ -16,7 +16,9 @@
  */
 package com.offbynull.peernetic.common.concurrent.actor;
 
+import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
 import java.util.Collection;
+import java.util.Map;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.lang3.Validate;
 
@@ -25,6 +27,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ActorTester {
+    private IdCounter idCounter;
     private Actor actor;
     
     /**
@@ -38,36 +41,47 @@ public final class ActorTester {
         
         actor.readyForTesting();
         this.actor = actor;
+        this.idCounter = new IdCounter();
     }
 
     /**
-     * Call the wrapped actor's {@link Actor#onStart() } method.
-     * @throws Exception on error
-     */
-    public void testOnStart() throws Exception {
-        actor.testOnStart();
-    }
-
-    /**
-     * Call the wrapped actor's {@link Actor#onStep(long, java.util.Iterator, com.offbynull.peernetic.common.concurrent.actor.PushQueue) }
-     * method.
-     * @param messages messages to pass in
+     * Call the wrapped actor's {@link Actor#onStart(long, java.util.Map) } method.
      * @param timestamp timestamp to pass in
-     * @return outgoing messages
+     * @param initVars initialization objects to pass in
      * @throws Exception on error
      */
-    public MultiMap<ActorQueueWriter, Message> testOnStep(long timestamp, Collection<Message> messages) throws Exception {
-        return actor.testOnStep(timestamp, messages).get();
+    public void testOnStart(long timestamp, Map<Object, Object> initVars) throws Exception {
+        actor.testOnStart(timestamp, initVars);
     }
 
     /**
-     * Call the wrapped actor's {@link Actor#onStop(com.offbynull.peernetic.common.concurrent.actor.PushQueue)  } method.
+     * Call the wrapped actor's {@link Actor#onStep(long, com.offbynull.peernetic.common.concurrent.actor.PullQueue,
+     * com.offbynull.peernetic.common.concurrent.actor.PushQueue) } method.
+     * @param timestamp timestamp to pass in
+     * @param pullQueue pull queue to pass in
+     * @param pushQueue push queue to pass in
      * @return outgoing messages
      * @throws Exception on error
      */
-    public MultiMap<ActorQueueWriter, Message> testOnStop() throws Exception {
-        return actor.testOnStop().get();
+    public long testOnStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
+        return actor.testOnStep(timestamp, pullQueue, pushQueue);
+    }
+
+    /**
+     * Call the wrapped actor's {@link Actor#onStop(long, com.offbynull.peernetic.common.concurrent.actor.PushQueue) } method.
+     * @param timestamp timestamp to pass in
+     * @param pushQueue push queue to pass in
+     * @throws Exception on error
+     */
+    public void testOnStop(long timestamp, PushQueue pushQueue) throws Exception {
+        actor.testOnStop(timestamp, pushQueue);
     }
     
+    public PushQueue createPushQueue(TimeoutManager<Object> responseTimeoutManager, MultiMap<Endpoint, Outgoing> outgoingMap) {
+        return new PushQueue(idCounter, responseTimeoutManager, outgoingMap);
+    }
     
+    public PullQueue createPullQueue(TimeoutManager<Object> responseTimeoutManager, Collection<Incoming> incoming) {
+        return new PullQueue(responseTimeoutManager, incoming);
+    }
 }

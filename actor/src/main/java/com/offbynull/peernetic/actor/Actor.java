@@ -286,7 +286,8 @@ public abstract class Actor {
                     PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, outgoingMap);
                     PullQueue pullQueue = new PullQueue(requestIdTracker, messages);
 
-                    long startStepTime = System.currentTimeMillis();
+                    long startStepTime = Math.max(waitUntil, System.currentTimeMillis()); // current time should never be less than
+                                                                                          // waitUntil, but just in case
                     long nextStepTime = onStep(startStepTime, pullQueue, pushQueue);
                     
                     sendOutgoing(outgoingMap);

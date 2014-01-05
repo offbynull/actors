@@ -14,10 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.actor;
 
-import java.util.Collection;
-
-public interface EndpointHandler<E extends Endpoint> {
-    void push(Endpoint source, E destination, Collection<Outgoing> outgoing);
-}
+/**
+ * Local {@link com.offbynull.peernetic.actor.Endpoint} implementation -- writes to local actors.
+ */
+package com.offbynull.peernetic.actor.endpoints.local;

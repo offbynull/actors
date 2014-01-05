@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
+import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 

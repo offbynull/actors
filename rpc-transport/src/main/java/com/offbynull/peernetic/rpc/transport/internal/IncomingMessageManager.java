@@ -18,7 +18,7 @@ package com.offbynull.peernetic.rpc.transport.internal;
 
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
 import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager.TimeoutManagerResult;
-import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
+import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

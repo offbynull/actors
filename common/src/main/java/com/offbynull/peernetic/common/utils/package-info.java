@@ -16,6 +16,6 @@
  */
 
 /**
- * Utility classes for NIO-related tasks/classes.
+ * Utility classes.
  */
 package com.offbynull.peernetic.common.utils;

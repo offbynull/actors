@@ -16,17 +16,29 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-/**
- * Type of link.
- * @author Kasra Faghihi
- */
-public enum LinkType {
-    /**
-     * Incoming link -- another node connected to us.
-     */
-    INCOMING,
-    /**
-     * Outgoing link -- we connected to another node.
-     */
-    OUTGOING
+import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
+import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
+
+final class JoinSuccessfulCommand<A> {
+    private A address;
+    private ByteBuffer secret;
+
+    public JoinSuccessfulCommand(A address, ByteBuffer secret) {
+        Validate.notNull(address);
+        Validate.notNull(secret);
+        Validate.isTrue(secret.remaining() == UnstructuredService.SECRET_SIZE);
+
+        this.address = address;
+        this.secret = ByteBufferUtils.copyContents(secret).asReadOnlyBuffer();
+    }
+
+    public A getAddress() {
+        return address;
+    }
+
+    public ByteBuffer getSecret() {
+        return secret;
+    }
+    
 }

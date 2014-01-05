@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  * @param <A> address type
  */
-final class State<A> {
+public final class State<A> {
     private Set<A> incomingLinks;
     private Set<A> outgoingLinks;
     private boolean incomingLinksFull;

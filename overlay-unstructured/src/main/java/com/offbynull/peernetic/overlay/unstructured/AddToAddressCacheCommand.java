@@ -16,17 +16,19 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-/**
- * Type of link.
- * @author Kasra Faghihi
- */
-public enum LinkType {
-    /**
-     * Incoming link -- another node connected to us.
-     */
-    INCOMING,
-    /**
-     * Outgoing link -- we connected to another node.
-     */
-    OUTGOING
+import java.util.Set;
+import org.apache.commons.lang3.Validate;
+
+final class AddToAddressCacheCommand<A> {
+    private Set<A> addresses;
+
+    public AddToAddressCacheCommand(Set<A> addresses) {
+        Validate.noNullElements(addresses);
+        
+        this.addresses = addresses;
+    }
+
+    public Set<A> getAddresses() {
+        return addresses;
+    }
 }

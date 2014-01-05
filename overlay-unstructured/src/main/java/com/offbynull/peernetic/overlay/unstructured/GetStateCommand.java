@@ -16,17 +16,18 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-/**
- * Type of link.
- * @author Kasra Faghihi
- */
-public enum LinkType {
-    /**
-     * Incoming link -- another node connected to us.
-     */
-    INCOMING,
-    /**
-     * Outgoing link -- we connected to another node.
-     */
-    OUTGOING
+import org.apache.commons.lang3.Validate;
+
+final class GetStateCommand<A> {
+    private CommandResponseListener<State<A>> callback;
+
+    public GetStateCommand(CommandResponseListener<State<A>> callback) {
+        Validate.notNull(callback);
+
+        this.callback = callback;
+    }
+
+    public CommandResponseListener<State<A>> getCallback() {
+        return callback;
+    }
 }

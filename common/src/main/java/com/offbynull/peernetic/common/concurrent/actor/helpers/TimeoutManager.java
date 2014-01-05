@@ -121,6 +121,14 @@ public final class TimeoutManager<R> {
         
         return new TimeoutManagerResult<>(timedOut, waitDuration);
     }
+
+    /**
+     * If this timer is empty.
+     * @return {@code true} if this timer is currently tracking stuff, {@code false} if it isn't
+     */
+    public boolean isEmpty() {
+        return keyMap.isEmpty();
+    }
     
     /**
      * Timeout manager results.

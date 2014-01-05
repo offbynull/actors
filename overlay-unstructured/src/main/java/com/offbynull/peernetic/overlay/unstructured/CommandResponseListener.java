@@ -16,17 +16,6 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-/**
- * Type of link.
- * @author Kasra Faghihi
- */
-public enum LinkType {
-    /**
-     * Incoming link -- another node connected to us.
-     */
-    INCOMING,
-    /**
-     * Outgoing link -- we connected to another node.
-     */
-    OUTGOING
+interface CommandResponseListener<T> {
+    void commandResponded(T response);
 }

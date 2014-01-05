@@ -59,7 +59,7 @@ public class UnstructuredOverlayTest {
 
     @Test
     public void createAndMaintainOutgoingLinksTest() throws Throwable {
-        UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class);
+        UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class, Mockito.withSettings().verboseLogging());
 
         try (
             OverlayEntry entry0 = new OverlayEntry(0, listenerMock);
@@ -70,22 +70,23 @@ public class UnstructuredOverlayTest {
             OverlayEntry entry5 = new OverlayEntry(5, null);
         ) {
             entry0.getOverlay().addToAddressCache(1, 2, 3, 4, 5);
-
+            
             Thread.sleep(1000L);
-                        
+            
+//            Mockito.verify(listenerMock, Mockito.times(5)).linkCreated(Mockito.any(UnstructuredOverlay.class), Mockito.any(LinkType.class), Mockito.anyInt());
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 1);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 2);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 3);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 4);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 5);
             
-            Thread.sleep(1000L);
+            Thread.sleep(5000L);
             
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 1);
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 2);
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 3);
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 4);
-            Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 5);            
+            Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 5);  
         }
     }
     
@@ -208,20 +209,28 @@ public class UnstructuredOverlayTest {
 
         public OverlayEntry(int address, UnstructuredOverlayListener<Integer> listener) throws IOException {
             TestTransportFactory<Integer> fakeTransportFactory = new TestTransportFactory<>(fakeHub, address);
-            fakeTransportFactory.setIncomingResponseTimeout(200L);
-            fakeTransportFactory.setOutgoingResponseTimeout(200L);
+            fakeTransportFactory.setIncomingResponseTimeout(1000L);
+            fakeTransportFactory.setOutgoingResponseTimeout(1000L);
             rpc = new Rpc<>(fakeTransportFactory);
-            
-            UnstructuredOverlayConfig<Integer> uoConfig = new UnstructuredOverlayConfig<>();
-            uoConfig.setCycleDuration(100L);
-            uoConfig.setMaxOutgoingLinks(5);
-            uoConfig.setMaxOutgoingLinks(5);
-            uoConfig.setMaxOutgoingLinkAttemptsPerCycle(5);
-            uoConfig.setIncomingLinkExpireDuration(500L);
-            uoConfig.setOutgoingLinkExpireDuration(500L);
-            uoConfig.setOutgoingLinkStaleDuration(250L);
-            overlay = new UnstructuredOverlay(rpc, listener, uoConfig);
-            overlay.startAndWait();
+
+            if (listener == null) {
+                listener = new UnstructuredOverlayListener<Integer>() {
+
+                    @Override
+                    public void linkCreated(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
+                    }
+
+                    @Override
+                    public void linkDestroyed(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
+                    }
+
+                    @Override
+                    public void addressCacheEmpty(UnstructuredOverlay<Integer> overlay) {
+                    }
+                };
+            }
+            overlay = new UnstructuredOverlay(rpc, listener, 5, 5, 5, 500L, 1000L, 1000L, 1000L);
+            overlay.start();
         }
 
         public UnstructuredOverlay<Integer> getOverlay() {
@@ -231,7 +240,7 @@ public class UnstructuredOverlayTest {
         @Override
         public void close() {
             try {
-                overlay.stopAndWait();
+                overlay.stop();
             } catch (RuntimeException re) {
                 // do nothing
             }

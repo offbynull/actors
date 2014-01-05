@@ -16,32 +16,27 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
+import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
+import com.offbynull.peernetic.common.concurrent.actor.Message;
 import com.offbynull.peernetic.rpc.RpcInvokeKeys;
 import com.offbynull.peernetic.rpc.invoke.InvokeThreadInformation;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-/**
- * {@link UnstructuredService} implementation.
- * @author Kasra Faghihi
- * @param <A> address type
- */
 final class UnstructuredServiceImplementation<A> implements UnstructuredService<A> {
-    private LinkManager<A> linkManager;
+    private ActorQueueWriter writerToUnstructuredOverlay;
 
-    /**
-     * Constructs an {@link UnstructuredServiceImplementation} object.
-     * @param linkManager link manager
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    public UnstructuredServiceImplementation(LinkManager<A> linkManager) {
-        Validate.notNull(linkManager);
-        this.linkManager = linkManager;
+    public UnstructuredServiceImplementation(ActorQueueWriter writerToUnstructuredOverlay) {
+        Validate.notNull(writerToUnstructuredOverlay);
+        this.writerToUnstructuredOverlay = writerToUnstructuredOverlay;
     }
 
     @Override
     public State<A> getState() {
-        return linkManager.getState();
+        DefaultCommandResponseListener<State<A>> listener = new DefaultCommandResponseListener<>();
+        writerToUnstructuredOverlay.push(Message.createOneWayMessage(
+                new GetStateCommand<>(listener)));
+        return listener.waitForResponse();
     }
 
     @Override
@@ -49,7 +44,11 @@ final class UnstructuredServiceImplementation<A> implements UnstructuredService<
         Validate.isTrue(SECRET_SIZE == secret.length);
         
         A from = InvokeThreadInformation.getInfo(RpcInvokeKeys.FROM_ADDRESS);
-        return linkManager.addIncomingLink(System.currentTimeMillis(), from, ByteBuffer.wrap(secret));
+        
+        DefaultCommandResponseListener<Boolean> listener = new DefaultCommandResponseListener<>();
+        writerToUnstructuredOverlay.push(Message.createOneWayMessage(
+                new InitiateJoinCommand<>(from, ByteBuffer.wrap(secret), listener)));
+        return listener.waitForResponse();
     }
 
     @Override
@@ -57,6 +56,11 @@ final class UnstructuredServiceImplementation<A> implements UnstructuredService<
         Validate.isTrue(SECRET_SIZE == secret.length);
         
         A from = InvokeThreadInformation.getInfo(RpcInvokeKeys.FROM_ADDRESS);
-        return linkManager.updateIncomingLink(System.currentTimeMillis(), from, ByteBuffer.wrap(secret));
+        
+        DefaultCommandResponseListener<Boolean> listener = new DefaultCommandResponseListener<>();
+        System.out.println("KEEPALIVE PUSHED OUT");
+        writerToUnstructuredOverlay.push(Message.createOneWayMessage(
+                new InitiateKeepAliveCommand<>(from, ByteBuffer.wrap(secret), listener)));
+        return listener.waitForResponse();
     }
 }

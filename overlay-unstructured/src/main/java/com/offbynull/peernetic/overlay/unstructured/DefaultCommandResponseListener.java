@@ -16,17 +16,23 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-/**
- * Type of link.
- * @author Kasra Faghihi
- */
-public enum LinkType {
-    /**
-     * Incoming link -- another node connected to us.
-     */
-    INCOMING,
-    /**
-     * Outgoing link -- we connected to another node.
-     */
-    OUTGOING
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+final class DefaultCommandResponseListener<T> implements CommandResponseListener<T> {
+
+    private ArrayBlockingQueue<T> queue = new ArrayBlockingQueue<>(1);
+    
+    @Override
+    public void commandResponded(T response) {
+        queue.add(response);
+    }
+    
+    public T waitForResponse() {
+        try {
+            return queue.poll(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException ie) {
+            throw new RuntimeException(ie);
+        }
+    }
 }

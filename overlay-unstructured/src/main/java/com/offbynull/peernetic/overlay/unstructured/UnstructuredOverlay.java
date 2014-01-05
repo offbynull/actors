@@ -197,7 +197,6 @@ public final class UnstructuredOverlay<A> extends Actor {
                 outgoingLinkExpireTimeoutManager.cancel(address);
                 
                 outgoingLinkStaleTimeoutManager.add(address, timestamp + outgoingStaleDuration);
-                System.out.println("KEEPALIVE GOOD " + address);
             } else if (content instanceof KeepAliveFailedCommand) {
                 KeepAliveFailedCommand<A> kafc = (KeepAliveFailedCommand<A>) content;
                 A address = kafc.getAddress();
@@ -207,7 +206,6 @@ public final class UnstructuredOverlay<A> extends Actor {
                 outgoingLinkExpireTimeoutManager.cancel(address);
                 
                 listener.linkDestroyed(this, LinkType.OUTGOING, address);
-                System.out.println("KEEPALIVE FAILED " + address);
             } else {
                 throw new IllegalArgumentException();
             }
@@ -222,8 +220,7 @@ public final class UnstructuredOverlay<A> extends Actor {
         TimeoutManagerResult<A> staleOutgoing = outgoingLinkStaleTimeoutManager.process(timestamp);
         for (A address : staleOutgoing.getTimedout()) {
             outgoingLinkExpireTimeoutManager.add(address, timestamp + outgoingExpireDuration);
-            System.out.println("KEEPALIVE SENT TO " + address);
-            InternalUnstructuredOverlayUtils.invokeKeepAlive(getSelfWriter(), rpc, address, outgoingLinks.get(address));
+            InternalUnstructuredOverlayUtils.invokeKeepAlive(getSelfWriter(), rpc, address, outgoingLinks.get(address).asReadOnlyBuffer());
         }
         
         TimeoutManagerResult<A> expiredOutgoing = outgoingLinkExpireTimeoutManager.process(timestamp);
@@ -233,8 +230,8 @@ public final class UnstructuredOverlay<A> extends Actor {
         }
         
         TimeoutManagerResult<Object> addressCacheNotify = addressCacheNotifyManager.process(timestamp);
-        if (!addressCacheNotify.getTimedout().isEmpty()) {
-            listener.addressCacheEmpty(this);
+        if (!addressCacheNotify.getTimedout().isEmpty()) { //NOPMD
+            //listener.addressCacheEmpty(this);
         }
         
         if (addressCacheNotifyManager.isEmpty()) {
@@ -248,8 +245,9 @@ public final class UnstructuredOverlay<A> extends Actor {
             
             ByteBuffer secret = ByteBuffer.allocate(UnstructuredService.SECRET_SIZE);
             random.nextBytes(secret.array());
+            secret = secret.asReadOnlyBuffer();
             
-            InternalUnstructuredOverlayUtils.invokeJoin(getSelfWriter(), rpc, address, secret);
+            InternalUnstructuredOverlayUtils.invokeJoin(getSelfWriter(), rpc, address, secret.asReadOnlyBuffer());
             currentJoinAttempts++;
         }
         

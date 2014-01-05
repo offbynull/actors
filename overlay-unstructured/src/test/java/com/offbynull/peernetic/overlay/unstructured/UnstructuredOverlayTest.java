@@ -14,7 +14,7 @@ import org.mockito.Mockito;
 
 public class UnstructuredOverlayTest {
 
-    private TestHub fakeHub;
+    private TestHub hub;
 
     public UnstructuredOverlayTest() {
     }
@@ -29,13 +29,13 @@ public class UnstructuredOverlayTest {
 
     @Before
     public void setUp() throws Throwable {
-        fakeHub = new TestHub<>(new PerfectLine<Integer>());
-        fakeHub.start();
+        hub = new TestHub<>(new PerfectLine<Integer>());
+        hub.start();
     }
 
     @After
     public void tearDown() throws Throwable {
-        fakeHub.stop();
+        hub.stop();
     }
 
     @Test
@@ -59,7 +59,7 @@ public class UnstructuredOverlayTest {
 
     @Test
     public void createAndMaintainOutgoingLinksTest() throws Throwable {
-        UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class, Mockito.withSettings().verboseLogging());
+        UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class);
 
         try (
             OverlayEntry entry0 = new OverlayEntry(0, listenerMock);
@@ -73,14 +73,13 @@ public class UnstructuredOverlayTest {
             
             Thread.sleep(1000L);
             
-//            Mockito.verify(listenerMock, Mockito.times(5)).linkCreated(Mockito.any(UnstructuredOverlay.class), Mockito.any(LinkType.class), Mockito.anyInt());
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 1);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 2);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 3);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 4);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.OUTGOING, 5);
             
-            Thread.sleep(5000L);
+            Thread.sleep(2000L);
             
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 1);
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.OUTGOING, 2);
@@ -116,7 +115,7 @@ public class UnstructuredOverlayTest {
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.INCOMING, 4);
             Mockito.verify(listenerMock).linkCreated(entry0.getOverlay(), LinkType.INCOMING, 5);
             
-            Thread.sleep(1000L);
+            Thread.sleep(2000L);
             
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.INCOMING, 1);
             Mockito.verify(listenerMock, Mockito.never()).linkDestroyed(entry0.getOverlay(), LinkType.INCOMING, 2);
@@ -208,10 +207,10 @@ public class UnstructuredOverlayTest {
         private UnstructuredOverlay<Integer> overlay;
 
         public OverlayEntry(int address, UnstructuredOverlayListener<Integer> listener) throws IOException {
-            TestTransportFactory<Integer> fakeTransportFactory = new TestTransportFactory<>(fakeHub, address);
-            fakeTransportFactory.setIncomingResponseTimeout(1000L);
-            fakeTransportFactory.setOutgoingResponseTimeout(1000L);
-            rpc = new Rpc<>(fakeTransportFactory);
+            TestTransportFactory<Integer> transportFactory = new TestTransportFactory<>(hub, address);
+            transportFactory.setIncomingResponseTimeout(10000L);
+            transportFactory.setOutgoingResponseTimeout(10000L);
+            rpc = new Rpc<>(transportFactory);
 
             if (listener == null) {
                 listener = new UnstructuredOverlayListener<Integer>() {

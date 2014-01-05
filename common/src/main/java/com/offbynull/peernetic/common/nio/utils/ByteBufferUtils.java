@@ -28,6 +28,39 @@ public final class ByteBufferUtils {
     }
 
     /**
+     * Copy the remaining content of a {@link ByteBuffer} in to a new array. Equivalent to calling
+     * {@code copyContentsToArray(src, true)}.
+     * @param src buffer to copy
+     * @return new buffer with the remaining content in {@code src}
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public static byte[] copyContentsToArray(ByteBuffer src) {
+        return copyContentsToArray(src, true);
+    }
+    
+    /**
+     * Copy the remaining content of a {@link ByteBuffer} in to a new array.
+     * @param src buffer to copy
+     * @param incrementSrc of {@code true} increments {@code src}'s position
+     * @return new buffer with the remaining content in {@code src}
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public static byte[] copyContentsToArray(ByteBuffer src, boolean incrementSrc) {
+        if (!incrementSrc) {
+            src.mark();
+        }
+        
+        ByteBuffer dst = ByteBuffer.allocate(src.remaining());
+        dst.put(src);
+        
+        if (!incrementSrc) {
+            src.reset();
+        }
+        
+        return dst.array();
+    }
+
+    /**
      * Copy the remaining content of a {@link ByteBuffer} in to a new non-direct {@link ByteBuffer}. Equivalent to calling
      * {@code copyContents(src, true, false)}.
      * @param src buffer to copy

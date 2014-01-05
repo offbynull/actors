@@ -58,7 +58,6 @@ final class UnstructuredServiceImplementation<A> implements UnstructuredService<
         A from = InvokeThreadInformation.getInfo(RpcInvokeKeys.FROM_ADDRESS);
         
         DefaultCommandResponseListener<Boolean> listener = new DefaultCommandResponseListener<>();
-        System.out.println("KEEPALIVE PUSHED OUT");
         writerToUnstructuredOverlay.push(Message.createOneWayMessage(
                 new InitiateKeepAliveCommand<>(from, ByteBuffer.wrap(secret), listener)));
         return listener.waitForResponse();

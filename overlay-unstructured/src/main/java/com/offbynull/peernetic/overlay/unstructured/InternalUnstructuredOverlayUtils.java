@@ -18,6 +18,7 @@ package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
 import com.offbynull.peernetic.common.concurrent.actor.Message;
+import com.offbynull.peernetic.common.nio.utils.ByteBufferUtils;
 import com.offbynull.peernetic.rpc.Rpc;
 import com.offbynull.peernetic.rpc.invoke.AsyncResultListener;
 import com.offbynull.peernetic.rpc.invoke.helpers.invocationchain.InvocationChainBuilder;
@@ -52,7 +53,7 @@ final class InternalUnstructuredOverlayUtils {
 
             @Override
             public void doInvoke(AsyncResultListener resultListener) {
-                service.join(resultListener, secret.array());
+                service.join(resultListener, ByteBufferUtils.copyContentsToArray(secret, false));
             }
         });
         
@@ -102,7 +103,7 @@ final class InternalUnstructuredOverlayUtils {
 
             @Override
             public void doInvoke(AsyncResultListener resultListener) {
-                service.keepAlive(resultListener, secret.array());
+                service.keepAlive(resultListener, ByteBufferUtils.copyContentsToArray(secret, false));
             }
         });
         

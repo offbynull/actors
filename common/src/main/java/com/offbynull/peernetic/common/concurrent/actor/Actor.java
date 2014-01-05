@@ -18,6 +18,7 @@ package com.offbynull.peernetic.common.concurrent.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -106,6 +107,37 @@ public abstract class Actor {
         }
     }
 
+    final void readyForTesting() {
+        lock.lock();
+        try {
+            Validate.validState(isNew());
+            internalService.stopAsync();
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    final void testOnStart() throws Exception {
+        internalService.stopAsync();
+        onStart();
+    }
+
+    final PushQueue testOnStep(long timestamp, Collection<Message> messages) throws Exception {
+        internalService.stopAsync();
+        ActorQueue throwAwayQueue = new ActorQueue();
+        PushQueue pushQueue = new PushQueue(throwAwayQueue.getWriter());
+        onStep(timestamp, messages.iterator(), pushQueue);
+        return pushQueue;
+    }
+
+    final PushQueue testOnStop() throws Exception {
+        internalService.stopAsync();
+        ActorQueue throwAwayQueue = new ActorQueue();
+        PushQueue pushQueue = new PushQueue(throwAwayQueue.getWriter());
+        onStop(pushQueue);
+        return pushQueue;
+    }
+    
     /**
      * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from
      * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.

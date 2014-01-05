@@ -91,8 +91,13 @@ public final class IncomingMessageManager<A> {
     public void incomingData(long id, A from, ByteBuffer data, long maxTimestamp) {
         Validate.notNull(from);
         Validate.notNull(data);
-        
-        ByteBuffer localTempBuffer = incomingFilter.filter(from, data);
+
+        ByteBuffer localTempBuffer;
+        try {
+            localTempBuffer = incomingFilter.filter(from, data);
+        } catch (RuntimeException re) { // NOPMD
+            return;
+        }
         
         if (localTempBuffer == data) {
             localTempBuffer = ByteBufferUtils.copyContents(localTempBuffer);

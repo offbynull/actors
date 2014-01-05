@@ -92,7 +92,7 @@ public final class TimeoutManager<R> {
      */
     public TimeoutManagerResult<R> process(long timestamp) {
         Set<R> timedOut = new HashSet<>();
-        long waitDuration = 0L;
+        long nextTimestamp = Long.MAX_VALUE;
         
         while (true) {
             Entity entity = idQueue.peekFirst();
@@ -111,15 +111,12 @@ public final class TimeoutManager<R> {
                 idQueue.pollFirst();
                 keyMap.remove(entity.getKey());
             } else {
-                waitDuration = entity.getMaxTimestamp() - timestamp;
-                if (waitDuration <= 0L) {
-                    waitDuration = 1L;
-                }
+                nextTimestamp = entity.getMaxTimestamp();
                 break;
             }
         }
         
-        return new TimeoutManagerResult<>(timedOut, waitDuration);
+        return new TimeoutManagerResult<>(timedOut, nextTimestamp);
     }
 
     /**

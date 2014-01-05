@@ -27,9 +27,11 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -52,7 +54,7 @@ public final class UnstructuredOverlay<A> extends Actor {
     private TimeoutManager<Object> addressCacheNotifyManager;
     private int maxIncomingLinks;
     private int maxOutgoingLinks;
-    private int currentJoinAttempts;
+    private Set<A> pendingJoinQueue;
     private int maxJoinAttemptsAtOnce;
     private long outgoingStaleDuration;
     private long outgoingExpireDuration;
@@ -118,6 +120,7 @@ public final class UnstructuredOverlay<A> extends Actor {
         outgoingLinkExpireTimeoutManager = new TimeoutManager<>();
         addressCacheNotifyManager = new TimeoutManager<>();
         random = SecureRandom.getInstance("SHA1PRNG");
+        pendingJoinQueue = new HashSet<>();
 
         rpc.addService(UnstructuredServiceImplementation.SERVICE_ID, unstructuredService);
     }
@@ -151,6 +154,9 @@ public final class UnstructuredOverlay<A> extends Actor {
                 A address = jc.getAddress();
                 ByteBuffer secret = jc.getSecret();
 
+                incomingLinks.remove(address);
+                incomingLinkExpireTimeoutManager.cancel(address);
+
                 incomingLinks.put(address, secret);
                 incomingLinkExpireTimeoutManager.add(address, timestamp + incomingExpireDuration);
                 
@@ -172,18 +178,25 @@ public final class UnstructuredOverlay<A> extends Actor {
                 incomingLinkExpireTimeoutManager.add(address, timestamp + incomingExpireDuration);
             } else if (content instanceof JoinSuccessfulCommand) {
                 JoinSuccessfulCommand<A> jsc = (JoinSuccessfulCommand<A>) content;
-                currentJoinAttempts--;
                 
                 A address = jsc.getAddress();
                 ByteBuffer secret = jsc.getSecret();
+                
+                pendingJoinQueue.remove(address);
+                
+                outgoingLinks.remove(address);
+                outgoingLinkStaleTimeoutManager.cancel(address);
                 
                 outgoingLinks.put(jsc.getAddress(), secret);
                 outgoingLinkStaleTimeoutManager.add(address, timestamp + outgoingStaleDuration);
 
                 listener.linkCreated(this, LinkType.OUTGOING, address);
             } else if (content instanceof JoinFailedCommand) {
-                //JoinFailedCommand<A> jfc = (JoinFailedCommand<A>) content;
-                currentJoinAttempts--;
+                JoinFailedCommand<A> jfc = (JoinFailedCommand<A>) content;
+                
+                A address = jfc.getAddress();
+                
+                pendingJoinQueue.remove(address);
             } else if (content instanceof KeepAliveSuccessfulCommand) {
                 KeepAliveSuccessfulCommand<A> kasc = (KeepAliveSuccessfulCommand<A>) content;
                 
@@ -231,32 +244,37 @@ public final class UnstructuredOverlay<A> extends Actor {
         
         TimeoutManagerResult<Object> addressCacheNotify = addressCacheNotifyManager.process(timestamp);
         if (!addressCacheNotify.getTimedout().isEmpty()) { //NOPMD
-            //listener.addressCacheEmpty(this);
+            listener.addressCacheEmpty(this);
         }
         
         if (addressCacheNotifyManager.isEmpty()) {
             addressCacheNotifyManager.add(new Object(), timestamp + addressCacheEmptyNotifyDuration);
         }
         
-        while (outgoingLinks.size() != maxOutgoingLinks && !addressCache.isEmpty() && currentJoinAttempts < maxJoinAttemptsAtOnce) {
+        while (outgoingLinks.size() != maxOutgoingLinks && !addressCache.isEmpty() && pendingJoinQueue.size() < maxJoinAttemptsAtOnce) {
             Iterator<A> it = addressCache.iterator();
             A address = it.next();
             it.remove();
+            
+            if (pendingJoinQueue.contains(address) || incomingLinks.containsKey(address) || outgoingLinks.containsKey(address)) {
+                continue;
+            }
             
             ByteBuffer secret = ByteBuffer.allocate(UnstructuredService.SECRET_SIZE);
             random.nextBytes(secret.array());
             secret = secret.asReadOnlyBuffer();
             
+            pendingJoinQueue.add(address);
             InternalUnstructuredOverlayUtils.invokeJoin(getSelfWriter(), rpc, address, secret.asReadOnlyBuffer());
-            currentJoinAttempts++;
         }
         
-        long waitDuration = Long.MAX_VALUE;
-        waitDuration = Math.min(waitDuration, expiredIncoming.getNextTimeoutTimestamp());
-        waitDuration = Math.min(waitDuration, staleOutgoing.getNextTimeoutTimestamp());
-        waitDuration = Math.min(waitDuration, expiredOutgoing.getNextTimeoutTimestamp());
+        long nextTimestamp = Long.MAX_VALUE;
+        nextTimestamp = Math.min(nextTimestamp, addressCacheNotify.getNextTimeoutTimestamp());
+        nextTimestamp = Math.min(nextTimestamp, expiredIncoming.getNextTimeoutTimestamp());
+        nextTimestamp = Math.min(nextTimestamp, staleOutgoing.getNextTimeoutTimestamp());
+        nextTimestamp = Math.min(nextTimestamp, expiredOutgoing.getNextTimeoutTimestamp());
         
-        return waitDuration;
+        return nextTimestamp;
     }
     
     @Override

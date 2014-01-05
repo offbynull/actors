@@ -93,7 +93,12 @@ public final class OutgoingMessageManager<A> {
         tempBuffer.put(data);
         tempBuffer.flip();
 
-        ByteBuffer localTempBuffer = outgoingFilter.filter(to, tempBuffer);
+        ByteBuffer localTempBuffer;
+        try {
+            localTempBuffer = outgoingFilter.filter(to, tempBuffer);
+        } catch (RuntimeException re) { // NOPMD
+            return;
+        }
         
         if (localTempBuffer == tempBuffer) {
             localTempBuffer = ByteBufferUtils.copyContents(tempBuffer);
@@ -133,7 +138,12 @@ public final class OutgoingMessageManager<A> {
         tempBuffer.put(data);
         tempBuffer.flip();
 
-        ByteBuffer localTempBuffer = outgoingFilter.filter(to, tempBuffer);
+        ByteBuffer localTempBuffer;
+        try {
+            localTempBuffer = outgoingFilter.filter(to, tempBuffer);
+        } catch (RuntimeException re) { // NOPMD
+            return;
+        }
         
         if (localTempBuffer == tempBuffer) {
             localTempBuffer = ByteBufferUtils.copyContents(tempBuffer);

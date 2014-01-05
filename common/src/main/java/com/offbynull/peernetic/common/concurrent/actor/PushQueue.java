@@ -77,12 +77,12 @@ public final class PushQueue {
      * @param content message content
      * @throws NullPointerException if any argument is {@code null}
      */
-    public void queueRespondableMessage(ActorQueueWriter dst, Object key, Object content) {
+    public void queueRequestMessage(ActorQueueWriter dst, Object key, Object content) {
         Validate.notNull(dst);
         Validate.notNull(key);
         Validate.notNull(content);
         
-        Message message = Message.createRespondableMessage(key, self, content);
+        Message message = Message.createRequestMessage(key, self, content);
         queue.put(dst, message);
     }
 
@@ -95,5 +95,9 @@ public final class PushQueue {
         }
         
         queue.clear();
+    }
+
+    MultiMap<ActorQueueWriter, Message> get() {
+        return queue;
     }
 }

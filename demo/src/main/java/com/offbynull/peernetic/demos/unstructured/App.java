@@ -25,7 +25,6 @@ import com.offbynull.peernetic.overlay.common.visualizer.Visualizer;
 import com.offbynull.peernetic.overlay.common.visualizer.VisualizerEventListener;
 import com.offbynull.peernetic.overlay.unstructured.LinkType;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay;
-import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayConfig;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayListener;
 import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
 import com.offbynull.peernetic.rpc.Rpc;
@@ -72,7 +71,7 @@ public final class App {
         
 
         
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 8; i++) {
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
                     new ChangeNodeCommand(i, null, new Point((int) (Math.random() * 1000.0), (int) (Math.random() * 1000.0)),
@@ -115,16 +114,11 @@ public final class App {
             rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
             Rpc<Integer> rpc = new Rpc(new TestTransportFactory(hub, i), rpcConfig);
             
-            UnstructuredOverlayConfig<Integer> overlayConfig = new UnstructuredOverlayConfig<>();
-            overlayConfig.setMaxOutgoingLinkAttemptsPerCycle(2);
-            overlayConfig.setMaxOutgoingLinks(5);
-            overlayConfig.setMaxIncomingLinks(5);
-            overlayConfig.setCycleDuration(100L);
-            overlayConfig.setOutgoingLinkStaleDuration(250L);
-            overlayConfig.setOutgoingLinkExpireDuration(500L);
-            overlayConfig.setIncomingLinkExpireDuration(500L);
-            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(rpc, listener, overlayConfig);
-            overlay.startAndWait();
+            
+            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(rpc, listener, 5, 5, 5, 250L, 500L, 500L, 10000L);
+            overlay.start();
+            
+            overlay.addToAddressCache(0);
         }
     }
 }

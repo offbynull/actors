@@ -159,7 +159,7 @@ public final class Message {
      * @throws NullPointerException if any argument is {@code null}
      * @return new message
      */
-    public static Message createRespondableMessage(Object key, ActorQueueWriter writer, Object content) {
+    public static Message createRequestMessage(Object key, ActorQueueWriter writer, Object content) {
         Validate.notNull(key);
         Validate.notNull(content);
         Validate.notNull(writer);
@@ -188,31 +188,6 @@ public final class Message {
         
         message.responseKey = origKey;
         message.content = content;
-        
-        return message;
-    }
-    
-    /**
-     * Constructs a {@link Message} object that is a response to another {@link Message} and can also be responded to.
-     * @param key ID unique to this message
-     * @param origKey ID of message being responded to
-     * @param content message content
-     * @param writer writer that takes in responses for this message
-     * @throws NullPointerException if any argument is {@code null}
-     * @return new message
-     */
-    public static Message createRespondableResponseMessage(Object key, ActorQueueWriter writer, Object origKey, Object content) {
-        Validate.notNull(key);
-        Validate.notNull(origKey);
-        Validate.notNull(content);
-        Validate.notNull(writer);
-        
-        Message message = new Message();
-        
-        message.key = key;
-        message.responseKey = origKey;
-        message.content = content;
-        message.writer = writer;
         
         return message;
     }

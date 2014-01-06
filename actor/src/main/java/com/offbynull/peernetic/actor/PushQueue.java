@@ -30,21 +30,26 @@ import org.apache.commons.lang3.Validate;
 public final class PushQueue {
     private MultiMap<Endpoint, Outgoing> outgoingMap;
     
-    private TimeoutManager<Object> requestTimeoutManager;
-    private Map<Object, IncomingRequest> requestIdMap;
+    private TimeoutManager<RequestKey> outgoingRequestTimeoutManager;
+    private TimeoutManager<RequestKey> incomingRequestTimeoutManager;
+    private Map<RequestKey, IncomingRequest> incomingRequestMap;
     
-    private IdCounter idCounter;
+    private IdCounter outgoingRequestIdCounter;
 
-    PushQueue(IdCounter idCounter, TimeoutManager<Object> requestTimeoutManager, Map<Object, IncomingRequest> requestIdMap,
-            MultiMap<Endpoint, Outgoing> outgoingMap) {
+    PushQueue(IdCounter outgoingRequestIdCounter,
+            TimeoutManager<RequestKey> outgoingRequestTimeoutManager,
+            MultiMap<Endpoint, Outgoing> outgoingMap,
+            TimeoutManager<RequestKey> incomingRequestTimeoutManager,
+            Map<RequestKey, IncomingRequest> incomingRequestMap) {
         Validate.notNull(outgoingMap);
-        Validate.notNull(requestIdMap);
-        Validate.notNull(requestTimeoutManager);
+        Validate.notNull(incomingRequestMap);
+        Validate.notNull(outgoingRequestTimeoutManager);
         
         this.outgoingMap = outgoingMap;
-        this.requestTimeoutManager = requestTimeoutManager;
-        this.requestIdMap = requestIdMap;
-        this.idCounter = idCounter;
+        this.outgoingRequestIdCounter = outgoingRequestIdCounter;
+        this.outgoingRequestTimeoutManager = outgoingRequestTimeoutManager;
+        this.incomingRequestTimeoutManager = incomingRequestTimeoutManager;
+        this.incomingRequestMap = incomingRequestMap;
     }
     
     /**
@@ -69,20 +74,23 @@ public final class PushQueue {
     public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
         Validate.notNull(destination);
         Validate.notNull(content);
-        outgoingMap.put(destination, new OutgoingRequest(idCounter.getNext(), destination, content));
+        
+        long id = outgoingRequestIdCounter.getNext();
+        RequestKey requestKey = new RequestKey(destination, id);
+        
+        outgoingMap.put(destination, new OutgoingRequest(id, destination, content));
+        outgoingRequestTimeoutManager.add(requestKey, 10000L);
     }
 
     /**
      * Send a response to a message.
      * @param request message being responded to
-     * @param destination destination
      * @param content content
      * @return {@code true} if response was queued, {@code false} if message was already responded to or doesn't expect a response.
      * @throws NullPointerException if any arguments are {@code null}
      */    
-    public boolean pushResponse(IncomingRequest request, Endpoint destination, Object content) {
+    public boolean pushResponse(IncomingRequest request, Object content) {
         Validate.notNull(request);
-        Validate.notNull(destination);
         Validate.notNull(content);
         Object requestId = request.getId();
         
@@ -90,9 +98,13 @@ public final class PushQueue {
             return false;
         }
         
-        if (requestTimeoutManager.cancel(requestId)) {
-            requestIdMap.remove(requestId);
-            outgoingMap.put(destination, new OutgoingRequest(null, destination, content));
+        RequestKey key = new RequestKey(request.getSource(), requestId);
+        
+        if (incomingRequestTimeoutManager.cancel(key)) {
+            Endpoint destination = request.getSource();
+            
+            incomingRequestMap.remove(key);
+            outgoingMap.put(destination, new OutgoingResponse(requestId, destination, content));
             request.responded();
             
             return true;

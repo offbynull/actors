@@ -16,10 +16,18 @@
  */
 package com.offbynull.peernetic.actor;
 
+import java.util.Collection;
+
 /**
  * An entity that can receive messages.
  * @author Kasra Faghihi
  */
 public interface Endpoint {
-    
+    /**
+     * Push messages from {@link source} to this endpoint.
+     * @param source the endpoint sending these messages -- replies should point back here
+     * @param outgoing the messages being sent
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    void push(Endpoint source, Collection<Outgoing> outgoing);
 }

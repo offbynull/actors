@@ -41,12 +41,11 @@ public abstract class Actor {
     private InternalService internalService;
     private boolean daemon;
 
-    private volatile ActorQueue queue;
+    private volatile Endpoint endpoint;
     private volatile boolean shutdownRequested;
     private volatile Thread serviceThread;
     
     private Map<Object, Object> startupMap;
-    private Map<Class<? extends Endpoint>, EndpointHandler<?>> endpointHandlerMap;
     private Lock actorLock; // do not use lock in internalService
 
     /**
@@ -58,7 +57,6 @@ public abstract class Actor {
         this.daemon = daemon;
         this.actorLock = new ReentrantLock();
         this.startupMap = Collections.synchronizedMap(new HashMap<>());
-        this.endpointHandlerMap = Collections.synchronizedMap(new HashMap<Class<? extends Endpoint>, EndpointHandler<?>>());
         this.internalService = new InternalService();
     }
     
@@ -80,41 +78,13 @@ public abstract class Actor {
             actorLock.unlock();
         }
     }
-
-    /**
-     * Register an endpoint handler with this actor. Must be registered before actor starts.
-     * @param <E> endpoint type
-     * @param type endpoint type
-     * @param handler handler for {@code type}
-     * @throws IllegalStateException if the actor has already been started
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public final <E extends Endpoint> void registerEndpointHandler(Class<E> type, EndpointHandler<E> handler) {
-        Validate.notNull(type);
-        Validate.notNull(handler);
-        
-        actorLock.lock();
-        try {
-            Validate.validState(isNew());
-            endpointHandlerMap.put(type, handler);
-        } finally {
-            actorLock.unlock();
-        }
-    }
     
     /**
      * Gets the point that can be used to send messages to this actor.
      * @return endpoint for this actor
-     * @throws IllegalStateException if actor isn't currently running
      */
     public final Endpoint getEndpoint() {
-        actorLock.lock();
-        try {
-            Validate.validState(internalService.state() == Service.State.RUNNING);
-            return new LocalEndpoint(queue);
-        } finally {
-            actorLock.unlock();
-        }
+        return endpoint;
     }
     
     /**
@@ -164,9 +134,9 @@ public abstract class Actor {
         }
     }
     
-    final void testOnStart(long timestamp, Map<Object, Object> initVars) throws Exception {
+    final void testOnStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         internalService.stopAsync(); // just in case
-        onStart(timestamp, initVars);
+        onStart(timestamp, pushQueue, initVars);
     }
 
     final long testOnStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
@@ -179,27 +149,29 @@ public abstract class Actor {
         onStop(timestamp, pushQueue);
     }
     
-    /**
-     * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from
-     * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
-     * @param timestamp current timestamp
-     * @param pullQueue messages received
-     * @param pushQueue messages to sen
-     * @return maximum amount of time to wait until next invocation of this method, or a negative value to shutdown the service
-     * @throws Exception on error, shutdowns the internally spawned thread if encountered
-     */
-    protected abstract long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception;
     
     /**
      * Called to initialize this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
      * {@link #onStop() }.
      * @param timestamp current timestamp
+     * @param pushQueue messages to send
      * @param initVars variables to initialize this actor -- values in this map are passed in through
      * {@link #putInStartupMap(java.lang.Object, java.lang.Object) }.
      * @return new queue to use for this actor
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract ActorQueue onStart(long timestamp, Map<Object, Object> initVars) throws Exception;
+    protected abstract ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception;
+
+    /**
+     * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from
+     * internally spawned thread (the same thread that called {@link #onStep(long, java.util.Iterator) } and {@link #onStop() }.
+     * @param timestamp current timestamp
+     * @param pullQueue messages received
+     * @param pushQueue messages to send
+     * @return maximum amount of time to wait until next invocation of this method, or a negative value to shutdown the service
+     * @throws Exception on error, shutdowns the internally spawned thread if encountered
+     */
+    protected abstract long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception;
 
     /**
      * Called to shutdown this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
@@ -211,10 +183,11 @@ public abstract class Actor {
     protected abstract void onStop(long timestamp, PushQueue pushQueue) throws Exception;
 
     private final class InternalService extends AbstractExecutionThreadService {
-        private IdCounter requestIdCounter = new IdCounter();
-        private TimeoutManager<Object> requestIdTracker = new TimeoutManager<>(); // tracks request ids and times them out
-        private Map<Object, IncomingRequest> requestIdMap = new HashMap<>(); // request id to request map
-        private Map<Class<? extends Endpoint>, EndpointHandler<?>> internalEndpointHandlerMap;
+        private IdCounter outgoingRequestIdCounter = new IdCounter();
+        private TimeoutManager<RequestKey> outgoingRequestIdTracker = new TimeoutManager<>(); // times out requests
+        private TimeoutManager<RequestKey> incomingRequestIdTracker = new TimeoutManager<>(); // times out requests
+        private Map<RequestKey, IncomingRequest> incomingRequestIdMap = new HashMap<>(); // request id to request map
+        private volatile ActorQueue queue;
         
         @Override
         protected Executor executor() {
@@ -247,7 +220,8 @@ public abstract class Actor {
         protected void shutDown() throws Exception {
             MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
             
-            PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, requestIdMap, outgoingMap);
+            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, outgoingMap, incomingRequestIdTracker,
+                    incomingRequestIdMap);
             onStop(System.currentTimeMillis(), pushQueue);
 
             sendOutgoing(outgoingMap);
@@ -258,12 +232,16 @@ public abstract class Actor {
             Map<Object, Object> internalStartupMap = new HashMap<>(startupMap); // copy incase map is held on to, startUp map being copied
                                                                                 // is synchronized -- don't want overhead as this will never
                                                                                 // change once it hits starup
-            internalEndpointHandlerMap = new HashMap<>(endpointHandlerMap); // copy so we are using our own version, endpointHandlerMap
-                                                                            // being copied is synchronized -- don't want overhead as this
-                                                                            // will never change once it hits starup
             startupMap.clear();
-            endpointHandlerMap.clear();
-            queue = onStart(System.currentTimeMillis(), internalStartupMap);
+
+            MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
+            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, outgoingMap, incomingRequestIdTracker,
+                    incomingRequestIdMap);
+                    
+            queue = onStart(System.currentTimeMillis(), pushQueue, internalStartupMap);
+            endpoint = new LocalEndpoint(queue);
+            
+            sendOutgoing(outgoingMap);
         }
 
         @Override
@@ -275,14 +253,15 @@ public abstract class Actor {
 
                 while (true) {
                     long processTimeoutsTime = System.currentTimeMillis();
-                    long nextResponseTimeoutTime = requestIdTracker.process(processTimeoutsTime).getNextTimeoutTimestamp();
+                    long nextResponseTimeoutTime = incomingRequestIdTracker.process(processTimeoutsTime).getNextTimeoutTimestamp();
                     waitUntil = Math.min(waitUntil, nextResponseTimeoutTime);
                     
                     Collection<Incoming> messages = reader.pull(waitUntil);
 
                     MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
-                    PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, requestIdMap, outgoingMap);
-                    PullQueue pullQueue = new PullQueue(requestIdTracker, messages);
+                    PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, outgoingMap,
+                            incomingRequestIdTracker, incomingRequestIdMap);
+                    PullQueue pullQueue = new PullQueue(outgoingRequestIdTracker, incomingRequestIdTracker, incomingRequestIdMap, messages);
 
                     long startStepTime = Math.max(waitUntil, System.currentTimeMillis()); // current time should never be less than
                                                                                           // waitUntil, but just in case
@@ -311,10 +290,7 @@ public abstract class Actor {
                 Endpoint dstEndpoint = entry.getKey();
                 Collection<Outgoing> outgoing = (Collection<Outgoing>) entry.getValue();
 
-                EndpointHandler handler = internalEndpointHandlerMap.get(dstEndpoint.getClass());
-                if (handler != null) {
-                    handler.push(getEndpoint(), dstEndpoint, outgoing);
-                }
+                dstEndpoint.push(getEndpoint(), outgoing);
             }
         }
     }

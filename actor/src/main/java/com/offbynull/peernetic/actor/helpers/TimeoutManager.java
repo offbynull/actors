@@ -52,6 +52,17 @@ public final class TimeoutManager<R> {
     }
 
     /**
+     * Check to see if a resource is being tracked.
+     * @param key resource
+     * @return {@code true} if {@code key} is active, {@code false} otherwise
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public boolean contains(R key) {
+        Validate.notNull(key);
+        return keyMap.containsKey(key);
+    }
+
+    /**
      * Cancel the timeout for a resource.
      * @param key resource
      * @return {@code true} if {@code key} was active and was canceled, {@code false} otherwise

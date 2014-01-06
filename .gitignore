@@ -24,3 +24,4 @@
 /rpc-transport/target/
 /rpc-invoke/target/
 /common/target/
+/actor/target/

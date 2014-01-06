@@ -16,6 +16,26 @@
  */
 package com.offbynull.peernetic.actor;
 
-public interface Outgoing {
+import org.apache.commons.lang3.Validate;
+
+/**
+ * Outgoing message.
+ * @author Kasra Faghihi
+ */
+public abstract class Outgoing {
+    private Object content;
     
+    Outgoing(Object content) {
+        Validate.notNull(content);
+        
+        this.content = content;
+    }
+    
+    /**
+     * Get the content within this message.
+     * @return content
+     */
+    public final Object getContent() {
+        return content;
+    }
 }

@@ -22,9 +22,9 @@ import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Queue of messages to be sent out.
+ * Collection of outgoing messages to be populated by the user.
  * <p/>
- * Messages get queued up in each {@link Actor#onStep(long, java.util.Iterator) } invocation and are sent out once the invocation completes.
+ * Queues up outgoing messages for an {@link Actor} to send out during its step and stop sequence.
  * @author Kasra Faghihi
  */
 public final class PushQueue {
@@ -35,24 +35,55 @@ public final class PushQueue {
     
     private IdCounter idCounter;
 
-    PushQueue(IdCounter idCounter, TimeoutManager<Object> responseTimeoutManager, MultiMap<Endpoint, Outgoing> outgoingMap) {
+    PushQueue(IdCounter idCounter, TimeoutManager<Object> requestTimeoutManager, Map<Object, IncomingRequest> requestIdMap,
+            MultiMap<Endpoint, Outgoing> outgoingMap) {
         Validate.notNull(outgoingMap);
-        Validate.notNull(responseTimeoutManager);
+        Validate.notNull(requestIdMap);
+        Validate.notNull(requestTimeoutManager);
         
         this.outgoingMap = outgoingMap;
-        this.requestTimeoutManager = responseTimeoutManager;
+        this.requestTimeoutManager = requestTimeoutManager;
+        this.requestIdMap = requestIdMap;
         this.idCounter = idCounter;
     }
     
+    /**
+     * Send a message that doesn't expect a response.
+     * @param destination destination
+     * @param content content
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public void push(Endpoint destination, Object content) {
+        Validate.notNull(destination);
+        Validate.notNull(content);
         outgoingMap.put(destination, new OutgoingRequest(null, destination, content));
     }
-    
+
+    /**
+     * Send a message that does expect a response.
+     * @param destination destination
+     * @param content content
+     * @param maxTimestamp maximum amount of time to wait for a response (if exceeded, response won't be accepted even if it arrives)
+     * @throws NullPointerException if any arguments are {@code null}
+     */    
     public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
+        Validate.notNull(destination);
+        Validate.notNull(content);
         outgoingMap.put(destination, new OutgoingRequest(idCounter.getNext(), destination, content));
     }
 
+    /**
+     * Send a response to a message.
+     * @param request message being responded to
+     * @param destination destination
+     * @param content content
+     * @return {@code true} if response was queued, {@code false} if message was already responded to or doesn't expect a response.
+     * @throws NullPointerException if any arguments are {@code null}
+     */    
     public boolean pushResponse(IncomingRequest request, Endpoint destination, Object content) {
+        Validate.notNull(request);
+        Validate.notNull(destination);
+        Validate.notNull(content);
         Object requestId = request.getId();
         
         if (requestId == null) {

@@ -18,16 +18,20 @@ package com.offbynull.peernetic.actor;
 
 import org.apache.commons.lang3.Validate;
 
-public final class RemoteEndpoint<A> implements Endpoint {
-    private A address;
+/**
+ * An endpoint for a {@link Actor}.
+ * @author Kasra Faghihi
+ */
+public final class LocalEndpoint implements Endpoint {
+    private ActorQueue actorQueue;
 
-    public RemoteEndpoint(A address) {
-        Validate.notNull(address);
-        this.address = address;
+    LocalEndpoint(ActorQueue actorQueue) {
+        Validate.notNull(actorQueue);
+        this.actorQueue = actorQueue;
     }
 
-    public A getAddress() {
-        return address;
+    ActorQueueWriter getActorQueueWriter() {
+        return actorQueue.getWriter();
     }
     
 }

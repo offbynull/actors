@@ -18,31 +18,33 @@ package com.offbynull.peernetic.actor;
 
 import org.apache.commons.lang3.Validate;
 
-public final class IncomingResponse implements Incoming {
+/**
+ * Incoming response message.
+ * @author Kasra Faghihi
+ */
+public final class IncomingResponse extends Incoming {
     private Object id; // id of original request
     private Endpoint source;
-    private Object content;
 
     IncomingResponse(Object id, Endpoint source, Object content) {
+        super(content);
+
         Validate.notNull(id);
         Validate.notNull(source);
-        Validate.notNull(content);
         
         this.id = id;
         this.source = source;
-        this.content = content;
     }
 
     Object getId() {
         return id;
     }
-
+    
+    /**
+     * Source of the response message. Replies can be sent to this.
+     * @return source of the response message
+     */
     public Endpoint getSource() {
         return source;
     }
-
-    public Object getContent() {
-        return content;
-    }
-    
 }

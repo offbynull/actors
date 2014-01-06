@@ -16,6 +16,26 @@
  */
 package com.offbynull.peernetic.actor;
 
-public interface Incoming {
+import org.apache.commons.lang3.Validate;
+
+/**
+ * Incoming message.
+ * @author Kasra Faghihi
+ */
+public abstract class Incoming {
+    private Object content;
     
+    Incoming(Object content) {
+        Validate.notNull(content);
+        
+        this.content = content;
+    }
+    
+    /**
+     * Get the content within this message.
+     * @return content
+     */
+    public final Object getContent() {
+        return content;
+    }
 }

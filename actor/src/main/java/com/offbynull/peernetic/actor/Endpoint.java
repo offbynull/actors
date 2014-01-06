@@ -16,7 +16,10 @@
  */
 package com.offbynull.peernetic.actor;
 
-// marker interface
+/**
+ * An entity that can receive messages.
+ * @author Kasra Faghihi
+ */
 public interface Endpoint {
     
 }

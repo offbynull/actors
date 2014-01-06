@@ -18,7 +18,6 @@ package com.offbynull.peernetic.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
-import com.offbynull.peernetic.actor.endpoints.local.LocalEndpoint;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,8 +55,6 @@ public abstract class Actor {
      * @throws IllegalStateException if the internal message pump is {@code null}
      */
     public Actor(boolean daemon) {
-        Validate.validState(queue != null);
-        
         this.daemon = daemon;
         this.actorLock = new ReentrantLock();
         this.startupMap = Collections.synchronizedMap(new HashMap<>());
@@ -215,7 +212,8 @@ public abstract class Actor {
 
     private final class InternalService extends AbstractExecutionThreadService {
         private IdCounter requestIdCounter = new IdCounter();
-        private TimeoutManager<Object> requestIdTracker = new TimeoutManager<>(); // tracks ids and times them out
+        private TimeoutManager<Object> requestIdTracker = new TimeoutManager<>(); // tracks request ids and times them out
+        private Map<Object, IncomingRequest> requestIdMap = new HashMap<>(); // request id to request map
         private Map<Class<? extends Endpoint>, EndpointHandler<?>> internalEndpointHandlerMap;
         
         @Override
@@ -249,7 +247,7 @@ public abstract class Actor {
         protected void shutDown() throws Exception {
             MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
             
-            PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, outgoingMap);
+            PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, requestIdMap, outgoingMap);
             onStop(System.currentTimeMillis(), pushQueue);
 
             sendOutgoing(outgoingMap);
@@ -283,7 +281,7 @@ public abstract class Actor {
                     Collection<Incoming> messages = reader.pull(waitUntil);
 
                     MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
-                    PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, outgoingMap);
+                    PushQueue pushQueue = new PushQueue(requestIdCounter, requestIdTracker, requestIdMap, outgoingMap);
                     PullQueue pullQueue = new PullQueue(requestIdTracker, messages);
 
                     long startStepTime = Math.max(waitUntil, System.currentTimeMillis()); // current time should never be less than

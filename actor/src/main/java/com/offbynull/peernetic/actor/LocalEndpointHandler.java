@@ -14,18 +14,20 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.actor.endpoints.local;
+package com.offbynull.peernetic.actor;
 
-import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointHandler;
-import com.offbynull.peernetic.actor.Incoming;
-import com.offbynull.peernetic.actor.MessageUtils;
-import com.offbynull.peernetic.actor.Outgoing;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Handler for {@link LocalEndpoint}s.
+ * @author Kasra Faghihi
+ */
 public final class LocalEndpointHandler implements EndpointHandler<LocalEndpoint> {
+
+    LocalEndpointHandler() {
+    }
 
     @Override
     public void push(Endpoint source, LocalEndpoint destination, Collection<Outgoing> outgoing) {

@@ -21,6 +21,12 @@ import java.util.Collection;
 import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Collection of incoming messages.
+ * <p/>
+ * Used for processing incoming messages for each step of an {@link Actor}.
+ * @author Kasra Faghihi
+ */
 public final class PullQueue {
     private TimeoutManager<Object> responseTimeoutManager;
     private Iterator<Incoming> requestPointer;
@@ -35,6 +41,10 @@ public final class PullQueue {
         this.responsePointer = incoming.iterator();
     }
 
+    /**
+     * Get the next incoming request.
+     * @return next incoming request, or {@code null} if non exists
+     */
     public IncomingRequest pullRequest() {
         while (requestPointer.hasNext()) {
             Incoming incoming = requestPointer.next();
@@ -46,7 +56,11 @@ public final class PullQueue {
         
         return null;
     }
-    
+
+    /**
+     * Get the next incoming response.
+     * @return next incoming response, or {@code null} if non exists
+     */
     public IncomingResponse pullResponse() {
         while (responsePointer.hasNext()) {
             Incoming incoming = responsePointer.next();

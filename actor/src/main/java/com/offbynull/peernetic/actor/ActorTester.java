@@ -77,10 +77,24 @@ public final class ActorTester {
         actor.testOnStop(timestamp, pushQueue);
     }
     
-    public PushQueue createPushQueue(TimeoutManager<Object> responseTimeoutManager, MultiMap<Endpoint, Outgoing> outgoingMap) {
-        return new PushQueue(idCounter, responseTimeoutManager, outgoingMap);
+    /**
+     * Generate a push queue.
+     * @param requestTimeoutManager request timeout manager to pass in
+     * @param requestIdMap request id map to pass in
+     * @param outgoingMap collection of outgoing messages to populate
+     * @return a new push queue
+     */
+    public PushQueue createPushQueue(TimeoutManager<Object> requestTimeoutManager, Map<Object, IncomingRequest> requestIdMap,
+            MultiMap<Endpoint, Outgoing> outgoingMap) {
+        return new PushQueue(idCounter, requestTimeoutManager, requestIdMap, outgoingMap);
     }
     
+    /**
+     * Generate a pull queue.
+     * @param responseTimeoutManager response timeout manager to pass in
+     * @param incoming incoming messages to pass in
+     * @return a new pull queue
+     */
     public PullQueue createPullQueue(TimeoutManager<Object> responseTimeoutManager, Collection<Incoming> incoming) {
         return new PullQueue(responseTimeoutManager, incoming);
     }

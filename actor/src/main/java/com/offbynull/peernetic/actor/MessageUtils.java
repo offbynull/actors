@@ -16,10 +16,21 @@
  */
 package com.offbynull.peernetic.actor;
 
+/**
+ * Utility class for dealing with messages.
+ * @author Kasra Faghihi
+ */
 public final class MessageUtils {
     private MessageUtils() {
     }
     
+    /**
+     * Convert an {@link Outgoing} message to a {@link Incoming} message.
+     * @param source source for incoming message
+     * @param outgoing outgoing message to convert to an incoming message
+     * @return incoming message
+     * @throws IllegalArgumentException if outgoing message type is not recognized
+     */
     public static Incoming flip(Endpoint source, Outgoing outgoing) {
         if (outgoing instanceof OutgoingRequest) {
             OutgoingRequest outgoingRequest = (OutgoingRequest) outgoing;

@@ -19,19 +19,17 @@ package com.offbynull.peernetic.rpc.transport;
 import java.nio.ByteBuffer;
 
 /**
- * A listener that gets triggered when a new message arrives.
+ * Interface for deserializing messages.
  * @author Kasra Faghihi
- * @param <A> address type
  */
-public interface IncomingMessageListener<A> {
+public interface Deserializer {
     /**
-     * Indicates that a message has arrived.
-     * Implementations must be thread-safe <b>AND MUST NEVER BLOCK</b>. It is your responsibility to avoid blocking. Blocking in this method
-     * may block the underlying {@link Transport}.
-     * @param from sender
-     * @param message message (it is safe to hold on to this, you don't need to copy it)
-     * @param responseCallback response handler
-     * @throws NullPointerException if any of the arguments are {@code null}
+     * Deserialize an object.
+     * @param data data to convert back to object
+     * @return {@code data} deserialized to an object
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code data} deserializes to {@code null}
+     * @throws IllegalStateException if anything goes wrong with the underlying deserializer
      */
-    void messageArrived(A from, ByteBuffer message, IncomingMessageResponseListener responseCallback);
+    Object deserialize(ByteBuffer data);
 }

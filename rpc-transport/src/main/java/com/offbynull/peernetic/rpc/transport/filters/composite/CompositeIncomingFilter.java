@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.filters.composite;
 
+import com.offbynull.peernetic.rpc.transport.IncomingFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;

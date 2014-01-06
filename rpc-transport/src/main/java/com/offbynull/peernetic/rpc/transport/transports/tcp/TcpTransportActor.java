@@ -30,7 +30,7 @@ import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import com.offbynull.peernetic.rpc.transport.internal.DefaultIncomingResponseListener;
 import com.offbynull.peernetic.rpc.transport.internal.DropResponseCommand;
 import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.internal.SendResponseCommand;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -47,7 +47,7 @@ import java.util.Map.Entry;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-final class TcpTransportActor extends TransportActor<InetSocketAddress> {
+final class TcpTransportActor extends Transport<InetSocketAddress> {
 
     private InetSocketAddress listenAddress;
     private Selector selector;

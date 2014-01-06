@@ -16,14 +16,14 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.test;
 
-import com.offbynull.peernetic.common.concurrent.actor.Actor;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
-import com.offbynull.peernetic.common.concurrent.actor.Message;
-import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
+import com.offbynull.peernetic.actor.Actor;
+import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.Incoming;
+import com.offbynull.peernetic.actor.PullQueue;
+import com.offbynull.peernetic.actor.PushQueue;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,7 @@ public final class TestHub<A> extends Actor {
     
     private Line<A> line;
     private PriorityQueue<TransitMessage<A>> transitMessageQueue;
-    private Map<A, ActorQueueWriter> addressMap;
+    private Map<A, Endpoint> addressMap;
     
     /**
      * Construct a {@link TestHub} object.
@@ -56,39 +56,28 @@ public final class TestHub<A> extends Actor {
     }
 
     @Override
-    protected ActorQueue createQueue() {
+    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+        transitMessageQueue = new PriorityQueue<>(11, new TransitMessageArriveTimeComparator());
+        addressMap = new HashMap<>();
+        
         return new ActorQueue();
     }
 
-    /**
-     * Get the writer to write to this hub.
-     * @return writer to write to this hub
-     */
-    ActorQueueWriter getInternalWriter() {
-        return getSelfWriter();
-    }
-
     @Override
-    protected void onStart() throws Exception {
-        transitMessageQueue = new PriorityQueue<>(11, new TransitMessageArriveTimeComparator());
-        addressMap = new HashMap<>();
-    }
-
-    @Override
-    protected long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception {
+    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
         // process commands
-        while (iterator.hasNext()) {
-            Message msg = iterator.next();
-            Object content = msg.getContent();
+        Incoming incoming;
+        while ((incoming = pullQueue.pull()) != null) {
+            Object content = incoming.getContent();
             
             if (content instanceof ActivateEndpointCommand) {
                 ActivateEndpointCommand<A> aec = (ActivateEndpointCommand<A>) content;
-                addressMap.put(aec.getAddress(), aec.getWriter());
+                addressMap.put(aec.getAddress(), aec.getEndpoint());
             } else if (content instanceof DeactivateEndpointCommand) {
                 DeactivateEndpointCommand<A> dec = (DeactivateEndpointCommand<A>) content;
                 addressMap.remove(dec.getAddress());
-            } else if (content instanceof SendMessageCommand) {
-                SendMessageCommand<A> imc = (SendMessageCommand<A>) content;
+            } else if (content instanceof SendPacketToHubCommand) {
+                SendPacketToHubCommand<A> imc = (SendPacketToHubCommand<A>) content;
                 Collection<TransitMessage<A>> transitMessages = line.depart(imc.getFrom(), imc.getTo(), imc.getData());
                 transitMessageQueue.addAll(transitMessages);
             }
@@ -114,15 +103,15 @@ public final class TestHub<A> extends Actor {
         // notify of events
         for (TransitMessage<A> transitMessage : revisedOutgoingPackets) {
             A to = transitMessage.getTo();
-            ActorQueueWriter transportWriter = addressMap.get(to);
+            Endpoint destination = addressMap.get(to);
             
-            if (transportWriter == null) {
+            if (destination == null) {
                 continue;
             }
             
-            ReceiveMessageEvent<A> rme = new ReceiveMessageEvent<>(transitMessage.getFrom(), transitMessage.getTo(),
+            ReceivePacketFromHubEvent<A> rme = new ReceivePacketFromHubEvent<>(transitMessage.getFrom(), transitMessage.getTo(),
                     transitMessage.getData());
-            pushQueue.queueOneWayMessage(transportWriter, rme);
+            pushQueue.push(destination, rme);
         }
         
         // calculate wait
@@ -131,6 +120,6 @@ public final class TestHub<A> extends Actor {
     }
 
     @Override
-    protected void onStop(PushQueue pushQueue) throws Exception {
+    protected void onStop(long timestamp, PushQueue pushQueue) throws Exception {
     }
 }

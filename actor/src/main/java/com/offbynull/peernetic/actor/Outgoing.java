@@ -26,7 +26,13 @@ public final class Outgoing {
     private Object content;
     private Endpoint destination;
     
-    Outgoing(Object content, Endpoint destination) {
+    /**
+     * Constructs a {@link Outgoing} object.
+     * @param content content
+     * @param destination destination
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public Outgoing(Object content, Endpoint destination) {
         Validate.notNull(content);
         Validate.notNull(destination);
         

@@ -26,7 +26,7 @@ import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.Inc
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutgoingMessageManagerResult;
 import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.Packet;
-import com.offbynull.peernetic.rpc.transport.internal.TransportActor;
+import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.internal.PacketBasedTransportImplementationUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -39,7 +39,7 @@ import java.util.Iterator;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-final class UdpTransportActor extends TransportActor<InetSocketAddress> {
+final class UdpTransportActor extends Transport<InetSocketAddress> {
 
     private InetSocketAddress listenAddress;
     private Selector selector;
@@ -148,7 +148,7 @@ final class UdpTransportActor extends TransportActor<InetSocketAddress> {
                 long id = nextId++;
                 incomingMessageManager.incomingData(id, from, buffer, timestamp + incomingResponseTimeout);
             } else if (key.isWritable()) { // ready for outgoing data
-                Packet<InetSocketAddress> outgoingPacket = outgoingMessageManager.getNextOutgoingPacket();
+                Packet<InetSocketAddress> outgoingPacket = outgoingMessageManager.getNext();
                 if (outgoingPacket == null) {
                     continue;
                 }

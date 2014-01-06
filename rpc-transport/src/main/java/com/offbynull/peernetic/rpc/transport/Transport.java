@@ -16,46 +16,86 @@
  */
 package com.offbynull.peernetic.rpc.transport;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import com.offbynull.peernetic.actor.Actor;
+import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.EndpointFinder;
+import com.offbynull.peernetic.actor.NullEndpoint;
+import com.offbynull.peernetic.rpc.transport.filters.nil.NullIncomingFilter;
+import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
+import com.offbynull.peernetic.rpc.transport.serializers.xstream.XStreamDeserializer;
+import com.offbynull.peernetic.rpc.transport.serializers.xstream.XStreamSerializer;
+import com.thoughtworks.xstream.XStream;
+import org.apache.commons.lang3.Validate;
 
 /**
- * An interface to send, receive, and reply to messages over a network. Implementations must be thread-safe.
+ * An abstract base-class for network transport implementations.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public interface Transport<A> {
-    /**
-     * Starts the transport. Equivalent to calling {@code start(new NullIncomingFilter(), listener, new NullOutgoingFilter())}.
-     * @param listener listener for incoming messages
-     * @throws IOException on error
-     * @throws IllegalStateException if already started or stopped
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    void start(IncomingMessageListener<A> listener) throws IOException;
-
-    /**
-     * Starts the transport.
-     * @param incomingFilter incoming filter
-     * @param listener listener for incoming messages
-     * @param outgoingFilter outgoing filter
-     * @throws IllegalStateException if already running or stopped, or fails to start up for whatever reason
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    void start(IncomingFilter<A> incomingFilter, IncomingMessageListener<A> listener, OutgoingFilter<A> outgoingFilter);
-
-    /**
-     * Stops the transport. Cannot be restarted once stopped.
-     */
-    void stop();
+public abstract class Transport<A> extends Actor {
+    protected static final Object INCOMING_FILTER_KEY = IncomingFilter.class.getSimpleName();
+    protected static final Object OUTGOING_FILTER_KEY = OutgoingFilter.class.getSimpleName();
+    protected static final Object ENDPOINT_ROUTE_KEY = Endpoint.class.getSimpleName();
+    protected static final Object SERIALIZER_KEY = Serializer.class.getSimpleName();
+    protected static final Object DESERIALIZER_KEY = Deserializer.class.getSimpleName();
     
     /**
-     * Queues a message to be sent out. The behaviour of this method is undefined if the transport isn't in a started state. Implementations
-     * of this method must not block.
-     * @param to recipient
-     * @param message message contents
-     * @param listener handles message responses
-     * @throws NullPointerException if any arguments are {@code null}
+     * Constructs a {@link Transport} object.
      */
-    void sendMessage(A to, ByteBuffer message, OutgoingMessageResponseListener listener);
+    public Transport() {
+        super(false);
+        
+        putInStartupMap(INCOMING_FILTER_KEY, new NullIncomingFilter<A>());
+        putInStartupMap(OUTGOING_FILTER_KEY, new NullOutgoingFilter<A>());
+        putInStartupMap(ENDPOINT_ROUTE_KEY, new NullEndpoint());
+        
+        XStream xstream = new XStream();
+        putInStartupMap(SERIALIZER_KEY, new XStreamSerializer(xstream));
+        putInStartupMap(DESERIALIZER_KEY, new XStreamDeserializer(xstream));
+    }
+    
+    /**
+     * Set the incoming filter. Can only be called before {@link #start() }.
+     * @param incomingFilter incoming filter
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if called after starting service
+     */
+    public final void setIncomingFilter(IncomingFilter<A> incomingFilter) {
+        Validate.notNull(incomingFilter);
+        putInStartupMap(INCOMING_FILTER_KEY, incomingFilter);
+    }
+
+    /**
+     * Set the outgoing filter. Can only be called before {@link #start() }.
+     * @param outgoingFilter incoming filter
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if called after starting service
+     */
+    public final void setOutgoingFilter(OutgoingFilter<A> outgoingFilter) {
+        Validate.notNull(outgoingFilter);
+        putInStartupMap(OUTGOING_FILTER_KEY, outgoingFilter);
+    }
+
+    /**
+     * Set the endpoint to receive messages coming in to the transport. Can only be called before {@link #start() }.
+     * @param endpoint incoming messages to the transport will go here
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if called after starting service
+     */
+    public final void setDestinationEndpoint(Endpoint endpoint) {
+        Validate.notNull(endpoint);
+        putInStartupMap(ENDPOINT_ROUTE_KEY, endpoint);        
+    }
+
+    /**
+     * Gets the finder that can be used to look up new network addresses to send messages out with this endpoint.
+     * @throws IllegalStateException if called when service isn't running
+     * @return endpoint finder that points to this transport
+     */
+    public final EndpointFinder<A> getEndpointFinder() {
+        Validate.validState(isRunning());
+        
+        Endpoint selfEndpoint = getEndpoint();
+        return new NetworkEndpointFinder<>(selfEndpoint);
+    }
 }

@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
+package com.offbynull.peernetic.rpc.transport.filters.composite;
 
+import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,25 +25,25 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A composite {@link IncomingFilter} that allows adding/removing of inner filters.
+ * A composite {@link OutgoingFilter} that allows adding/removing of inner filters.
  * @author Kasra Faghihi
  * @param <A> address type
  */
-public final class ModifiableCompositeIncomingFilter<A> implements IncomingFilter<A> {
-    private CopyOnWriteArrayList<IncomingFilter<A>> filters;
+public final class ModifiableCompositeOutgoingFilter<A> implements OutgoingFilter<A> {
+    private CopyOnWriteArrayList<OutgoingFilter<A>> filters;
 
     /**
-     * Construct an empty {@link ModifiableCompositeIncomingFilter}.
+     * Construct an empty {@link ModifiableCompositeOutgoingFilter}.
      */
-    public ModifiableCompositeIncomingFilter() {
-        this(Collections.<IncomingFilter<A>>emptyList());
+    public ModifiableCompositeOutgoingFilter() {
+        this(Collections.<OutgoingFilter<A>>emptyList());
     }
     
     /**
-     * Construct a {@link ModifiableCompositeIncomingFilter} populated with {@code filters}.
+     * Construct a {@link ModifiableCompositeOutgoingFilter} populated with {@code filters}.
      * @param filters initial listeners
      */
-    public ModifiableCompositeIncomingFilter(Collection<IncomingFilter<A>> filters) {
+    public ModifiableCompositeOutgoingFilter(Collection<OutgoingFilter<A>> filters) {
         Validate.noNullElements(filters);
         
         this.filters = new CopyOnWriteArrayList<>(filters);
@@ -53,7 +54,7 @@ public final class ModifiableCompositeIncomingFilter<A> implements IncomingFilte
      * @param e filters to add
      * @throws NullPointerException if any element of {@code e} is {@code null}
      */
-    public void addFirst(IncomingFilter<A> ... e) {
+    public void addFirst(OutgoingFilter<A> ... e) {
         Validate.noNullElements(e);
         
         filters.addAll(0, Arrays.asList(e));
@@ -64,7 +65,7 @@ public final class ModifiableCompositeIncomingFilter<A> implements IncomingFilte
      * @param e filters to add
      * @throws NullPointerException if any element of {@code e} is {@code null}
      */
-    public void addLast(IncomingFilter<A> ... e) {
+    public void addLast(OutgoingFilter<A> ... e) {
         Validate.noNullElements(e);
         
         filters.addAll(Arrays.asList(e));
@@ -75,7 +76,7 @@ public final class ModifiableCompositeIncomingFilter<A> implements IncomingFilte
      * @param e filters remove
      * @throws NullPointerException if any element of {@code e} is {@code null}
      */
-    public void remove(IncomingFilter<A> ... e) {
+    public void remove(OutgoingFilter<A> ... e) {
         Validate.noNullElements(e);
         
         filters.removeAll(Arrays.asList(e));
@@ -84,7 +85,7 @@ public final class ModifiableCompositeIncomingFilter<A> implements IncomingFilte
     @Override
     public ByteBuffer filter(A from, ByteBuffer buffer) {
         ByteBuffer ret = buffer;
-        for (IncomingFilter<A> filter : filters) {
+        for (OutgoingFilter<A> filter : filters) {
             filter.filter(from, ret);
         }
         return ret;

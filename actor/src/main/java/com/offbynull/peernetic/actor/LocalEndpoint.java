@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.actor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import org.apache.commons.lang3.Validate;
 
@@ -45,6 +46,11 @@ public final class LocalEndpoint implements Endpoint {
         }
         
         actorQueue.getWriter().push(incoming);
+    }
+
+    @Override
+    public void push(Endpoint source, Outgoing... outgoing) {
+        push(source, Arrays.asList(outgoing));
     }
     
 }

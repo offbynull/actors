@@ -14,11 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.internal;
+package com.offbynull.peernetic.actor;
+
+import java.util.Collection;
 
 /**
- * Terminate response.
+ * An endpoint that points to nowhere.
  * @author Kasra Faghihi
  */
-public final class DropResponseCommand {
+public final class NullEndpoint implements Endpoint {
+
+    @Override
+    public void push(Endpoint source, Collection<Outgoing> outgoing) {
+    }
+
+    @Override
+    public void push(Endpoint source, Outgoing... outgoing) {
+    }
+    
 }

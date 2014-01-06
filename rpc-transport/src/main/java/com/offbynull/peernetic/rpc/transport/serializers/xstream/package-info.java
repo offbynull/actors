@@ -14,20 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport;
-
-import java.io.IOException;
 
 /**
- * A factory class that creates {@link Transport}s.
- * @author Kasra Faghihi
- * @param <A> address type
+ * Serializer / deserializer that uses XStream.
  */
-public interface TransportFactory<A> {
-    /**
-     * Creates a {@link Transport}.
-     * @return a transport
-     * @throws IOException on error 
-     */
-    Transport<A> createTransport() throws IOException;
-}
+package com.offbynull.peernetic.rpc.transport.serializers.xstream;

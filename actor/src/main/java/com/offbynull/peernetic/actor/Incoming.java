@@ -26,7 +26,13 @@ public final class Incoming {
     private Object content;
     private Endpoint source;
     
-    Incoming(Object content, Endpoint source) {
+    /**
+     * Constructs a {@link Incoming} object.
+     * @param content content
+     * @param source source
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public Incoming(Object content, Endpoint source) {
         Validate.notNull(content);
         Validate.notNull(source);
         

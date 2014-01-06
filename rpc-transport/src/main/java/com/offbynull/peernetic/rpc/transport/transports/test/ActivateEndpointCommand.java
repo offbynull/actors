@@ -16,18 +16,18 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.test;
 
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
+import com.offbynull.peernetic.actor.Endpoint;
 import org.apache.commons.lang3.Validate;
 
 final class ActivateEndpointCommand<A> {
     private A address;
-    private ActorQueueWriter writer;
+    private Endpoint endpoint;
 
-    public ActivateEndpointCommand(A address, ActorQueueWriter writer) {
+    public ActivateEndpointCommand(A address, Endpoint endpoint) {
         Validate.notNull(address);
-        Validate.notNull(writer);
+        Validate.notNull(endpoint);
         
-        this.writer = writer;
+        this.endpoint = endpoint;
         this.address = address;
     }
 
@@ -35,8 +35,8 @@ final class ActivateEndpointCommand<A> {
         return address;
     }
 
-    public ActorQueueWriter getWriter() {
-        return writer;
+    public Endpoint getEndpoint() {
+        return endpoint;
     }
     
 }

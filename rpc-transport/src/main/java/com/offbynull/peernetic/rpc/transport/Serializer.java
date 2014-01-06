@@ -17,36 +17,18 @@
 package com.offbynull.peernetic.rpc.transport;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.commons.lang3.Validate;
 
 /**
- * A composite {@link OutgoingFilter}.
+ * Interface for serializing messages.
  * @author Kasra Faghihi
- * @param <A> address type
  */
-public final class CompositeOutgoingFilter<A> implements OutgoingFilter<A> {
-    private List<OutgoingFilter<A>> filters;
-
+public interface Serializer {
     /**
-     * Constructs a {@link CompositeOutgoingFilter}.
-     * @param filters filter chain
+     * Serialize an object.
+     * @param content object to serialize
+     * @return {@code content} serialized to a buffer
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if anything goes wrong with the underlying deserializer
      */
-    public CompositeOutgoingFilter(List<OutgoingFilter<A>> filters) {
-        Validate.noNullElements(filters);
-        
-        this.filters = new ArrayList<>(filters);
-    }
-
-    @Override
-    public ByteBuffer filter(A to, ByteBuffer buffer) {
-        ByteBuffer ret = buffer;
-        for (OutgoingFilter<A> filter : filters) {
-            ret = filter.filter(to, ret);
-        }
-
-        return ret;
-    }
-    
+    ByteBuffer serialize(Object content);
 }

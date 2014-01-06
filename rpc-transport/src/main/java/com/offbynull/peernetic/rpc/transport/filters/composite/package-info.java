@@ -14,20 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.rpc.transport.internal;
 
 /**
- * Message type.
- * @author Kasra Faghihi
+ * Filters that wrap multiple other filters.
  */
-public enum MessageType {
-    /**
-     * Request message.
-     */
-    REQUEST,
-    /**
-     * Response message.
-     */
-    RESPONSE
-    
-}
+package com.offbynull.peernetic.rpc.transport.filters.composite;

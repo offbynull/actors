@@ -30,4 +30,12 @@ public interface Endpoint {
      * @throws NullPointerException if any arguments are {@code null}
      */
     void push(Endpoint source, Collection<Outgoing> outgoing);
+
+    /**
+     * Push messages from {@link source} to this endpoint.
+     * @param source the endpoint sending these messages -- replies should point back here
+     * @param outgoing the messages being sent
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    void push(Endpoint source, Outgoing ... outgoing);
 }

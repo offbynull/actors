@@ -79,7 +79,7 @@ public abstract class Actor {
     
     /**
      * Gets the point that can be used to send messages to this actor.
-     * @return endpoint for this actor
+     * @return endpoint for this actor -- {@code null} if not started
      */
     public final Endpoint getEndpoint() {
         return endpoint;
@@ -92,7 +92,15 @@ public abstract class Actor {
     public final boolean isNew() {
         return internalService.state() == Service.State.NEW;
     }
-    
+
+    /**
+     * Checks to see if this {@link Service} is running. That is, checks to see if this service isn't starting/stopping/stopped.
+     * @return {@true} if this service hasn't been started yet, otherwise {@code false}
+     */
+    public final boolean isRunning() {
+        return internalService.state() == Service.State.RUNNING;
+    }
+
     /**
      * Starts this {@link Actor} and waits for it to be ready.
      * @throws IllegalStateException if this method was called previously on this object, or if this actor failed (encountered an exception

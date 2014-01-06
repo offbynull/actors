@@ -17,8 +17,10 @@
 package com.offbynull.peernetic.actor;
 
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
+import java.util.Collection;
 import java.util.Map;
 import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -38,14 +40,12 @@ public final class PushQueue {
 
     PushQueue(IdCounter outgoingRequestIdCounter,
             TimeoutManager<RequestKey> outgoingRequestTimeoutManager,
-            MultiMap<Endpoint, Outgoing> outgoingMap,
             TimeoutManager<RequestKey> incomingRequestTimeoutManager,
             Map<RequestKey, IncomingRequest> incomingRequestMap) {
-        Validate.notNull(outgoingMap);
         Validate.notNull(incomingRequestMap);
         Validate.notNull(outgoingRequestTimeoutManager);
         
-        this.outgoingMap = outgoingMap;
+        this.outgoingMap = new MultiValueMap<>();
         this.outgoingRequestIdCounter = outgoingRequestIdCounter;
         this.outgoingRequestTimeoutManager = outgoingRequestTimeoutManager;
         this.incomingRequestTimeoutManager = incomingRequestTimeoutManager;
@@ -68,7 +68,7 @@ public final class PushQueue {
      * Send a message that does expect a response.
      * @param destination destination
      * @param content content
-     * @param maxTimestamp maximum amount of time to wait for a response (if exceeded, response won't be accepted even if it arrives)
+     * @param maxTimestamp time to wait until for an incoming response (if exceeded, response won't be accepted even if it arrives)
      * @throws NullPointerException if any arguments are {@code null}
      */    
     public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
@@ -79,7 +79,7 @@ public final class PushQueue {
         RequestKey requestKey = new RequestKey(destination, id);
         
         outgoingMap.put(destination, new OutgoingRequest(id, destination, content));
-        outgoingRequestTimeoutManager.add(requestKey, 10000L);
+        outgoingRequestTimeoutManager.add(requestKey, maxTimestamp);
     }
 
     /**
@@ -111,5 +111,16 @@ public final class PushQueue {
         }
         
         return false;
+    }
+    
+    void flush(Endpoint source) {
+        for (Map.Entry<Endpoint, Object> entry : outgoingMap.entrySet()) {
+            Endpoint dstEndpoint = entry.getKey();
+            Collection<Outgoing> outgoing = (Collection<Outgoing>) entry.getValue();
+
+            dstEndpoint.push(source, outgoing);
+        }
+        
+        outgoingMap.clear();
     }
 }

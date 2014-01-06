@@ -27,8 +27,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.collections4.MultiMap;
-import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -187,7 +185,7 @@ public abstract class Actor {
         private TimeoutManager<RequestKey> outgoingRequestIdTracker = new TimeoutManager<>(); // times out requests
         private TimeoutManager<RequestKey> incomingRequestIdTracker = new TimeoutManager<>(); // times out requests
         private Map<RequestKey, IncomingRequest> incomingRequestIdMap = new HashMap<>(); // request id to request map
-        private volatile ActorQueue queue;
+        private ActorQueue queue;
         
         @Override
         protected Executor executor() {
@@ -211,20 +209,20 @@ public abstract class Actor {
 
         @Override
         protected void triggerShutdown() {
-            queue.close();
             shutdownRequested = true;
             serviceThread.interrupt();
         }
 
         @Override
         protected void shutDown() throws Exception {
-            MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
-            
-            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, outgoingMap, incomingRequestIdTracker,
-                    incomingRequestIdMap);
-            onStop(System.currentTimeMillis(), pushQueue);
-
-            sendOutgoing(outgoingMap);
+            try {
+                PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
+                        incomingRequestIdMap);
+                onStop(System.currentTimeMillis(), pushQueue);
+                pushQueue.flush(endpoint);
+            } finally {
+                queue.close();
+            }
         }
 
         @Override
@@ -234,14 +232,11 @@ public abstract class Actor {
                                                                                 // change once it hits starup
             startupMap.clear();
 
-            MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
-            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, outgoingMap, incomingRequestIdTracker,
+            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
                     incomingRequestIdMap);
-                    
             queue = onStart(System.currentTimeMillis(), pushQueue, internalStartupMap);
             endpoint = new LocalEndpoint(queue);
-            
-            sendOutgoing(outgoingMap);
+            pushQueue.flush(endpoint);
         }
 
         @Override
@@ -258,16 +253,15 @@ public abstract class Actor {
                     
                     Collection<Incoming> messages = reader.pull(waitUntil);
 
-                    MultiMap<Endpoint, Outgoing> outgoingMap = new MultiValueMap<>();
-                    PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, outgoingMap,
-                            incomingRequestIdTracker, incomingRequestIdMap);
+                    PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
+                            incomingRequestIdMap);
                     PullQueue pullQueue = new PullQueue(outgoingRequestIdTracker, incomingRequestIdTracker, incomingRequestIdMap, messages);
 
                     long startStepTime = Math.max(waitUntil, System.currentTimeMillis()); // current time should never be less than
                                                                                           // waitUntil, but just in case
                     long nextStepTime = onStep(startStepTime, pullQueue, pushQueue);
                     
-                    sendOutgoing(outgoingMap);
+                    pushQueue.flush(endpoint);
                     
                     if (nextStepTime < 0L) {
                         return;
@@ -282,15 +276,6 @@ public abstract class Actor {
                 } else {
                     throw ie; // shutdown wasn't requested but internal thread was interrupted, push exception up the chain
                 }
-            }
-        }
-        
-        private void sendOutgoing(MultiMap<Endpoint, Outgoing> outgoingMap) {
-            for (Map.Entry<Endpoint, Object> entry : outgoingMap.entrySet()) {
-                Endpoint dstEndpoint = entry.getKey();
-                Collection<Outgoing> outgoing = (Collection<Outgoing>) entry.getValue();
-
-                dstEndpoint.push(getEndpoint(), outgoing);
             }
         }
     }

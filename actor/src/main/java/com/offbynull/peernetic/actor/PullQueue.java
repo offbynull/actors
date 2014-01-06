@@ -52,9 +52,10 @@ public final class PullQueue {
 
     /**
      * Get the next incoming request.
+     * @param maxTimestamp time to wait until for an outgoing response (if exceeded, responses sent will be dropped before it goes out)
      * @return next incoming request, or {@code null} if non exists
      */
-    public IncomingRequest pullRequest() {
+    public IncomingRequest pullRequest(long maxTimestamp) {
         while (requestPointer.hasNext()) {
             Incoming incoming = requestPointer.next();
             
@@ -66,7 +67,7 @@ public final class PullQueue {
                 RequestKey key = new RequestKey(source, id);
 
                 if (!incomingRequestTimeoutManager.contains(key)) {
-                    incomingRequestTimeoutManager.add(key, 10000L);
+                    incomingRequestTimeoutManager.add(key, maxTimestamp);
                     incomingRequestMap.put(key, request);
                     
                     return request;

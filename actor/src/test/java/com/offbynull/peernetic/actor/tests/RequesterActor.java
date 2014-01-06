@@ -30,7 +30,7 @@ public final class RequesterActor extends Actor {
     }
 
     @Override
-    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
+    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue, Endpoint selfEndpoint) throws Exception {
         Incoming incoming;
         while ((incoming = pullQueue.pull()) != null) {
             Object content = incoming.getContent();

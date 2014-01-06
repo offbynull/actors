@@ -23,6 +23,7 @@ import com.offbynull.peernetic.actor.PullQueue;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.rpc.transport.Deserializer;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
+import com.offbynull.peernetic.rpc.transport.NetworkEndpoint;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
 import com.offbynull.peernetic.rpc.transport.Serializer;
 import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager;
@@ -84,7 +85,7 @@ public final class TestTransport<A> extends Transport<A> {
     }
 
     @Override
-    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
+    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue, Endpoint selfEndpoint) throws Exception {
         // process commands
         Incoming incoming;
         while ((incoming = pullQueue.pull()) != null) {
@@ -94,19 +95,20 @@ public final class TestTransport<A> extends Transport<A> {
                 // msg from hub saying a packet has come in
                 ReceivePacketFromHubEvent<A> rpfhe = (ReceivePacketFromHubEvent) content;
                 incomingMessageManager.queue(rpfhe.getFrom(), rpfhe.getData(), timestamp);
-                //pushQueue.push(routeToEndpoint, new SendPacketToHubCommand(address, smc.getDestination(), smc.getContent()));
             } else if (content instanceof SendMessageCommand) {
                 // msg from user saying send out a packet
                 SendMessageCommand<A> smc = (SendMessageCommand) content;
                 outgoingMessageManager.queue(smc.getDestination(), smc.getContent(), timestamp);
-//                
+            } else {
+                throw new IllegalStateException();
             }
         }
         
         
         Collection<InMessage<A>> inMessages = incomingMessageManager.flush();
         for (InMessage<A> inMessage : inMessages) {
-            pushQueue.push(routeToEndpoint, inMessage.getContent());
+            NetworkEndpoint<A> networkEndpoint = new NetworkEndpoint(selfEndpoint, inMessage.getFrom());
+            pushQueue.push(networkEndpoint, routeToEndpoint, inMessage.getContent());
         }
         
         Collection<OutMessage<A>> outMessages = outgoingMessageManager.flush();

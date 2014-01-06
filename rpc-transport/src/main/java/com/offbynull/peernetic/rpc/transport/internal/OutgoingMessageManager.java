@@ -125,6 +125,14 @@ public final class OutgoingMessageManager<A> {
     }
 
     /**
+     * Checks to see if there are pending messages waiting to go out.
+     * @return {@code true} if there are messages waiting to go out, {@code false} otherwise
+     */
+    public boolean hasMore() {
+        return !queuedSends.isEmpty();
+    }
+    
+    /**
      * Removes messages from the queue that have timed out.
      * @param timestamp current timestamp
      * @return next timeout timestamp

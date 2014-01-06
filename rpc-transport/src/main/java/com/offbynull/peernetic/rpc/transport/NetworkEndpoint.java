@@ -13,7 +13,7 @@ public final class NetworkEndpoint<A> implements Endpoint {
     private Endpoint transportEndpoint;
     private A address;
 
-    NetworkEndpoint(Endpoint transportEndpoint, A address) {
+    public NetworkEndpoint(Endpoint transportEndpoint, A address) {
         Validate.notNull(transportEndpoint);
         Validate.notNull(address);
         

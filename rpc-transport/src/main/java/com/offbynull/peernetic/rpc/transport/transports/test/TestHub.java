@@ -64,7 +64,7 @@ public final class TestHub<A> extends Actor {
     }
 
     @Override
-    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
+    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue, Endpoint selfEndpoint) throws Exception {
         // process commands
         Incoming incoming;
         while ((incoming = pullQueue.pull()) != null) {

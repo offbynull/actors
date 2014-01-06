@@ -7,7 +7,7 @@ import org.apache.commons.lang3.Validate;
 public final class NetworkEndpointFinder<A> implements EndpointFinder<A> {
     private Endpoint transportEndpoint;
 
-    NetworkEndpointFinder(Endpoint transportEndpoint) {
+    public NetworkEndpointFinder(Endpoint transportEndpoint) {
         Validate.notNull(transportEndpoint);
         this.transportEndpoint = transportEndpoint;
     }

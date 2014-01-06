@@ -16,77 +16,178 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.udp;
 
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueueWriter;
-import com.offbynull.peernetic.common.concurrent.actor.Message;
+import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.Incoming;
+import com.offbynull.peernetic.actor.PullQueue;
+import com.offbynull.peernetic.actor.PushQueue;
+import com.offbynull.peernetic.actor.SelectorActorQueueNotifier;
+import com.offbynull.peernetic.rpc.transport.Deserializer;
 import com.offbynull.peernetic.rpc.transport.IncomingFilter;
-import com.offbynull.peernetic.rpc.transport.IncomingMessageListener;
+import com.offbynull.peernetic.rpc.transport.NetworkEndpoint;
 import com.offbynull.peernetic.rpc.transport.OutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
+import com.offbynull.peernetic.rpc.transport.Serializer;
 import com.offbynull.peernetic.rpc.transport.Transport;
-import com.offbynull.peernetic.rpc.transport.filters.nil.NullIncomingFilter;
-import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.internal.SendRequestCommand;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager;
+import com.offbynull.peernetic.rpc.transport.internal.IncomingMessageManager.InMessage;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager;
+import com.offbynull.peernetic.rpc.transport.internal.OutgoingMessageManager.OutMessage;
+import com.offbynull.peernetic.rpc.transport.internal.SendMessageCommand;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
 /**
  * A UDP transport implementation.
  * @author Kasra Faghihi
  */
-public final class UdpTransport implements Transport<InetSocketAddress> {
+public final class UdpTransport extends Transport<InetSocketAddress> {
+
+    private InetSocketAddress listenAddress;
+
+    private OutgoingMessageManager<InetSocketAddress> outgoingMessageManager;
+    private IncomingMessageManager<InetSocketAddress> incomingMessageManager;
+
+    private Endpoint routeToEndpoint;
     
-    private UdpTransportActor transportActor;
-    private ActorQueueWriter writer;
+    private DatagramChannel channel;
+    private Selector selector;
+    private int selectionKey;
+    
+    private ByteBuffer recvBuffer;
 
     /**
      * Constructs a {@link UdpTransport} object.
-     * @param listenAddress address to listen on
-     * @param bufferSize buffer size
-     * @param cacheSize number of packet ids to cache
-     * @param packetFlushTimeout timeout duration for outgoing packets to get flushed in to the selector
-     * @param outgoingResponseTimeout timeout duration for responses for outgoing requests to arrive
-     * @param incomingResponseTimeout timeout duration for responses for incoming requests to be processed
-     * @throws IOException on error
-     * @throws IllegalArgumentException if any numeric argument is non-positive (less than 1)
+     * @param listenAddress listen address of this transport
+     * @param recvBufferSize size of buffer used to read UDP packets
      * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if any numeric arguments are negative
      */
-    public UdpTransport(InetSocketAddress listenAddress, int bufferSize, int cacheSize, long packetFlushTimeout,
-            long outgoingResponseTimeout, long incomingResponseTimeout) throws IOException {
+    public UdpTransport(InetSocketAddress listenAddress, int recvBufferSize) {
         Validate.notNull(listenAddress);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, recvBufferSize);
+
+        this.listenAddress = listenAddress;
+        this.recvBuffer = ByteBuffer.allocate(recvBufferSize);
+    }
+
+    @Override
+    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+        OutgoingFilter<InetSocketAddress> outgoingFilter = (OutgoingFilter<InetSocketAddress>) initVars.get(OUTGOING_FILTER_KEY);
+        IncomingFilter<InetSocketAddress> incomingFilter = (IncomingFilter<InetSocketAddress>) initVars.get(INCOMING_FILTER_KEY);
+        routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
+        Serializer serializer = (Serializer) initVars.get(SERIALIZER_KEY);
+        Deserializer deserializer = (Deserializer) initVars.get(DESERIALIZER_KEY);
         
-        transportActor = new UdpTransportActor(listenAddress, bufferSize, cacheSize, packetFlushTimeout, outgoingResponseTimeout,
-                incomingResponseTimeout);
-        writer = transportActor.getInternalWriter();
-    }
-
-    @Override
-    public void start(IncomingMessageListener<InetSocketAddress> listener) throws IOException {
-        start(new NullIncomingFilter<InetSocketAddress>(), listener, new NullOutgoingFilter<InetSocketAddress>());
-    }
-
-    @Override
-    public void start(IncomingFilter<InetSocketAddress> incomingFilter, IncomingMessageListener<InetSocketAddress> listener,
-            OutgoingFilter<InetSocketAddress> outgoingFilter) {
-        Validate.notNull(incomingFilter);
-        Validate.notNull(listener);
-        Validate.notNull(outgoingFilter);
+        outgoingMessageManager = new OutgoingMessageManager<>(outgoingFilter, serializer); 
+        incomingMessageManager = new IncomingMessageManager<>(incomingFilter, deserializer);
         
-        transportActor.setIncomingFilter(incomingFilter);
-        transportActor.setOutgoingFilter(outgoingFilter);
-        transportActor.setIncomingMessageListener(listener);
+        try {
+            selector = Selector.open();
+            selectionKey = SelectionKey.OP_READ;
+
+            channel = DatagramChannel.open();
+            channel.configureBlocking(false);
+            channel.register(selector, selectionKey);
+            channel.socket().bind(listenAddress);
+        } catch (RuntimeException | IOException e) {
+            IOUtils.closeQuietly(selector);
+            IOUtils.closeQuietly(channel);
+            throw e;
+        }
         
-        transportActor.start();
+        return new ActorQueue(new SelectorActorQueueNotifier(selector));
     }
 
     @Override
-    public void stop() {
-        transportActor.stop();
+    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue, Endpoint selfEndpoint) throws Exception {
+        // process managers
+        long immNextTimeoutTimestamp = incomingMessageManager.process(timestamp);
+        long ommNextTimeoutTimestamp = outgoingMessageManager.process(timestamp);
+        
+        // add messages to outgoing queue
+        Incoming incoming;
+        while ((incoming = pullQueue.pull()) != null) {
+            Object content = incoming.getContent();
+
+            if (content instanceof SendMessageCommand) {
+                // msg from user saying send out a packet
+                SendMessageCommand<InetSocketAddress> smc = (SendMessageCommand) content;
+                outgoingMessageManager.queue(smc.getDestination(), smc.getContent(), timestamp + 100L);
+            } else {
+                throw new IllegalStateException();
+            }
+        }
+        
+        
+        // go through selected keys
+        Iterator keys = selector.selectedKeys().iterator();
+        while (keys.hasNext()) {
+            SelectionKey key = (SelectionKey) keys.next();
+            keys.remove();
+
+            if (!key.isValid()) {
+                continue;
+            }
+
+            if (key.isReadable()) {
+                // read in a packet and push it in as a message to the incoming queue
+                recvBuffer.clear();
+                InetSocketAddress from = (InetSocketAddress) channel.receive(recvBuffer);
+                recvBuffer.flip();
+                incomingMessageManager.queue(from, recvBuffer, timestamp + 1L);
+            } else if (key.isWritable()) {
+                // pull out a message from the outgoing queue and write it in as a packet
+                OutMessage<InetSocketAddress> outMessage = outgoingMessageManager.getNext();
+                if (outMessage.getData() == null) {
+                    continue;
+                }
+                channel.send(outMessage.getData(), outMessage.getTo());
+            }
+        }
+        
+        
+        // flush all messages in the incoming queue and push them out
+        Collection<InMessage<InetSocketAddress>> inMessages = incomingMessageManager.flush();
+        for (InMessage<InetSocketAddress> inMessage : inMessages) {
+            NetworkEndpoint<InetSocketAddress> networkEndpoint = new NetworkEndpoint(selfEndpoint, inMessage.getFrom());
+            pushQueue.push(networkEndpoint, routeToEndpoint, inMessage.getContent());
+        }
+        
+        
+        // set selection key based on if there's messages to go out
+        int newSelectionKey = SelectionKey.OP_READ;
+        if (outgoingMessageManager.hasMore()) {
+            newSelectionKey |= SelectionKey.OP_WRITE;
+        }
+
+        if (newSelectionKey != selectionKey) {
+            selectionKey = newSelectionKey;
+            try {
+                channel.register(selector, selectionKey);
+            } catch (ClosedChannelException cce) {
+                throw new RuntimeException(cce);
+            }
+        }
+        
+        
+        // calculate next wait time
+        long nextHitTime = Long.MAX_VALUE;
+        nextHitTime = Math.min(nextHitTime, immNextTimeoutTimestamp);
+        nextHitTime = Math.min(nextHitTime, ommNextTimeoutTimestamp);
+        return nextHitTime;
     }
 
     @Override
-    public void sendMessage(InetSocketAddress to, ByteBuffer message, OutgoingMessageResponseListener listener) {
-        writer.push(Message.createOneWayMessage(new SendRequestCommand(to, message, listener)));
+    protected void onStop(long timestamp, PushQueue pushQueue) throws Exception {
     }
 }

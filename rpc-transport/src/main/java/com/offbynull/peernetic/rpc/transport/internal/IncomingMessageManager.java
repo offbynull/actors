@@ -57,18 +57,18 @@ public final class IncomingMessageManager<A> {
     
     /**
      * Called when a message comes in.
-     * @param to destination address
+     * @param from destination address
      * @param data request data
      * @param queueTimestampTimeout maximum amount of time this message can take from get read out before being discarded
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public void queue(A to, ByteBuffer data, long queueTimestampTimeout) {
-        Validate.notNull(to);
+    public void queue(A from, ByteBuffer data, long queueTimestampTimeout) {
+        Validate.notNull(from);
         Validate.notNull(data);
         
         ByteBuffer tempData = ByteBufferUtils.copyContents(data);
         try {
-            tempData = incomingFilter.filter(to, tempData);
+            tempData = incomingFilter.filter(from, tempData);
         } catch (RuntimeException re) { // NOPMD
             return;
         }
@@ -81,7 +81,7 @@ public final class IncomingMessageManager<A> {
             return;
         }
         
-        InMessage<A> message = new InMessage<>(to, content);
+        InMessage<A> message = new InMessage<>(from, content);
         
         queuedRecvs.add(message);
         queuedRecvsTimeoutManager.add(message, queueTimestampTimeout);

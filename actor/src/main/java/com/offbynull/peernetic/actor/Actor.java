@@ -146,7 +146,7 @@ public abstract class Actor {
 
     final long testOnStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
         internalService.stopAsync(); // just in case
-        return onStep(timestamp, pullQueue, pushQueue);
+        return onStep(timestamp, pullQueue, pushQueue, endpoint);
     }
 
     final void testOnStop(long timestamp, PushQueue pushQueue) throws Exception {
@@ -172,10 +172,11 @@ public abstract class Actor {
      * @param timestamp current timestamp
      * @param pullQueue messages received
      * @param pushQueue messages to send
+     * @param selfEndpoint endpoint for this actor
      * @return maximum amount of time to wait until next invocation of this method, or a negative value to shutdown the service
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception;
+    protected abstract long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue, Endpoint selfEndpoint) throws Exception;
 
     /**
      * Called to shutdown this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and
@@ -258,7 +259,7 @@ public abstract class Actor {
                     PushQueue pushQueue = new PushQueue();
                     PullQueue pullQueue = new PullQueue(messages);
                     long executeStartTime = System.currentTimeMillis();
-                    long nextExecuteStartTime = onStep(executeStartTime, pullQueue, pushQueue);
+                    long nextExecuteStartTime = onStep(executeStartTime, pullQueue, pushQueue, internalEndpoint);
                     pushQueue.flush(internalEndpoint);
                     if (nextExecuteStartTime < 0L) {
                         return;

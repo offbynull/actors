@@ -18,7 +18,6 @@ package com.offbynull.peernetic.actor;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
-import com.offbynull.peernetic.actor.helpers.TimeoutManager;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -154,7 +153,6 @@ public abstract class Actor {
         internalService.stopAsync(); // just in case
         onStop(timestamp, pushQueue);
     }
-    
     
     /**
      * Called to initialize this actor.  Called from internally spawned thread (the same thread that called {@link #onStart() } and

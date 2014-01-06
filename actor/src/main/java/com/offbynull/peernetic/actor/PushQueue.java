@@ -17,8 +17,8 @@
 package com.offbynull.peernetic.actor;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
@@ -29,10 +29,10 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class PushQueue {
-    private MultiMap<Endpoint, Outgoing> outgoingMap;
+    private Map<Endpoint, MultiValueMap<Endpoint, Outgoing>> outgoingMap; // src -> map<dest, list<msg>>
 
     PushQueue() {
-        this.outgoingMap = new MultiValueMap<>();
+        this.outgoingMap = new HashMap<>();
     }
     
     /**
@@ -44,15 +44,52 @@ public final class PushQueue {
     public void push(Endpoint destination, Object content) {
         Validate.notNull(destination);
         Validate.notNull(content);
-        outgoingMap.put(destination, new Outgoing(content, destination));
+        
+        MultiValueMap<Endpoint, Outgoing> msgsFromSrc = outgoingMap.get(null);
+        if (msgsFromSrc == null) {
+            msgsFromSrc = new MultiValueMap<>();
+            outgoingMap.put(null, msgsFromSrc);
+        }
+        
+        msgsFromSrc.put(destination, new Outgoing(content, destination));
     }
-    
-    void flush(Endpoint source) {
-        for (Map.Entry<Endpoint, Object> entry : outgoingMap.entrySet()) {
-            Endpoint dstEndpoint = entry.getKey();
-            Collection<Outgoing> outgoing = (Collection<Outgoing>) entry.getValue();
 
-            dstEndpoint.push(source, outgoing);
+    /**
+     * Send a message masquerading as if it was sent from some other {@link Endpoint}. Useful if you're proxying endpoints.
+     * @param reportedSource source to put in as the sender
+     * @param destination destination
+     * @param content content
+     * @throws NullPointerException if any arguments are {@code null}
+     */
+    public void push(Endpoint reportedSource, Endpoint destination, Object content) {
+        Validate.notNull(reportedSource);
+        Validate.notNull(destination);
+        Validate.notNull(content);
+        
+        MultiValueMap<Endpoint, Outgoing> msgsFromSrc = outgoingMap.get(reportedSource);
+        if (msgsFromSrc == null) {
+            msgsFromSrc = new MultiValueMap<>();
+            outgoingMap.put(reportedSource, msgsFromSrc);
+        }
+        
+        msgsFromSrc.put(destination, new Outgoing(content, destination));
+    }
+
+    void flush(Endpoint defaultSource) {
+        Validate.notNull(defaultSource);
+        
+        for (Map.Entry<Endpoint, MultiValueMap<Endpoint, Outgoing>> entry : outgoingMap.entrySet()) {
+            Endpoint srcEndpoint = entry.getKey();
+            if (srcEndpoint == null) {
+                srcEndpoint = defaultSource;
+            }
+            
+            for (Map.Entry<Endpoint, Object> innerEntry : entry.getValue().entrySet()) {
+                Endpoint dstEndpoint = innerEntry.getKey();
+                
+                Collection<Outgoing> outgoing = (Collection<Outgoing>) innerEntry.getValue();
+                dstEndpoint.push(srcEndpoint, outgoing);
+            }
         }
         
         outgoingMap.clear();

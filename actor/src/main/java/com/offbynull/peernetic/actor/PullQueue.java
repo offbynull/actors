@@ -40,7 +40,7 @@ public final class PullQueue {
      * @return next incoming request, or {@code null} if non exists
      */
     public Incoming pull() {
-        while (iterator.hasNext()) {
+        if (iterator.hasNext()) {
             return iterator.next();
         }
         

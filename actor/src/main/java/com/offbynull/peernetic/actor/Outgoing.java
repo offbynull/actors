@@ -44,7 +44,7 @@ public final class Outgoing {
      * Get the content within this message.
      * @return content
      */
-    public final Object getContent() {
+    public Object getContent() {
         return content;
     }
     

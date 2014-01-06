@@ -20,7 +20,7 @@ public final class ResponseActor extends Actor {
     @Override
     protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
         IncomingRequest request;
-        while ((request = pullQueue.pullRequest(timestamp)) != null) {
+        while ((request = pullQueue.pullRequest()) != null) {
             Object content = request.getContent();
             pushQueue.pushResponse(request, content);
             

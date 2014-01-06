@@ -19,7 +19,6 @@ package com.offbynull.peernetic.actor;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
-import com.offbynull.peernetic.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -184,8 +183,6 @@ public abstract class Actor {
     private final class InternalService extends AbstractExecutionThreadService {
         private IdCounter outgoingRequestIdCounter = new IdCounter();
         private TimeoutManager<RequestKey> outgoingRequestIdTracker = new TimeoutManager<>(); // times out requests
-        private TimeoutManager<RequestKey> incomingRequestIdTracker = new TimeoutManager<>(); // times out requests
-        private Map<RequestKey, IncomingRequest> incomingRequestIdMap = new HashMap<>(); // request id to request map
         private ActorQueue queue;
         private Endpoint internalEndpoint; // internal copy of parent endpoint, not required to be volatile
         private long nextHitTime;
@@ -219,8 +216,7 @@ public abstract class Actor {
         @Override
         protected void shutDown() throws Exception {
             try {
-                PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
-                        incomingRequestIdMap);
+                PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker);
                 onStop(System.currentTimeMillis(), pushQueue);
                 pushQueue.flush(internalEndpoint);
             } finally {
@@ -237,14 +233,13 @@ public abstract class Actor {
 
             long startTime = System.currentTimeMillis();
             
-            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
-                    incomingRequestIdMap);
+            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker);
             queue = onStart(startTime, pushQueue, internalStartupMap);
             internalEndpoint = new LocalEndpoint(queue);
             endpoint = internalEndpoint;
             pushQueue.flush(internalEndpoint);
             
-            nextHitTime = processTrackers(startTime);
+            nextHitTime = outgoingRequestIdTracker.process(startTime).getNextTimeoutTimestamp();
         }
 
         @Override
@@ -257,9 +252,8 @@ public abstract class Actor {
                     long pullWaitDuration = Math.max(nextHitTime - pullStartTime, 0L);
                     Collection<Incoming> messages = reader.pull(pullWaitDuration);
 
-                    PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
-                            incomingRequestIdMap);
-                    PullQueue pullQueue = new PullQueue(outgoingRequestIdTracker, incomingRequestIdTracker, incomingRequestIdMap, messages);
+                    PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker);
+                    PullQueue pullQueue = new PullQueue(outgoingRequestIdTracker, messages);
                     long executeStartTime = System.currentTimeMillis();
                     long nextExecuteStartTime = onStep(executeStartTime, pullQueue, pushQueue);
                     pushQueue.flush(internalEndpoint);
@@ -267,7 +261,7 @@ public abstract class Actor {
                         return;
                     }
                     
-                    long nextExecuteTrackersTime = processTrackers(executeStartTime);
+                    long nextExecuteTrackersTime = outgoingRequestIdTracker.process(executeStartTime).getNextTimeoutTimestamp();
                     
                     nextHitTime = Math.min(nextExecuteStartTime, nextExecuteTrackersTime);
                 }
@@ -278,17 +272,6 @@ public abstract class Actor {
                     throw ie; // shutdown wasn't requested but internal thread was interrupted, push exception up the chain
                 }
             }
-        }
-        
-        private long processTrackers(long timestamp) {
-            TimeoutManagerResult<RequestKey> incomingTrackerResult = incomingRequestIdTracker.process(timestamp);
-            for (RequestKey key : incomingTrackerResult.getTimedout()) {
-                incomingRequestIdMap.remove(key);
-            }
-            long nextOutgoingTrackerTime = outgoingRequestIdTracker.process(timestamp).getNextTimeoutTimestamp();
-            long nextIncomingTrackerTime = incomingTrackerResult.getNextTimeoutTimestamp();
-            
-            return Math.min(nextOutgoingTrackerTime, nextIncomingTrackerTime);
         }
     }
 }

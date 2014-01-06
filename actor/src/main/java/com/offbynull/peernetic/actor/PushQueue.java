@@ -33,23 +33,17 @@ public final class PushQueue {
     private MultiMap<Endpoint, Outgoing> outgoingMap;
     
     private TimeoutManager<RequestKey> outgoingRequestTimeoutManager;
-    private TimeoutManager<RequestKey> incomingRequestTimeoutManager;
-    private Map<RequestKey, IncomingRequest> incomingRequestMap;
     
     private IdCounter outgoingRequestIdCounter;
 
     PushQueue(IdCounter outgoingRequestIdCounter,
-            TimeoutManager<RequestKey> outgoingRequestTimeoutManager,
-            TimeoutManager<RequestKey> incomingRequestTimeoutManager,
-            Map<RequestKey, IncomingRequest> incomingRequestMap) {
-        Validate.notNull(incomingRequestMap);
+            TimeoutManager<RequestKey> outgoingRequestTimeoutManager) {
+        Validate.notNull(outgoingRequestIdCounter);
         Validate.notNull(outgoingRequestTimeoutManager);
         
         this.outgoingMap = new MultiValueMap<>();
         this.outgoingRequestIdCounter = outgoingRequestIdCounter;
         this.outgoingRequestTimeoutManager = outgoingRequestTimeoutManager;
-        this.incomingRequestTimeoutManager = incomingRequestTimeoutManager;
-        this.incomingRequestMap = incomingRequestMap;
     }
     
     /**
@@ -68,7 +62,7 @@ public final class PushQueue {
      * Send a message that does expect a response.
      * @param destination destination
      * @param content content
-     * @param maxTimestamp time to wait until for an incoming response (if exceeded, response won't be accepted even if it arrives)
+     * @param maxTimestamp time to wait until for a response (if exceeded, response won't be accepted even if it arrives)
      * @throws NullPointerException if any arguments are {@code null}
      */    
     public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
@@ -98,12 +92,9 @@ public final class PushQueue {
             return false;
         }
         
-        RequestKey key = new RequestKey(request.getSource(), requestId);
-        
-        if (incomingRequestTimeoutManager.cancel(key)) {
+        if (!request.isResponded()) {
             Endpoint destination = request.getSource();
-            
-            incomingRequestMap.remove(key);
+
             outgoingMap.put(destination, new OutgoingResponse(requestId, destination, content));
             request.responded();
             

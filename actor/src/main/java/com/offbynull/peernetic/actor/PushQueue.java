@@ -86,13 +86,14 @@ public final class PushQueue {
         Validate.notNull(content);
         Object requestId = request.getId();
         
-        if (requestId == null) {
+        if (requestId == null || request.isResponded()) {
             return false;
         }
         
         if (requestTimeoutManager.cancel(requestId)) {
             requestIdMap.remove(requestId);
             outgoingMap.put(destination, new OutgoingRequest(null, destination, content));
+            request.responded();
             
             return true;
         }

@@ -25,6 +25,7 @@ import org.apache.commons.lang3.Validate;
 public final class IncomingRequest extends Incoming {
     private Object id; // if null id, no response possible.
     private Endpoint source;
+    private boolean responded;
 
     IncomingRequest(Object id, Endpoint source, Object content) {
         super(content);
@@ -45,5 +46,13 @@ public final class IncomingRequest extends Incoming {
      */
     public Endpoint getSource() {
         return source;
+    }
+
+    boolean isResponded() {
+        return responded;
+    }
+    
+    void responded() {
+        responded = true;
     }
 }

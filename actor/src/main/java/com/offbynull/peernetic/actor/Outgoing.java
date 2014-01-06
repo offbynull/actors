@@ -22,13 +22,16 @@ import org.apache.commons.lang3.Validate;
  * Outgoing message.
  * @author Kasra Faghihi
  */
-public abstract class Outgoing {
+public final class Outgoing {
     private Object content;
+    private Endpoint destination;
     
-    Outgoing(Object content) {
+    Outgoing(Object content, Endpoint destination) {
         Validate.notNull(content);
+        Validate.notNull(destination);
         
         this.content = content;
+        this.destination = destination;
     }
     
     /**
@@ -37,5 +40,13 @@ public abstract class Outgoing {
      */
     public final Object getContent() {
         return content;
+    }
+    
+    /**
+     * Destination of the request message.
+     * @return destination of the request message
+     */
+    public Endpoint getDestination() {
+        return destination;
     }
 }

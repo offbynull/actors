@@ -2,7 +2,7 @@ package com.offbynull.peernetic.actor.tests;
 
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorQueue;
-import com.offbynull.peernetic.actor.IncomingRequest;
+import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
 import com.offbynull.peernetic.actor.PushQueue;
 import java.util.Map;
@@ -19,10 +19,10 @@ public final class ResponseActor extends Actor {
 
     @Override
     protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
-        IncomingRequest request;
-        while ((request = pullQueue.pullRequest()) != null) {
+        Incoming request;
+        while ((request = pullQueue.pull()) != null) {
             Object content = request.getContent();
-            pushQueue.pushResponse(request, content);
+            pushQueue.push(request.getSource(), content);
             
             if (content.equals(50L)) {
                 return -1;

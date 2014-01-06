@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.actor;
 
-import com.offbynull.peernetic.actor.helpers.TimeoutManager;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.commons.collections4.MultiMap;
@@ -31,23 +30,13 @@ import org.apache.commons.lang3.Validate;
  */
 public final class PushQueue {
     private MultiMap<Endpoint, Outgoing> outgoingMap;
-    
-    private TimeoutManager<RequestKey> outgoingRequestTimeoutManager;
-    
-    private IdCounter outgoingRequestIdCounter;
 
-    PushQueue(IdCounter outgoingRequestIdCounter,
-            TimeoutManager<RequestKey> outgoingRequestTimeoutManager) {
-        Validate.notNull(outgoingRequestIdCounter);
-        Validate.notNull(outgoingRequestTimeoutManager);
-        
+    PushQueue() {
         this.outgoingMap = new MultiValueMap<>();
-        this.outgoingRequestIdCounter = outgoingRequestIdCounter;
-        this.outgoingRequestTimeoutManager = outgoingRequestTimeoutManager;
     }
     
     /**
-     * Send a message that doesn't expect a response.
+     * Send a message.
      * @param destination destination
      * @param content content
      * @throws NullPointerException if any arguments are {@code null}
@@ -55,53 +44,7 @@ public final class PushQueue {
     public void push(Endpoint destination, Object content) {
         Validate.notNull(destination);
         Validate.notNull(content);
-        outgoingMap.put(destination, new OutgoingRequest(null, destination, content));
-    }
-
-    /**
-     * Send a message that does expect a response.
-     * @param destination destination
-     * @param content content
-     * @param maxTimestamp time to wait until for a response (if exceeded, response won't be accepted even if it arrives)
-     * @throws NullPointerException if any arguments are {@code null}
-     */    
-    public void pushRequest(Endpoint destination, Object content, long maxTimestamp) {
-        Validate.notNull(destination);
-        Validate.notNull(content);
-        
-        long id = outgoingRequestIdCounter.getNext();
-        RequestKey requestKey = new RequestKey(destination, id);
-        
-        outgoingMap.put(destination, new OutgoingRequest(id, destination, content));
-        outgoingRequestTimeoutManager.add(requestKey, maxTimestamp);
-    }
-
-    /**
-     * Send a response to a message.
-     * @param request message being responded to
-     * @param content content
-     * @return {@code true} if response was queued, {@code false} if message was already responded to or doesn't expect a response.
-     * @throws NullPointerException if any arguments are {@code null}
-     */    
-    public boolean pushResponse(IncomingRequest request, Object content) {
-        Validate.notNull(request);
-        Validate.notNull(content);
-        Object requestId = request.getId();
-        
-        if (requestId == null || request.isResponded()) {
-            return false;
-        }
-        
-        if (!request.isResponded()) {
-            Endpoint destination = request.getSource();
-
-            outgoingMap.put(destination, new OutgoingResponse(requestId, destination, content));
-            request.responded();
-            
-            return true;
-        }
-        
-        return false;
+        outgoingMap.put(destination, new Outgoing(content, destination));
     }
     
     void flush(Endpoint source) {

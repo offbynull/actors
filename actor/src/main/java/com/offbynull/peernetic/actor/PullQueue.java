@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.actor;
 
-import com.offbynull.peernetic.actor.helpers.TimeoutManager;
 import java.util.Collection;
 import java.util.Iterator;
 import org.apache.commons.lang3.Validate;
@@ -28,57 +27,21 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class PullQueue {
-    private TimeoutManager<RequestKey> outgoingRequestTimeoutManager;
-    private Iterator<Incoming> requestPointer;
-    private Iterator<Incoming> responsePointer;
+    private Iterator<Incoming> iterator;
 
-    PullQueue(TimeoutManager<RequestKey> outgoingRequestTimeoutManager,
-            Collection<Incoming> incoming) {
-        Validate.notNull(outgoingRequestTimeoutManager);
+    PullQueue(Collection<Incoming> incoming) {
         Validate.noNullElements(incoming);
-        
-        this.outgoingRequestTimeoutManager = outgoingRequestTimeoutManager;
-        this.requestPointer = incoming.iterator();
-        this.responsePointer = incoming.iterator();
+
+        this.iterator = incoming.iterator();
     }
 
     /**
      * Get the next incoming request.
      * @return next incoming request, or {@code null} if non exists
      */
-    public IncomingRequest pullRequest() {
-        while (requestPointer.hasNext()) {
-            Incoming incoming = requestPointer.next();
-            
-            if (incoming instanceof IncomingRequest) {
-                IncomingRequest request = (IncomingRequest) incoming;
-                return request;
-            }
-        }
-        
-        return null;
-    }
-
-    /**
-     * Get the next incoming response.
-     * @return next incoming response, or {@code null} if non exists
-     */
-    public IncomingResponse pullResponse() {
-        while (responsePointer.hasNext()) {
-            Incoming incoming = responsePointer.next();
-            
-            if (incoming instanceof IncomingResponse) {
-                IncomingResponse response = (IncomingResponse) incoming;
-                
-                Object id = response.getId();
-                Endpoint source = response.getSource();
-                RequestKey key = new RequestKey(source, id);
-                
-                boolean canceled = outgoingRequestTimeoutManager.cancel(key);
-                if (canceled) {
-                    return (IncomingResponse) response;
-                }
-            }
+    public Incoming pull() {
+        while (iterator.hasNext()) {
+            return iterator.next();
         }
         
         return null;

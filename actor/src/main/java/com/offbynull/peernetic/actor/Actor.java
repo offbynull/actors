@@ -181,11 +181,8 @@ public abstract class Actor {
     protected abstract void onStop(long timestamp, PushQueue pushQueue) throws Exception;
 
     private final class InternalService extends AbstractExecutionThreadService {
-        private IdCounter outgoingRequestIdCounter = new IdCounter();
-        private TimeoutManager<RequestKey> outgoingRequestIdTracker = new TimeoutManager<>(); // times out requests
         private ActorQueue queue;
         private Endpoint internalEndpoint; // internal copy of parent endpoint, not required to be volatile
-        private long nextHitTime;
         
         @Override
         protected Executor executor() {
@@ -216,7 +213,7 @@ public abstract class Actor {
         @Override
         protected void shutDown() throws Exception {
             try {
-                PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker);
+                PushQueue pushQueue = new PushQueue();
                 onStop(System.currentTimeMillis(), pushQueue);
                 pushQueue.flush(internalEndpoint);
             } finally {
@@ -233,13 +230,11 @@ public abstract class Actor {
 
             long startTime = System.currentTimeMillis();
             
-            PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker);
+            PushQueue pushQueue = new PushQueue();
             queue = onStart(startTime, pushQueue, internalStartupMap);
             internalEndpoint = new LocalEndpoint(queue);
             endpoint = internalEndpoint;
             pushQueue.flush(internalEndpoint);
-            
-            nextHitTime = outgoingRequestIdTracker.process(startTime).getNextTimeoutTimestamp();
         }
 
         @Override
@@ -247,13 +242,15 @@ public abstract class Actor {
             ActorQueueReader reader = queue.getReader();
             
             try {
+                long nextHitTime = Long.MAX_VALUE;
+
                 while (true) {
                     long pullStartTime = System.currentTimeMillis();
                     long pullWaitDuration = Math.max(nextHitTime - pullStartTime, 0L);
                     Collection<Incoming> messages = reader.pull(pullWaitDuration);
 
-                    PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker);
-                    PullQueue pullQueue = new PullQueue(outgoingRequestIdTracker, messages);
+                    PushQueue pushQueue = new PushQueue();
+                    PullQueue pullQueue = new PullQueue(messages);
                     long executeStartTime = System.currentTimeMillis();
                     long nextExecuteStartTime = onStep(executeStartTime, pullQueue, pushQueue);
                     pushQueue.flush(internalEndpoint);
@@ -261,9 +258,7 @@ public abstract class Actor {
                         return;
                     }
                     
-                    long nextExecuteTrackersTime = outgoingRequestIdTracker.process(executeStartTime).getNextTimeoutTimestamp();
-                    
-                    nextHitTime = Math.min(nextExecuteStartTime, nextExecuteTrackersTime);
+                    nextHitTime = nextExecuteStartTime;
                 }
             } catch (InterruptedException ie) {
                 if (shutdownRequested) {

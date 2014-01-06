@@ -22,13 +22,16 @@ import org.apache.commons.lang3.Validate;
  * Incoming message.
  * @author Kasra Faghihi
  */
-public abstract class Incoming {
+public final class Incoming {
     private Object content;
+    private Endpoint source;
     
-    Incoming(Object content) {
+    Incoming(Object content, Endpoint source) {
         Validate.notNull(content);
+        Validate.notNull(source);
         
         this.content = content;
+        this.source = source;
     }
     
     /**
@@ -37,5 +40,13 @@ public abstract class Incoming {
      */
     public final Object getContent() {
         return content;
+    }
+    
+    /**
+     * Source of the request message. Replies can be sent to this.
+     * @return source of the request message
+     */
+    public Endpoint getSource() {
+        return source;
     }
 }

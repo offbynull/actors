@@ -3,7 +3,7 @@ package com.offbynull.peernetic.actor.tests;
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorQueue;
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.IncomingResponse;
+import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
 import com.offbynull.peernetic.actor.PushQueue;
 import java.util.Map;
@@ -24,23 +24,23 @@ public final class RequesterActor extends Actor {
     protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         friend = (Endpoint) initVars.get("friend");
         
-        pushQueue.pushRequest(friend, number, timestamp + 10000L);
+        pushQueue.push(friend, number);
         
         return new ActorQueue();
     }
 
     @Override
     protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
-        IncomingResponse response;
-        while ((response = pullQueue.pullResponse()) != null) {
-            Object content = response.getContent();
+        Incoming incoming;
+        while ((incoming = pullQueue.pull()) != null) {
+            Object content = incoming.getContent();
             if (content.equals(number)) {
                 if (number == 50L) {
                     return -1;
                 }
                 
                 number++;
-                pushQueue.pushRequest(friend, number, timestamp + 10000L);
+                pushQueue.push(friend, number);
             }
         }
         

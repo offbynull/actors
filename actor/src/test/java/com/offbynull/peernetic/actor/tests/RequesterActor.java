@@ -24,7 +24,7 @@ public final class RequesterActor extends Actor {
     protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         friend = (Endpoint) initVars.get("friend");
         
-        pushQueue.pushRequest(friend, number, 1000L);
+        pushQueue.pushRequest(friend, number, timestamp + 10000L);
         
         return new ActorQueue();
     }
@@ -40,7 +40,7 @@ public final class RequesterActor extends Actor {
                 }
                 
                 number++;
-                pushQueue.pushRequest(friend, number, 10000L);
+                pushQueue.pushRequest(friend, number, timestamp + 10000L);
             }
         }
         

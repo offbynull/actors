@@ -19,6 +19,7 @@ package com.offbynull.peernetic.actor;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
+import com.offbynull.peernetic.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -186,6 +187,8 @@ public abstract class Actor {
         private TimeoutManager<RequestKey> incomingRequestIdTracker = new TimeoutManager<>(); // times out requests
         private Map<RequestKey, IncomingRequest> incomingRequestIdMap = new HashMap<>(); // request id to request map
         private ActorQueue queue;
+        private Endpoint internalEndpoint; // internal copy of parent endpoint, not required to be volatile
+        private long nextHitTime;
         
         @Override
         protected Executor executor() {
@@ -219,7 +222,7 @@ public abstract class Actor {
                 PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
                         incomingRequestIdMap);
                 onStop(System.currentTimeMillis(), pushQueue);
-                pushQueue.flush(endpoint);
+                pushQueue.flush(internalEndpoint);
             } finally {
                 queue.close();
             }
@@ -232,11 +235,16 @@ public abstract class Actor {
                                                                                 // change once it hits starup
             startupMap.clear();
 
+            long startTime = System.currentTimeMillis();
+            
             PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
                     incomingRequestIdMap);
-            queue = onStart(System.currentTimeMillis(), pushQueue, internalStartupMap);
-            endpoint = new LocalEndpoint(queue);
-            pushQueue.flush(endpoint);
+            queue = onStart(startTime, pushQueue, internalStartupMap);
+            internalEndpoint = new LocalEndpoint(queue);
+            endpoint = internalEndpoint;
+            pushQueue.flush(internalEndpoint);
+            
+            nextHitTime = processTrackers(startTime);
         }
 
         @Override
@@ -244,31 +252,24 @@ public abstract class Actor {
             ActorQueueReader reader = queue.getReader();
             
             try {
-                long waitUntil = Long.MAX_VALUE;
-
                 while (true) {
-                    long processTimeoutsTime = System.currentTimeMillis();
-                    long nextResponseTimeoutTime = incomingRequestIdTracker.process(processTimeoutsTime).getNextTimeoutTimestamp();
-                    waitUntil = Math.min(waitUntil, nextResponseTimeoutTime);
-                    
-                    Collection<Incoming> messages = reader.pull(waitUntil);
+                    long pullStartTime = System.currentTimeMillis();
+                    long pullWaitDuration = Math.max(nextHitTime - pullStartTime, 0L);
+                    Collection<Incoming> messages = reader.pull(pullWaitDuration);
 
                     PushQueue pushQueue = new PushQueue(outgoingRequestIdCounter, outgoingRequestIdTracker, incomingRequestIdTracker,
                             incomingRequestIdMap);
                     PullQueue pullQueue = new PullQueue(outgoingRequestIdTracker, incomingRequestIdTracker, incomingRequestIdMap, messages);
-
-                    long startStepTime = Math.max(waitUntil, System.currentTimeMillis()); // current time should never be less than
-                                                                                          // waitUntil, but just in case
-                    long nextStepTime = onStep(startStepTime, pullQueue, pushQueue);
-                    
-                    pushQueue.flush(endpoint);
-                    
-                    if (nextStepTime < 0L) {
+                    long executeStartTime = System.currentTimeMillis();
+                    long nextExecuteStartTime = onStep(executeStartTime, pullQueue, pushQueue);
+                    pushQueue.flush(internalEndpoint);
+                    if (nextExecuteStartTime < 0L) {
                         return;
                     }
-
-                    long stopStepTime = System.currentTimeMillis();
-                    waitUntil = Math.max(stopStepTime - nextStepTime, 0L);
+                    
+                    long nextExecuteTrackersTime = processTrackers(executeStartTime);
+                    
+                    nextHitTime = Math.min(nextExecuteStartTime, nextExecuteTrackersTime);
                 }
             } catch (InterruptedException ie) {
                 if (shutdownRequested) {
@@ -277,6 +278,17 @@ public abstract class Actor {
                     throw ie; // shutdown wasn't requested but internal thread was interrupted, push exception up the chain
                 }
             }
+        }
+        
+        private long processTrackers(long timestamp) {
+            TimeoutManagerResult<RequestKey> incomingTrackerResult = incomingRequestIdTracker.process(timestamp);
+            for (RequestKey key : incomingTrackerResult.getTimedout()) {
+                incomingRequestIdMap.remove(key);
+            }
+            long nextOutgoingTrackerTime = outgoingRequestIdTracker.process(timestamp).getNextTimeoutTimestamp();
+            long nextIncomingTrackerTime = incomingTrackerResult.getNextTimeoutTimestamp();
+            
+            return Math.min(nextOutgoingTrackerTime, nextIncomingTrackerTime);
         }
     }
 }

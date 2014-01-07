@@ -30,11 +30,15 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ActorQueueWriter {
+    private final Lock lock;
+    private final Condition condition;
+    
+    // guarded by lock
     private boolean closed;
     private LinkedList<Collection<Incoming>> queue;
-    private Lock lock;
-    private Condition condition;
-    private ActorQueueNotifier notifier;
+
+    // notifiers need to be thread safe by default
+    private final ActorQueueNotifier notifier;
 
     ActorQueueWriter(LinkedList<Collection<Incoming>> queue, Lock lock, ActorQueueNotifier notifier) {
         Validate.notNull(queue);
@@ -43,6 +47,7 @@ public final class ActorQueueWriter {
 
         this.queue = queue;
         this.lock = lock;
+        this.condition = null;
         this.notifier = notifier;
     }
 
@@ -54,6 +59,7 @@ public final class ActorQueueWriter {
         this.queue = queue;
         this.lock = lock;
         this.condition = condition;
+        this.notifier = null;
     }
 
     /**

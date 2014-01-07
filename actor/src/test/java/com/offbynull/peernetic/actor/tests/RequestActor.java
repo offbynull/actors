@@ -8,13 +8,9 @@ import com.offbynull.peernetic.actor.PullQueue;
 import com.offbynull.peernetic.actor.PushQueue;
 import java.util.Map;
 
-public final class RequesterActor extends Actor {
+public final class RequestActor extends Actor {
     private volatile long number;
     private Endpoint friend;
-
-    public RequesterActor() {
-        super(true);
-    }
 
     public void setFriend(Endpoint friend) {
         putInStartupMap("friend", friend);

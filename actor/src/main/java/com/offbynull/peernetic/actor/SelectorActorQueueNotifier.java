@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class SelectorActorQueueNotifier implements ActorQueueNotifier {
-    private volatile Selector selector;
+    private final Selector selector;
 
     /**
      * Construct a {@link SelectorActorQueueNotifier} object.

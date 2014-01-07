@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class LocalEndpoint implements Endpoint {
-    private ActorQueue actorQueue;
+    private final ActorQueue actorQueue; // actorqueue implementation is thread safe
 
     LocalEndpoint(ActorQueue actorQueue) {
         Validate.notNull(actorQueue);

@@ -9,9 +9,6 @@ import com.offbynull.peernetic.actor.PushQueue;
 import java.util.Map;
 
 public final class ResponseActor extends Actor {
-    public ResponseActor() {
-        super(true);
-    }
 
     @Override
     protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.actor.tests;
 
+import com.offbynull.peernetic.actor.ActorRunner;
 import junit.framework.Assert;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -30,19 +31,19 @@ public class SimpleActorTest {
 
     @Test
     public void basicActorTest() throws Throwable {
-        RequesterActor requesterActor = new RequesterActor();
+        RequestActor requestActor = new RequestActor();
         
         ResponseActor responseActor = new ResponseActor();
-        responseActor.start();
+        ActorRunner responseActorRunner = ActorRunner.createAndStart(responseActor);
         
-        requesterActor.setFriend(responseActor.getEndpoint());
-        requesterActor.start();
+        requestActor.setFriend(responseActorRunner.getEndpoint());
+        ActorRunner requestActorRunner = ActorRunner.createAndStart(requestActor);
         
         Thread.sleep(1000L);
         
-        Assert.assertEquals(50L, requesterActor.getNumber());
+        Assert.assertEquals(50L, requestActor.getNumber());
         
-        requesterActor.stop();
-        responseActor.stop();
+        requestActorRunner.stop();
+        responseActorRunner.stop();
     }
 }

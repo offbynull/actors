@@ -40,8 +40,10 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -75,7 +77,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
      * Constructs a {@link TcpTransport} object.
      * @param listenAddress listen address of this transport
      * @param maxMessageBytes maximum number of bytes a message can be
-     * @param timeout maximum amount of time a socket can exist (either connecting or connected)
+     * @param timeout maximum amount of time a socket can exist while idle (either connecting or connected)
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if any numeric arguments are negative
      */
@@ -103,6 +105,8 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
         timeoutManager = new TimeoutManager<>();
         
         try {
+            selector = Selector.open();
+            
             serverChannel = ServerSocketChannel.open();
             serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             
@@ -182,7 +186,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                     killSocketSilently(id);
                 }
             } else if (key.isReadable()) {
-                SocketChannel clientChannel = (SocketChannel) key.channel();
+               SocketChannel clientChannel = (SocketChannel) key.channel();
                 long id = (Long) key.attachment();
 
                 try {
@@ -207,7 +211,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                             NetworkEndpoint<InetSocketAddress> networkEndpoint = new NetworkEndpoint(selfEndpoint, from);
                             pushQueue.push(networkEndpoint, routeToEndpoint, content);
 
-                            info.getBuffers().startWriting(new byte[] { 0x00 }); // write a marker saying you got it.
+                            info.getBuffers().startWriting(new byte[] {0x00}); // write a marker saying you got it.
                             key.interestOps(SelectionKey.OP_WRITE);
                         } else {
                             throw new IllegalStateException();
@@ -256,6 +260,13 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
 
     @Override
     protected void onStop(long timestamp, PushQueue pushQueue) throws Exception {
+        Set<Long> ids = new HashSet<>(idToChannelInfoMap.keySet());
+        for (Long id : ids) {
+            killSocketSilently(id);
+        }
+        
+        IOUtils.closeQuietly(serverChannel);
+        IOUtils.closeQuietly(selector);
     }
     
     private ChannelInfo acceptAndInitializeIncomingSocket(long timestamp) throws IOException {
@@ -269,7 +280,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
             clientChannel.configureBlocking(false);
             clientChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, false);
             clientChannel.setOption(StandardSocketOptions.SO_LINGER, 0);
-            clientChannel.setOption(StandardSocketOptions.TCP_NODELAY, false);
+            clientChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
             selectionKey = clientChannel.register(selector, SelectionKey.OP_READ); // no need to OP_CONNECT
             selectionKey.attach(id);
@@ -310,7 +321,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
             clientChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
             
             selectionKey = clientChannel.register(selector, SelectionKey.OP_CONNECT);
-            selectionKey.attach(nextId++);
+            selectionKey.attach(id);
 
             StreamIoBuffers buffers = new StreamIoBuffers(StreamIoBuffers.Mode.WRITE_FIRST, 1, maxMessageBytes);
 

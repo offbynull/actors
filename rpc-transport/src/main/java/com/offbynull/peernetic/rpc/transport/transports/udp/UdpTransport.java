@@ -189,5 +189,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
 
     @Override
     protected void onStop(long timestamp, PushQueue pushQueue) throws Exception {
+        IOUtils.closeQuietly(selector);
+        IOUtils.closeQuietly(channel);
     }
 }

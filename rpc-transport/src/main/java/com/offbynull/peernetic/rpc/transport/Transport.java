@@ -32,10 +32,25 @@ import org.apache.commons.lang3.Validate;
  * @param <A> address type
  */
 public abstract class Transport<A> extends Actor {
+    /**
+     * Key for incoming filter.
+     */
     protected static final Object INCOMING_FILTER_KEY = IncomingFilter.class.getSimpleName();
+    /**
+     * Key for outgoing filter.
+     */
     protected static final Object OUTGOING_FILTER_KEY = OutgoingFilter.class.getSimpleName();
+    /**
+     * Key for message destinations.
+     */
     protected static final Object ENDPOINT_ROUTE_KEY = Endpoint.class.getSimpleName();
+    /**
+     * Key for serializer.
+     */
     protected static final Object SERIALIZER_KEY = Serializer.class.getSimpleName();
+    /**
+     * Key for deserializer.
+     */
     protected static final Object DESERIALIZER_KEY = Deserializer.class.getSimpleName();
     
     /**

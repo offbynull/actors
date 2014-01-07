@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.rpc.transport.transports.test;
 
+import com.offbynull.peernetic.rpc.transport.transports.shared.RequestActor;
+import com.offbynull.peernetic.rpc.transport.transports.shared.ResponseActor;
 import com.offbynull.peernetic.actor.ActorRunner;
 import com.offbynull.peernetic.rpc.transport.NetworkEndpoint;
 import junit.framework.Assert;
@@ -9,9 +11,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class SimpleActorTest {
+public class TestActorTest {
     
-    public SimpleActorTest() {
+    public TestActorTest() {
     }
     
     @BeforeClass

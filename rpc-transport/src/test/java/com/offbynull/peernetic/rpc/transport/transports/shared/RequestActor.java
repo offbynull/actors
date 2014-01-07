@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.rpc.transport.transports.test;
+package com.offbynull.peernetic.rpc.transport.transports.shared;
 
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorQueue;

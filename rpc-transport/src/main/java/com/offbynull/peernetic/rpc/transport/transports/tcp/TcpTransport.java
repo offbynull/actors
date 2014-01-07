@@ -32,6 +32,7 @@ import com.offbynull.peernetic.rpc.transport.Serializer;
 import com.offbynull.peernetic.rpc.transport.Transport;
 import com.offbynull.peernetic.rpc.transport.internal.SendMessageCommand;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -183,6 +184,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                         throw new IllegalStateException();
                     }
                 } catch (RuntimeException | IOException e) {
+                    System.out.println("KILLED SILENTLY err5");
                     killSocketSilently(id);
                 }
             } else if (key.isReadable()) {
@@ -198,14 +200,18 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                         buffers.addReadBlock(tempBuffer);
                     } else {
                         clientChannel.shutdownInput();
-                        byte[] inData = buffers.finishReading();
-                        InetSocketAddress from = (InetSocketAddress) clientChannel.getRemoteAddress();
+                        ByteBuffer inData = ByteBuffer.wrap(buffers.finishReading());
 
                         if (info instanceof OutgoingMessageChannelInfo) {
                             // don't care what we got back, but it should be byte[] { 0x00 }.
                             killSocketSilently(id);
                         } else if (info instanceof IncomingMessageChannelInfo) {
-                            ByteBuffer filteredInData = incomingFilter.filter(from, ByteBuffer.wrap(inData));
+                            int returnPort = inData.getShort() & 0xFFFF;
+
+                            InetSocketAddress socketFrom = (InetSocketAddress) clientChannel.getRemoteAddress();
+                            InetSocketAddress from = new InetSocketAddress(socketFrom.getAddress(), returnPort);
+
+                            ByteBuffer filteredInData = incomingFilter.filter(from, inData);
                             Object content = deserializer.deserialize(filteredInData);
                             
                             NetworkEndpoint<InetSocketAddress> networkEndpoint = new NetworkEndpoint(selfEndpoint, from);
@@ -218,6 +224,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                         }
                     }
                 } catch (RuntimeException | IOException e) {
+                    e.printStackTrace();
                     killSocketSilently(id);
                 }
             } else if (key.isWritable()) {
@@ -250,6 +257,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                         }
                     }
                 } catch (RuntimeException | IOException e) {
+                    System.out.println("KILLED SILENTLY err3");
                     killSocketSilently(id);
                 }
             }
@@ -294,6 +302,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
 
             return info;
         } catch (IOException | RuntimeException e) {
+            System.out.println("KILLED SILENTLY err2");
             if (clientChannel != null) {
                 killSocketSilently(id);
             }
@@ -327,8 +336,15 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
 
             ByteBuffer data = serializer.serialize(content);
             ByteBuffer filteredOutData = outgoingFilter.filter(to, data);
+            
+            int selfPort = listenAddress.getPort();
+            
+            ByteBuffer finalData = ByteBuffer.allocate(2 + filteredOutData.remaining());
+            finalData.putShort((short) (selfPort & 0xFFFF));
+            finalData.put(filteredOutData);
+            finalData.flip();
 
-            buffers.startWriting(filteredOutData);
+            buffers.startWriting(finalData);
 
             ChannelInfo info = new OutgoingMessageChannelInfo(clientChannel, buffers, selectionKey);
 
@@ -339,6 +355,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
 
             return info;
         } catch (IOException | RuntimeException e) {
+            System.out.println("KILLED SILENTLY err1");
             if (clientChannel != null) {
                 killSocketSilently(id);
             }

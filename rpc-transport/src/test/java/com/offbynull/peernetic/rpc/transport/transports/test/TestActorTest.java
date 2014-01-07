@@ -66,9 +66,9 @@ public class TestActorTest {
         
         
         
-        Thread.sleep(1000L);
+        Thread.sleep(6000L);
         
-        Assert.assertEquals(50L, requestActor.getNumber());
+        Assert.assertEquals(5L, requestActor.getNumber());
         
         requestRunner.stop();
         respondRunner.stop();

@@ -54,18 +54,16 @@ public final class TestTransport<A> extends Transport<A> {
     /**
      * Constructs a {@link TestTransport} object.
      * @param address address of this transport
-     * @param hub hub backing this transport (must be started)
+     * @param hubEndpoint endpoint of hub backing this transport (must be started)
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalStateException if {@code hub} is not started
      */
-    public TestTransport(A address, TestHub<A> hub) {
+    public TestTransport(A address, Endpoint hubEndpoint) {
         Validate.notNull(address);
-        Validate.notNull(hub);
+        Validate.notNull(hubEndpoint);
 
         this.address = address;
-        this.hubEndpoint = hub.getEndpoint();
-        
-        Validate.isTrue(hubEndpoint != null);
+        this.hubEndpoint = hubEndpoint;
     }
 
     @Override
@@ -79,7 +77,7 @@ public final class TestTransport<A> extends Transport<A> {
         outgoingMessageManager = new OutgoingMessageManager<>(outgoingFilter, serializer); 
         incomingMessageManager = new IncomingMessageManager<>(incomingFilter, deserializer);
 
-        pushQueue.push(hubEndpoint, new ActivateEndpointCommand<>(address, getEndpoint()));
+        pushQueue.push(hubEndpoint, new ActivateEndpointCommand<>(address));
         
         return new ActorQueue();
     }

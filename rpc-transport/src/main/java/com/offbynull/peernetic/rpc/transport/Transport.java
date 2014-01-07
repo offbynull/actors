@@ -18,7 +18,6 @@ package com.offbynull.peernetic.rpc.transport;
 
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.rpc.transport.filters.nil.NullIncomingFilter;
 import com.offbynull.peernetic.rpc.transport.filters.nil.NullOutgoingFilter;
@@ -43,8 +42,6 @@ public abstract class Transport<A> extends Actor {
      * Constructs a {@link Transport} object.
      */
     public Transport() {
-        super(false);
-        
         putInStartupMap(INCOMING_FILTER_KEY, new NullIncomingFilter<A>());
         putInStartupMap(OUTGOING_FILTER_KEY, new NullOutgoingFilter<A>());
         putInStartupMap(ENDPOINT_ROUTE_KEY, new NullEndpoint());
@@ -85,17 +82,5 @@ public abstract class Transport<A> extends Actor {
     public final void setDestinationEndpoint(Endpoint endpoint) {
         Validate.notNull(endpoint);
         putInStartupMap(ENDPOINT_ROUTE_KEY, endpoint);        
-    }
-
-    /**
-     * Gets the finder that can be used to look up new network addresses to send messages out with this endpoint.
-     * @throws IllegalStateException if called when service isn't running
-     * @return endpoint finder that points to this transport
-     */
-    public final EndpointFinder<A> getEndpointFinder() {
-        Validate.validState(isRunning());
-        
-        Endpoint selfEndpoint = getEndpoint();
-        return new NetworkEndpointFinder<>(selfEndpoint);
     }
 }

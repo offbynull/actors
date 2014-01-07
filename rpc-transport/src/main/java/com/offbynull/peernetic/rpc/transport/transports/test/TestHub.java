@@ -48,8 +48,6 @@ public final class TestHub<A> extends Actor {
      * @throws NullPointerException if any arguments are {@code null}
      */
     public TestHub(Line<A> line) {
-        super(false);
-        
         Validate.notNull(line);
 
         this.line = line;
@@ -72,7 +70,7 @@ public final class TestHub<A> extends Actor {
             
             if (content instanceof ActivateEndpointCommand) {
                 ActivateEndpointCommand<A> aec = (ActivateEndpointCommand<A>) content;
-                addressMap.put(aec.getAddress(), aec.getEndpoint());
+                addressMap.put(aec.getAddress(), incoming.getSource());
             } else if (content instanceof DeactivateEndpointCommand) {
                 DeactivateEndpointCommand<A> dec = (DeactivateEndpointCommand<A>) content;
                 addressMap.remove(dec.getAddress());

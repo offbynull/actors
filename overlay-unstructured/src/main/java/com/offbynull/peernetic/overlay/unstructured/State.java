@@ -29,22 +29,19 @@ import org.apache.commons.lang3.Validate;
 public final class State<A> {
     private Set<A> incomingLinks;
     private Set<A> outgoingLinks;
-    private boolean incomingLinksFull;
 
     /**
      * Construct a {@link State} object.
      * @param incomingLinks incoming links
      * @param outgoingLinks outgoing links
-     * @param incomingLinksFull flag indicating if the node can accept more incoming links
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
-    public State(Set<A> incomingLinks, Set<A> outgoingLinks, boolean incomingLinksFull) {
+    public State(Set<A> incomingLinks, Set<A> outgoingLinks) {
         Validate.noNullElements(incomingLinks);
         Validate.noNullElements(outgoingLinks);
 
         this.incomingLinks = Collections.unmodifiableSet(new HashSet<>(incomingLinks));
         this.outgoingLinks = Collections.unmodifiableSet(new HashSet<>(outgoingLinks));
-        this.incomingLinksFull = incomingLinksFull;
     }
 
     /**
@@ -62,13 +59,4 @@ public final class State<A> {
     public Set<A> getOutgoingLinks() {
         return outgoingLinks;
     }
-
-    /**
-     * Get if there's no more room available for incoming links.
-     * @return {@code true} if there's no more room available for incoming links, {@code false} otherwise
-     */
-    public boolean isIncomingLinksFull() {
-        return incomingLinksFull;
-    }
-    
 }

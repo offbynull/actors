@@ -16,21 +16,14 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.common.concurrent.actor.Actor;
-import com.offbynull.peernetic.common.concurrent.actor.ActorQueue;
-import com.offbynull.peernetic.common.concurrent.actor.Message;
-import com.offbynull.peernetic.common.concurrent.actor.PushQueue;
-import com.offbynull.peernetic.common.concurrent.actor.helpers.NotifyManager;
-import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager;
-import com.offbynull.peernetic.common.concurrent.actor.helpers.TimeoutManager.TimeoutManagerResult;
-import com.offbynull.peernetic.rpc.Rpc;
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
+import com.offbynull.peernetic.actor.Actor;
+import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.EndpointFinder;
+import com.offbynull.peernetic.actor.EndpointKeyExtractor;
+import com.offbynull.peernetic.actor.Incoming;
+import com.offbynull.peernetic.actor.PullQueue;
+import com.offbynull.peernetic.actor.PushQueue;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
@@ -41,249 +34,67 @@ import org.apache.commons.lang3.Validate;
  * @param <A> address type
  */
 public final class UnstructuredOverlay<A> extends Actor {
-    
-    private Rpc<A> rpc;
-    private UnstructuredServiceImplementation<A> unstructuredService;
-    private UnstructuredOverlayListener<A> listener;
-    
-    private LinkedHashSet<A> addressCache;
-    private Map<A, ByteBuffer> incomingLinks; // address to secret
-    private TimeoutManager<A> incomingLinkExpireTimeoutManager;
-    private Map<A, ByteBuffer> outgoingLinks; // address to secret
-    private TimeoutManager<A> outgoingLinkStaleTimeoutManager;
-    private TimeoutManager<A> outgoingLinkExpireTimeoutManager;
-    private NotifyManager addressCacheNotifyManager;
-    private int maxIncomingLinks;
-    private int maxOutgoingLinks;
-    private Set<A> pendingJoinQueue;
-    private int maxJoinAttemptsAtOnce;
-    private long outgoingStaleDuration;
-    private long outgoingExpireDuration;
-    private long incomingExpireDuration;
-    private long addressCacheEmptyNotifyDuration;
-    private SecureRandom random;
+    private LinkRepository<A> linkRepository;
+    private IncomingLinkManager<A> incomingLinkManager;
+    private OutgoingLinkManager<A> outgoingLinkManager;
     
     /**
-     * Constructs a {@link UnstructuredOverlay} object with default configurations. Equivalent to calling
-     * {@code UnstructuredOverlay(rpc, listener, new UnstructuredOverlayConfig())}.
-     * @param rpc RPC
+     * Constructs a {@link UnstructuredOverlay} object.
      * @param listener listener
-     * @param maxIncomingLinks maximum number of incoming links allowed
-     * @param maxOutgoingLinks maximum number of outgoing links allowed
-     * @param maxJoinAttemptsAtOnce maximum number of outgoing links that can be initiated at the same time
-     * @param outgoingStaleDuration maximum amount of time to wait before attempting a keepalive on an outgoing connection
-     * @param outgoingExpireDuration maximum amount of time to wait for a sent keepalive to be validated for an outgoing link before
-     * dropping it
-     * @param incomingExpireDuration maximum amount of time to wait for a keepalive to come in for an incoming link before dropping it
-     * @param addressCacheEmptyNotifyDuration maximum amount of time before attempting new outgoing connections
+     * @param finder find endpoints by key
+     * @param extractor extract keys from endpoints
+     * @param maxLinks maximum number of incoming/outgoing links allowed
+     * @param expireDuration maximum amount of time before an incoming link expires
+     * @param cache initial cache of addresses to connect to
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if any numeric argument is negative
      */
-    public UnstructuredOverlay(Rpc<A> rpc, UnstructuredOverlayListener<A> listener, int maxIncomingLinks, int maxOutgoingLinks,
-            int maxJoinAttemptsAtOnce, long outgoingStaleDuration, long outgoingExpireDuration, long incomingExpireDuration,
-            long addressCacheEmptyNotifyDuration) {
-        super(true);
-        
-        Validate.notNull(rpc);
+    public UnstructuredOverlay(UnstructuredOverlayListener listener, EndpointFinder<A> finder, EndpointKeyExtractor<A> extractor,
+            int maxLinks, long expireDuration, Set<A> cache) {
         Validate.notNull(listener);
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxIncomingLinks);
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxOutgoingLinks);
-        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxJoinAttemptsAtOnce);
-        Validate.inclusiveBetween(0L, Long.MAX_VALUE, outgoingStaleDuration);
-        Validate.inclusiveBetween(0L, Long.MAX_VALUE, outgoingExpireDuration);
-        Validate.inclusiveBetween(0L, Long.MAX_VALUE, incomingExpireDuration);
-        Validate.inclusiveBetween(0L, Long.MAX_VALUE, addressCacheEmptyNotifyDuration);
+        Validate.notNull(finder);
+        Validate.notNull(extractor);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxLinks);
+        Validate.inclusiveBetween(0L, Long.MAX_VALUE, expireDuration);
+        Validate.isTrue(!cache.isEmpty());
         
-        this.addressCache = new LinkedHashSet<>();
-        this.unstructuredService = new UnstructuredServiceImplementation(getSelfWriter());
-        this.rpc = rpc;
-        this.maxIncomingLinks = maxIncomingLinks;
-        this.maxOutgoingLinks = maxOutgoingLinks;
-        this.maxJoinAttemptsAtOnce = maxJoinAttemptsAtOnce;
-        this.outgoingStaleDuration = outgoingStaleDuration;
-        this.outgoingExpireDuration = outgoingExpireDuration;
-        this.incomingExpireDuration = incomingExpireDuration;
-        this.addressCacheEmptyNotifyDuration = addressCacheEmptyNotifyDuration;
-        this.listener = listener;
+        long pendingDuration = expireDuration / 2L;
+        long staleDuration = expireDuration / 2L;
+        
+        this.linkRepository = new LinkRepository<>(this, listener, finder, extractor, cache);
+        this.incomingLinkManager = new IncomingLinkManager<>(maxLinks, expireDuration, linkRepository);
+        this.outgoingLinkManager = new OutgoingLinkManager<>(linkRepository, maxLinks, staleDuration, expireDuration, pendingDuration);
     }
 
+    
     @Override
-    protected ActorQueue createQueue() {
+    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         return new ActorQueue();
-    }
-
-    @Override
-    protected void onStart() throws Exception {
-        incomingLinks = new HashMap<>();
-        incomingLinkExpireTimeoutManager = new TimeoutManager<>();
-        outgoingLinks = new HashMap<>();
-        outgoingLinkStaleTimeoutManager = new TimeoutManager<>();
-        outgoingLinkExpireTimeoutManager = new TimeoutManager<>();
-        addressCacheNotifyManager = new NotifyManager();
-        random = SecureRandom.getInstance("SHA1PRNG");
-        pendingJoinQueue = new HashSet<>();
-
-        rpc.addService(UnstructuredServiceImplementation.SERVICE_ID, unstructuredService);
     }
     
     @Override
-    protected long onStep(long timestamp, Iterator<Message> iterator, PushQueue pushQueue) throws Exception {
-        while (iterator.hasNext()) {
-            Message msg = iterator.next();
-            Object content = msg.getContent();
+    protected long onStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue, Endpoint selfEndpoint) throws Exception {
+        Incoming incoming;
+        while ((incoming = pullQueue.pull()) != null) {
+            Endpoint from = incoming.getSource();
+            Object content = incoming.getContent();
             
-            if (content instanceof GetStateCommand) {
-                GetStateCommand<A> gsc = (GetStateCommand<A>) content;
-                CommandResponseListener<State<A>> callback = gsc.getCallback();
-                
-                State<A> state = new State<>(incomingLinks.keySet(), outgoingLinks.keySet(), incomingLinks.size() == maxIncomingLinks);
-                callback.commandResponded(state);
-            } else if (content instanceof AddToAddressCacheCommand) {
-                AddToAddressCacheCommand<A> atacc = (AddToAddressCacheCommand<A>) content;
-                addressCache.addAll(atacc.getAddresses());
-            } else if (content instanceof InitiateJoinCommand) {
-                InitiateJoinCommand<A> jc = (InitiateJoinCommand<A>) content;
-                CommandResponseListener<Boolean> callback = jc.getCallback();
-                
-                if (incomingLinks.size() == maxIncomingLinks) {
-                    callback.commandResponded(false);
-                    continue;
-                } else {
-                    callback.commandResponded(true);
-                }
-                
-                A address = jc.getAddress();
-                ByteBuffer secret = jc.getSecret();
-
-                incomingLinks.remove(address);
-                incomingLinkExpireTimeoutManager.cancel(address);
-
-                incomingLinks.put(address, secret);
-                incomingLinkExpireTimeoutManager.add(address, timestamp + incomingExpireDuration);
-                
-                listener.linkCreated(this, LinkType.INCOMING, address);
-            } else if (content instanceof InitiateKeepAliveCommand) {
-                InitiateKeepAliveCommand<A> kac = (InitiateKeepAliveCommand<A>) content;
-                CommandResponseListener<Boolean> callback = kac.getCallback();
-                
-                A address = kac.getAddress();
-                ByteBuffer secret = kac.getSecret();
-
-                if (!secret.equals(incomingLinks.get(address))) {
-                    callback.commandResponded(false);
-                } else {
-                    callback.commandResponded(true);
-                }
-                
-                incomingLinkExpireTimeoutManager.cancel(address);
-                incomingLinkExpireTimeoutManager.add(address, timestamp + incomingExpireDuration);
-            } else if (content instanceof JoinSuccessfulCommand) {
-                JoinSuccessfulCommand<A> jsc = (JoinSuccessfulCommand<A>) content;
-                
-                A address = jsc.getAddress();
-                ByteBuffer secret = jsc.getSecret();
-                
-                pendingJoinQueue.remove(address);
-                
-                outgoingLinks.remove(address);
-                outgoingLinkStaleTimeoutManager.cancel(address);
-                
-                outgoingLinks.put(jsc.getAddress(), secret);
-                outgoingLinkStaleTimeoutManager.add(address, timestamp + outgoingStaleDuration);
-
-                listener.linkCreated(this, LinkType.OUTGOING, address);
-            } else if (content instanceof JoinFailedCommand) {
-                JoinFailedCommand<A> jfc = (JoinFailedCommand<A>) content;
-                
-                A address = jfc.getAddress();
-                
-                pendingJoinQueue.remove(address);
-            } else if (content instanceof KeepAliveSuccessfulCommand) {
-                KeepAliveSuccessfulCommand<A> kasc = (KeepAliveSuccessfulCommand<A>) content;
-                
-                A address = kasc.getAddress();
-                
-                if (!outgoingLinks.containsKey(address)) {
-                    continue;
-                }
-
-                outgoingLinkStaleTimeoutManager.cancel(address);
-                outgoingLinkExpireTimeoutManager.cancel(address);
-                
-                outgoingLinkStaleTimeoutManager.add(address, timestamp + outgoingStaleDuration);
-            } else if (content instanceof KeepAliveFailedCommand) {
-                KeepAliveFailedCommand<A> kafc = (KeepAliveFailedCommand<A>) content;
-                A address = kafc.getAddress();
-                
-                outgoingLinks.remove(kafc.getAddress());
-                outgoingLinkStaleTimeoutManager.cancel(address);
-                outgoingLinkExpireTimeoutManager.cancel(address);
-                
-                listener.linkDestroyed(this, LinkType.OUTGOING, address);
-            } else {
-                throw new IllegalArgumentException();
-            }
+            incomingLinkManager.processCommand(timestamp, from, content, pushQueue);
+            outgoingLinkManager.processCommand(timestamp, from, content, pushQueue);
         }
         
-        TimeoutManagerResult<A> expiredIncoming = incomingLinkExpireTimeoutManager.process(timestamp);
-        for (A address : expiredIncoming.getTimedout()) {
-            incomingLinks.remove(address);
-            listener.linkDestroyed(this, LinkType.INCOMING, address);
-        }
-        
-        TimeoutManagerResult<A> staleOutgoing = outgoingLinkStaleTimeoutManager.process(timestamp);
-        for (A address : staleOutgoing.getTimedout()) {
-            outgoingLinkExpireTimeoutManager.add(address, timestamp + outgoingExpireDuration);
-            InternalUnstructuredOverlayUtils.invokeKeepAlive(getSelfWriter(), rpc, address, outgoingLinks.get(address).asReadOnlyBuffer());
-        }
-        
-        TimeoutManagerResult<A> expiredOutgoing = outgoingLinkExpireTimeoutManager.process(timestamp);
-        for (A address : expiredOutgoing.getTimedout()) {
-            outgoingLinks.remove(address);
-            listener.linkDestroyed(this, LinkType.OUTGOING, address);
-        }
-        
-        if (addressCacheNotifyManager.process(timestamp)) {
-            listener.addressCacheEmpty(this);
-            addressCacheNotifyManager.reset(timestamp + addressCacheEmptyNotifyDuration);
-        }
-        
-        while (outgoingLinks.size() != maxOutgoingLinks && !addressCache.isEmpty() && pendingJoinQueue.size() < maxJoinAttemptsAtOnce) {
-            Iterator<A> it = addressCache.iterator();
-            A address = it.next();
-            it.remove();
-            
-            if (pendingJoinQueue.contains(address) || incomingLinks.containsKey(address) || outgoingLinks.containsKey(address)) {
-                continue;
-            }
-            
-            ByteBuffer secret = ByteBuffer.allocate(UnstructuredService.SECRET_SIZE);
-            random.nextBytes(secret.array());
-            secret = secret.asReadOnlyBuffer();
-            
-            pendingJoinQueue.add(address);
-            InternalUnstructuredOverlayUtils.invokeJoin(getSelfWriter(), rpc, address, secret.asReadOnlyBuffer());
-        }
+
+        long ilmNextTimestamp = incomingLinkManager.process(timestamp, pushQueue);
+        long olmNextTimestamp = outgoingLinkManager.process(timestamp, pushQueue);
         
         long nextTimestamp = Long.MAX_VALUE;
-        nextTimestamp = Math.min(nextTimestamp, addressCacheNotifyManager.getNextTimeoutTimestamp());
-        nextTimestamp = Math.min(nextTimestamp, expiredIncoming.getNextTimeoutTimestamp());
-        nextTimestamp = Math.min(nextTimestamp, staleOutgoing.getNextTimeoutTimestamp());
-        nextTimestamp = Math.min(nextTimestamp, expiredOutgoing.getNextTimeoutTimestamp());
+        nextTimestamp = Math.min(nextTimestamp, ilmNextTimestamp);
+        nextTimestamp = Math.min(nextTimestamp, olmNextTimestamp);
         
         return nextTimestamp;
     }
     
     @Override
-    protected void onStop(PushQueue pushQueue) throws Exception {
-        rpc.removeService(UnstructuredServiceImplementation.SERVICE_ID);
-    }
-    
-    /**
-     * Queue new addresses to go in the address cache.
-     * @param addresses new addresses to go in the address cache
-     */
-    public void addToAddressCache(A ... addresses) {
-        getSelfWriter().push(Message.createOneWayMessage(new AddToAddressCacheCommand<>(new LinkedHashSet<>(Arrays.asList(addresses)))));
+    protected void onStop(long timestamp, PushQueue pushQueue) throws Exception {
     }
 }

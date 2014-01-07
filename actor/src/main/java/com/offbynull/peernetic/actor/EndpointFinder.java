@@ -19,13 +19,14 @@ package com.offbynull.peernetic.actor;
 /**
  * An interface for endpoint registries / finders.
  * @author Kasra Faghihi
- * @param <A> address type
+ * @param <K> k type
  */
-public interface EndpointFinder<A> {
+public interface EndpointFinder<K> {
     /**
      * Find an endpoint by key.
      * @param key key to search for
      * @return endpoint associated with {@code key}, or {@code null} if no such endpoint could be found
+     * @throws NullPointerException if any arguments are {@code null}
      */
-    Endpoint findEndpoint(A key);
+    Endpoint findEndpoint(K key);
 }

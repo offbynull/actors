@@ -16,29 +16,15 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.common.utils.ByteBufferUtils;
-import java.nio.ByteBuffer;
-import org.apache.commons.lang3.Validate;
+final class KeepAliveSuccessfulCommand {
+    private State state;
 
-final class KeepAliveSuccessfulCommand<A> {
-    private A address;
-    private ByteBuffer secret;
-
-    public KeepAliveSuccessfulCommand(A address, ByteBuffer secret) {
-        Validate.notNull(address);
-        Validate.notNull(secret);
-        Validate.isTrue(secret.remaining() == UnstructuredService.SECRET_SIZE);
-
-        this.address = address;
-        this.secret = ByteBufferUtils.copyContents(secret).asReadOnlyBuffer();
+    public KeepAliveSuccessfulCommand(State state) {
+        this.state = state;
     }
 
-    public A getAddress() {
-        return address;
-    }
-
-    public ByteBuffer getSecret() {
-        return secret;
+    public State getState() {
+        return state;
     }
     
 }

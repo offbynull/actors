@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
+import com.offbynull.peernetic.actor.Endpoint;
+
 /**
  * Receives notifications when a link is established/destroyed with other nodes.
  * @author Kasra Faghihi
@@ -26,24 +28,17 @@ public interface UnstructuredOverlayListener<A> {
      * Link has been established.
      * @param overlay overlay
      * @param type link type
-     * @param address address
+     * @param destination address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void linkCreated(UnstructuredOverlay<A> overlay, LinkType type, A address);
+    void linkCreated(UnstructuredOverlay overlay, LinkType type, A destination);
     
     /**
      * Link has been closed.
      * @param overlay overlay
      * @param type link type
-     * @param address address
+     * @param destination address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void linkDestroyed(UnstructuredOverlay<A> overlay, LinkType type, A address);
-
-    /**
-     * Attempted to create new outgoing links but address cache is empty.
-     * @param overlay overlay
-     * @throws NullPointerException if any arguments are {@code null}
-     */
-    void addressCacheEmpty(UnstructuredOverlay<A> overlay);
+    void linkDestroyed(UnstructuredOverlay overlay, LinkType type, A destination);
 }

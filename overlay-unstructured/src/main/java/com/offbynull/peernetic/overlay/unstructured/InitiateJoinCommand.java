@@ -20,32 +20,17 @@ import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-final class InitiateJoinCommand<A> {
-    private A address;
-    private CommandResponseListener<Boolean> callback;
+final class InitiateJoinCommand {
     private ByteBuffer secret;
 
-    public InitiateJoinCommand(A address, ByteBuffer secret, CommandResponseListener<Boolean> callback) {
-        Validate.notNull(address);
+    public InitiateJoinCommand(ByteBuffer secret) {
         Validate.notNull(secret);
-        Validate.notNull(callback);
-        Validate.isTrue(secret.remaining() == UnstructuredService.SECRET_SIZE);
+        Validate.isTrue(secret.remaining() == Constants.SECRET_SIZE);
 
-        this.address = address;
         this.secret = ByteBufferUtils.copyContents(secret).asReadOnlyBuffer();
-        this.callback = callback;
-    }
-
-    public A getAddress() {
-        return address;
     }
 
     public ByteBuffer getSecret() {
         return secret;
     }
-
-    public CommandResponseListener<Boolean> getCallback() {
-        return callback;
-    }
-    
 }

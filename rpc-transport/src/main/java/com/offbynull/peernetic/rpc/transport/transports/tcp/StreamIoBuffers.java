@@ -36,8 +36,8 @@ final class StreamIoBuffers {
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, writeLimit);
         
         this.mode = mode;
-        this.readLimit = readLimit;
-        this.writeLimit = writeLimit;
+        this.readLimit = 4 + readLimit; // need to add 4 to each of these, because writes are prefixed with int that specifies num of bytes
+        this.writeLimit = 4 + writeLimit;
     }
     
     public void startReading() {
@@ -91,7 +91,7 @@ final class StreamIoBuffers {
         state = State.WRITE;
         
         int size = data.remaining();
-        
+
         ByteBuffer dataCopy = ByteBuffer.allocate(4 + size);
         dataCopy.putInt(size);
         byte[] dataCopyArr = dataCopy.array();

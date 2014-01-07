@@ -16,26 +16,12 @@
  */
 package com.offbynull.peernetic.rpc.transport.transports.tcp;
 
-import com.offbynull.peernetic.rpc.transport.OutgoingMessageResponseListener;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import org.apache.commons.lang3.Validate;
 
 final class OutgoingMessageChannelInfo extends ChannelInfo {
 
-    private OutgoingMessageResponseListener responseHandler;
-
-    public OutgoingMessageChannelInfo(SocketChannel channel, StreamIoBuffers buffers, SelectionKey selectionKey,
-            OutgoingMessageResponseListener responseListener) {
+    public OutgoingMessageChannelInfo(SocketChannel channel, StreamIoBuffers buffers, SelectionKey selectionKey) {
         super(channel, buffers, selectionKey);
-
-        Validate.notNull(responseListener); // may be null
-
-        this.responseHandler = responseListener;
     }
-
-    public OutgoingMessageResponseListener getResponseHandler() {
-        return responseHandler;
-    }
-    
 }

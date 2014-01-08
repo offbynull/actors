@@ -24,7 +24,7 @@ import java.util.Collection;
  */
 public interface Endpoint {
     /**
-     * Push messages from {@link source} to this endpoint.
+     * Push messages from {@link source} to this endpoint. Do not call directly. Use {@link PushQueue} instead.
      * @param source the endpoint sending these messages -- replies should point back here
      * @param outgoing the messages being sent
      * @throws NullPointerException if any arguments are {@code null}
@@ -32,7 +32,7 @@ public interface Endpoint {
     void push(Endpoint source, Collection<Outgoing> outgoing);
 
     /**
-     * Push messages from {@link source} to this endpoint.
+     * Push messages from {@link source} to this endpoint. Do not call directly. Use {@link PushQueue} instead.
      * @param source the endpoint sending these messages -- replies should point back here
      * @param outgoing the messages being sent
      * @throws NullPointerException if any arguments are {@code null}

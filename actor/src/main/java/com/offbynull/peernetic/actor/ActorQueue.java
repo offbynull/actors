@@ -33,10 +33,10 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 final class ActorQueue {
-    private Lock lock;
-    private Condition condition;
+    private final Lock lock;
+    private final Condition condition;
     
-    private ActorQueueNotifier notifier; // notifier implementations must be thread safe
+    private final ActorQueueNotifier notifier; // notifier implementations must be thread safe
     
     // guarded by lock
     private LinkedList<Collection<Incoming>> queue;
@@ -49,6 +49,7 @@ final class ActorQueue {
         this.queue = new LinkedList<>();
         this.lock = new ReentrantLock();
         this.condition = lock.newCondition();
+        this.notifier = null;
     }
 
     /**
@@ -61,6 +62,8 @@ final class ActorQueue {
         Validate.notNull(notifier);
         this.queue = new LinkedList<>();
         this.lock = new ReentrantLock();
+        this.condition = null;
+        this.notifier = notifier;
     }
     
     /**

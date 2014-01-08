@@ -60,8 +60,6 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
     private OutgoingFilter<InetSocketAddress> outgoingFilter;
     private Serializer serializer;
     private Deserializer deserializer;
-
-    private Endpoint routeToEndpoint;
     
     private int maxMessageBytes;
     private long timeout;
@@ -95,7 +93,6 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         outgoingFilter = (OutgoingFilter<InetSocketAddress>) initVars.get(OUTGOING_FILTER_KEY);
         incomingFilter = (IncomingFilter<InetSocketAddress>) initVars.get(INCOMING_FILTER_KEY);
-        routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
         serializer = (Serializer) initVars.get(SERIALIZER_KEY);
         deserializer = (Deserializer) initVars.get(DESERIALIZER_KEY);
         
@@ -213,8 +210,9 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
                             ByteBuffer filteredInData = incomingFilter.filter(from, inData);
                             Object content = deserializer.deserialize(filteredInData);
                             
+                            Endpoint dstEndpoint = getDestinationEndpoint();
                             NetworkEndpoint<InetSocketAddress> networkEndpoint = new NetworkEndpoint(selfEndpoint, from);
-                            pushQueue.push(networkEndpoint, routeToEndpoint, content);
+                            pushQueue.push(networkEndpoint, dstEndpoint, content);
 
                             info.getBuffers().startWriting(new byte[] {0x00}); // write a marker saying you got it.
                             key.interestOps(SelectionKey.OP_WRITE);

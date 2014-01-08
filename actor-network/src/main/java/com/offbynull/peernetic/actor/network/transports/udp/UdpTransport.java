@@ -56,8 +56,6 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
 
     private OutgoingMessageManager<InetSocketAddress> outgoingMessageManager;
     private IncomingMessageManager<InetSocketAddress> incomingMessageManager;
-
-    private Endpoint routeToEndpoint;
     
     private DatagramChannel channel;
     private Selector selector;
@@ -84,7 +82,6 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         OutgoingFilter<InetSocketAddress> outgoingFilter = (OutgoingFilter<InetSocketAddress>) initVars.get(OUTGOING_FILTER_KEY);
         IncomingFilter<InetSocketAddress> incomingFilter = (IncomingFilter<InetSocketAddress>) initVars.get(INCOMING_FILTER_KEY);
-        routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
         Serializer serializer = (Serializer) initVars.get(SERIALIZER_KEY);
         Deserializer deserializer = (Deserializer) initVars.get(DESERIALIZER_KEY);
         
@@ -157,10 +154,11 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
         
         
         // flush all messages in the incoming queue and push them out
+        Endpoint dstEndpoint = getDestinationEndpoint();
         Collection<InMessage<InetSocketAddress>> inMessages = incomingMessageManager.flush();
         for (InMessage<InetSocketAddress> inMessage : inMessages) {
             NetworkEndpoint<InetSocketAddress> networkEndpoint = new NetworkEndpoint(selfEndpoint, inMessage.getFrom());
-            pushQueue.push(networkEndpoint, routeToEndpoint, inMessage.getContent());
+            pushQueue.push(networkEndpoint, dstEndpoint, inMessage.getContent());
         }
         
         

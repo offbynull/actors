@@ -18,7 +18,6 @@ package com.offbynull.peernetic.actor.network;
 
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.actor.network.filters.nil.NullIncomingFilter;
 import com.offbynull.peernetic.actor.network.filters.nil.NullOutgoingFilter;
 import com.offbynull.peernetic.actor.network.serializers.xstream.XStreamDeserializer;
@@ -40,10 +39,7 @@ public abstract class Transport<A> extends Actor {
      * Key for outgoing filter.
      */
     protected static final Object OUTGOING_FILTER_KEY = OutgoingFilter.class.getSimpleName();
-    /**
-     * Key for message destinations.
-     */
-    protected static final Object ENDPOINT_ROUTE_KEY = Endpoint.class.getSimpleName();
+
     /**
      * Key for serializer.
      */
@@ -52,6 +48,8 @@ public abstract class Transport<A> extends Actor {
      * Key for deserializer.
      */
     protected static final Object DESERIALIZER_KEY = Deserializer.class.getSimpleName();
+
+    private volatile Endpoint destinationEndpoint;
     
     /**
      * Constructs a {@link Transport} object.
@@ -59,7 +57,6 @@ public abstract class Transport<A> extends Actor {
     public Transport() {
         putInStartupMap(INCOMING_FILTER_KEY, new NullIncomingFilter<A>());
         putInStartupMap(OUTGOING_FILTER_KEY, new NullOutgoingFilter<A>());
-        putInStartupMap(ENDPOINT_ROUTE_KEY, new NullEndpoint());
         
         XStream xstream = new XStream();
         putInStartupMap(SERIALIZER_KEY, new XStreamSerializer(xstream));
@@ -89,13 +86,20 @@ public abstract class Transport<A> extends Actor {
     }
 
     /**
-     * Set the endpoint to receive messages coming in to the transport. Can only be called before {@link #start() }.
+     * Set the endpoint to receive messages coming in to the transport.
      * @param endpoint incoming messages to the transport will go here
      * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalStateException if called after starting service
      */
     public final void setDestinationEndpoint(Endpoint endpoint) {
-        Validate.notNull(endpoint);
-        putInStartupMap(ENDPOINT_ROUTE_KEY, endpoint);        
+        destinationEndpoint = endpoint;
+    }
+
+    /**
+     * Get the endpoint that incoming messages should get piped to. Can be changed after starting, so make sure to call to get the latest
+     * copy when pumping out messages.
+     * @return endpoint where incoming messages should go
+     */
+    protected final Endpoint getDestinationEndpoint() {
+        return destinationEndpoint;
     }
 }

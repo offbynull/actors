@@ -48,7 +48,6 @@ public final class TestTransport<A> extends Transport<A> {
     private OutgoingMessageManager<A> outgoingMessageManager;
     private IncomingMessageManager<A> incomingMessageManager;
 
-    private Endpoint routeToEndpoint;
     private Endpoint hubEndpoint;
 
     /**
@@ -70,7 +69,6 @@ public final class TestTransport<A> extends Transport<A> {
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         OutgoingFilter<A> outgoingFilter = (OutgoingFilter<A>) initVars.get(OUTGOING_FILTER_KEY);
         IncomingFilter<A> incomingFilter = (IncomingFilter<A>) initVars.get(INCOMING_FILTER_KEY);
-        routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
         Serializer serializer = (Serializer) initVars.get(SERIALIZER_KEY);
         Deserializer deserializer = (Deserializer) initVars.get(DESERIALIZER_KEY);
         
@@ -103,10 +101,11 @@ public final class TestTransport<A> extends Transport<A> {
         }
         
         
+        Endpoint dstEndpoint = getDestinationEndpoint();
         Collection<InMessage<A>> inMessages = incomingMessageManager.flush();
         for (InMessage<A> inMessage : inMessages) {
             NetworkEndpoint<A> networkEndpoint = new NetworkEndpoint(selfEndpoint, inMessage.getFrom());
-            pushQueue.push(networkEndpoint, routeToEndpoint, inMessage.getContent());
+            pushQueue.push(networkEndpoint, dstEndpoint, inMessage.getContent());
         }
         
         Collection<OutMessage<A>> outMessages = outgoingMessageManager.flush();

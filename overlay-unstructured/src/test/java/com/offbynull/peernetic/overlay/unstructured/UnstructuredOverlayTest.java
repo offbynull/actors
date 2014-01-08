@@ -271,7 +271,7 @@ public class UnstructuredOverlayTest {
 
         fromEndpoint = outgoingMsg.getDestination();
         fromAddress = endpointMap.getKey(fromEndpoint);
-        Object failedKeepAliveResponse = new KeepAliveFailedCommand(); 
+        Object failedKeepAliveResponse = new KeepAliveFailedCommand(new State(Collections.emptySet(), Collections.emptySet())); 
         tester.step(50L, new Incoming(failedKeepAliveResponse, fromEndpoint));
 
         // step at 50ms again and make sure disconnect

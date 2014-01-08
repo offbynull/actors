@@ -51,8 +51,10 @@ final class IncomingLinkManager<A> {
             InitiateJoinCommand ijc = (InitiateJoinCommand) content;
             
             ByteBuffer secret = ijc.getSecret();
-            if (links.size() == maxLinks || links.containsKey(from) || secret.remaining() != Constants.SECRET_SIZE) {
-                pushQueue.push(from, new JoinFailedCommand());
+            if (links.size() == maxLinks || links.containsKey(from) || secret.remaining() != Constants.SECRET_SIZE
+                    || linkRepository.containsLink(LinkType.OUTGOING, from)
+                    || linkRepository.containsLink(LinkType.INCOMING, from)) { // last check added just incase
+                pushQueue.push(from, new JoinFailedCommand(linkRepository.toState()));
                 return true;
             }
             
@@ -72,7 +74,7 @@ final class IncomingLinkManager<A> {
             if (!links.containsKey(from) || secret.remaining() != Constants.SECRET_SIZE || !links.get(from).equals(secret)) {
                 expireTimeoutManager.cancel(from);
                 linkRepository.removeLink(LinkType.INCOMING, from);
-                pushQueue.push(from, new KeepAliveFailedCommand());
+                pushQueue.push(from, new KeepAliveFailedCommand(linkRepository.toState()));
                 return true;
             }
             

@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
+import java.util.Set;
+
 /**
  * Receives notifications when a link is established/destroyed with other nodes.
  * @author Kasra Faghihi
@@ -29,7 +31,7 @@ public interface UnstructuredOverlayListener<A> {
      * @param destination address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void linkCreated(UnstructuredOverlay overlay, LinkType type, A destination);
+    void linkCreated(UnstructuredOverlay<A> overlay, LinkType type, A destination);
     
     /**
      * Link has been closed.
@@ -38,5 +40,12 @@ public interface UnstructuredOverlayListener<A> {
      * @param destination address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    void linkDestroyed(UnstructuredOverlay overlay, LinkType type, A destination);
+    void linkDestroyed(UnstructuredOverlay<A> overlay, LinkType type, A destination);
+    
+    /**
+     * No more addresses are available in the address cache.
+     * @param overlay overlay
+     * @return new addresses to add to the address cache
+     */
+    Set<A> addressCacheEmpty(UnstructuredOverlay<A> overlay);
 }

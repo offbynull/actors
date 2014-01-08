@@ -18,6 +18,7 @@ package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.PushQueue;
+import com.offbynull.peernetic.actor.helpers.NotifyManager;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import java.nio.ByteBuffer;
@@ -39,6 +40,8 @@ final class OutgoingLinkManager<A> {
     private Map<Endpoint, ByteBuffer> pendingLinks;
     private TimeoutManager<Endpoint> pendingTimeoutManager;
     private long pendingDuration;
+    
+    private NotifyManager joinNotifyManager;
     
     private LinkRepository<A> linkRepository;
     
@@ -66,6 +69,8 @@ final class OutgoingLinkManager<A> {
         this.pendingDuration = pendingDuration;
         pendingTimeoutManager = new TimeoutManager<>();
         
+        joinNotifyManager = new NotifyManager();
+        
         this.linkRepository = linkRepository;
         
         try {
@@ -75,8 +80,14 @@ final class OutgoingLinkManager<A> {
         }
     }
     
+    public void init(long timestamp) {
+        joinNotifyManager.reset(Long.MIN_VALUE); // first hit should be as soon as possible
+    }
+    
     public boolean processCommand(long timestamp, Endpoint from, Object content, PushQueue pushQueue) {
         if (content instanceof JoinSuccessfulCommand) {
+            JoinSuccessfulCommand jsc = (JoinSuccessfulCommand) content;
+            
             pendingTimeoutManager.cancel(from);
             ByteBuffer secret = pendingLinks.remove(from);
             
@@ -89,12 +100,20 @@ final class OutgoingLinkManager<A> {
             expireTimeoutManager.add(from, timestamp + expireDuration);
             
             linkRepository.addLink(LinkType.OUTGOING, from);
+            
+            linkRepository.addStateToCache(jsc.getState());
             return true;
         } else if (content instanceof JoinFailedCommand) {
+            JoinFailedCommand jfc = (JoinFailedCommand) content;
+            
             pendingTimeoutManager.cancel(from);
             pendingLinks.remove(from);
+            
+            linkRepository.addStateToCache(jfc.getState());
             return true;
         } else if (content instanceof KeepAliveSuccessfulCommand) {
+            KeepAliveSuccessfulCommand kasc = (KeepAliveSuccessfulCommand) content;
+            
             ByteBuffer secret = links.remove(from);
             
             if (secret == null) {
@@ -107,14 +126,19 @@ final class OutgoingLinkManager<A> {
             links.put(from, secret.asReadOnlyBuffer());
             staleTimeoutManager.add(from, timestamp + staleDuration);
             expireTimeoutManager.add(from, timestamp + expireDuration);
+            
+            linkRepository.addStateToCache(kasc.getState());
             return true;
         } else if (content instanceof KeepAliveFailedCommand) {
+            KeepAliveFailedCommand kafc = (KeepAliveFailedCommand) content;
+            
             links.remove(from);
             staleTimeoutManager.cancel(from);
             expireTimeoutManager.cancel(from);
             
             linkRepository.removeLink(LinkType.OUTGOING, from);
             
+            linkRepository.addStateToCache(kafc.getState());
             return true;
         }
         
@@ -143,31 +167,39 @@ final class OutgoingLinkManager<A> {
             staleTimeoutManager.add(endpoint, timestamp + staleDuration);
         }
         
-        initiateOutgoingLink(timestamp, pushQueue);
+        long nextInitiateOutgoingInvokeTimestamp = initiateOutgoingLink(timestamp, pushQueue);
         
         long waitUntil = Long.MAX_VALUE;
         waitUntil = Math.min(waitUntil, pendingTimeouts.getNextTimeoutTimestamp());
         waitUntil = Math.min(waitUntil, staleTimeouts.getNextTimeoutTimestamp());
         waitUntil = Math.min(waitUntil, expiredTimeouts.getNextTimeoutTimestamp());
+        waitUntil = Math.min(waitUntil, nextInitiateOutgoingInvokeTimestamp);
         
         return waitUntil;
     }
     
-    private void initiateOutgoingLink(long timestamp, PushQueue pushQueue) {
+    private long initiateOutgoingLink(long timestamp, PushQueue pushQueue) {
+        if (!joinNotifyManager.process(timestamp)) {
+            return joinNotifyManager.getNextTimeoutTimestamp();
+        }
+        
+        joinNotifyManager.reset(timestamp + expireDuration);
+
         int currentLinks = pendingLinks.size() + links.size();
         if (currentLinks >= maxLinks) {
-            return;
+            return Long.MAX_VALUE;
         }
         
         while (pendingLinks.size() < 5) { // make this into a configurable param later
-            Endpoint endpoint = linkRepository.peekNextCache();
+            Endpoint endpoint = linkRepository.pollNextCache(); // remove
+            
             if (endpoint == null) {
                 break;
             }
             
-            linkRepository.pollNextCache(); // remove
-            
-            if (pendingLinks.containsKey(endpoint) || links.containsKey(endpoint)) {
+            if (pendingLinks.containsKey(endpoint) || links.containsKey(endpoint)
+                    || linkRepository.containsLink(LinkType.INCOMING, endpoint)
+                    || linkRepository.containsLink(LinkType.OUTGOING, endpoint)) { // last check added just incase
                 continue;
             }
 
@@ -178,5 +210,7 @@ final class OutgoingLinkManager<A> {
             pendingLinks.put(endpoint, secret.asReadOnlyBuffer());
             pushQueue.push(endpoint, new InitiateJoinCommand(secret.asReadOnlyBuffer()));
         }
+        
+        return joinNotifyManager.getNextTimeoutTimestamp();
     }
 }

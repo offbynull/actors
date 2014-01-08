@@ -16,5 +16,14 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-final class JoinFailedCommand {
+final class JoinFailedCommand<A> {
+    private State<A> state;
+
+    public JoinFailedCommand(State<A> state) {
+        this.state = state;
+    }
+
+    public State<A> getState() {
+        return state;
+    }
 }

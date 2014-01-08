@@ -59,11 +59,9 @@ final class LinkRepository<A> {
         switch (type) {
             case INCOMING:
                 incomingLinks.add(address);
-                cacheLinks.add(address);
                 break;
             case OUTGOING:
                 outgoingLinks.add(address);
-                cacheLinks.add(address);
                 break;
             default:
                 throw new IllegalStateException();
@@ -120,6 +118,24 @@ final class LinkRepository<A> {
         return new State<>(incomingLinks, outgoingLinks);
     }
     
+    public void addStateToCache(State<A> state) {
+        cacheLinks.addAll(state.getIncomingLinks());
+        cacheLinks.addAll(state.getOutgoingLinks());
+        
+        // don't keep addresses to machines we've already established
+        cacheLinks.removeAll(this.incomingLinks);
+        cacheLinks.removeAll(this.outgoingLinks);
+    }
+    
+    public boolean resetCacheIfEmpty() {
+        if (cacheLinks.isEmpty()) {
+            Set<A> newCache = listener.addressCacheEmpty(parent);
+            cacheLinks.addAll(newCache);
+            return true;
+        }
+        
+        return false;
+    }
     
     public Endpoint peekNextCache() {
         Iterator<A> it = cacheLinks.iterator();

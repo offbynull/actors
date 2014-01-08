@@ -68,6 +68,7 @@ public final class UnstructuredOverlay<A> extends Actor {
     
     @Override
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+        outgoingLinkManager.init(timestamp);
         return new ActorStartSettings(timestamp); // invoke onStep immediately
     }
     

@@ -16,14 +16,14 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-final class KeepAliveSuccessfulCommand {
-    private State state;
+final class KeepAliveSuccessfulCommand<A> {
+    private State<A> state;
 
-    public KeepAliveSuccessfulCommand(State state) {
+    public KeepAliveSuccessfulCommand(State<A> state) {
         this.state = state;
     }
 
-    public State getState() {
+    public State<A> getState() {
         return state;
     }
     

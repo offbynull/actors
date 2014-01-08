@@ -16,14 +16,14 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-final class JoinSuccessfulCommand {
-    private State state;
+final class JoinSuccessfulCommand<A> {
+    private State<A> state;
 
-    public JoinSuccessfulCommand(State state) {
+    public JoinSuccessfulCommand(State<A> state) {
         this.state = state;
     }
 
-    public State getState() {
+    public State<A> getState() {
         return state;
     }
     

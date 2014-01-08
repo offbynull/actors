@@ -44,8 +44,14 @@ public final class UnstructuredOverlay<A> extends Actor {
      * @param finder find endpoints by key
      * @param extractor extract keys from endpoints
      * @param maxLinks maximum number of incoming/outgoing links allowed
-     * @param expireDuration maximum amount of time before an incoming link expires
-     * @param cache initial cache of addresses to connect to
+     * @param expireDuration maximum amount of time before an incoming / outgoing link expires -- Incoming links expect keep-alives to come
+     * in at intervals of this duration... if exceeded, incoming link dies. Outgoing links are set to send keep-alives at intervals of half
+     * this duration. Pending outgoing links (links that are in the process of handshaking) are set to give up waiting for a reply at this
+     * duration.
+     * @param cache initial cache of addresses to connect to (once this cache expires,
+     * {@link UnstructuredOverlayListener#addressCacheEmpty(com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay) } gets invoked
+     * on {@code listener} at intervals of {@code duration} until the cache receives new addresses - either through the invocation on
+     * {@code listener} or through the internal peer-discovery process)
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if any numeric argument is negative
      */

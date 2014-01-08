@@ -16,6 +16,15 @@
  */
 package com.offbynull.peernetic.demos.unstructured;
 
+import com.offbynull.peernetic.actor.ActorRunner;
+import com.offbynull.peernetic.actor.network.NetworkEndpointFinder;
+import com.offbynull.peernetic.actor.network.NetworkEndpointKeyExtractor;
+import com.offbynull.peernetic.actor.network.filters.selfblock.SelfBlockId;
+import com.offbynull.peernetic.actor.network.filters.selfblock.SelfBlockIncomingFilter;
+import com.offbynull.peernetic.actor.network.filters.selfblock.SelfBlockOutgoingFilter;
+import com.offbynull.peernetic.actor.network.transports.test.PerfectLine;
+import com.offbynull.peernetic.actor.network.transports.test.TestHub;
+import com.offbynull.peernetic.actor.network.transports.test.TestTransport;
 import com.offbynull.peernetic.overlay.common.visualizer.AddEdgeCommand;
 import com.offbynull.peernetic.overlay.common.visualizer.AddNodeCommand;
 import com.offbynull.peernetic.overlay.common.visualizer.ChangeNodeCommand;
@@ -26,17 +35,10 @@ import com.offbynull.peernetic.overlay.common.visualizer.VisualizerEventListener
 import com.offbynull.peernetic.overlay.unstructured.LinkType;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayListener;
-import com.offbynull.peernetic.rpc.transport.transports.test.TestTransportFactory;
-import com.offbynull.peernetic.rpc.Rpc;
-import com.offbynull.peernetic.rpc.RpcConfig;
-import com.offbynull.peernetic.rpc.transport.filters.selfblock.SelfBlockId;
-import com.offbynull.peernetic.rpc.transport.filters.selfblock.SelfBlockIncomingFilter;
-import com.offbynull.peernetic.rpc.transport.filters.selfblock.SelfBlockOutgoingFilter;
-import com.offbynull.peernetic.rpc.transport.transports.test.PerfectLine;
-import com.offbynull.peernetic.rpc.transport.transports.test.TestHub;
 import java.awt.Color;
 import java.awt.Point;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -67,11 +69,10 @@ public final class App {
         
         
         TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
-        hub.start();
+        ActorRunner hubRunner = ActorRunner.createAndStart(hub);
         
-
         
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 100; i++) {
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
                     new ChangeNodeCommand(i, null, new Point((int) (Math.random() * 1000.0), (int) (Math.random() * 1000.0)),
@@ -79,7 +80,7 @@ public final class App {
             
             final int from = i;
             UnstructuredOverlayListener<Integer> listener = new UnstructuredOverlayListener<Integer>() {
-                
+
                 private AtomicInteger linkCount = new AtomicInteger();
 
                 @Override
@@ -103,22 +104,27 @@ public final class App {
                 }
 
                 @Override
-                public void addressCacheEmpty(UnstructuredOverlay<Integer> overlay) {
-                    overlay.addToAddressCache(0);
+                public Set<Integer> addressCacheEmpty(UnstructuredOverlay overlay) {
+                    return Collections.singleton(0);
                 }
             };
             
-            RpcConfig<Integer> rpcConfig = new RpcConfig<>();
+            TestTransport<Integer> testTransport = new TestTransport(i, hubRunner.getEndpoint());
             SelfBlockId selfBlockId = new SelfBlockId();
-            rpcConfig.setIncomingFilters(Arrays.asList(new SelfBlockIncomingFilter<Integer>(selfBlockId)));
-            rpcConfig.setOutgoingFilters(Arrays.asList(new SelfBlockOutgoingFilter<Integer>(selfBlockId)));
-            Rpc<Integer> rpc = new Rpc(new TestTransportFactory(hub, i), rpcConfig);
+            testTransport.setIncomingFilter(new SelfBlockIncomingFilter<Integer>(selfBlockId));
+            testTransport.setOutgoingFilter(new SelfBlockOutgoingFilter<Integer>(selfBlockId));
+            ActorRunner testTransportRunner = ActorRunner.createAndStart(testTransport);
             
+            NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(testTransportRunner.getEndpoint());
+            NetworkEndpointKeyExtractor<Integer> extractor = new NetworkEndpointKeyExtractor<>();
             
-            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(rpc, listener, 5, 5, 5, 250L, 500L, 500L, 10000L);
-            overlay.start();
+            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(listener, finder, extractor, 3, 1000L,
+                    Collections.singleton(0));
+            ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
             
-            overlay.addToAddressCache(0);
+            testTransport.setDestinationEndpoint(overlayRunner.getEndpoint());
+            
+            Thread.sleep((long) (Math.random() * 1000L)); // sleep for 0 to 1 seconds, so things will look more varied when running
         }
     }
 }

@@ -39,6 +39,15 @@ public final class ActorStartSettings {
     }
 
     /**
+     * Constructs a {@link ActorStartSettings} object. Equivalent to calling {@code new ActorStartSettings(hitTime, null)}.
+     * @param hitTime maximum amount of time to wait before invoking {@link Actor#onStep(long, com.offbynull.peernetic.actor.PullQueue,
+     * com.offbynull.peernetic.actor.PushQueue, com.offbynull.peernetic.actor.Endpoint).
+     */
+    public ActorStartSettings(long hitTime) {
+        this(hitTime, null);
+    }
+
+    /**
      * Constructs a {@link ActorStartSettings} object. Equivalent to calling {@code new ActorStartSettings(Long.MAX_VALUE, null)}.
      * @param notifier notifier to use for internal queue (can be {@code null)
      */

@@ -56,9 +56,8 @@ public final class UnstructuredOverlay<A> extends Actor {
         Validate.notNull(extractor);
         Validate.inclusiveBetween(0, Integer.MAX_VALUE, maxLinks);
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, expireDuration);
-        Validate.isTrue(!cache.isEmpty());
         
-        long pendingDuration = expireDuration / 2L;
+        long pendingDuration = expireDuration;
         long staleDuration = expireDuration / 2L;
         
         this.linkRepository = new LinkRepository<>(this, listener, finder, extractor, cache);
@@ -69,7 +68,7 @@ public final class UnstructuredOverlay<A> extends Actor {
     
     @Override
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
-        return new ActorStartSettings();
+        return new ActorStartSettings(timestamp); // invoke onStep immediately
     }
     
     @Override

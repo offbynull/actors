@@ -84,7 +84,7 @@ final class OutgoingLinkManager<A> {
                 return true;
             }
 
-            links.put(from, secret);
+            links.put(from, secret.asReadOnlyBuffer());
             staleTimeoutManager.add(from, timestamp + staleDuration);
             expireTimeoutManager.add(from, timestamp + expireDuration);
             
@@ -104,7 +104,7 @@ final class OutgoingLinkManager<A> {
             staleTimeoutManager.cancel(from);
             expireTimeoutManager.cancel(from);
             
-            links.put(from, secret);
+            links.put(from, secret.asReadOnlyBuffer());
             staleTimeoutManager.add(from, timestamp + staleDuration);
             expireTimeoutManager.add(from, timestamp + expireDuration);
             return true;
@@ -127,20 +127,20 @@ final class OutgoingLinkManager<A> {
             pendingLinks.remove(endpoint);
         } 
         
-        TimeoutManagerResult<Endpoint> staleTimeouts = staleTimeoutManager.process(timestamp);
-        for (Endpoint endpoint : staleTimeouts.getTimedout()) {
-            ByteBuffer secret = links.get(endpoint);
-            
-            pushQueue.push(endpoint, new InitiateKeepAliveCommand(secret));
-            staleTimeoutManager.add(endpoint, timestamp + staleDuration);
-        }
-        
         TimeoutManagerResult<Endpoint> expiredTimeouts = expireTimeoutManager.process(timestamp);
         for (Endpoint endpoint : expiredTimeouts.getTimedout()) {
             links.remove(endpoint);
             staleTimeoutManager.cancel(endpoint);
             linkRepository.removeLink(LinkType.OUTGOING, endpoint);
             //expireTimeoutManager.cancel(endpoint); // already taken out by call to process above
+        }
+
+        TimeoutManagerResult<Endpoint> staleTimeouts = staleTimeoutManager.process(timestamp);
+        for (Endpoint endpoint : staleTimeouts.getTimedout()) {
+            ByteBuffer secret = links.get(endpoint);
+            
+            pushQueue.push(endpoint, new InitiateKeepAliveCommand(secret.asReadOnlyBuffer()));
+            staleTimeoutManager.add(endpoint, timestamp + staleDuration);
         }
         
         initiateOutgoingLink(timestamp, pushQueue);
@@ -153,31 +153,30 @@ final class OutgoingLinkManager<A> {
         return waitUntil;
     }
     
-    private boolean initiateOutgoingLink(long timestamp, PushQueue pushQueue) {
-        if (pendingLinks.size() == 5) { // make this into a configurable param later
-            return false;
-        }
-        
+    private void initiateOutgoingLink(long timestamp, PushQueue pushQueue) {
         int currentLinks = pendingLinks.size() + links.size();
         if (currentLinks >= maxLinks) {
-            return false;
+            return;
         }
         
-        Endpoint endpoint = linkRepository.peekNextCache();
-        if (endpoint == null || pendingLinks.containsKey(endpoint) || links.containsKey(endpoint)) {
-            return false;
+        while (pendingLinks.size() < 5) { // make this into a configurable param later
+            Endpoint endpoint = linkRepository.peekNextCache();
+            if (endpoint == null) {
+                break;
+            }
+            
+            linkRepository.pollNextCache(); // remove
+            
+            if (pendingLinks.containsKey(endpoint) || links.containsKey(endpoint)) {
+                continue;
+            }
+
+            ByteBuffer secret = ByteBuffer.allocate(Constants.SECRET_SIZE);
+            random.nextBytes(secret.array());
+
+            pendingTimeoutManager.add(endpoint, timestamp + pendingDuration);
+            pendingLinks.put(endpoint, secret.asReadOnlyBuffer());
+            pushQueue.push(endpoint, new InitiateJoinCommand(secret.asReadOnlyBuffer()));
         }
-        
-        linkRepository.pollNextCache(); // remove
-
-        ByteBuffer secret = ByteBuffer.allocate(Constants.SECRET_SIZE);
-        random.nextBytes(secret.array());
-        secret = secret.asReadOnlyBuffer();
-
-        pendingTimeoutManager.add(endpoint, timestamp + pendingDuration);
-        pendingLinks.put(endpoint, secret);
-        pushQueue.push(endpoint, new InitiateJoinCommand(secret));
-        
-        return true;
     }
 }

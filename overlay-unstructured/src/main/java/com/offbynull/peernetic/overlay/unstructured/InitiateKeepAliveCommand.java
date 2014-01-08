@@ -25,7 +25,7 @@ final class InitiateKeepAliveCommand {
 
     public InitiateKeepAliveCommand(ByteBuffer secret) {
         Validate.notNull(secret);
-        Validate.isTrue(secret.remaining() == Constants.SECRET_SIZE);
+//        Validate.isTrue(secret.remaining() == Constants.SECRET_SIZE);
 
         this.secret = ByteBufferUtils.copyContents(secret).asReadOnlyBuffer();
     }

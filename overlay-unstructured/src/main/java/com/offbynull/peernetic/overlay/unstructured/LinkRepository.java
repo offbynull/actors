@@ -33,10 +33,10 @@ final class LinkRepository<A> {
     private Set<A> incomingLinks = new HashSet<>();
     private Set<A> outgoingLinks = new HashSet<>();
     private Set<A> cacheLinks = new HashSet<>();
-    private UnstructuredOverlayListener listener;
-    private UnstructuredOverlay parent;
+    private UnstructuredOverlayListener<A> listener;
+    private UnstructuredOverlay<A> parent;
 
-    public LinkRepository(UnstructuredOverlay parent, UnstructuredOverlayListener listener, EndpointFinder<A> finder,
+    public LinkRepository(UnstructuredOverlay<A> parent, UnstructuredOverlayListener<A> listener, EndpointFinder<A> finder,
             EndpointKeyExtractor<A> keyExtractor, Set<A> cacheLinks) {
         Validate.notNull(parent);
         Validate.notNull(listener);
@@ -70,7 +70,7 @@ final class LinkRepository<A> {
         }
         
         try {
-            listener.linkCreated(parent, type, link);
+            listener.linkCreated(parent, type, address);
         } catch (RuntimeException re) { // NOPMD
         }
     }
@@ -94,7 +94,7 @@ final class LinkRepository<A> {
         }
         
         try {
-            listener.linkDestroyed(parent, type, link);
+            listener.linkDestroyed(parent, type, address);
         } catch (RuntimeException re) { // NOPMD
         }
     }

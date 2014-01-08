@@ -70,6 +70,8 @@ final class IncomingLinkManager<A> {
             
             ByteBuffer secret = ikac.getSecret();
             if (!links.containsKey(from) || secret.remaining() != Constants.SECRET_SIZE || !links.get(from).equals(secret)) {
+                expireTimeoutManager.cancel(from);
+                linkRepository.removeLink(LinkType.INCOMING, from);
                 pushQueue.push(from, new KeepAliveFailedCommand());
                 return true;
             }

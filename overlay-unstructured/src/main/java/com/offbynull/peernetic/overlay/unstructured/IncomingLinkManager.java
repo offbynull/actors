@@ -19,15 +19,11 @@ package com.offbynull.peernetic.overlay.unstructured;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 final class IncomingLinkManager<A> {
     private int maxLinks;
     
-    private Map<Endpoint, ByteBuffer> links; // address to secret
     private TimeoutManager<Endpoint> expireTimeoutManager;
     private long expireDuration;
     
@@ -40,7 +36,6 @@ final class IncomingLinkManager<A> {
         
         this.maxLinks = maxLinks;
         this.expireDuration = expireDuration;
-        links = new HashMap<>();
         expireTimeoutManager = new TimeoutManager<>();
         
         this.linkRepository = linkRepository;
@@ -48,17 +43,19 @@ final class IncomingLinkManager<A> {
 
     public boolean processCommand(long timestamp, Endpoint from, Object content, PushQueue pushQueue) {
         if (content instanceof InitiateJoinCommand) {
-            InitiateJoinCommand ijc = (InitiateJoinCommand) content;
+            //InitiateJoinCommand ijc = (InitiateJoinCommand) content;
             
-            ByteBuffer secret = ijc.getSecret();
-            if (links.size() == maxLinks || links.containsKey(from) || secret.remaining() != Constants.SECRET_SIZE
+            if (expireTimeoutManager.contains(from)) {
+                pushQueue.push(from, new JoinSuccessfulCommand(linkRepository.toState()));
+                return true;
+            }
+            
+            if (expireTimeoutManager.size() == maxLinks
                     || linkRepository.containsLink(LinkType.OUTGOING, from)
                     || linkRepository.containsLink(LinkType.INCOMING, from)) { // last check added just incase
                 pushQueue.push(from, new JoinFailedCommand(linkRepository.toState()));
                 return true;
             }
-            
-            links.put(from, secret);
             expireTimeoutManager.add(from, timestamp + expireDuration);
             
             linkRepository.addLink(LinkType.INCOMING, from);
@@ -68,10 +65,9 @@ final class IncomingLinkManager<A> {
             
             return true;
         } else if (content instanceof InitiateKeepAliveCommand) {
-            InitiateKeepAliveCommand ikac = (InitiateKeepAliveCommand) content;
+            //InitiateKeepAliveCommand ikac = (InitiateKeepAliveCommand) content;
             
-            ByteBuffer secret = ikac.getSecret();
-            if (!links.containsKey(from) || secret.remaining() != Constants.SECRET_SIZE || !links.get(from).equals(secret)) {
+            if (!expireTimeoutManager.contains(from)) {
                 expireTimeoutManager.cancel(from);
                 linkRepository.removeLink(LinkType.INCOMING, from);
                 pushQueue.push(from, new KeepAliveFailedCommand(linkRepository.toState()));
@@ -93,7 +89,6 @@ final class IncomingLinkManager<A> {
     public long process(long timestamp, PushQueue pushQueue) {
         TimeoutManager.TimeoutManagerResult<Endpoint> expiredTimeouts = expireTimeoutManager.process(timestamp);
         for (Endpoint endpoint : expiredTimeouts.getTimedout()) {
-            links.remove(endpoint);
             linkRepository.removeLink(LinkType.INCOMING, endpoint);
         }
         

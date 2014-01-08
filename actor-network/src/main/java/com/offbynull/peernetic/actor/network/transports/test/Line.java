@@ -27,17 +27,19 @@ import java.util.Collection;
 public interface Line<A> {
     /**
      * Generate {@link TransitMessage} objects for an outgoing message.
+     * @param timestamp current timestamp
      * @param from source
      * @param to destination
      * @param data contents
      * @return list of {@link TransitMessage} objects
      */
-    Collection<TransitMessage<A>> depart(A from, A to, ByteBuffer data);
+    Collection<TransitMessage<A>> depart(long timestamp, A from, A to, ByteBuffer data);
     
     /**
      * Signals that {@link TransitMessage} objects that were created by this line have arrived. Implementations can modify the arrivals.
+     * @param timestamp current timestamp
      * @param messages {@link TransitMessage} objects that have arrived
      * @return modified messages
      */
-    Collection<TransitMessage<A>> arrive(Collection<TransitMessage<A>> messages);
+    Collection<TransitMessage<A>> arrive(long timestamp, Collection<TransitMessage<A>> messages);
 }

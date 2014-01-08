@@ -21,31 +21,22 @@ import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.NotifyManager;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager.TimeoutManagerResult;
-import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingLinkManager<A> {
     private int maxLinks;
     
-    private Map<Endpoint, ByteBuffer> links;
     private TimeoutManager<Endpoint> staleTimeoutManager;
     private TimeoutManager<Endpoint> expireTimeoutManager;
     private long staleDuration;
     private long expireDuration;
     
-    private Map<Endpoint, ByteBuffer> pendingLinks;
     private TimeoutManager<Endpoint> pendingTimeoutManager;
     private long pendingDuration;
     
     private NotifyManager joinNotifyManager;
     
     private LinkRepository<A> linkRepository;
-    
-    private SecureRandom random;
     
 
     public OutgoingLinkManager(LinkRepository<A> linkRepository, int maxLinks, long staleDuration, long expireDuration,
@@ -59,25 +50,17 @@ final class OutgoingLinkManager<A> {
         
         this.maxLinks = maxLinks;
         
-        links = new HashMap<>();
         this.staleDuration = staleDuration;
         this.expireDuration = expireDuration;
         staleTimeoutManager = new TimeoutManager<>();
         expireTimeoutManager = new TimeoutManager<>();
 
-        pendingLinks = new HashMap<>();
         this.pendingDuration = pendingDuration;
         pendingTimeoutManager = new TimeoutManager<>();
         
         joinNotifyManager = new NotifyManager();
         
         this.linkRepository = linkRepository;
-        
-        try {
-            random = SecureRandom.getInstance("SHA1PRNG");
-        } catch (NoSuchAlgorithmException nsae) {
-            throw new IllegalStateException(nsae);
-        }
     }
     
     public void init(long timestamp) {
@@ -88,14 +71,12 @@ final class OutgoingLinkManager<A> {
         if (content instanceof JoinSuccessfulCommand) {
             JoinSuccessfulCommand jsc = (JoinSuccessfulCommand) content;
             
-            pendingTimeoutManager.cancel(from);
-            ByteBuffer secret = pendingLinks.remove(from);
+            boolean canceled = pendingTimeoutManager.cancel(from);
             
-            if (secret == null) {
+            if (!canceled) {
                 return true;
             }
 
-            links.put(from, secret.asReadOnlyBuffer());
             staleTimeoutManager.add(from, timestamp + staleDuration);
             expireTimeoutManager.add(from, timestamp + expireDuration);
             
@@ -107,23 +88,19 @@ final class OutgoingLinkManager<A> {
             JoinFailedCommand jfc = (JoinFailedCommand) content;
             
             pendingTimeoutManager.cancel(from);
-            pendingLinks.remove(from);
             
             linkRepository.addStateToCache(jfc.getState());
             return true;
         } else if (content instanceof KeepAliveSuccessfulCommand) {
             KeepAliveSuccessfulCommand kasc = (KeepAliveSuccessfulCommand) content;
             
-            ByteBuffer secret = links.remove(from);
+            staleTimeoutManager.cancel(from);
+            boolean stillActive = expireTimeoutManager.cancel(from);
             
-            if (secret == null) {
+            if (!stillActive) {
                 return true;
             }
             
-            staleTimeoutManager.cancel(from);
-            expireTimeoutManager.cancel(from);
-            
-            links.put(from, secret.asReadOnlyBuffer());
             staleTimeoutManager.add(from, timestamp + staleDuration);
             expireTimeoutManager.add(from, timestamp + expireDuration);
             
@@ -131,8 +108,7 @@ final class OutgoingLinkManager<A> {
             return true;
         } else if (content instanceof KeepAliveFailedCommand) {
             KeepAliveFailedCommand kafc = (KeepAliveFailedCommand) content;
-            
-            links.remove(from);
+
             staleTimeoutManager.cancel(from);
             expireTimeoutManager.cancel(from);
             
@@ -147,13 +123,9 @@ final class OutgoingLinkManager<A> {
     
     public long process(long timestamp, PushQueue pushQueue) {
         TimeoutManagerResult<Endpoint> pendingTimeouts = pendingTimeoutManager.process(timestamp);
-        for (Endpoint endpoint : pendingTimeouts.getTimedout()) {
-            pendingLinks.remove(endpoint);
-        } 
         
         TimeoutManagerResult<Endpoint> expiredTimeouts = expireTimeoutManager.process(timestamp);
         for (Endpoint endpoint : expiredTimeouts.getTimedout()) {
-            links.remove(endpoint);
             staleTimeoutManager.cancel(endpoint);
             linkRepository.removeLink(LinkType.OUTGOING, endpoint);
             //expireTimeoutManager.cancel(endpoint); // already taken out by call to process above
@@ -161,9 +133,7 @@ final class OutgoingLinkManager<A> {
 
         TimeoutManagerResult<Endpoint> staleTimeouts = staleTimeoutManager.process(timestamp);
         for (Endpoint endpoint : staleTimeouts.getTimedout()) {
-            ByteBuffer secret = links.get(endpoint);
-            
-            pushQueue.push(endpoint, new InitiateKeepAliveCommand(secret.asReadOnlyBuffer()));
+            pushQueue.push(endpoint, new InitiateKeepAliveCommand());
             staleTimeoutManager.add(endpoint, timestamp + staleDuration);
         }
         
@@ -185,30 +155,26 @@ final class OutgoingLinkManager<A> {
         
         joinNotifyManager.reset(timestamp + expireDuration);
 
-        int currentLinks = pendingLinks.size() + links.size();
+        int currentLinks = pendingTimeoutManager.size() + expireTimeoutManager.size();
         if (currentLinks >= maxLinks) {
             return Long.MAX_VALUE;
         }
         
-        while (pendingLinks.size() < 5) { // make this into a configurable param later
+        while (pendingTimeoutManager.size() < 5) { // make this into a configurable param later
             Endpoint endpoint = linkRepository.pollNextCache(); // remove
             
             if (endpoint == null) {
                 break;
             }
             
-            if (pendingLinks.containsKey(endpoint) || links.containsKey(endpoint)
+            if (pendingTimeoutManager.contains(endpoint) || expireTimeoutManager.contains(endpoint)
                     || linkRepository.containsLink(LinkType.INCOMING, endpoint)
                     || linkRepository.containsLink(LinkType.OUTGOING, endpoint)) { // last check added just incase
                 continue;
             }
 
-            ByteBuffer secret = ByteBuffer.allocate(Constants.SECRET_SIZE);
-            random.nextBytes(secret.array());
-
             pendingTimeoutManager.add(endpoint, timestamp + pendingDuration);
-            pendingLinks.put(endpoint, secret.asReadOnlyBuffer());
-            pushQueue.push(endpoint, new InitiateJoinCommand(secret.asReadOnlyBuffer()));
+            pushQueue.push(endpoint, new InitiateJoinCommand());
         }
         
         return joinNotifyManager.getNextTimeoutTimestamp();

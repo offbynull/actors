@@ -16,21 +16,5 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.common.utils.ByteBufferUtils;
-import java.nio.ByteBuffer;
-import org.apache.commons.lang3.Validate;
-
 final class InitiateJoinCommand {
-    private ByteBuffer secret;
-
-    public InitiateJoinCommand(ByteBuffer secret) {
-        Validate.notNull(secret);
-//        Validate.isTrue(secret.remaining() == Constants.SECRET_SIZE);
-
-        this.secret = ByteBufferUtils.copyContents(secret).asReadOnlyBuffer();
-    }
-
-    public ByteBuffer getSecret() {
-        return secret;
-    }
 }

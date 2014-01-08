@@ -76,7 +76,7 @@ public final class TestHub<A> extends Actor {
                 addressMap.remove(dec.getAddress());
             } else if (content instanceof SendPacketToHubCommand) {
                 SendPacketToHubCommand<A> imc = (SendPacketToHubCommand<A>) content;
-                Collection<TransitMessage<A>> transitMessages = line.depart(imc.getFrom(), imc.getTo(), imc.getData());
+                Collection<TransitMessage<A>> transitMessages = line.depart(timestamp, imc.getFrom(), imc.getTo(), imc.getData());
                 transitMessageQueue.addAll(transitMessages);
             }
         }
@@ -96,7 +96,7 @@ public final class TestHub<A> extends Actor {
         }
 
         // pass through line
-        Collection<TransitMessage<A>> revisedOutgoingPackets = line.arrive(outgoingPackets);
+        Collection<TransitMessage<A>> revisedOutgoingPackets = line.arrive(timestamp, outgoingPackets);
         
         // notify of events
         for (TransitMessage<A> transitMessage : revisedOutgoingPackets) {

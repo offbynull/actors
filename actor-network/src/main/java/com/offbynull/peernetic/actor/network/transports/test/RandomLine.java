@@ -64,7 +64,7 @@ public final class RandomLine<A> implements Line<A> {
     
 
     @Override
-    public List<TransitMessage<A>> depart(A from, A to, ByteBuffer data) {
+    public List<TransitMessage<A>> depart(long timestamp, A from, A to, ByteBuffer data) {
         int len = data.remaining();
         
         double repeatRate = randomDoubleBetween(repeatRatePerByteRange) * len;
@@ -81,10 +81,10 @@ public final class RandomLine<A> implements Line<A> {
             double duration = randomDoubleBetween(durationPerByteRange) * len;
             double jitter = randomDoubleBetween(jitterPerByteRange) * len;
             
-            long arrivalTime = System.currentTimeMillis() + (long) duration + (long) jitter;
+            long arrivalTime = timestamp + (long) duration + (long) jitter;
             
             packets.add(new TransitMessage<>(from, to, data, arrivalTime));
-        } while (random.nextDouble() <= repeatRate);
+        } while (random.nextDouble() < repeatRate);
         
         return packets;
     }
@@ -96,7 +96,7 @@ public final class RandomLine<A> implements Line<A> {
     }
     
     @Override
-    public Collection<TransitMessage<A>> arrive(Collection<TransitMessage<A>> packets) {
+    public Collection<TransitMessage<A>> arrive(long timestamp, Collection<TransitMessage<A>> packets) {
         return packets;
     }
 }

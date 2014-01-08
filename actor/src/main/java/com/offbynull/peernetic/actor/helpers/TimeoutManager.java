@@ -63,6 +63,14 @@ public final class TimeoutManager<R> {
     }
 
     /**
+     * Get the number of items being tracked.
+     * @return number of items being tracked
+     */
+    public int size() {
+        return keyMap.size();
+    }
+
+    /**
      * Cancel the timeout for a resource.
      * @param key resource
      * @return {@code true} if {@code key} was active and was canceled, {@code false} otherwise

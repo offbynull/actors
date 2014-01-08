@@ -9,7 +9,6 @@ import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.actor.Outgoing;
 import com.offbynull.peernetic.actor.SimpleEndpointFinder;
 import com.offbynull.peernetic.actor.SimpleEndpointKeyExtractor;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -312,7 +311,7 @@ public class UnstructuredOverlayTest {
         
         // step immediately with a new connection request and make sure a successful join msg comes back
         fromEndpoint = fakeEndpoint;
-        Object initiateJoinRequest = new InitiateJoinCommand(ByteBuffer.wrap(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}));
+        Object initiateJoinRequest = new InitiateJoinCommand();
         
         outgoing = tester.step(0L, new Incoming(initiateJoinRequest, fromEndpoint));
         outgoingMsg = outgoing.iterator().next();
@@ -328,7 +327,7 @@ public class UnstructuredOverlayTest {
         
         // step at 60ms with a keepalive command and make sure keepalive successful
         fromEndpoint = fakeEndpoint;
-        Object initiateKeepAliveRequest = new InitiateKeepAliveCommand(ByteBuffer.wrap(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}));
+        Object initiateKeepAliveRequest = new InitiateKeepAliveCommand();
         
         outgoing = tester.step(0L, new Incoming(initiateKeepAliveRequest, fromEndpoint));
         outgoingMsg = outgoing.iterator().next();
@@ -343,7 +342,7 @@ public class UnstructuredOverlayTest {
     }
     
     @Test
-    public void incomingBadHandshakeRequestTest() throws Throwable {
+    public void incomingGoodHandshakeDuplicateRequestTest() throws Throwable {
         // setup
         UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class);
         
@@ -373,48 +372,7 @@ public class UnstructuredOverlayTest {
         
         // step immediately with a new connection request and make sure a successful join msg comes back
         fromEndpoint = fakeEndpoint;
-        Object initiateJoinRequest = new InitiateJoinCommand(ByteBuffer.wrap("NOT 16 CHARACTERS FOR BYTE ARRAY".getBytes()));
-        
-        outgoing = tester.step(0L, new Incoming(initiateJoinRequest, fromEndpoint));
-        outgoingMsg = outgoing.iterator().next();
-        
-        Assert.assertEquals(JoinFailedCommand.class, outgoingMsg.getContent().getClass());
-        
-        Mockito.verify(listenerMock, Mockito.never()).linkCreated(overlay, LinkType.INCOMING, 1);
-    }
-    
-    @Test
-    public void incomingGoodHandshakeRequestThenBadKeepaliveTest() throws Throwable {
-        // setup
-        UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class);
-        
-        Endpoint fakeEndpoint = new NullEndpoint();
-        DualHashBidiMap<Integer, Endpoint> endpointMap = new DualHashBidiMap<>();
-        endpointMap.put(1, fakeEndpoint);
-        
-        Set<Integer> cache = Collections.emptySet();
-        EndpointFinder<Integer> finder = new SimpleEndpointFinder<>(endpointMap);
-        EndpointKeyExtractor<Integer> extractor = new SimpleEndpointKeyExtractor<>(endpointMap.inverseBidiMap());
-
-        UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay(listenerMock, finder, extractor, 10, 100L, cache);
-        ActorTester tester = new ActorTester(overlay);
-        
-        Collection<Outgoing> outgoing;
-        Outgoing outgoingMsg;
-        Endpoint fromEndpoint;
-
-        
-        // start up
-        outgoing = tester.start(0L);
-        Assert.assertEquals(Collections.emptyList(), outgoing);
-        
-        // step immediately and make sure no outgoing requests
-        outgoing = tester.step(0L);
-        Assert.assertEquals(Collections.emptyList(), outgoing);
-        
-        // step immediately with a new connection request and make sure a successful join msg comes back
-        fromEndpoint = fakeEndpoint;
-        Object initiateJoinRequest = new InitiateJoinCommand(ByteBuffer.wrap(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}));
+        Object initiateJoinRequest = new InitiateJoinCommand();
         
         outgoing = tester.step(0L, new Incoming(initiateJoinRequest, fromEndpoint));
         outgoingMsg = outgoing.iterator().next();
@@ -423,14 +381,50 @@ public class UnstructuredOverlayTest {
         
         Mockito.verify(listenerMock).linkCreated(overlay, LinkType.INCOMING, 1);
         
+        // step at 1ms with a new connection request and make sure a successful join msg comes back but no trigger of linkCreated
+        fromEndpoint = fakeEndpoint;
+        Object initiateJoinRequest2 = new InitiateJoinCommand();
+        
+        outgoing = tester.step(1L, new Incoming(initiateJoinRequest2, fromEndpoint));
+        outgoingMsg = outgoing.iterator().next();
+        
+        Assert.assertEquals(JoinSuccessfulCommand.class, outgoingMsg.getContent().getClass());
+        
+        Mockito.verify(listenerMock).linkCreated(overlay, LinkType.INCOMING, 1); // make sure it was still only called once
+    }
+    
+    @Test
+    public void incomingNoHandshakeRequestThenKeepaliveTest() throws Throwable {
+        // setup
+        UnstructuredOverlayListener<Integer> listenerMock = Mockito.mock(UnstructuredOverlayListener.class);
+        
+        Endpoint fakeEndpoint = new NullEndpoint();
+        DualHashBidiMap<Integer, Endpoint> endpointMap = new DualHashBidiMap<>();
+        endpointMap.put(1, fakeEndpoint);
+        
+        Set<Integer> cache = Collections.emptySet();
+        EndpointFinder<Integer> finder = new SimpleEndpointFinder<>(endpointMap);
+        EndpointKeyExtractor<Integer> extractor = new SimpleEndpointKeyExtractor<>(endpointMap.inverseBidiMap());
 
-        // step at 50ms and make sure you get back nothing
-        outgoing = tester.step(50L);
+        UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay(listenerMock, finder, extractor, 10, 100L, cache);
+        ActorTester tester = new ActorTester(overlay);
+        
+        Collection<Outgoing> outgoing;
+        Outgoing outgoingMsg;
+        Endpoint fromEndpoint;
+
+        
+        // start up
+        outgoing = tester.start(0L);
         Assert.assertEquals(Collections.emptyList(), outgoing);
         
-        // step at 60ms with a keepalive command and make sure keepalive successful
+        // step immediately and make sure no outgoing requests
+        outgoing = tester.step(0L);
+        Assert.assertEquals(Collections.emptyList(), outgoing);
+        
+        // step at 60ms with a keepalive command and make sure keepalive failed
         fromEndpoint = fakeEndpoint;
-        Object initiateKeepAliveRequest = new InitiateKeepAliveCommand(ByteBuffer.wrap("X".getBytes()));
+        Object initiateKeepAliveRequest = new InitiateKeepAliveCommand();
         
         outgoing = tester.step(60L, new Incoming(initiateKeepAliveRequest, fromEndpoint));
         outgoingMsg = outgoing.iterator().next();

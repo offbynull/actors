@@ -29,12 +29,12 @@ import java.util.Collection;
 public final class PerfectLine<A> implements Line<A> {
 
     @Override
-    public Collection<TransitMessage<A>> depart(A from, A to, ByteBuffer data) {
+    public Collection<TransitMessage<A>> depart(long timestamp, A from, A to, ByteBuffer data) {
         return new ArrayList<>(Arrays.asList(new TransitMessage<>(from, to, data, Long.MIN_VALUE)));
     }
 
     @Override
-    public Collection arrive(Collection<TransitMessage<A>> packets) {
+    public Collection arrive(long timestamp, Collection<TransitMessage<A>> packets) {
         return packets;
     }
     

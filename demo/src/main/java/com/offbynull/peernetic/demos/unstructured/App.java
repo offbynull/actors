@@ -69,6 +69,11 @@ public final class App {
         
         
         TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
+//        TestHub<Integer> hub = new TestHub<>(new RandomLine<Integer>(12345L, // more realistic simulation
+//                Range.is(0.0001),
+//                Range.is(0.0),
+//                Range.is(1.0),
+//                Range.is(0.1)));
         ActorRunner hubRunner = ActorRunner.createAndStart(hub);
         
         
@@ -120,7 +125,7 @@ public final class App {
             NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(testTransportRunner.getEndpoint());
             NetworkEndpointKeyExtractor<Integer> extractor = new NetworkEndpointKeyExtractor<>();
             
-            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(listener, finder, extractor, 3, 1000L,
+            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(listener, finder, extractor, 3, 10000L,
                     Collections.singleton(0));
             ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
             

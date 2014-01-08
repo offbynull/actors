@@ -45,7 +45,7 @@ final class LocalEndpoint implements Endpoint {
             incoming.add(incomingMsg);
         }
         
-        actorQueue.getWriter().push(incoming);
+        actorQueue.push(incoming);
     }
 
     @Override

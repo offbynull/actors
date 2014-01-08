@@ -17,8 +17,12 @@
 package com.offbynull.peernetic.actor;
 
 import java.nio.channels.Selector;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,20 +33,22 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 final class ActorQueue {
-    private LinkedList<Collection<Incoming>> internalQueue;
-    private Lock internalQueueLock;
-    private ActorQueueReader reader;
-    private ActorQueueWriter writer;
+    private Lock lock;
+    private Condition condition;
+    
+    private ActorQueueNotifier notifier; // notifier implementations must be thread safe
+    
+    // guarded by lock
+    private LinkedList<Collection<Incoming>> queue;
+    private boolean closed;
 
     /**
      * Constructs an {@link ActorQueue} object.
      */
     public ActorQueue() {
-        this.internalQueue = new LinkedList<>();
-        this.internalQueueLock = new ReentrantLock();
-        Condition internalQueueLockReadyCondition = internalQueueLock.newCondition();
-        this.reader = new ActorQueueReader(internalQueue, internalQueueLock, internalQueueLockReadyCondition);
-        this.writer = new ActorQueueWriter(internalQueue, internalQueueLock, internalQueueLockReadyCondition);
+        this.queue = new LinkedList<>();
+        this.lock = new ReentrantLock();
+        this.condition = lock.newCondition();
     }
 
     /**
@@ -53,35 +59,133 @@ final class ActorQueue {
      */
     public ActorQueue(ActorQueueNotifier notifier) {
         Validate.notNull(notifier);
-        this.internalQueue = new LinkedList<>();
-        this.internalQueueLock = new ReentrantLock();
-        this.reader = new ActorQueueReader(internalQueue, internalQueueLock, notifier);
-        this.writer = new ActorQueueWriter(internalQueue, internalQueueLock, notifier);
+        this.queue = new LinkedList<>();
+        this.lock = new ReentrantLock();
     }
     
     /**
-     * Get the reader. Reads messages from the queue.
-     * @return reader
+     * Pulls messages from the owning {@link ActorQueue} if available, or if empty blocks until messages become available / the underlying
+     * {@link ActorQueueNotifier} wakes up (if any).
+     * @param timeout maximum amount of time to block
+     * @return messages from the owning {@link ActorQueue}
+     * @throws InterruptedException if thread is interrupted
      */
-    public ActorQueueReader getReader() {
-        return reader;
-    }
-    
-    /**
-     * Get the writer. Writes messages to the queue.
-     * @return writer
-     */
-    public ActorQueueWriter getWriter() {
-        return writer;
+    public Collection<Incoming> pull(long timeout) throws InterruptedException {
+        Validate.inclusiveBetween(0L, Long.MAX_VALUE, timeout);
+        
+        LinkedList<Collection<Incoming>> dst = new LinkedList<>();
+        
+        if (notifier == null) {
+            lock.lock();
+            try {
+                if (closed) {
+                    return Collections.emptySet();
+                }
+
+                if (queue.isEmpty()) { 
+                    condition.await(timeout, TimeUnit.MILLISECONDS);
+                }
+                
+                if (closed) {
+                    return Collections.emptySet();
+                }
+
+                dst.addAll(queue);
+                queue.clear();
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            notifier.await(timeout);
+            
+            lock.lock();
+            try {
+                if (closed) {
+                    return Collections.emptySet();
+                }
+                
+                dst.addAll(queue);
+                queue.clear();
+            } finally {
+                lock.unlock();
+            }
+        }
+        
+        int size = 0;
+        for (Collection<Incoming> batch : dst) {
+            size += batch.size();
+        }
+        
+        ArrayList<Incoming> incoming = new ArrayList<>(size);
+        for (Collection<Incoming> batch : dst) {
+            incoming.addAll(batch);
+        }
+        
+        return Collections.unmodifiableCollection(incoming);
     }
 
+    /**
+     * Pushes messages to the owning {@link ActorQueue} and notifies the {@link Reader} that messages have become available.
+     * @param messages from the owning {@link ActorQueue}
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
+    public void push(Collection<Incoming> messages) {
+        Validate.noNullElements(messages);
+    
+        if (notifier == null) {
+            lock.lock();
+            try {
+                if (closed) {
+                    return;
+                }
+                
+                queue.add(new ArrayList<>(messages));
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            lock.lock();
+            try {
+                if (closed) {
+                    return;
+                }
+                queue.add(new ArrayList<>(messages));
+            } finally {
+                lock.unlock();
+            }
+            
+            notifier.wakeup();
+        }
+    }
+
+    /**
+     * Pushes messages to the owning {@link ActorQueue} and notifies the {@link Reader} that messages have become available.
+     * @param messages from the owning {@link ActorQueue}
+     * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
+     */
+    public void push(Incoming ... messages) {
+        push(Arrays.asList(messages));
+    }
+    
     void close() {
-        internalQueueLock.lock();
-        try {
-            reader.close();
-            writer.close();
-        } finally {
-            internalQueueLock.unlock();
+        if (notifier == null) {
+            lock.lock();
+            try {
+                closed = true;
+                condition.signalAll();
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            lock.lock();
+            try {
+                closed = true;
+            } finally {
+                lock.unlock();
+            }
+            
+            notifier.wakeup();
         }
     }
 }

@@ -125,7 +125,7 @@ public final class ActorRunner {
 
     private final class InternalService extends AbstractExecutionThreadService {
         private ActorQueue queue;
-        private Endpoint internalEndpoint; // internal copy of parent endpoint, not required to be volatile
+        private LocalEndpoint internalEndpoint; // internal copy of parent endpoint, not required to be volatile
         private long nextHitTime;
         
         @Override
@@ -134,7 +134,7 @@ public final class ActorRunner {
               @Override
               public void execute(Runnable command) {
                   Thread thread = Executors.defaultThreadFactory().newThread(command);
-                  thread.setName(ActorRunner.this.getClass().getSimpleName());
+                  thread.setName(internalActor.getClass().getSimpleName());
                   thread.setDaemon(daemon);
                   thread.start();
                   
@@ -193,13 +193,11 @@ public final class ActorRunner {
 
         @Override
         protected void run() throws Exception {
-            ActorQueueReader reader = queue.getReader();
-            
             try {
                 while (true) {
                     long pullStartTime = System.currentTimeMillis();
                     long pullWaitDuration = Math.max(nextHitTime - pullStartTime, 0L);
-                    Collection<Incoming> messages = reader.pull(pullWaitDuration);
+                    Collection<Incoming> messages = queue.pull(pullWaitDuration);
 
                     PushQueue pushQueue = new PushQueue();
                     PullQueue pullQueue = new PullQueue(messages);

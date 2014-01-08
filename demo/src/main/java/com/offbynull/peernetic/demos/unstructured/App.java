@@ -85,6 +85,7 @@ public final class App {
 
                 @Override
                 public void linkCreated(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
+                    // THERE ARE THREAD SAFETY ISSUES HERE THAT WILL MANIFEST ON HIGH CHURN
                     if (type == LinkType.OUTGOING) {
                         int count = linkCount.incrementAndGet();
                         visualizer.step("Link created from " + from + " to " + address,
@@ -95,6 +96,7 @@ public final class App {
 
                 @Override
                 public void linkDestroyed(UnstructuredOverlay<Integer> overlay, LinkType type, Integer address) {
+                    // THERE ARE THREAD SAFETY ISSUES HERE THAT WILL MANIFEST ON HIGH CHURN
                     if (type == LinkType.OUTGOING) {
                         int count = linkCount.decrementAndGet();
                         visualizer.step("Link destroyed from " + from + " to " + address,

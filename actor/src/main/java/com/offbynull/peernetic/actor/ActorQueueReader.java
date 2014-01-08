@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * Reads messages from the owning {@link ActorQueue}.
  * @author Kasra Faghihi
  */
-public final class ActorQueueReader {
+final class ActorQueueReader {
     private boolean closed;
     private LinkedList<Collection<Incoming>> queue;
     private Lock lock;

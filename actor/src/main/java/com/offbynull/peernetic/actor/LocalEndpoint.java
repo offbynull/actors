@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
  * An endpoint for a {@link Actor}.
  * @author Kasra Faghihi
  */
-public final class LocalEndpoint implements Endpoint {
+final class LocalEndpoint implements Endpoint {
     private final ActorQueue actorQueue; // actorqueue implementation is thread safe
 
     LocalEndpoint(ActorQueue actorQueue) {

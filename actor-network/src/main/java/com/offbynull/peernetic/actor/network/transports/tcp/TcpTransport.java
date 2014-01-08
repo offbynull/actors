@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.actor.network.transports.tcp;
 
-import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
@@ -32,7 +32,6 @@ import com.offbynull.peernetic.actor.network.Serializer;
 import com.offbynull.peernetic.actor.network.Transport;
 import com.offbynull.peernetic.actor.network.internal.SendMessageCommand;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -93,7 +92,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
     }
 
     @Override
-    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+    protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         outgoingFilter = (OutgoingFilter<InetSocketAddress>) initVars.get(OUTGOING_FILTER_KEY);
         incomingFilter = (IncomingFilter<InetSocketAddress>) initVars.get(INCOMING_FILTER_KEY);
         routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
@@ -120,7 +119,7 @@ public final class TcpTransport extends Transport<InetSocketAddress> {
             throw e;
         }
         
-        return new ActorQueue(new SelectorActorQueueNotifier(selector));
+        return new ActorStartSettings(new SelectorActorQueueNotifier(selector));
     }
 
     @Override

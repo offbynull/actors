@@ -16,17 +16,35 @@
  */
 package com.offbynull.peernetic.actor;
 
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.commons.lang3.Validate;
+
 /**
- * An interface that maps {@link Endpoint}s to keys used by {@link EndpointFinder}. Reverse of {@link EndpointFinder}.
+ * A {@link EndpointFinder} implementation backed by a {@link Map}.
  * @author Kasra Faghihi
  * @param <K> key type
  */
-public interface EndpointKeyExtractor<K> {
+public final class SimpleEndpointFinder<K> implements EndpointFinder<K> {
+
+    private Map<K, Endpoint> map;
+
     /**
-     * Find an endpoint by key.
-     * @param endpoint endpoint to get key for
-     * @return key associated with {@code endpoint}, or {@code null} if no such key could be found
-     * @throws NullPointerException if any arguments are {@code null}
+     * Constructs a {@link SimpleEndpointFinder} object.
+     * @param map map to use
+     * @throws NullPointerException if {@code map} is null / contains {@code null} keys / contains {@code null} values
      */
-    K findKey(Endpoint endpoint);
+    public SimpleEndpointFinder(Map<K, Endpoint> map) {
+        Validate.noNullElements(map.keySet());
+        Validate.noNullElements(map.values());
+
+        this.map = new HashMap<>(map);
+    }
+    
+    
+    @Override
+    public Endpoint findEndpoint(K key) {
+        return map.get(key);
+    }
+    
 }

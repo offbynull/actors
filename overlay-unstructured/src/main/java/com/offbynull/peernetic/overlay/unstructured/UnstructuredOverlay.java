@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.overlay.unstructured;
 
 import com.offbynull.peernetic.actor.Actor;
-import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.EndpointKeyExtractor;
@@ -68,8 +68,8 @@ public final class UnstructuredOverlay<A> extends Actor {
 
     
     @Override
-    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
-        return new ActorQueue();
+    protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+        return new ActorStartSettings();
     }
     
     @Override

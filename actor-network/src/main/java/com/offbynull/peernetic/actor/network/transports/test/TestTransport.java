@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.actor.network.transports.test;
 
-import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
@@ -67,7 +67,7 @@ public final class TestTransport<A> extends Transport<A> {
     }
 
     @Override
-    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+    protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         OutgoingFilter<A> outgoingFilter = (OutgoingFilter<A>) initVars.get(OUTGOING_FILTER_KEY);
         IncomingFilter<A> incomingFilter = (IncomingFilter<A>) initVars.get(INCOMING_FILTER_KEY);
         routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
@@ -79,7 +79,7 @@ public final class TestTransport<A> extends Transport<A> {
 
         pushQueue.push(hubEndpoint, new ActivateEndpointCommand<>(address));
         
-        return new ActorQueue();
+        return new ActorStartSettings();
     }
 
     @Override

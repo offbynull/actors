@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.actor.network.transports.shared;
 
 import com.offbynull.peernetic.actor.Actor;
-import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.Outgoing;
@@ -22,9 +22,9 @@ public final class RequestActor extends Actor {
     }
 
     @Override
-    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+    protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         notifyManager = new NotifyManager();
-        return new ActorQueue();
+        return new ActorStartSettings();
     }
 
     @Override

@@ -29,7 +29,7 @@ import org.apache.commons.lang3.Validate;
  * Writes messages on to the owning {@link ActorQueue}.
  * @author Kasra Faghihi
  */
-public final class ActorQueueWriter {
+final class ActorQueueWriter {
     private final Lock lock;
     private final Condition condition;
     

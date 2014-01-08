@@ -58,7 +58,7 @@ public abstract class Actor {
         startupMap.put(key, value);
     }
     
-    final ActorQueue invokeOnStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+    final ActorStartSettings invokeOnStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         return onStart(timestamp, pushQueue, initVars);
     }
 
@@ -77,10 +77,10 @@ public abstract class Actor {
      * @param pushQueue messages to send
      * @param initVars variables to initialize this actor -- values in this map are passed in through
      * {@link #putInStartupMap(java.lang.Object, java.lang.Object) }.
-     * @return new queue to use for this actor
+     * @return start settings for this actor
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
-    protected abstract ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception;
+    protected abstract ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception;
 
     /**
      * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from

@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.actor.network.transports.udp;
 
-import com.offbynull.peernetic.actor.ActorQueue;
+import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
@@ -81,7 +81,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
     }
 
     @Override
-    protected ActorQueue onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
+    protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
         OutgoingFilter<InetSocketAddress> outgoingFilter = (OutgoingFilter<InetSocketAddress>) initVars.get(OUTGOING_FILTER_KEY);
         IncomingFilter<InetSocketAddress> incomingFilter = (IncomingFilter<InetSocketAddress>) initVars.get(INCOMING_FILTER_KEY);
         routeToEndpoint = (Endpoint) initVars.get(ENDPOINT_ROUTE_KEY);
@@ -105,7 +105,7 @@ public final class UdpTransport extends Transport<InetSocketAddress> {
             throw e;
         }
         
-        return new ActorQueue(new SelectorActorQueueNotifier(selector));
+        return new ActorStartSettings(new SelectorActorQueueNotifier(selector));
     }
 
     @Override

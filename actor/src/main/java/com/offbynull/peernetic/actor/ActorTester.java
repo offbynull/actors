@@ -16,81 +16,98 @@
  */
 package com.offbynull.peernetic.actor;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang3.Validate;
+
 /**
- * Use to test an {@link Actor}.
+ * Use to test an {@link Actor} without actually starting it. Feed in predetermined timestamps and messages to see if the expected outputs
+ * occur.
  * @author Kasra Faghihi
  */
 public final class ActorTester {
-//    private IdCounter idCounter;
-//    private Actor actor;
-//    
-//    /**
-//     * Construct an {@link ActorTester} object. 
-//     * @param actor actor to test -- once passed in, the actor will be unusable
-//     * @throws IllegalStateException if actor already started or stopped.
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    public ActorTester(Actor actor) {
-//        Validate.notNull(actor);
-//        
-//        actor.readyForTesting();
-//        this.actor = actor;
-//        this.idCounter = new IdCounter();
-//    }
-//
-//    /**
-//     * Call the wrapped actor's {@link Actor#onStart(long, java.util.Map) } method.
-//     * @param timestamp timestamp to pass in
-//     * @param pushQueue push queue to pass in
-//     * @param initVars initialization objects to pass in
-//     * @throws Exception on error
-//     */
-//    public void testOnStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
-//        actor.testOnStart(timestamp, pushQueue, initVars);
-//    }
-//
-//    /**
-//     * Call the wrapped actor's {@link Actor#onStep(long, com.offbynull.peernetic.common.concurrent.actor.PullQueue,
-//     * com.offbynull.peernetic.common.concurrent.actor.PushQueue) } method.
-//     * @param timestamp timestamp to pass in
-//     * @param pullQueue pull queue to pass in
-//     * @param pushQueue push queue to pass in
-//     * @return outgoing messages
-//     * @throws Exception on error
-//     */
-//    public long testOnStep(long timestamp, PullQueue pullQueue, PushQueue pushQueue) throws Exception {
-//        return actor.testOnStep(timestamp, pullQueue, pushQueue);
-//    }
-//
-//    /**
-//     * Call the wrapped actor's {@link Actor#onStop(long, com.offbynull.peernetic.common.concurrent.actor.PushQueue) } method.
-//     * @param timestamp timestamp to pass in
-//     * @param pushQueue push queue to pass in
-//     * @throws Exception on error
-//     */
-//    public void testOnStop(long timestamp, PushQueue pushQueue) throws Exception {
-//        actor.testOnStop(timestamp, pushQueue);
-//    }
-//    
-//    /**
-//     * Generate a push queue.
-//     * @param requestTimeoutManager request timeout manager to pass in
-//     * @param requestIdMap request id map to pass in
-//     * @param outgoingMap collection of outgoing messages to populate
-//     * @return a new push queue
-//     */
-//    public PushQueue createPushQueue(TimeoutManager<Object> requestTimeoutManager, Map<Object, IncomingRequest> requestIdMap,
-//            MultiMap<Endpoint, Outgoing> outgoingMap) {
-//        return new PushQueue(idCounter, requestTimeoutManager, requestIdMap, outgoingMap);
-//    }
-//    
-//    /**
-//     * Generate a pull queue.
-//     * @param responseTimeoutManager response timeout manager to pass in
-//     * @param incoming incoming messages to pass in
-//     * @return a new pull queue
-//     */
-//    public PullQueue createPullQueue(TimeoutManager<Object> responseTimeoutManager, Collection<Incoming> incoming) {
-//        return new PullQueue(responseTimeoutManager, incoming);
-//    }
+    private Actor actor;
+    private Map<Object, Object> initMap;
+    
+    /**
+     * Constructs a {@link ActorTester} object.
+     * @param actor actor to test -- consumed upon creation
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalStateException if {@code actor} already consumed
+     */
+    public ActorTester(Actor actor) {
+        Validate.notNull(actor);
+        
+        this.actor = actor;
+        initMap = actor.consume();
+    }
+    
+    /**
+     * Invoke wrapping actor's {@link Actor#onStart(long, com.offbynull.peernetic.actor.PushQueue, java.util.Map) }.
+     * @param timestamp timestamp to pass in
+     * @return outgoing messages produced by the actor
+     * @throws IllegalStateException if invocation throws an exception
+     */
+    public Collection<Outgoing> start(long timestamp) {
+        PushQueue pushQueue = new PushQueue();
+        try {
+            actor.invokeOnStart(timestamp, pushQueue, initMap);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        
+        final List<Outgoing> dst = new ArrayList<>();
+        pushQueue.drain(dst);
+                
+        return dst;
+    }
+
+    /**
+     * Invoke wrapping actor's {@link Actor#onStep(long, com.offbynull.peernetic.actor.PullQueue, com.offbynull.peernetic.actor.PushQueue,
+     * com.offbynull.peernetic.actor.Endpoint) }.
+     * @param timestamp timestamp to pass in
+     * @param incoming incoming messages to pass in
+     * @return outgoing messages produced by the actor
+     * @throws NullPointerException if {@code incoming} contains {@code null}
+     * @throws IllegalStateException if invocation throws an exception
+     */
+    public Collection<Outgoing> step(long timestamp, Incoming ... incoming) {
+        Validate.noNullElements(incoming);
+        
+        PullQueue pullQueue = new PullQueue(Arrays.asList(incoming));
+        PushQueue pushQueue = new PushQueue();
+        try {
+            actor.invokeOnStep(timestamp, pullQueue, pushQueue, new NullEndpoint());
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        
+        final List<Outgoing> dst = new ArrayList<>();
+        pushQueue.drain(dst);
+                
+        return dst;
+    }
+
+    /**
+     * Invoke wrapping actor's {@link Actor#onStop(long, com.offbynull.peernetic.actor.PushQueue) }.
+     * @param timestamp timestamp to pass in
+     * @return outgoing messages produced by the actor
+     * @throws IllegalStateException if invocation throws an exception
+     */
+    public Collection<Outgoing> stop(long timestamp) {
+        PushQueue pushQueue = new PushQueue();
+        try {
+            actor.invokeOnStop(timestamp, pushQueue);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        
+        final List<Outgoing> dst = new ArrayList<>();
+        pushQueue.drain(dst);
+                
+        return dst;
+    }
 }

@@ -75,6 +75,19 @@ public final class PushQueue {
         msgsFromSrc.put(destination, new Outgoing(content, destination));
     }
 
+    void drain(Collection<Outgoing> dst) {
+        Validate.notNull(dst);
+        
+        for (Map.Entry<Endpoint, MultiValueMap<Endpoint, Outgoing>> entry : outgoingMap.entrySet()) {
+            for (Map.Entry<Endpoint, Object> innerEntry : entry.getValue().entrySet()) {
+                Collection<Outgoing> outgoing = (Collection<Outgoing>) innerEntry.getValue();
+                dst.addAll(outgoing);
+            }
+        }
+        
+        outgoingMap.clear();
+    }
+
     void flush(Endpoint defaultSource) {
         Validate.notNull(defaultSource);
         

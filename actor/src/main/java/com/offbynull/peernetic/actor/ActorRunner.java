@@ -126,6 +126,7 @@ public final class ActorRunner {
     private final class InternalService extends AbstractExecutionThreadService {
         private ActorQueue queue;
         private Endpoint internalEndpoint; // internal copy of parent endpoint, not required to be volatile
+        private long nextHitTime;
         
         @Override
         protected Executor executor() {
@@ -170,10 +171,24 @@ public final class ActorRunner {
             long startTime = System.currentTimeMillis();
             
             PushQueue pushQueue = new PushQueue();
-            queue = internalActor.onStart(startTime, pushQueue, internalStartupMap);
+            ActorStartSettings settings = internalActor.onStart(startTime, pushQueue, internalStartupMap);
+            
+            ActorQueueNotifier notifier = settings.getNotifier();
+            if (notifier == null) {
+                queue = new ActorQueue();
+            } else {
+                queue = new ActorQueue(notifier);
+            }
             internalEndpoint = new LocalEndpoint(queue);
             endpoint = internalEndpoint;
+            
+            for (Object selfOutgoing : settings.getMessagesToSelf()) {
+                pushQueue.push(internalEndpoint, selfOutgoing);
+            }
+            
             pushQueue.flush(internalEndpoint);
+            
+            nextHitTime = settings.getHitTime();
         }
 
         @Override
@@ -181,8 +196,6 @@ public final class ActorRunner {
             ActorQueueReader reader = queue.getReader();
             
             try {
-                long nextHitTime = Long.MAX_VALUE;
-
                 while (true) {
                     long pullStartTime = System.currentTimeMillis();
                     long pullWaitDuration = Math.max(nextHitTime - pullStartTime, 0L);

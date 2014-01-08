@@ -28,7 +28,7 @@ import org.apache.commons.lang3.Validate;
  * Message pump.
  * @author Kasra Faghihi
  */
-public final class ActorQueue {
+final class ActorQueue {
     private LinkedList<Collection<Incoming>> internalQueue;
     private Lock internalQueueLock;
     private ActorQueueReader reader;

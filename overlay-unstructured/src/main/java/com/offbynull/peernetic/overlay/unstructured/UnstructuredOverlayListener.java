@@ -16,8 +16,6 @@
  */
 package com.offbynull.peernetic.overlay.unstructured;
 
-import com.offbynull.peernetic.actor.Endpoint;
-
 /**
  * Receives notifications when a link is established/destroyed with other nodes.
  * @author Kasra Faghihi

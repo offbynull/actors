@@ -71,6 +71,10 @@ public final class NetworkEndpoint<A> implements Endpoint {
         push(source, Arrays.asList(outgoing));
     }
 
+    A getAddress() {
+        return address;
+    }
+
     @Override
     public int hashCode() {
         int hash = 5;

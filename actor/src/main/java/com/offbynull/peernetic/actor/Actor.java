@@ -81,6 +81,14 @@ public abstract class Actor {
      * @throws Exception on error, shutdowns the internally spawned thread if encountered
      */
     protected abstract ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception;
+    
+    /**
+     * Called to specify what the endpoint for this actor is right after the invoking
+     * {@link #onStart(long, com.offbynull.peernetic.actor.PushQueue, java.util.Map) } by the same thread.
+     * @param selfEndpoint endpoint for this actor
+     */
+    protected void endpointReady(Endpoint selfEndpoint) {
+    }
 
     /**
      * Called when the internal {@link ActorQueueReader} has messages available or the maximum wait duration has elapsed. Called from

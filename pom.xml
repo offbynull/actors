@@ -20,7 +20,7 @@
         <module>demo</module>
         <module>actor</module>
         <module>actor-network</module>
-    </modules>
+  </modules>
     
     <dependencyManagement>
         <dependencies>

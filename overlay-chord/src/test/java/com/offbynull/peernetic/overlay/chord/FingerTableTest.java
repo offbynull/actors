@@ -1,6 +1,8 @@
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.overlay.chord.RouteResult.ResultType;
+import com.offbynull.peernetic.overlay.chord.core.RouteResult;
+import com.offbynull.peernetic.overlay.chord.core.FingerTable;
+import com.offbynull.peernetic.overlay.chord.core.RouteResult.ResultType;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.net.InetSocketAddress;

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.overlay.chord;
 
+import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.google.common.collect.Lists;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.net.InetSocketAddress;

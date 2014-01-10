@@ -58,6 +58,22 @@ public final class Id {
     }
     
     /**
+     * Increments an id.
+     * @return this id incremented by 1, wrapped if it exceeds limit
+     */
+    public Id increment() {
+        return this.add(new Id(new byte[] { 1 }, limit.toByteArray()));
+    }
+
+    /**
+     * Decrements an id.
+     * @return this id decremented by 1, wrapped if it it goes below {@code 0}
+     */
+    public Id decrement() {
+        return this.subtract(new Id(new byte[] { 1 }, limit.toByteArray()));
+    }
+    
+    /**
      * Adds two IDs together. {@code this} is the left-hand side. The limit of the IDs must match.
      * @param rhs right-hand side
      * @return {@code lhs + rhs}, wrapped if it exceeds the limit

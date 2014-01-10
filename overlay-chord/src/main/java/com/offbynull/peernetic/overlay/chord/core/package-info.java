@@ -18,4 +18,4 @@
 /**
  * An implementation of the Chord algorithm.
  */
-package com.offbynull.peernetic.overlay.chord;
+package com.offbynull.peernetic.overlay.chord.core;

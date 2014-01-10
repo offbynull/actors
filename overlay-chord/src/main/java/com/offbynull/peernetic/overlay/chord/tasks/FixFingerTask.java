@@ -4,30 +4,29 @@ import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
-import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import org.apache.commons.lang3.Validate;
 
-public final class FindSuccessorTask<A> extends AbstractChainedTask {
-    private Id findId;
+public final class FixFingerTask<A> extends AbstractChainedTask {
+    
     private ChordState<A> chordState;
-    private Stage stage;
+    private int idx;
     
     private EndpointFinder<A> finder;
-    
-    private Pointer<A> result;
 
-    public FindSuccessorTask(Id findId, ChordState<A> chordState, EndpointFinder<A> finder) {
-        Validate.notNull(findId);
+    private Stage stage = Stage.INITIAL;
+
+    public FixFingerTask(ChordState<A> chordState, EndpointFinder<A> finder, int idx) {
         Validate.notNull(chordState);
         Validate.notNull(finder);
-
-        this.findId = findId;
+        Validate.inclusiveBetween(1, chordState.getBitCount(), idx); // cannot be 0
+        
         this.chordState = chordState;
         this.finder = finder;
-        
-        stage = Stage.INITIAL;
+        this.idx = idx;
     }
+    
+    
 
     @Override
     protected Task switchTask(Task prev) {
@@ -38,32 +37,22 @@ public final class FindSuccessorTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
-                stage = Stage.FIND_PREDECESSOR;
-                return new FindPredecessorTask(findId, chordState, finder);
-            }
-            case FIND_PREDECESSOR: {
-                Pointer<A> pointer = ((FindPredecessorTask) prev).getResult();
-                stage = Stage.FIND_SUCCESSOR;
-                return new GetSuccessorTask(pointer, finder);
+                return new FindSuccessorTask(chordState.getExpectedFingerId(idx), chordState, finder);
             }
             case FIND_SUCCESSOR: {
-                result = ((GetSuccessorTask) prev).getResult();
+                Pointer<A> result = ((FindSuccessorTask) prev).getResult();
+                chordState.putFinger(result);
+                
                 setFinished(false);
                 return null;
             }
             default:
-                throw new IllegalArgumentException();
+                throw new IllegalStateException();
         }
     }
-
-    public Pointer<A> getResult() {
-        return result;
-    }
-
+    
     private enum Stage {
         INITIAL,
-        FIND_PREDECESSOR,
         FIND_SUCCESSOR
     }
-
 }

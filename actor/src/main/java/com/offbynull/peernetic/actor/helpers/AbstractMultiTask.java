@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.actor.helpers;
 
 import com.offbynull.peernetic.actor.Incoming;
@@ -6,6 +22,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Groups one or more {@link Task}s at together such that they're all run at the same time.
+ * @author Kasra Faghihi
+ */
 public abstract class AbstractMultiTask implements Task {
 
     private Set<Task> currentTasks;
@@ -78,8 +98,17 @@ public abstract class AbstractMultiTask implements Task {
         return state;
     }
 
+    /**
+     * Called when one or more sub-tasks have completed/failed, and when this task first starts.
+     * @param finished finished sub-tasks -- empty if this task was just started
+     * @return next {@code Task}s to run
+     */
     protected abstract Set<Task> taskStateUpdated(Set<Task> finished);
 
+    /**
+     * Sets this task's completion state.
+     * @param failed {@code true} to set put this task in to a {@link TaskState#FAILED} state, {@code false} for {@link TaskState#COMPLETED}
+     */
     protected final void setFinished(boolean failed) {
         if (failed) {
             state = TaskState.FAILED;

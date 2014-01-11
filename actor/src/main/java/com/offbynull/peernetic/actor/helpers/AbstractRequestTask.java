@@ -1,11 +1,33 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.actor.helpers;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.RequestManager.OutgoingRequestHandler;
+import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Encapsulates a request/response sequence as a task. If response arrives, {@link #processResponse(java.lang.Object) } is called. If
+ * response times out, the task is marked as {@link TaskState#FAILED}.
+ * @author Kasra Faghihi
+ */
 public abstract class AbstractRequestTask implements Task {
     private Object request;
     private Endpoint destination;
@@ -15,18 +37,26 @@ public abstract class AbstractRequestTask implements Task {
     
     private InternalOutgoingRequestHandler internalOutgoingRequestHandler;
     
-    public AbstractRequestTask(Object request, Endpoint destination) {
+    /**
+     * Constructs a {@link AbstractRequestTask} object.
+     * @param random random for internal request manager
+     * @param request request to push out
+     * @param destination destination to push request to
+     */
+    public AbstractRequestTask(Random random, Object request, Endpoint destination) {
+        Validate.notNull(random);
         Validate.notNull(request);
         Validate.notNull(destination);
 
         this.request = request;
         this.destination = destination;
+        this.requestManager = new RequestManager(random);
         
         taskState = TaskState.START;
     }
     
     @Override
-    public long process(long timestamp, Incoming incoming, PushQueue pushQueue) {
+    public final long process(long timestamp, Incoming incoming, PushQueue pushQueue) {
         switch (taskState) {
             case START: {
                 start(timestamp);
@@ -74,6 +104,12 @@ public abstract class AbstractRequestTask implements Task {
         return taskState;
     }
     
+    /**
+     * Called once response arrives.
+     * @param response response object
+     * @return {@code false} to set put this task in to a {@link TaskState#FAILED} state, {@code true} for {@link TaskState#COMPLETED}
+     * state.
+     */
     protected abstract boolean processResponse(Object response);
     
     private final class InternalOutgoingRequestHandler implements OutgoingRequestHandler<Object> {

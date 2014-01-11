@@ -1,8 +1,28 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.actor.helpers;
 
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PushQueue;
 
+/**
+ * Chains one or more {@link Task}s together.
+ * @author Kasra Faghihi
+ */
 public abstract class AbstractChainedTask implements Task {
 
     private Task currentTask;
@@ -60,8 +80,17 @@ public abstract class AbstractChainedTask implements Task {
         return state;
     }
 
+    /**
+     * Called when the sub-task has completed/failed, and when this task first starts.
+     * @param prev current processing sub-task, or {@code null} if this task was just started
+     * @return next {@code Task}
+     */
     protected abstract Task switchTask(Task prev);
 
+    /**
+     * Sets this task's completion state.
+     * @param failed {@code true} to set put this task in to a {@link TaskState#FAILED} state, {@code false} for {@link TaskState#COMPLETED}
+     */
     protected final void setFinished(boolean failed) {
         if (failed) {
             state = TaskState.FAILED;

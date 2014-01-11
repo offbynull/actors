@@ -62,7 +62,7 @@ public final class Id {
      * @return this id incremented by 1, wrapped if it exceeds limit
      */
     public Id increment() {
-        return this.add(new Id(new byte[] { 1 }, limit.toByteArray()));
+        return this.add(new Id(new byte[] {1}, limit.toByteArray()));
     }
 
     /**
@@ -70,7 +70,7 @@ public final class Id {
      * @return this id decremented by 1, wrapped if it it goes below {@code 0}
      */
     public Id decrement() {
-        return this.subtract(new Id(new byte[] { 1 }, limit.toByteArray()));
+        return this.subtract(new Id(new byte[] {1}, limit.toByteArray()));
     }
     
     /**

@@ -63,6 +63,9 @@ public abstract class AbstractRequestTask implements Task {
                 break;
             }
             case PROCESSING: {
+                if (incoming != null) {
+                    requestManager.incomingMessage(timestamp, incoming);
+                }
                 queryHandler();
                 break;
             }

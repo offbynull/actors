@@ -87,7 +87,9 @@ public final class RequestManager {
         RequestEntity entity = new RequestEntity(request, destination, handler, maxSendAttempts, timeout);
         requests.put(request, entity);
         requestKeys.put(request.getKey(), entity);
-        requestTimeoutManager.add(request, timestamp);
+        requestTimeoutManager.add(request, timestamp); // looks wrong, but actually correct. upon adding will be "timed out", but will
+                                                       // increment send attempts and send once it hits process -- maxSendAttempts will
+                                                       // always be >= 1, so it will always get sent at least once
     }
 
     /**
@@ -225,7 +227,7 @@ public final class RequestManager {
 
         public boolean incrementSendAttempt() {
             currentSendAttempts++;
-            return currentSendAttempts < maxSendAttempts;
+            return currentSendAttempts > maxSendAttempts;
         }
 
         public long getTimeout() {

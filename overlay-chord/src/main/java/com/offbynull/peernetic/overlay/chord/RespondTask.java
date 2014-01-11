@@ -55,6 +55,7 @@ final class RespondTask<A> implements Task {
                 requestManager.mapRequestHandler(GetPredecessor.class, new GetPredecessorRequestHandler());
                 requestManager.mapRequestHandler(GetSuccessor.class, new GetSuccessorRequestHandler());
                 requestManager.mapRequestHandler(Notify.class, new NotifyRequestHandler());
+                state = TaskState.PROCESSING;
                 break;
             }
             case PROCESSING: {

@@ -5,10 +5,8 @@ import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Id;
-import com.offbynull.peernetic.overlay.common.id.IdGenerator;
 import com.offbynull.peernetic.overlay.common.id.IdUtils;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 public final class InitializeTask<A> extends AbstractChainedTask {
@@ -20,21 +18,17 @@ public final class InitializeTask<A> extends AbstractChainedTask {
 
     private ChordState<A> chordState;
 
-    public InitializeTask(A selfAddress, Random random, Pointer<A> bootstrap, EndpointFinder<A> finder) {
-        Validate.notNull(selfAddress);
-        Validate.notNull(random);
+    public InitializeTask(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
+        Validate.notNull(self);
         Validate.notNull(finder);
 
-        Id bootstrapId = bootstrap.getId();
-        IdUtils.ensureLimitPowerOfTwo(bootstrapId);
-        
-        IdGenerator idGenerator = new IdGenerator(random);
-        Id selfId = idGenerator.generate(bootstrapId.getLimitAsByteArray());
-        
-        Pointer<A> basePtr = new Pointer(selfId, selfAddress);
+        IdUtils.ensureLimitPowerOfTwo(self.getId());
+        if (bootstrap != null) {
+            Validate.isTrue(bootstrap.getId().getLimitAsBigInteger().equals(self.getId().getLimitAsBigInteger()));
+        }
         
         this.bootstrap = bootstrap;
-        this.chordState = new ChordState<>(basePtr);
+        this.chordState = new ChordState<>(self);
         this.finder = finder;
         
         stage = Stage.INITIAL;
@@ -88,11 +82,15 @@ public final class InitializeTask<A> extends AbstractChainedTask {
         }
     }
 
+    public ChordState<A> getResult() {
+        return chordState;
+    }
+
     private enum Stage {
         INITIAL,
         GET_SUCCESSOR,
         POPULATE_FINGERS,
         GET_PREDECESSOR, // grab the predecessor of your successor and set it as your predecessor
-        NOTIFY_SUCCESSOR
+        NOTIFY_SUCCESSOR // notify the successor that we are the new predecessor
     }
 }

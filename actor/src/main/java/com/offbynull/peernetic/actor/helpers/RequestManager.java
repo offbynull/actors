@@ -21,9 +21,9 @@ import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -32,7 +32,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class RequestManager {
 
-    private SecureRandom secureRandom;
+    private Random random;
 
     // request related
     private Map<ByteBuffer, RequestEntity> requestKeys;
@@ -45,12 +45,12 @@ public final class RequestManager {
 
     /**
      * Construct a {@link RequestManager} object.
-     * @param secureRandom secure random used to generate keys that identify request and response messages
+     * @param random secure random used to generate keys that identify request and response messages
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public RequestManager(SecureRandom secureRandom) {
-        Validate.notNull(secureRandom);
-        this.secureRandom = secureRandom;
+    public RequestManager(Random random) {
+        Validate.notNull(random);
+        this.random = random;
     }
 
     /**
@@ -73,7 +73,7 @@ public final class RequestManager {
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, maxSendAttempts);
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, timeout);
 
-        RequestObject request = new RequestObject(secureRandom, timestamp, content);
+        RequestObject request = new RequestObject(random, timestamp, content);
 
         RequestEntity entity = new RequestEntity(request, destination, handler, maxSendAttempts, timeout);
         requests.put(request, entity);
@@ -261,7 +261,7 @@ public final class RequestManager {
         private ByteBuffer key;
         private Object content;
 
-        public RequestObject(SecureRandom random, long marker, Object content) {
+        public RequestObject(Random random, long marker, Object content) {
             Validate.notNull(random);
             Validate.notNull(content);
 

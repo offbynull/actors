@@ -21,18 +21,26 @@ public abstract class AbstractChainedTask implements Task {
                 break;
         }
         
-        long nextTimestamp = currentTask.process(timestamp, incoming, pushQueue);
+        long nextTimestamp = Long.MAX_VALUE;
+        
+        top:
+        while (true) {
+            nextTimestamp = currentTask.process(timestamp, incoming, pushQueue);
 
-        switch (currentTask.getState()) {
-            case START:
-            case PROCESSING:
-                break;
-            case COMPLETED:
-            case FAILED:
-                currentTask = switchTask(currentTask);
-                break;
-            default:
-                throw new IllegalStateException();
+            switch (currentTask.getState()) {
+                case START:
+                case PROCESSING:
+                    break top;
+                case COMPLETED:
+                case FAILED:
+                    currentTask = switchTask(currentTask);
+                    if (state == TaskState.COMPLETED || state == TaskState.FAILED) { // if task switch marked this task as finished, stop
+                        break top;
+                    }
+                    break; // otherwise, run process once for the next task
+                default:
+                    throw new IllegalStateException();
+            }
         }
 
         

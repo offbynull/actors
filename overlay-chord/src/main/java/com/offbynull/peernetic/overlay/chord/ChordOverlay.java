@@ -53,9 +53,10 @@ public final class ChordOverlay<A> extends Actor {
      */
     public ChordOverlay(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
         Validate.notNull(self);
-        Validate.notNull(bootstrap);
         Validate.notNull(finder);
-        Validate.isTrue(self.getId().getLimitAsBigInteger().equals(bootstrap.getId().getLimitAsBigInteger()));
+        if (bootstrap != null) {
+            Validate.isTrue(self.getId().getLimitAsBigInteger().equals(bootstrap.getId().getLimitAsBigInteger()));
+        }
         IdUtils.ensureLimitPowerOfTwo(self);
         
         this.self = self;
@@ -65,7 +66,7 @@ public final class ChordOverlay<A> extends Actor {
     
     @Override
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {        
-        secureRandom = SecureRandom.getInstance("SUN", "SHA1PRNG");
+        secureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN");
         chordTask = new ChordTask<>(self, bootstrap, secureRandom, finder);
 
         

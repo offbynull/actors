@@ -20,6 +20,7 @@ import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
+import com.offbynull.peernetic.overlay.common.id.IdUtils;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
@@ -37,9 +38,12 @@ final class ChordTask<A> extends AbstractChainedTask {
 
     public ChordTask(Pointer<A> self, Pointer<A> bootstrap, Random random, EndpointFinder<A> finder) {
         Validate.notNull(self);
-        Validate.notNull(bootstrap);
         Validate.notNull(random);
         Validate.notNull(finder);
+        if (bootstrap != null) {
+            Validate.isTrue(self.getId().getLimitAsBigInteger().equals(bootstrap.getId().getLimitAsBigInteger()));
+        }
+        IdUtils.ensureLimitPowerOfTwo(self);
         
         this.self = self;
         this.bootstrap = bootstrap;

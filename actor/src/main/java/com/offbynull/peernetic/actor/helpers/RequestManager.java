@@ -21,6 +21,8 @@ import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.TimeoutManager.TimeoutManagerResult;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -51,6 +53,13 @@ public final class RequestManager {
     public RequestManager(Random random) {
         Validate.notNull(random);
         this.random = random;
+        
+        this.requestKeys = new HashMap<>();
+        this.requests = new HashMap<>();
+        this.requestTimeoutManager = new TimeoutManager<>();
+        
+        this.requestHandlerMap = new HashMap<>();
+        this.responses = new LinkedList<>();
     }
 
     /**

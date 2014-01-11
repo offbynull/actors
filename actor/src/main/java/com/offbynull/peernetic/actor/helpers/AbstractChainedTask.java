@@ -33,6 +33,10 @@ public abstract class AbstractChainedTask implements Task {
         switch (state) {
             case START:
                 currentTask = switchTask(null);
+                if (state == TaskState.COMPLETED || state == TaskState.FAILED) { // if task switch marked this task as finished, stop
+                    return Long.MAX_VALUE;
+                }
+                state = TaskState.PROCESSING;
                 break;
             case COMPLETED:
             case FAILED:

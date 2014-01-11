@@ -36,6 +36,10 @@ public abstract class AbstractMultiTask implements Task {
         switch (state) {
             case START:
                 currentTasks = taskStateUpdated(Collections.<Task>emptySet());
+                if (state == TaskState.COMPLETED || state == TaskState.FAILED) { // if task switch marked this task as finished, stop
+                    return Long.MAX_VALUE;
+                }
+                state = TaskState.PROCESSING;
                 break;
             case COMPLETED:
             case FAILED:

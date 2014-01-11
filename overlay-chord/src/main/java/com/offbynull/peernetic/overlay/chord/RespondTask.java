@@ -1,4 +1,20 @@
-package com.offbynull.peernetic.overlay.chord.tasks;
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PushQueue;
@@ -7,20 +23,12 @@ import com.offbynull.peernetic.actor.helpers.RequestManager.IncomingRequestHandl
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.chord.core.RouteResult;
-import com.offbynull.peernetic.overlay.chord.messages.GetClosestPrecedingFinger;
-import com.offbynull.peernetic.overlay.chord.messages.GetClosestPrecedingFingerReply;
-import com.offbynull.peernetic.overlay.chord.messages.GetPredecessor;
-import com.offbynull.peernetic.overlay.chord.messages.GetPredecessorReply;
-import com.offbynull.peernetic.overlay.chord.messages.GetSuccessor;
-import com.offbynull.peernetic.overlay.chord.messages.GetSuccessorReply;
-import com.offbynull.peernetic.overlay.chord.messages.Notify;
-import com.offbynull.peernetic.overlay.chord.messages.NotifyReply;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
-public final class RespondTask<A> implements Task {
+final class RespondTask<A> implements Task {
 
     private ChordState<A> chordState;
     
@@ -52,6 +60,8 @@ public final class RespondTask<A> implements Task {
             case PROCESSING: {
                 break;
             }
+            default:
+                throw new IllegalStateException();
         }
         
         if (incoming != null) {

@@ -1,4 +1,20 @@
-package com.offbynull.peernetic.overlay.chord.tasks;
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
@@ -7,10 +23,13 @@ import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.IdUtils;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
-public final class InitializeTask<A> extends AbstractChainedTask {
+final class InitializeTask<A> extends AbstractChainedTask {
     private int nextFingerIdx;
+    
+    private Random random;
     private Pointer<A> bootstrap;
     private Stage stage;
     
@@ -18,7 +37,8 @@ public final class InitializeTask<A> extends AbstractChainedTask {
 
     private ChordState<A> chordState;
 
-    public InitializeTask(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
+    public InitializeTask(Random random, Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
+        Validate.notNull(random);
         Validate.notNull(self);
         Validate.notNull(finder);
 
@@ -27,6 +47,7 @@ public final class InitializeTask<A> extends AbstractChainedTask {
             Validate.isTrue(bootstrap.getId().getLimitAsBigInteger().equals(self.getId().getLimitAsBigInteger()));
         }
         
+        this.random = random;
         this.bootstrap = bootstrap;
         this.chordState = new ChordState<>(self);
         this.finder = finder;
@@ -51,7 +72,7 @@ public final class InitializeTask<A> extends AbstractChainedTask {
                 Id fingerId = chordState.getExpectedFingerId(0); // 0 = nextFingerIdx
 
                 stage = Stage.POPULATE_FINGERS;
-                return new FindSuccessorTask<>(fingerId, chordState, finder); // find successor to self
+                return new FindSuccessorTask<>(random, fingerId, chordState, finder); // find successor to self
             }
             case POPULATE_FINGERS: {
                 Pointer<A> successor = ((FindSuccessorTask) prev).getResult();
@@ -60,18 +81,18 @@ public final class InitializeTask<A> extends AbstractChainedTask {
                 nextFingerIdx++;
                 if (chordState.getBitCount() == nextFingerIdx) {
                     stage = Stage.GET_PREDECESSOR;
-                    return new GetPredecessorTask(chordState.getSuccessor(), finder);
+                    return new GetPredecessorTask(random, chordState.getSuccessor(), finder);
                 }
                 
                 Id fingerId = chordState.getExpectedFingerId(nextFingerIdx);
-                return new FindSuccessorTask<>(fingerId, chordState, finder);
+                return new FindSuccessorTask<>(random, fingerId, chordState, finder);
             }
             case GET_PREDECESSOR: {
                 Pointer<A> predecessor = ((GetPredecessorTask) prev).getResult();
                 chordState.setPredecessor(predecessor);
                 
                 stage = Stage.NOTIFY_SUCCESSOR;
-                return new NotifyTask(chordState.getBase(), chordState.getSuccessor(), finder); // successor.pred = me
+                return new NotifyTask(random, chordState.getBase(), chordState.getSuccessor(), finder); // successor.pred = me
             }
             case NOTIFY_SUCCESSOR: {
                 setFinished(false);

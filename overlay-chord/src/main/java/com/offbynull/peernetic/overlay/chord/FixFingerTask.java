@@ -24,28 +24,29 @@ import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
-final class ChordTask<A> extends AbstractChainedTask {
-
-    private Pointer<A> self;
-    private Pointer<A> bootstrap;
-    private EndpointFinder<A> finder;
-    private Random random;
+final class FixFingerTask<A> extends AbstractChainedTask {
     
+    private Random random;
     private ChordState<A> chordState;
+    private int idx;
+    
+    private EndpointFinder<A> finder;
 
     private Stage stage = Stage.INITIAL;
 
-    public ChordTask(Pointer<A> self, Pointer<A> bootstrap, Random random, EndpointFinder<A> finder) {
-        Validate.notNull(self);
-        Validate.notNull(bootstrap);
+    public FixFingerTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, int idx) {
         Validate.notNull(random);
+        Validate.notNull(chordState);
         Validate.notNull(finder);
+        Validate.inclusiveBetween(1, chordState.getBitCount(), idx); // cannot be 0
         
-        this.self = self;
-        this.bootstrap = bootstrap;
         this.random = random;
+        this.chordState = chordState;
         this.finder = finder;
+        this.idx = idx;
     }
+    
+    
 
     @Override
     protected Task switchTask(Task prev) {
@@ -56,31 +57,22 @@ final class ChordTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
-                InitializeTask<A> initializeTask = new InitializeTask<>(random, self, bootstrap, finder);
-                stage = Stage.INITIALIZE;
-                return initializeTask;
+                return new FindSuccessorTask(random, chordState.getExpectedFingerId(idx), chordState, finder);
             }
-            case INITIALIZE: {
-                InitializeTask<A> initializeTask = (InitializeTask<A>) prev;
-                chordState = initializeTask.getResult();
+            case FIND_SUCCESSOR: {
+                Pointer<A> result = ((FindSuccessorTask) prev).getResult();
+                chordState.putFinger(result);
                 
-                MaintainTask<A> maintainTask = new MaintainTask<>(random, chordState);
-                stage = Stage.MAINTAIN;
-                
-                return maintainTask;
+                setFinished(false);
+                return null;
             }
-//            case MAINTAIN: {
-//                break;
-//            }
             default:
                 throw new IllegalStateException();
         }
     }
-
+    
     private enum Stage {
-
         INITIAL,
-        INITIALIZE,
-        MAINTAIN
+        FIND_SUCCESSOR
     }
 }

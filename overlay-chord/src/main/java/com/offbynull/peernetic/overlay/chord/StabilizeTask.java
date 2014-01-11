@@ -1,32 +1,45 @@
-package com.offbynull.peernetic.overlay.chord.tasks;
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
-public final class FixFingerTask<A> extends AbstractChainedTask {
-    
+final class StabilizeTask<A> extends AbstractChainedTask {
+    private Random random;
     private ChordState<A> chordState;
-    private int idx;
-    
     private EndpointFinder<A> finder;
 
     private Stage stage = Stage.INITIAL;
 
-    public FixFingerTask(ChordState<A> chordState, EndpointFinder<A> finder, int idx) {
+    public StabilizeTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder) {
+        Validate.notNull(random);
         Validate.notNull(chordState);
         Validate.notNull(finder);
-        Validate.inclusiveBetween(1, chordState.getBitCount(), idx); // cannot be 0
         
+        this.random = random;
         this.chordState = chordState;
         this.finder = finder;
-        this.idx = idx;
     }
-    
-    
 
     @Override
     protected Task switchTask(Task prev) {
@@ -37,7 +50,8 @@ public final class FixFingerTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
-                return new FindSuccessorTask(chordState.getExpectedFingerId(idx), chordState, finder);
+                Pointer<A> successor = chordState.getSuccessor();
+                return new NotifyTask(random, chordState.getBase(), successor, finder);
             }
             case FIND_SUCCESSOR: {
                 Pointer<A> result = ((FindSuccessorTask) prev).getResult();

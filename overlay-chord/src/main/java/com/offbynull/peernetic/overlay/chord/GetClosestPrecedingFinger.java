@@ -14,8 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.overlay.chord;
 
-/**
- * Core chord algorithms.
- */
-package com.offbynull.peernetic.overlay.chord.core;
+import com.offbynull.peernetic.overlay.common.id.Id;
+import org.apache.commons.lang3.Validate;
+
+final class GetClosestPrecedingFinger {
+    private Id id;
+
+    public GetClosestPrecedingFinger(Id id) {
+        Validate.notNull(id);
+        
+        this.id = id;
+    }
+
+    public Id getId() {
+        return id;
+    }
+    
+}

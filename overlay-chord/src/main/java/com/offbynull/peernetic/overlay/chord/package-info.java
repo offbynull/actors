@@ -16,6 +16,6 @@
  */
 
 /**
- * Core chord algorithms.
+ * A chord implementation.
  */
-package com.offbynull.peernetic.overlay.chord.core;
+package com.offbynull.peernetic.overlay.chord;

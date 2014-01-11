@@ -1,6 +1,21 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
@@ -8,26 +23,17 @@ import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
 import com.offbynull.peernetic.actor.PushQueue;
-import com.offbynull.peernetic.actor.helpers.RequestManager;
-import com.offbynull.peernetic.actor.helpers.RequestManager.IncomingRequestHandler;
-import com.offbynull.peernetic.actor.helpers.Task;
-import com.offbynull.peernetic.overlay.chord.core.RouteResult;
-import com.offbynull.peernetic.overlay.chord.messages.GetClosestPrecedingFinger;
-import com.offbynull.peernetic.overlay.chord.messages.GetClosestPrecedingFingerReply;
-import com.offbynull.peernetic.overlay.chord.messages.GetPredecessor;
-import com.offbynull.peernetic.overlay.chord.messages.GetPredecessorReply;
-import com.offbynull.peernetic.overlay.chord.messages.GetSuccessor;
-import com.offbynull.peernetic.overlay.chord.messages.GetSuccessorReply;
-import com.offbynull.peernetic.overlay.chord.messages.Notify;
-import com.offbynull.peernetic.overlay.chord.messages.NotifyReply;
-import com.offbynull.peernetic.overlay.chord.tasks.InitializeTask;
-import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.IdUtils;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.security.SecureRandom;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A chord overlay implementation.
+ * @author Kasra Faghihi
+ * @param <A> address type
+ */
 public final class ChordOverlay<A> extends Actor {
     private Pointer<A> self;
     private Pointer<A> bootstrap;
@@ -36,6 +42,15 @@ public final class ChordOverlay<A> extends Actor {
     
     private ChordTask<A> chordTask;
 
+    /**
+     * Construct a {@link ChordOverlay} object.
+     * @param self id and address of this node
+     * @param bootstrap id and address of the bootstrap node (can be {@code null})
+     * @param finder finder
+     * @throws NullPointerException if any argument other than {@code bootstrap} is {@code null}
+     * @throws IllegalArgumentException if {@code self} and {@code bootstrap} don't share the same limit or have limits that aren't
+     * {@code 2^n-1}
+     */
     public ChordOverlay(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
         Validate.notNull(self);
         Validate.notNull(bootstrap);
@@ -46,13 +61,6 @@ public final class ChordOverlay<A> extends Actor {
         this.self = self;
         this.bootstrap = bootstrap;
         this.finder = finder;
-    }
-
-    public ChordOverlay(Pointer<A> self) {
-        Validate.notNull(self);
-        IdUtils.ensureLimitPowerOfTwo(self);
-        
-        this.self = self;
     }
     
     @Override

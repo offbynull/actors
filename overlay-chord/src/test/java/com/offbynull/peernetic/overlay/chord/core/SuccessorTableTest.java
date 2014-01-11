@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.overlay.chord;
+package com.offbynull.peernetic.overlay.chord.core;
 
 import com.offbynull.peernetic.overlay.chord.core.SuccessorTable;
 import com.google.common.collect.Lists;

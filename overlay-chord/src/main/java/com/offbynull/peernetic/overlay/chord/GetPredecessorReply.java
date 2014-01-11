@@ -14,8 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.overlay.chord;
 
-/**
- * Core chord algorithms.
- */
-package com.offbynull.peernetic.overlay.chord.core;
+import com.offbynull.peernetic.overlay.common.id.Pointer;
+import org.apache.commons.lang3.Validate;
+
+final class GetPredecessorReply<A> {
+    private Pointer<A> predecessor;
+
+    public GetPredecessorReply(Pointer<A> predecessor) {
+        Validate.notNull(predecessor);
+
+        this.predecessor = predecessor;
+    }
+
+    public Pointer<A> getPredecessor() {
+        return predecessor;
+    }
+    
+}

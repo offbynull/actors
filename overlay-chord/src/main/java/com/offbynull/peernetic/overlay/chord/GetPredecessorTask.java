@@ -31,11 +31,11 @@ final class GetPredecessorTask<A> extends AbstractRequestTask {
 
     @Override
     protected boolean processResponse(Object response) {
-        if (!(response instanceof Pointer)) {
+        if (!(response instanceof GetPredecessorReply)) {
             return false;
         }
 
-        predecessor = (Pointer<A>) response;
+        predecessor = ((GetPredecessorReply<A>) response).getPredecessor();
         return true;
     }
 

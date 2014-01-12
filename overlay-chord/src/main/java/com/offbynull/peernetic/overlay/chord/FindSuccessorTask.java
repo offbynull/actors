@@ -50,7 +50,7 @@ final class FindSuccessorTask<A> extends AbstractChainedTask {
     }
 
     @Override
-    protected Task switchTask(Task prev) {
+    protected Task switchTask(long timestamp, Task prev) {
         if (prev != null && prev.getState() == TaskState.FAILED) {
             setFinished(true);
             return null;
@@ -62,12 +62,12 @@ final class FindSuccessorTask<A> extends AbstractChainedTask {
                 return new FindPredecessorTask(random, findId, chordState, finder);
             }
             case FIND_PREDECESSOR: {
-                Pointer<A> pointer = ((FindPredecessorTask) prev).getResult();
+                Pointer<A> pointer = ((FindPredecessorTask<A>) prev).getResult();
                 stage = Stage.FIND_SUCCESSOR;
                 return new GetSuccessorTask(random, pointer, finder);
             }
             case FIND_SUCCESSOR: {
-                result = ((GetSuccessorTask) prev).getResult();
+                result = ((GetSuccessorTask<A>) prev).getResult();
                 setFinished(false);
                 return null;
             }

@@ -33,10 +33,11 @@ final class ChordTask<A> extends AbstractChainedTask {
     private Random random;
     
     private ChordState<A> chordState;
+    private ChordOverlayListener<A> listener;
 
     private Stage stage = Stage.INITIAL;
 
-    public ChordTask(Pointer<A> self, Pointer<A> bootstrap, Random random, EndpointFinder<A> finder) {
+    public ChordTask(Pointer<A> self, Pointer<A> bootstrap, Random random, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
         Validate.notNull(self);
         Validate.notNull(random);
         Validate.notNull(finder);
@@ -44,15 +45,17 @@ final class ChordTask<A> extends AbstractChainedTask {
             Validate.isTrue(self.getId().getLimitAsBigInteger().equals(bootstrap.getId().getLimitAsBigInteger()));
         }
         IdUtils.ensureLimitPowerOfTwo(self);
+        Validate.notNull(listener);
         
         this.self = self;
         this.bootstrap = bootstrap;
         this.random = random;
         this.finder = finder;
+        this.listener = listener;
     }
 
     @Override
-    protected Task switchTask(Task prev) {
+    protected Task switchTask(long timestamp, Task prev) {
         if (prev != null && prev.getState() == TaskState.FAILED) {
             setFinished(true);
             return null;
@@ -68,7 +71,13 @@ final class ChordTask<A> extends AbstractChainedTask {
                 InitializeTask<A> initializeTask = (InitializeTask<A>) prev;
                 chordState = initializeTask.getResult();
                 
-                MaintainTask<A> maintainTask = new MaintainTask<>(random, chordState);
+                listener.stateUpdated("Initialized",
+                        chordState.getBase(),
+                        chordState.getPredecessor(),
+                        chordState.dumpFingerTable(),
+                        chordState.dumpSuccessorTable());
+                
+                MaintainTask<A> maintainTask = new MaintainTask<>(random, chordState, finder, listener);
                 stage = Stage.MAINTAIN;
                 
                 return maintainTask;

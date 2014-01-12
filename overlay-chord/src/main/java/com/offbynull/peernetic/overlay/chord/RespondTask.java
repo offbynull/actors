@@ -34,12 +34,16 @@ final class RespondTask<A> implements Task {
     
     private RequestManager requestManager;
     private TaskState state = TaskState.START;
+    
+    private ChordOverlayListener<A> listener;
 
-    public RespondTask(Random random, ChordState<A> chordState) {
-        Validate.notNull(chordState);
+    public RespondTask(Random random, ChordState<A> chordState, ChordOverlayListener<A> listener) {
         Validate.notNull(random);
+        Validate.notNull(chordState);
+        Validate.notNull(listener);
         this.chordState = chordState;
         this.requestManager = new RequestManager(random);
+        this.listener = listener;
     }
 
     @Override
@@ -99,14 +103,17 @@ final class RespondTask<A> implements Task {
         @Override
         public Object produceResponse(long timestamp, Notify request) {
             Pointer<A> newPred = request.getPredecessor();
-            Pointer<A> currentPred = chordState.getPredecessor();
-            
-            Id selfId = chordState.getBaseId();
-            Id newPredId = newPred.getId();
-            Id currentPredId = currentPred.getId();
-            if (newPredId.isWithin(currentPredId, false, selfId, false)) {
+            try {
                 chordState.setPredecessor(newPred);
+            } catch (IllegalArgumentException iae) { // NOPMD
+                // failed to meet conditions for setting predecessor
             }
+            
+            listener.stateUpdated("Notify Handled",
+                    chordState.getBase(),
+                    chordState.getPredecessor(),
+                    chordState.dumpFingerTable(),
+                    chordState.dumpSuccessorTable());
             
             return new NotifyReply();
         }

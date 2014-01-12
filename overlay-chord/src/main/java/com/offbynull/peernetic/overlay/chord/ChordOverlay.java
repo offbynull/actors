@@ -40,6 +40,7 @@ public final class ChordOverlay<A> extends Actor {
     private EndpointFinder<A> finder;
     private SecureRandom secureRandom;
     
+    private ChordOverlayListener<A> listener;
     private ChordTask<A> chordTask;
 
     /**
@@ -47,13 +48,15 @@ public final class ChordOverlay<A> extends Actor {
      * @param self id and address of this node
      * @param bootstrap id and address of the bootstrap node (can be {@code null})
      * @param finder finder
+     * @param listener listener
      * @throws NullPointerException if any argument other than {@code bootstrap} is {@code null}
      * @throws IllegalArgumentException if {@code self} and {@code bootstrap} don't share the same limit or have limits that aren't
      * {@code 2^n-1}
      */
-    public ChordOverlay(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
+    public ChordOverlay(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
         Validate.notNull(self);
         Validate.notNull(finder);
+        Validate.notNull(listener);
         if (bootstrap != null) {
             Validate.isTrue(self.getId().getLimitAsBigInteger().equals(bootstrap.getId().getLimitAsBigInteger()));
         }
@@ -62,12 +65,13 @@ public final class ChordOverlay<A> extends Actor {
         this.self = self;
         this.bootstrap = bootstrap;
         this.finder = finder;
+        this.listener = listener;
     }
     
     @Override
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {        
         secureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN");
-        chordTask = new ChordTask<>(self, bootstrap, secureRandom, finder);
+        chordTask = new ChordTask<>(self, bootstrap, secureRandom, finder, listener);
 
         
         return new ActorStartSettings(timestamp); // hit immediately

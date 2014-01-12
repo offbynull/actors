@@ -8,16 +8,13 @@ import com.offbynull.peernetic.actor.network.transports.test.TestTransport;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.math.BigInteger;
+import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-/**
- *
- * @author User
- */
 public class ChordOverlayTest {
     
     public ChordOverlayTest() {
@@ -44,36 +41,62 @@ public class ChordOverlayTest {
         TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
         ActorRunner hubRunner = ActorRunner.createAndStart(hub);
         
+        ChordOverlayListener<Integer> listener = new ChordOverlayListener<Integer>() {
+
+            @Override
+            public void stateUpdated(String event, Pointer<Integer> self, Pointer<Integer> predecessor, List<Pointer<Integer>> fingerTable, List<Pointer<Integer>> successorTable) {
+                System.out.println(event + " - " +self.getId());
+                System.out.println("Fingers: " + fingerTable);
+                System.out.println("Successors: " + successorTable);
+                System.out.println("Predecessors: " + predecessor);
+                System.out.println("----------------------------");
+            }
+
+            @Override
+            public void failed(FailureMode failureMode) {
+                System.out.println(failureMode);
+            }
+        };
         
         
-        TestTransport<Integer> transport0 = new TestTransport<>(0, hubRunner.getEndpoint());
-        ActorRunner transport0Runner = ActorRunner.createAndStart(transport0);
-        NetworkEndpointFinder<Integer> finder0 = new NetworkEndpointFinder<>(transport0Runner.getEndpoint());
-        
-        Id id0 = new Id(BigInteger.ZERO.toByteArray(), new BigInteger("7").toByteArray());
-        Integer address0 = 0;
-        Pointer<Integer> ptr0 = new Pointer<>(id0, address0);
-        ChordOverlay<Integer> overlay0 = new ChordOverlay<>(ptr0, null, finder0);
-        ActorRunner overlay0Runner = ActorRunner.createAndStart(overlay0);
-        
-        transport0.setDestinationEndpoint(overlay0Runner.getEndpoint());
-        
-        
-        
-        TestTransport<Integer> transport4 = new TestTransport<>(4, hubRunner.getEndpoint());
-        ActorRunner transport4Runner = ActorRunner.createAndStart(transport4);
-        NetworkEndpointFinder<Integer> finder4 = new NetworkEndpointFinder<>(transport4Runner.getEndpoint());
-        
-        Id id4 = new Id(new BigInteger("4").toByteArray(), new BigInteger("7").toByteArray());
-        Integer address4 = 0;
-        Pointer<Integer> ptr4 = new Pointer<>(id4, address4);
-        ChordOverlay<Integer> overlay4 = new ChordOverlay<>(ptr4, ptr0, finder4);
-        ActorRunner overlay4Runner = ActorRunner.createAndStart(overlay4);
-        
-        transport4.setDestinationEndpoint(overlay4Runner.getEndpoint());
+        ActorRunner overlay0Runner = generateNode(0, 3, null, listener, hubRunner);
+        ActorRunner overlay1Runner = generateNode(1, 3, 0, listener, hubRunner);
+        ActorRunner overlay2Runner = generateNode(2, 3, 0, listener, hubRunner);
+        ActorRunner overlay3Runner = generateNode(3, 3, 0, listener, hubRunner);
         
         
         
-        Thread.sleep(1000000L);
+        Thread.sleep(5000L);
+        
+        
+        
+        overlay1Runner.stop();
+        overlay2Runner.stop();
+        overlay3Runner.stop();
+        
+        
+        Thread.sleep(100000L);
+    }
+    
+    private ActorRunner generateNode(int id, int limit, Integer bootstrap, ChordOverlayListener<Integer> listener, ActorRunner hubRunner) {
+        TestTransport<Integer> transport = new TestTransport<>(id, hubRunner.getEndpoint());
+        ActorRunner transportRunner = ActorRunner.createAndStart(transport);
+        NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(transportRunner.getEndpoint());
+        
+        Id selfId = new Id(new BigInteger("" + id).toByteArray(), new BigInteger("" + limit).toByteArray());
+        Pointer<Integer> selfPtr = new Pointer<>(selfId, id);
+        
+        Pointer<Integer> bootstrapPtr = null;
+        if (bootstrap != null) {
+            Id bootstrapId = new Id(new BigInteger("" + bootstrap).toByteArray(), new BigInteger("" + limit).toByteArray());
+            bootstrapPtr = new Pointer<>(bootstrapId, bootstrap);
+        }
+        
+        ChordOverlay<Integer> overlay = new ChordOverlay<>(selfPtr, bootstrapPtr, finder, listener);
+        ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
+        
+        transport.setDestinationEndpoint(overlayRunner.getEndpoint());
+        
+        return overlayRunner;
     }
 }

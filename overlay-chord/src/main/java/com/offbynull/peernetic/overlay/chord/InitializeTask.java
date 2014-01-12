@@ -56,7 +56,7 @@ final class InitializeTask<A> extends AbstractChainedTask {
     }
 
     @Override
-    protected Task switchTask(Task prev) {
+    protected Task switchTask(long timestamp, Task prev) {
         if (prev != null && prev.getState() == TaskState.FAILED) {
             setFinished(true);
             return null;
@@ -89,7 +89,12 @@ final class InitializeTask<A> extends AbstractChainedTask {
             }
             case GET_PREDECESSOR: {
                 Pointer<A> predecessor = ((GetPredecessorTask) prev).getResult();
-                chordState.setPredecessor(predecessor);
+                if (predecessor != null) {
+                    // if joining a node that has no other connections... this is possible if the node we've joined is the first node in the
+                    // chord network... after this step we notify the node we've joined that we're it's predecessor, and it should notify
+                    // us (after a few moments) that it's our predecessor
+                    chordState.setPredecessor(predecessor);
+                }
                 
                 stage = Stage.NOTIFY_SUCCESSOR;
                 return new NotifyTask(random, chordState.getBase(), chordState.getSuccessor(), finder); // successor.pred = me

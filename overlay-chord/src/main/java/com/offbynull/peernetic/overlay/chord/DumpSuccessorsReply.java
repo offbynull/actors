@@ -16,31 +16,23 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.helpers.AbstractRequestTask;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
+import java.util.Collections;
+import java.util.List;
+import org.apache.commons.lang3.Validate;
 
-final class GetSuccessorTask<A> extends AbstractRequestTask {
-    
-    private Pointer<A> successor;
-    
-    public GetSuccessorTask(Random random, Pointer<A> pointer, EndpointFinder<A> finder) {
-        super(random, new GetSuccessor(), finder.findEndpoint(pointer.getAddress()));
+final class DumpSuccessorsReply<A> {
+    private List<Pointer<A>> successor;
+
+    public DumpSuccessorsReply(List<Pointer<A>> successor) {
+        Validate.noNullElements(successor);
+
+        this.successor = Collections.unmodifiableList(successor);
     }
 
-    @Override
-    protected boolean processResponse(Object response) {
-        if (!(response instanceof GetSuccessorReply)) {
-            return false;
-        }
-
-        successor = ((GetSuccessorReply<A>) response).getSuccessor();
-        return true;
-    }
-
-    public Pointer<A> getResult() {
+    public List<Pointer<A>> getSuccessors() {
         return successor;
     }
     
 }
+

@@ -56,7 +56,7 @@ final class FindPredecessorTask<A> extends AbstractChainedTask {
     }
 
     @Override
-    protected Task switchTask(Task prev) {
+    protected Task switchTask(long timestamp, Task prev) {
         if (prev != null && prev.getState() == TaskState.FAILED) {
             setFinished(true);
             return null;
@@ -83,19 +83,19 @@ final class FindPredecessorTask<A> extends AbstractChainedTask {
                 return new GetSuccessorTask(random, lastClosestPredecessor, finder);
             }
             case FINDING_LAST_CLOSEST_PREDECESSORS_SUCCESSOR: {
-                Pointer<A> successor = ((GetSuccessorTask) prev).getResult();
+                Pointer<A> successor = ((GetSuccessorTask<A>) prev).getResult();
 
                 Id lastClosestPredId = lastClosestPredecessor.getId();
                 Id successorId = successor.getId();
 
                 if (findId.isWithin(lastClosestPredId, false, successorId, true)) {
-                    setFinished(false);
-                    result = lastClosestPredecessor;
-                    return null;
+                    stage = Stage.FINDING_LAST_CLOSEST_PREDECESSOR;
+                    return new GetClosestPrecedingFingerTask(random, findId, lastClosestPredecessor, finder);
                 }
 
-                stage = Stage.FINDING_LAST_CLOSEST_PREDECESSOR;
-                return new GetClosestPrecedingFingerTask(random, findId, lastClosestPredecessor, finder);
+                setFinished(false);
+                result = lastClosestPredecessor;
+                return null;
             }
             default:
                 throw new IllegalStateException();

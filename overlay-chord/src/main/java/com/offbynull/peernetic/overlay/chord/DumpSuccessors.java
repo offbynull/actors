@@ -16,19 +16,6 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.overlay.common.id.Pointer;
-
-final class GetPredecessorReply<A> {
-    private Pointer<A> predecessor;
-
-    public GetPredecessorReply(Pointer<A> predecessor) {
-        //Validate.notNull(predecessor); // can be null
-
-        this.predecessor = predecessor;
-    }
-
-    public Pointer<A> getPredecessor() {
-        return predecessor;
-    }
+final class DumpSuccessors {
     
 }

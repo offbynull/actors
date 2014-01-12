@@ -21,29 +21,31 @@ import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
-final class FixFingerTask<A> extends AbstractChainedTask {
+final class UpdateSuccessorsTask<A> extends AbstractChainedTask {
     
     private Random random;
     private ChordState<A> chordState;
-    private int idx;
     
     private EndpointFinder<A> finder;
 
+    ChordOverlayListener<A> listener;
+    
     private Stage stage = Stage.INITIAL;
 
-    public FixFingerTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, int idx) {
+    public UpdateSuccessorsTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
         Validate.notNull(random);
         Validate.notNull(chordState);
         Validate.notNull(finder);
-        Validate.inclusiveBetween(1, chordState.getBitCount(), idx); // cannot be 0
+        Validate.notNull(listener);
         
         this.random = random;
         this.chordState = chordState;
         this.finder = finder;
-        this.idx = idx;
+        this.listener = listener;
     }
     
     
@@ -57,12 +59,18 @@ final class FixFingerTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
-                stage = Stage.FIND_SUCCESSOR;
-                return new FindSuccessorTask(random, chordState.getExpectedFingerId(idx), chordState, finder);
+                stage = Stage.DUMP_SUCCESSORS;
+                return new DumpSuccessorsTask<>(random, chordState.getSuccessor(), finder);
             }
-            case FIND_SUCCESSOR: {
-                Pointer<A> result = ((FindSuccessorTask) prev).getResult();
-                chordState.putFinger(result);
+            case DUMP_SUCCESSORS: {
+                List<Pointer<A>> result = ((DumpSuccessorsTask<A>) prev).getResult();
+                chordState.setSuccessor(chordState.getSuccessor(), result);
+                
+                listener.stateUpdated("Successors updated",
+                        chordState.getBase(),
+                        chordState.getPredecessor(),
+                        chordState.dumpFingerTable(),
+                        chordState.dumpSuccessorTable());
                 
                 setFinished(false);
                 return null;
@@ -74,6 +82,6 @@ final class FixFingerTask<A> extends AbstractChainedTask {
     
     private enum Stage {
         INITIAL,
-        FIND_SUCCESSOR
+        DUMP_SUCCESSORS
     }
 }

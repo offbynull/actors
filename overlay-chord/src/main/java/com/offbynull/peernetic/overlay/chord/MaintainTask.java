@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
+import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractMultiTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
@@ -29,13 +30,19 @@ final class MaintainTask<A> extends AbstractMultiTask {
 
     private ChordState<A> chordState;
     private Random random;
+    private EndpointFinder<A> finder;
+    private ChordOverlayListener<A> listener;
 
-    public MaintainTask(Random random, ChordState<A> chordState) {
+    public MaintainTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
         Validate.notNull(random);
         Validate.notNull(chordState);
+        Validate.notNull(finder);
+        Validate.notNull(listener);
         
         this.random = random;
         this.chordState = chordState;
+        this.finder = finder;
+        this.listener = listener;
     }
     
     @Override
@@ -49,7 +56,10 @@ final class MaintainTask<A> extends AbstractMultiTask {
      
         Set<Task> newTasks = new HashSet<>();
         if (finished.isEmpty()) { // initial call
-            newTasks.add(new RespondTask(random, chordState));
+            newTasks.add(new RespondTask(random, chordState, listener));
+            newTasks.add(new PeriodicStabilizeTask<>(3000L, random, chordState, finder, listener));
+            newTasks.add(new PeriodicFixFingerTask<>(3000L, random, chordState, finder));
+            newTasks.add(new PeriodicUpdateSuccessorsTask<>(3000L, random, chordState, finder, listener));
         }
         
         return newTasks;

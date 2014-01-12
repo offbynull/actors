@@ -19,28 +19,29 @@ package com.offbynull.peernetic.overlay.chord;
 import com.offbynull.peernetic.actor.helpers.AbstractRequestTask;
 import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.util.List;
 import java.util.Random;
 
-final class GetSuccessorTask<A> extends AbstractRequestTask {
+final class DumpSuccessorsTask<A> extends AbstractRequestTask {
     
-    private Pointer<A> successor;
+    private List<Pointer<A>> successors;
     
-    public GetSuccessorTask(Random random, Pointer<A> pointer, EndpointFinder<A> finder) {
-        super(random, new GetSuccessor(), finder.findEndpoint(pointer.getAddress()));
+    public DumpSuccessorsTask(Random random, Pointer<A> pointer, EndpointFinder<A> finder) {
+        super(random, new DumpSuccessors(), finder.findEndpoint(pointer.getAddress()));
     }
 
     @Override
     protected boolean processResponse(Object response) {
-        if (!(response instanceof GetSuccessorReply)) {
+        if (!(response instanceof DumpSuccessorsReply)) {
             return false;
         }
 
-        successor = ((GetSuccessorReply<A>) response).getSuccessor();
+        successors = ((DumpSuccessorsReply<A>) response).getSuccessors();
         return true;
     }
 
-    public Pointer<A> getResult() {
-        return successor;
+    public List<Pointer<A>> getResult() {
+        return successors;
     }
     
 }

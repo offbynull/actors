@@ -58,6 +58,7 @@ final class RespondTask<A> implements Task {
                 requestManager.mapRequestHandler(GetClosestPrecedingFinger.class, new GetClosestPrecedingFingerRequestHandler());
                 requestManager.mapRequestHandler(GetPredecessor.class, new GetPredecessorRequestHandler());
                 requestManager.mapRequestHandler(GetSuccessor.class, new GetSuccessorRequestHandler());
+                requestManager.mapRequestHandler(DumpSuccessors.class, new DumpSuccessorsRequestHandler());
                 requestManager.mapRequestHandler(Notify.class, new NotifyRequestHandler());
                 state = TaskState.PROCESSING;
                 break;
@@ -96,6 +97,13 @@ final class RespondTask<A> implements Task {
         @Override
         public Object produceResponse(long timestamp, GetSuccessor request) {
             return new GetSuccessorReply<>(chordState.getSuccessor());
+        }
+    }
+    private final class DumpSuccessorsRequestHandler implements IncomingRequestHandler<DumpSuccessors> {
+
+        @Override
+        public Object produceResponse(long timestamp, DumpSuccessors request) {
+            return new DumpSuccessorsReply<>(chordState.dumpSuccessorTable());
         }
     }
     private final class NotifyRequestHandler implements IncomingRequestHandler<Notify> {

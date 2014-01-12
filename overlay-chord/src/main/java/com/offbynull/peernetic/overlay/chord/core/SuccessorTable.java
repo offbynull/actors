@@ -134,15 +134,15 @@ public final class SuccessorTable<A> {
      * {@code table} contains the base pointer in it, all pointers including and
      * after the base pointer won't be added. If {@code table}'s size exceeds
      * the number of bits in base pointer's id, it'll be trimmed so that it
-     * doesn't exceed. The pointers in {@code table} must be sorted so that an
-     * entry doesn't exceed the next entry.
+     * doesn't exceed. The pointers in {@code table} must be sorted. The point
+     * at which {@code table} loops around our base id is the point that it'll
+     * be trimmed.
      * @param successor immediate successor
      * @param table successors after {@code successor}
      * @throws NullPointerException if any arguments are {@code null} or contain {@code null}
      * @throws IllegalArgumentException if {@code successor}'s id has a
      * different bit count than the base pointer's id / if the ids of any of the pointers in
-     * {@code table} have a different bit count than the base pointer's id / if {@code table}
-     * isn't sorted
+     * {@code table} have a different bit count than the base pointer's id
      */
     public void update(Pointer<A> successor, List<Pointer<A>> table) {
         Validate.notNull(successor);
@@ -169,7 +169,8 @@ public final class SuccessorTable<A> {
             }
             
             if (ptrSuccessorId.comparePosition(baseId, lastId) <= 0) {
-                throw new IllegalArgumentException();
+                lastTableIdx = idx;
+                break;
             }
             
             lastId = ptrSuccessor.getId();

@@ -62,7 +62,18 @@ final class FixFingerTask<A> extends AbstractChainedTask {
             }
             case FIND_SUCCESSOR: {
                 Pointer<A> result = ((FindSuccessorTask) prev).getResult();
-                chordState.putFinger(result);
+                
+                Pointer<A> self = chordState.getBase();
+                if (result.equals(self)) {
+                    // if we got back ourself then remove the finger (this ensures that the fingertable will reset to us), unless it's
+                    // already set to us (because there would be no point in resetting it at that point)
+                    Pointer<A> fingerAtIdx = chordState.getFinger(idx);
+                    if (fingerAtIdx.equals(self)) {
+                        chordState.removeFinger(fingerAtIdx);
+                    }
+                } else {
+                    chordState.putFinger(result);
+                }
                 
                 setFinished(false);
                 return null;

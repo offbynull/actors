@@ -66,7 +66,7 @@ public class ChordOverlayTest {
         
         
         
-        Thread.sleep(5000L);
+        Thread.sleep(15000L);
         
         
         

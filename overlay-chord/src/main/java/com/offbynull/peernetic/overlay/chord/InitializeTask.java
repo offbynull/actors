@@ -93,7 +93,11 @@ final class InitializeTask<A> extends AbstractChainedTask {
                     // if joining a node that has no other connections... this is possible if the node we've joined is the first node in the
                     // chord network... after this step we notify the node we've joined that we're it's predecessor, and it should notify
                     // us (after a few moments) that it's our predecessor
-                    chordState.setPredecessor(predecessor);
+                    try {
+                        chordState.setPredecessor(predecessor);
+                    } catch (IllegalArgumentException iae) {
+                        // thrown if the new predecessor isn't between our current predecessor and us
+                    }
                 }
                 
                 stage = Stage.NOTIFY_SUCCESSOR;

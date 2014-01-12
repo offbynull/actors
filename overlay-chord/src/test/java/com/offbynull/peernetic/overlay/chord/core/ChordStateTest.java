@@ -93,7 +93,7 @@ public class ChordStateTest {
         assertEquals(ptrList.get(7), cs.getPredecessor());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetSuccessor4() {
         List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
@@ -101,9 +101,16 @@ public class ChordStateTest {
         ChordState cs = new ChordState(basePtr);
         
         cs.setSuccessor(ptrList.get(7), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(1)));
+        
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetSuccessor5() {
         List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
@@ -111,9 +118,16 @@ public class ChordStateTest {
         ChordState cs = new ChordState(basePtr);
         
         cs.setSuccessor(ptrList.get(7), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(7)));
+        
+        assertEquals(ptrList.get(7), cs.getFinger(0));
+        assertEquals(ptrList.get(7), cs.getFinger(1));
+        assertEquals(ptrList.get(7), cs.getFinger(2));
+        
+        assertEquals(ptrList.get(7), cs.getSuccessor());
+        assertEquals(ptrList.get(7), cs.getPredecessor());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetSuccessor6() {
         List<Pointer<InetSocketAddress>> ptrList = TestUtils.generatePointers(3, 0x00L);
         
@@ -121,6 +135,13 @@ public class ChordStateTest {
         ChordState cs = new ChordState(basePtr);
         
         cs.setSuccessor(ptrList.get(1), Lists.<Pointer<InetSocketAddress>>newArrayList(ptrList.get(5), ptrList.get(5)));
+        
+        assertEquals(ptrList.get(1), cs.getFinger(0));
+        assertEquals(ptrList.get(0), cs.getFinger(1));
+        assertEquals(ptrList.get(0), cs.getFinger(2));
+        
+        assertEquals(ptrList.get(1), cs.getSuccessor());
+        assertEquals(ptrList.get(1), cs.getPredecessor());
     }
     
     @Test

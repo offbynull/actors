@@ -1,8 +1,5 @@
 package com.offbynull.peernetic.overlay.chord.core;
 
-import com.offbynull.peernetic.overlay.chord.core.RouteResult;
-import com.offbynull.peernetic.overlay.chord.core.FingerTable;
-import com.offbynull.peernetic.overlay.chord.core.RouteResult.ResultType;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.net.InetSocketAddress;
@@ -145,20 +142,17 @@ public class FingerTableTest {
         Id id3 = TestUtils.generateId(2, 0x02L);
         Id id4 = TestUtils.generateId(2, 0x03L);
         
-        RouteResult res;
         
-        res = ft.route(id1);
-        assertEquals(basePtr.getId(), res.getPointer().getId());
-        assertEquals(ResultType.SELF, res.getResultType());
-        res = ft.route(id2);
-        assertEquals(basePtr.getId(), res.getPointer().getId());
-        assertEquals(ResultType.SELF, res.getResultType());
-        res = ft.route(id3);
-        assertEquals(basePtr.getId(), res.getPointer().getId());
-        assertEquals(ResultType.SELF, res.getResultType());
-        res = ft.route(id4);
-        assertEquals(basePtr.getId(), res.getPointer().getId());
-        assertEquals(ResultType.SELF, res.getResultType());
+        Pointer<InetSocketAddress> closestPred;
+        
+        closestPred = ft.findClosestPreceding(id1);
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(id2);
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(id3);
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(id4);
+        assertEquals(basePtr.getId(), closestPred.getId());
     }
 
     @Test
@@ -171,24 +165,16 @@ public class FingerTableTest {
         ft.put(secondNeighbour);
         Pointer<InetSocketAddress> thirdNeighbour = TestUtils.generatePointer(2, 0x03L);
         
-        RouteResult res;
+        Pointer<InetSocketAddress> closestPred;
         
-        res = ft.route(basePtr.getId());
-        assertEquals(basePtr.getId(), res.getPointer().getId());
-        assertEquals(ResultType.SELF, res.getResultType());
-        // 1st is less than successor (2nd), so it'll give back 2nd
-        res = ft.route(firstNeighbour.getId());
-        assertEquals(secondNeighbour.getId(), res.getPointer().getId());
-        assertEquals(ResultType.FOUND, res.getResultType());
-        // 2nd is successor, so it'll give back 2nd
-        res = ft.route(secondNeighbour.getId());
-        assertEquals(secondNeighbour.getId(), res.getPointer().getId());
-        assertEquals(ResultType.FOUND, res.getResultType());
-        // 3rd is past successor, so it'll give back the last finger table
-        // entry that's < 3rd (not <=, just <), which is 2nd 
-        res = ft.route(thirdNeighbour.getId());
-        assertEquals(secondNeighbour.getId(), res.getPointer().getId());
-        assertEquals(ResultType.CLOSEST_PREDECESSOR, res.getResultType());
+        closestPred = ft.findClosestPreceding(basePtr.getId());
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(firstNeighbour.getId());
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(secondNeighbour.getId());
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(thirdNeighbour.getId());
+        assertEquals(secondNeighbour.getId(), closestPred.getId());
     }
     
     @Test
@@ -203,28 +189,16 @@ public class FingerTableTest {
         Pointer<InetSocketAddress> thirdNeighbour = TestUtils.generatePointer(2, 0x03L);
         ft.put(thirdNeighbour);
         
-        RouteResult res;
+        Pointer<InetSocketAddress> closestPred;
         
-        res = ft.route(basePtr.getId());
-        assertEquals(basePtr.getId(), res.getPointer().getId());
-        assertEquals(ResultType.SELF, res.getResultType());
-        // 1st is successor (1st), so it'll give back 1st
-        res = ft.route(firstNeighbour.getId());
-        assertEquals(firstNeighbour.getId(), res.getPointer().getId());
-        assertEquals(ResultType.FOUND, res.getResultType());
-        // 2nd should be directly in the finger table (just after successor --
-        // value 10b), but since 2nd is past the successor, this will give us
-        // back the entry just before it, which should be the succesor (1st)
-        res = ft.route(secondNeighbour.getId());
-        assertEquals(firstNeighbour.getId(), res.getPointer().getId());
-        assertEquals(ResultType.CLOSEST_PREDECESSOR, res.getResultType());
-        // 3rd should be directly in the finger table (just after successor --
-        // actual id 11b, placed in finger table index 2 for desired id of 10b),
-        // but since it is past the successor, this will give us back the finger
-        // table entry just before it, which should be the succesor (1st)
-        res = ft.route(thirdNeighbour.getId());
-        assertEquals(firstNeighbour.getId(), res.getPointer().getId());
-        assertEquals(ResultType.CLOSEST_PREDECESSOR, res.getResultType());
+        closestPred = ft.findClosestPreceding(basePtr.getId());
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(firstNeighbour.getId());
+        assertEquals(basePtr.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(secondNeighbour.getId());
+        assertEquals(firstNeighbour.getId(), closestPred.getId());
+        closestPred = ft.findClosestPreceding(thirdNeighbour.getId());
+        assertEquals(firstNeighbour.getId(), closestPred.getId());
     }
     
     @Test

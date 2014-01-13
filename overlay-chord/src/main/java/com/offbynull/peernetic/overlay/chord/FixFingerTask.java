@@ -68,6 +68,12 @@ final class FixFingerTask<A> extends AbstractChainedTask {
                     }
                 } else {
                     state.putFinger(result);
+                    
+                    config.getListener().stateUpdated("Finger Updated " + idx,
+                            state.getBase(),
+                            state.getPredecessor(),
+                            state.dumpFingerTable(),
+                            state.dumpSuccessorTable());
                 }
                 
                 setFinished(false);

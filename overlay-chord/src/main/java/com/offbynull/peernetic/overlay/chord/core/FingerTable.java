@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.overlay.chord.core;
 
-import com.offbynull.peernetic.overlay.chord.core.RouteResult.ResultType;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.IdUtils;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
@@ -171,53 +170,6 @@ public final class FingerTable<A> {
     }
 
     /**
-     * Attempts to perform find_successor from the Chord research paper, but
-     * doesn't reach out to other nodes. That is...
-     * <ul>
-     * <li>If {@code id} is between base (exclusive) and finger[0]/successor
-     * (inclusive), it'll return with finger[0]/successor and a
-     * {@link ResultType#FOUND} result type.</li>
-     * <li>If {@code id} matches the base id, it'll return with base and a
-     * {@link ResultType#SELF} result type.</li>
-     * <li>Otherwise, it'll return the closest preceding finger it can find to
-     * {@code id} and a {@link ResultType#CLOSEST_PREDECESSOR} result type.</li>
-     * </ul>
-     *
-     * @param id id being searched for
-     * @return route results as defined above
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code id} has a different bit count
-     * count than base pointer's id
-     */
-    public RouteResult route(Id id) {
-        Validate.notNull(id);
-        IdUtils.ensureLimitsMatch(id, basePtr.getId());
-
-        InternalEntry firstEntry = table.get(0); // aka successor
-
-        Pointer<A> pointer;
-        ResultType resultType;
-
-        Id selfId = basePtr.getId();
-
-        if (id.isWithin(selfId, false, firstEntry.actualId, true)) {
-            // if id is between baseId (exclusive) and finger[0] (inclusive)
-            pointer = new Pointer<>(firstEntry.actualId, firstEntry.address);
-            resultType = ResultType.FOUND;
-        } else {
-            pointer = findClosestPreceding(id);
-
-            if (pointer.getId().equals(selfId)) {
-                resultType = ResultType.SELF;
-            } else {
-                resultType = ResultType.CLOSEST_PREDECESSOR;
-            }
-        }
-
-        return new RouteResult(resultType, pointer);
-    }
-
-    /**
      * An implementation of closest_preceding_node in the Chord research paper.
      *
      * @param id id being searched for
@@ -226,7 +178,7 @@ public final class FingerTable<A> {
      * @throws IllegalArgumentException if {@code id} has a different bit count
      * count than base pointer's id
      */
-    private Pointer<A> findClosestPreceding(Id id) {
+    public Pointer<A> findClosestPreceding(Id id) {
         Validate.notNull(id);
         IdUtils.ensureLimitsMatch(id, basePtr.getId());
 

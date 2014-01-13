@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.overlay.chord.core;
 
-import com.offbynull.peernetic.overlay.chord.core.FingerTable;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.io.UnsupportedEncodingException;

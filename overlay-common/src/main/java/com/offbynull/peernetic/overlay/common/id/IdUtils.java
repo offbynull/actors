@@ -17,6 +17,9 @@
 package com.offbynull.peernetic.overlay.common.id;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
@@ -204,5 +207,22 @@ public final class IdUtils {
         }
         
         return new Id(val.toByteArray(), generatePowerOfTwoLimit(exp));
+    }
+    
+    /**
+     * Takes a collection of {@link Id}s and dumps out the values as {@link BigInteger}s.
+     * @param ids ids to dump out
+     * @return values of elements within {@code ids}
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    public static List<BigInteger> toSimpleList(Collection<Id> ids) {
+        Validate.noNullElements(ids);
+        ArrayList<BigInteger> ret = new ArrayList<>(ids.size());
+        
+        for (Id id : ids) {
+            ret.add(id.getValueAsBigInteger());
+        }
+        
+        return ret;
     }
 }

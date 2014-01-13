@@ -82,7 +82,7 @@ final class InitializeTask<A> extends AbstractChainedTask {
                     // us (after a few moments) that it's our predecessor
                     try {
                         state.setPredecessor(predecessor);
-                    } catch (IllegalArgumentException iae) {
+                    } catch (IllegalArgumentException iae) { // NOPMD
                         // thrown if the new predecessor isn't between our current predecessor and us
                     }
                 }

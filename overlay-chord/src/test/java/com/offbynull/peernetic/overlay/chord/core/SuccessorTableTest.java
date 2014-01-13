@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.overlay.chord.core;
 
-import com.offbynull.peernetic.overlay.chord.core.SuccessorTable;
 import com.google.common.collect.Lists;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.net.InetSocketAddress;

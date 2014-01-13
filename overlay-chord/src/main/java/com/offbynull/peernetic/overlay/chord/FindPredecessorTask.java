@@ -19,7 +19,6 @@ package com.offbynull.peernetic.overlay.chord;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
-import com.offbynull.peernetic.overlay.chord.core.RouteResult;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import org.apache.commons.lang3.Validate;
@@ -64,11 +63,11 @@ final class FindPredecessorTask<A> extends AbstractChainedTask {
                     setFinished(false);
                     return null;
                 }
-                
-                RouteResult<A> routeResult = state.route(findId);
 
+                Pointer<A> closestPred = state.getClosestPreceding(findId);
+                
                 stage = Stage.FINDING_LAST_CLOSEST_PREDECESSOR;
-                return new GetClosestPrecedingFingerTask(findId, routeResult.getPointer(), config);
+                return new GetClosestPrecedingFingerTask(findId, closestPred, config);
             }
             case FINDING_LAST_CLOSEST_PREDECESSOR: {
                 lastClosestPredecessor = ((GetClosestPrecedingFingerTask) prev).getResult();
@@ -81,7 +80,7 @@ final class FindPredecessorTask<A> extends AbstractChainedTask {
                 Id lastClosestPredId = lastClosestPredecessor.getId();
                 Id successorId = successor.getId();
 
-                if (findId.isWithin(lastClosestPredId, false, successorId, true)) {
+                if (!findId.isWithin(lastClosestPredId, false, successorId, true)) {
                     stage = Stage.FINDING_LAST_CLOSEST_PREDECESSOR;
                     return new GetClosestPrecedingFingerTask(findId, lastClosestPredecessor, config);
                 }

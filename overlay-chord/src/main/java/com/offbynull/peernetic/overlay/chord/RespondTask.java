@@ -22,7 +22,6 @@ import com.offbynull.peernetic.actor.helpers.RequestManager;
 import com.offbynull.peernetic.actor.helpers.RequestManager.IncomingRequestHandler;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
-import com.offbynull.peernetic.overlay.chord.core.RouteResult;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import org.apache.commons.lang3.Validate;
 
@@ -78,8 +77,8 @@ final class RespondTask<A> implements Task {
 
         @Override
         public Object produceResponse(long timestamp, GetClosestPrecedingFinger request) {
-            RouteResult<A> result = state.route(request.getId());
-            return new GetClosestPrecedingFingerReply<>(result.getPointer());
+            Pointer<A> result = state.getClosestPreceding(request.getId());
+            return new GetClosestPrecedingFingerReply<>(result);
         }
     }
     private final class GetPredecessorRequestHandler implements IncomingRequestHandler<GetPredecessor> {

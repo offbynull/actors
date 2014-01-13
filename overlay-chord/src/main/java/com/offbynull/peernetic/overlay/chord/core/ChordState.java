@@ -409,22 +409,20 @@ public final class ChordState<A> {
     }
     
     /**
-     * Attempts to route to the given id, as specified in the original chord
-     * algorithm (find_successor / closest_preceding_node). This is a single
-     * step in the algorithm.
+     * AAn implementation of closest_preceding_node in the Chord research paper.
      * <p/>
      * This method just calls
-     * {@link FingerTable#route(com.offbynull.peernetic.chord.BitLimitedId) }.
-     * @param id id being searched for
-     * @return routing results
+     * {@link FingerTable#findClosestPreceding(com.offbynull.peernetic.overlay.common.id.Id) }.
+     * @param id id to find the closest predecessor for
+     * @return closest predecessor to {@code id}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code id}'s bit count doesn't match
      * the base pointer's bit count
      */
-    public RouteResult route(Id id) {
+    public Pointer<A> getClosestPreceding(Id id) {
         Validate.notNull(id);
         
-        return fingerTable.route(id);
+        return fingerTable.findClosestPreceding(id);
     }
     
     /**

@@ -16,35 +16,29 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.ChordOverlayListener.FailureMode;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Collections;
-import java.util.Random;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 final class StabilizeTask<A> extends AbstractChainedTask {
-    private Random random;
-    private ChordState<A> chordState;
-    private EndpointFinder<A> finder;
-    private ChordOverlayListener<A> listener;
+    private ChordState<A> state;
+    private ChordConfig<A> config;
+    
+    private Pointer<A> revisedSuccessor;
 
     private Stage stage = Stage.INITIAL;
 
-    public StabilizeTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
-        Validate.notNull(random);
-        Validate.notNull(chordState);
-        Validate.notNull(finder);
-        Validate.notNull(listener);
+    public StabilizeTask(ChordState<A> state, ChordConfig<A> config) {
+        Validate.notNull(state);
+        Validate.notNull(config);
         
-        this.random = random;
-        this.chordState = chordState;
-        this.finder = finder;
-        this.listener = listener;
+        this.state = state;
+        this.config = config;
     }
 
     @Override
@@ -56,36 +50,63 @@ final class StabilizeTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
-                Pointer<A> successor = chordState.getSuccessor();
+                Pointer<A> successor = state.getSuccessor();
+                
+                if (successor.equals(state.getBase())) {
+                    setFinished(false);
+                    return null;
+                }
+                
                 stage = Stage.CHECK_SUCCESSOR;
-                return new GetPredecessorTask<>(random, successor, finder);
+                return new GetPredecessorTask<>(successor, config);
             }
             case CHECK_SUCCESSOR: {
                 if (prev.getState() == TaskState.FAILED) {
                     // successor did not answer us, shift to next successor in the list and try again
                     try {
-                        chordState.shiftSuccessor();
+                        state.shiftSuccessor();
                     } catch (IllegalStateException ise) {
                         // no more successors available... this node has failed.
-                        listener.failed(FailureMode.SUCCESSOR_TABLE_DEPLETED);
+                        config.getListener().failed(FailureMode.SUCCESSOR_TABLE_DEPLETED);
                         throw ise;
                     }
                     
-                    Pointer<A> successor = chordState.getSuccessor();
-                    stage = Stage.CHECK_SUCCESSOR;
-                    return new GetPredecessorTask<>(random, successor, finder);
+                    Pointer<A> successor = state.getSuccessor();
+                    // stage = Stage.CHECK_SUCCESSOR; // already in this stage, no point in switching
+                    return new GetPredecessorTask<>(successor, config);
                 }
                 
-                Pointer<A> result = ((GetPredecessorTask) prev).getResult();
+                Pointer<A> result = ((GetPredecessorTask<A>) prev).getResult();
                 
-                Id selfId = chordState.getBaseId();
-                Id currSuccessorId = chordState.getSuccessor().getId();
-                if (result.getId().isWithin(selfId, false, currSuccessorId, false)) {
-                    chordState.setSuccessor(result, Collections.<Pointer<A>>emptyList());
+                Id selfId = state.getBaseId();
+                Id currSuccessorId = state.getSuccessor().getId();
+                if (result != null && result.getId().isWithin(selfId, false, currSuccessorId, true)) {
+                    // result can be null if node's predecessor wasn't set yet
+                    
+                    // if what was given back is the same or closer than our current succesosr, ask for a dump out its successor table
+                    // before setting it and notifying it
+                    revisedSuccessor = result;
+                    stage = Stage.UPDATE_SUCCESSOR;
+                    return new DumpSuccessorsTask<>(revisedSuccessor, config);
+                } else {
+                    // if what was given back is farther away than our current successor, keep what we have and ask it for a dump of its
+                    // successor table before setting it and notifying it
+                    revisedSuccessor = state.getSuccessor();
+                    stage = Stage.UPDATE_SUCCESSOR;
+                    return new DumpSuccessorsTask<>(revisedSuccessor, config);
                 }
+            }
+            case UPDATE_SUCCESSOR: {
+                if (prev.getState() == TaskState.FAILED) {
+                    setFinished(true);
+                    return null;
+                }
+                
+                List<Pointer<A>> result = ((DumpSuccessorsTask<A>) prev).getResult();
+                state.setSuccessor(revisedSuccessor, result);
                 
                 stage = Stage.NOTIFY;
-                return new NotifyTask<>(random, chordState.getBase(), chordState.getSuccessor(), finder);
+                return new NotifyTask<>(state, config);
             }
             case NOTIFY: {
                 setFinished(prev.getState() == TaskState.FAILED);
@@ -99,6 +120,7 @@ final class StabilizeTask<A> extends AbstractChainedTask {
     private enum Stage {
         INITIAL,
         CHECK_SUCCESSOR,
+        UPDATE_SUCCESSOR,
         NOTIFY,
     }
 }

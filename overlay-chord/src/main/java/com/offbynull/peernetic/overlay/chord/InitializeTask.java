@@ -16,41 +16,26 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Id;
-import com.offbynull.peernetic.overlay.common.id.IdUtils;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class InitializeTask<A> extends AbstractChainedTask {
     private int nextFingerIdx;
     
-    private Random random;
-    private Pointer<A> bootstrap;
-    private Stage stage;
+    private ChordConfig<A> config;
+    private ChordState<A> state;
     
-    private EndpointFinder<A> finder;
+    private Stage stage;
 
-    private ChordState<A> chordState;
+    public InitializeTask(ChordConfig<A> config) {
+        Validate.notNull(config);
 
-    public InitializeTask(Random random, Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder) {
-        Validate.notNull(random);
-        Validate.notNull(self);
-        Validate.notNull(finder);
-
-        IdUtils.ensureLimitPowerOfTwo(self.getId());
-        if (bootstrap != null) {
-            Validate.isTrue(bootstrap.getId().getLimitAsBigInteger().equals(self.getId().getLimitAsBigInteger()));
-        }
-        
-        this.random = random;
-        this.bootstrap = bootstrap;
-        this.chordState = new ChordState<>(self);
-        this.finder = finder;
+        this.state = new ChordState<>(config.getBase());
+        this.config = config;
         
         stage = Stage.INITIAL;
     }
@@ -64,28 +49,30 @@ final class InitializeTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
+                Pointer<A> bootstrap = config.getBootstrap();
+                
                 if (bootstrap == null) {
                     setFinished(false);
                     return null;
                 }
-                chordState.putFinger(bootstrap);
-                Id fingerId = chordState.getExpectedFingerId(0); // 0 = nextFingerIdx
+                state.putFinger(bootstrap);
+                Id fingerId = state.getExpectedFingerId(0); // 0 = nextFingerIdx
 
                 stage = Stage.POPULATE_FINGERS;
-                return new FindSuccessorTask<>(random, fingerId, chordState, finder); // find successor to self
+                return new FindSuccessorTask<>(fingerId, state, config); // find successor to self
             }
             case POPULATE_FINGERS: {
                 Pointer<A> successor = ((FindSuccessorTask) prev).getResult();
-                chordState.putFinger(successor);
+                state.putFinger(successor);
                 
                 nextFingerIdx++;
-                if (chordState.getBitCount() == nextFingerIdx) {
+                if (state.getBitCount() == nextFingerIdx) {
                     stage = Stage.GET_PREDECESSOR;
-                    return new GetPredecessorTask(random, chordState.getSuccessor(), finder);
+                    return new GetPredecessorTask(state.getSuccessor(), config);
                 }
                 
-                Id fingerId = chordState.getExpectedFingerId(nextFingerIdx);
-                return new FindSuccessorTask<>(random, fingerId, chordState, finder);
+                Id fingerId = state.getExpectedFingerId(nextFingerIdx);
+                return new FindSuccessorTask<>(fingerId, state, config);
             }
             case GET_PREDECESSOR: {
                 Pointer<A> predecessor = ((GetPredecessorTask) prev).getResult();
@@ -94,14 +81,14 @@ final class InitializeTask<A> extends AbstractChainedTask {
                     // chord network... after this step we notify the node we've joined that we're it's predecessor, and it should notify
                     // us (after a few moments) that it's our predecessor
                     try {
-                        chordState.setPredecessor(predecessor);
+                        state.setPredecessor(predecessor);
                     } catch (IllegalArgumentException iae) {
                         // thrown if the new predecessor isn't between our current predecessor and us
                     }
                 }
                 
                 stage = Stage.NOTIFY_SUCCESSOR;
-                return new NotifyTask(random, chordState.getBase(), chordState.getSuccessor(), finder); // successor.pred = me
+                return new NotifyTask(state, config); // successor.pred = me
             }
             case NOTIFY_SUCCESSOR: {
                 setFinished(false);
@@ -113,7 +100,7 @@ final class InitializeTask<A> extends AbstractChainedTask {
     }
 
     public ChordState<A> getResult() {
-        return chordState;
+        return state;
     }
 
     private enum Stage {

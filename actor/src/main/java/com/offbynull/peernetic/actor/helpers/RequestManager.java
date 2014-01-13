@@ -72,7 +72,7 @@ public final class RequestManager {
      * @param timeout amount of time to wait before retrying or failing
      * @param maxSendAttempts maximum send attempts before failing
      * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code timeout < 0} or {@code maxSendAttempts < 1}
+     * @throws IllegalArgumentException if any numeric argument is non-positive ({@code <= 0})
      */
     public <T> void newRequest(long timestamp, T content, Endpoint destination, OutgoingRequestHandler<T> handler, long timeout,
             int maxSendAttempts) {
@@ -80,7 +80,7 @@ public final class RequestManager {
         Validate.notNull(destination);
         Validate.notNull(handler);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, maxSendAttempts);
-        Validate.inclusiveBetween(0L, Long.MAX_VALUE, timeout);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
 
         RequestObject request = new RequestObject(random, timestamp, content);
 

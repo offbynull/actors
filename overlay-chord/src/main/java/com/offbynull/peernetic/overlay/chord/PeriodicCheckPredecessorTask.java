@@ -5,12 +5,12 @@ import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import org.apache.commons.lang3.Validate;
 
-final class PeriodicStabilizeTask<A> extends AbstractPeriodicTask {
+public final class PeriodicCheckPredecessorTask<A> extends AbstractPeriodicTask {
 
     private ChordState<A> state;
     private ChordConfig<A> config;
 
-    public PeriodicStabilizeTask(ChordState<A> state, ChordConfig<A> config) {
+    public PeriodicCheckPredecessorTask(ChordState<A> state, ChordConfig<A> config) {
         super(config.getStabilizePeriod());
         Validate.notNull(state);
         Validate.notNull(config);
@@ -21,6 +21,7 @@ final class PeriodicStabilizeTask<A> extends AbstractPeriodicTask {
 
     @Override
     protected Task startTask() {
-        return new StabilizeTask<>(state, config);
+        return new CheckPredecessorTask<>(state, config);
     }
+    
 }

@@ -16,14 +16,16 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractRequestTask;
-import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
+import com.offbynull.peernetic.overlay.chord.core.ChordState;
 
 final class NotifyTask<A> extends AbstractRequestTask {
-    public NotifyTask(Random random, Pointer<A> self, Pointer<A> successor, EndpointFinder<A> finder) {
-        super(random, new Notify<>(self), finder.findEndpoint(successor.getAddress()));
+    public NotifyTask(ChordState<A> state, ChordConfig<A> config) {
+        super(config.getRandom(),
+                new Notify<>(state.getBase()),
+                config.getFinder().findEndpoint(state.getSuccessor().getAddress()),
+                config.getRpcTimeoutDuration(),
+                config.getRpcMaxSendAttempts());
     }
 
     @Override

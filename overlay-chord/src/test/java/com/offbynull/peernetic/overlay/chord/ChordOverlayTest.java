@@ -66,36 +66,54 @@ public class ChordOverlayTest {
         
         
         
-        Thread.sleep(15000L);
-        
-        
-        
+        Thread.sleep(6000L);
+        System.out.println("REMOVING 1");
         overlay1Runner.stop();
+        
+        Thread.sleep(6000L);
+        System.out.println("REMOVING 2");
         overlay2Runner.stop();
-        overlay3Runner.stop();
+
+//        
+//        Thread.sleep(1500000L);
+//        System.out.println("REMOVING 2");
+//        overlay2Runner.stop();
+//        
         
-        
-        Thread.sleep(100000L);
+        Thread.sleep(1000000L);
     }
     
-    private ActorRunner generateNode(int id, int limit, Integer bootstrap, ChordOverlayListener<Integer> listener, ActorRunner hubRunner) {
+    private ActorRunner generateNode(int id, int limit, Integer bootstrap, ChordOverlayListener<Integer> listener, ActorRunner hubRunner)
+            throws Throwable {
         TestTransport<Integer> transport = new TestTransport<>(id, hubRunner.getEndpoint());
         ActorRunner transportRunner = ActorRunner.createAndStart(transport);
+        
+        
         NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(transportRunner.getEndpoint());
+        ChordConfig<Integer> config = new ChordConfig<>(id, new BigInteger("" + limit).toByteArray(), finder);
+        
+        config.setListener(listener);
+        config.setRpcMaxSendAttempts(3);
+        config.setRpcTimeoutDuration(200L);
+        config.setStabilizePeriod(500L);
+        config.setFixFingerPeriod(500L);
+        
         
         Id selfId = new Id(new BigInteger("" + id).toByteArray(), new BigInteger("" + limit).toByteArray());
         Pointer<Integer> selfPtr = new Pointer<>(selfId, id);
+        config.setBase(selfPtr);
         
-        Pointer<Integer> bootstrapPtr = null;
         if (bootstrap != null) {
             Id bootstrapId = new Id(new BigInteger("" + bootstrap).toByteArray(), new BigInteger("" + limit).toByteArray());
-            bootstrapPtr = new Pointer<>(bootstrapId, bootstrap);
+            Pointer<Integer> bootstrapPtr = new Pointer<>(bootstrapId, bootstrap);
+            config.setBootstrap(bootstrapPtr);
         }
         
-        ChordOverlay<Integer> overlay = new ChordOverlay<>(selfPtr, bootstrapPtr, finder, listener);
+        ChordOverlay<Integer> overlay = new ChordOverlay<>(config);
         ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
         
         transport.setDestinationEndpoint(overlayRunner.getEndpoint());
+        
         
         return overlayRunner;
     }

@@ -18,37 +18,31 @@ package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.chord.core.RouteResult;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
-final class FindPredecessorTask<A> extends AbstractChainedTask {
-    private Stage stage = Stage.INITIAL;
-    
-    private Random random;
+final class FindPredecessorTask<A> extends AbstractChainedTask {    
     private Id findId;
-    private ChordState<A> chordState;
+    private ChordState<A> state;
+    private ChordConfig<A> config;
     
-    private EndpointFinder<A> finder;
+    private Stage stage = Stage.INITIAL;
     
     private Pointer<A> lastClosestPredecessor;
     
     private Pointer<A> result;
 
-    public FindPredecessorTask(Random random, Id findId, ChordState<A> chordState, EndpointFinder<A> finder) {
-        Validate.notNull(random);
+    public FindPredecessorTask(Id findId, ChordState<A> state, ChordConfig<A> config) {
         Validate.notNull(findId);
-        Validate.notNull(chordState);
-        Validate.notNull(finder);
-
-        this.random = random;
+        Validate.notNull(state);
+        Validate.notNull(config);
+        
         this.findId = findId;
-        this.chordState = chordState;
-        this.finder = finder;
+        this.state = state;
+        this.config = config;
     }
     
     public Pointer<A> getResult() {
@@ -65,22 +59,21 @@ final class FindPredecessorTask<A> extends AbstractChainedTask {
         
         switch (stage) {
             case INITIAL: {
-                result = chordState.getBase();
-                RouteResult<A> routeResult = chordState.route(findId);
-
-                if (routeResult.getResultType() == RouteResult.ResultType.SELF) {
-                    result = routeResult.getPointer();
+                if (findId.isWithin(state.getBaseId(), false, state.getSuccessor().getId(), true)) {
+                    result = state.getBase();
                     setFinished(false);
                     return null;
                 }
+                
+                RouteResult<A> routeResult = state.route(findId);
 
                 stage = Stage.FINDING_LAST_CLOSEST_PREDECESSOR;
-                return new GetClosestPrecedingFingerTask(random, findId, routeResult.getPointer(), finder);
+                return new GetClosestPrecedingFingerTask(findId, routeResult.getPointer(), config);
             }
             case FINDING_LAST_CLOSEST_PREDECESSOR: {
                 lastClosestPredecessor = ((GetClosestPrecedingFingerTask) prev).getResult();
                 stage = Stage.FINDING_LAST_CLOSEST_PREDECESSORS_SUCCESSOR;
-                return new GetSuccessorTask(random, lastClosestPredecessor, finder);
+                return new GetSuccessorTask(lastClosestPredecessor, config);
             }
             case FINDING_LAST_CLOSEST_PREDECESSORS_SUCCESSOR: {
                 Pointer<A> successor = ((GetSuccessorTask<A>) prev).getResult();
@@ -90,7 +83,7 @@ final class FindPredecessorTask<A> extends AbstractChainedTask {
 
                 if (findId.isWithin(lastClosestPredId, false, successorId, true)) {
                     stage = Stage.FINDING_LAST_CLOSEST_PREDECESSOR;
-                    return new GetClosestPrecedingFingerTask(random, findId, lastClosestPredecessor, finder);
+                    return new GetClosestPrecedingFingerTask(findId, lastClosestPredecessor, config);
                 }
 
                 setFinished(false);

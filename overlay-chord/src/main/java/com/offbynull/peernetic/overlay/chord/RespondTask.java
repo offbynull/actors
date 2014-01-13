@@ -23,44 +23,41 @@ import com.offbynull.peernetic.actor.helpers.RequestManager.IncomingRequestHandl
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.chord.core.RouteResult;
-import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class RespondTask<A> implements Task {
 
-    private ChordState<A> chordState;
+    private ChordState<A> state;
+    private ChordConfig<A> config;
     
     private RequestManager requestManager;
-    private TaskState state = TaskState.START;
+    private TaskState taskState = TaskState.START;
     
-    private ChordOverlayListener<A> listener;
 
-    public RespondTask(Random random, ChordState<A> chordState, ChordOverlayListener<A> listener) {
-        Validate.notNull(random);
-        Validate.notNull(chordState);
-        Validate.notNull(listener);
-        this.chordState = chordState;
-        this.requestManager = new RequestManager(random);
-        this.listener = listener;
+    public RespondTask(ChordState<A> state, ChordConfig<A> config) {
+        Validate.notNull(state);
+        Validate.notNull(config);
+        this.state = state;
+        this.requestManager = new RequestManager(config.getRandom());
+        this.config = config;
     }
 
     @Override
     public TaskState getState() {
-        return state;
+        return taskState;
     }
 
     @Override
     public long process(long timestamp, Incoming incoming, PushQueue pushQueue) {
-        switch (state) {
+        switch (taskState) {
             case START: {
                 requestManager.mapRequestHandler(GetClosestPrecedingFinger.class, new GetClosestPrecedingFingerRequestHandler());
                 requestManager.mapRequestHandler(GetPredecessor.class, new GetPredecessorRequestHandler());
                 requestManager.mapRequestHandler(GetSuccessor.class, new GetSuccessorRequestHandler());
                 requestManager.mapRequestHandler(DumpSuccessors.class, new DumpSuccessorsRequestHandler());
                 requestManager.mapRequestHandler(Notify.class, new NotifyRequestHandler());
-                state = TaskState.PROCESSING;
+                taskState = TaskState.PROCESSING;
                 break;
             }
             case PROCESSING: {
@@ -81,7 +78,7 @@ final class RespondTask<A> implements Task {
 
         @Override
         public Object produceResponse(long timestamp, GetClosestPrecedingFinger request) {
-            RouteResult<A> result = chordState.route(request.getId());
+            RouteResult<A> result = state.route(request.getId());
             return new GetClosestPrecedingFingerReply<>(result.getPointer());
         }
     }
@@ -89,21 +86,21 @@ final class RespondTask<A> implements Task {
 
         @Override
         public Object produceResponse(long timestamp, GetPredecessor request) {
-            return new GetPredecessorReply<>(chordState.getPredecessor());
+            return new GetPredecessorReply<>(state.getPredecessor());
         }
     }
     private final class GetSuccessorRequestHandler implements IncomingRequestHandler<GetSuccessor> {
 
         @Override
         public Object produceResponse(long timestamp, GetSuccessor request) {
-            return new GetSuccessorReply<>(chordState.getSuccessor());
+            return new GetSuccessorReply<>(state.getSuccessor());
         }
     }
     private final class DumpSuccessorsRequestHandler implements IncomingRequestHandler<DumpSuccessors> {
 
         @Override
         public Object produceResponse(long timestamp, DumpSuccessors request) {
-            return new DumpSuccessorsReply<>(chordState.dumpSuccessorTable());
+            return new DumpSuccessorsReply<>(state.dumpSuccessorTable());
         }
     }
     private final class NotifyRequestHandler implements IncomingRequestHandler<Notify> {
@@ -112,16 +109,16 @@ final class RespondTask<A> implements Task {
         public Object produceResponse(long timestamp, Notify request) {
             Pointer<A> newPred = request.getPredecessor();
             try {
-                chordState.setPredecessor(newPred);
+                state.setPredecessor(newPred);
             } catch (IllegalArgumentException iae) { // NOPMD
                 // failed to meet conditions for setting predecessor
             }
             
-            listener.stateUpdated("Notify Handled",
-                    chordState.getBase(),
-                    chordState.getPredecessor(),
-                    chordState.dumpFingerTable(),
-                    chordState.dumpSuccessorTable());
+            config.getListener().stateUpdated("Notify Handled",
+                    state.getBase(),
+                    state.getPredecessor(),
+                    state.dumpFingerTable(),
+                    state.dumpSuccessorTable());
             
             return new NotifyReply();
         }

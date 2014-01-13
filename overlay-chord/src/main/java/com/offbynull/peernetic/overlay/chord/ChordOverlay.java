@@ -19,13 +19,9 @@ package com.offbynull.peernetic.overlay.chord;
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorStartSettings;
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PullQueue;
 import com.offbynull.peernetic.actor.PushQueue;
-import com.offbynull.peernetic.overlay.common.id.IdUtils;
-import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.security.SecureRandom;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
@@ -35,44 +31,24 @@ import org.apache.commons.lang3.Validate;
  * @param <A> address type
  */
 public final class ChordOverlay<A> extends Actor {
-    private Pointer<A> self;
-    private Pointer<A> bootstrap;
-    private EndpointFinder<A> finder;
-    private SecureRandom secureRandom;
-    
-    private ChordOverlayListener<A> listener;
+    private ChordConfig<A> config;
     private ChordTask<A> chordTask;
 
     /**
      * Construct a {@link ChordOverlay} object.
-     * @param self id and address of this node
-     * @param bootstrap id and address of the bootstrap node (can be {@code null})
-     * @param finder finder
-     * @param listener listener
-     * @throws NullPointerException if any argument other than {@code bootstrap} is {@code null}
-     * @throws IllegalArgumentException if {@code self} and {@code bootstrap} don't share the same limit or have limits that aren't
-     * {@code 2^n-1}
+     * @param config chord configuration
+     * @throws NullPointerException if any argument is {@code null}
      */
-    public ChordOverlay(Pointer<A> self, Pointer<A> bootstrap, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
-        Validate.notNull(self);
-        Validate.notNull(finder);
-        Validate.notNull(listener);
-        if (bootstrap != null) {
-            Validate.isTrue(self.getId().getLimitAsBigInteger().equals(bootstrap.getId().getLimitAsBigInteger()));
-        }
-        IdUtils.ensureLimitPowerOfTwo(self);
+    public ChordOverlay(ChordConfig<A> config) {
+        Validate.notNull(config);
+        config.lock();
         
-        this.self = self;
-        this.bootstrap = bootstrap;
-        this.finder = finder;
-        this.listener = listener;
+        this.config = config;
     }
     
     @Override
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {        
-        secureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN");
-        chordTask = new ChordTask<>(self, bootstrap, secureRandom, finder, listener);
-
+        chordTask = new ChordTask<>(config);
         
         return new ActorStartSettings(timestamp); // hit immediately
     }

@@ -16,33 +16,25 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractMultiTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
 final class MaintainTask<A> extends AbstractMultiTask {
 
-    private ChordState<A> chordState;
-    private Random random;
-    private EndpointFinder<A> finder;
-    private ChordOverlayListener<A> listener;
+    private ChordState<A> state;
+    private ChordConfig<A> config;
 
-    public MaintainTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, ChordOverlayListener<A> listener) {
-        Validate.notNull(random);
-        Validate.notNull(chordState);
-        Validate.notNull(finder);
-        Validate.notNull(listener);
+    public MaintainTask(ChordState<A> state, ChordConfig<A> config) {
+        Validate.notNull(state);
+        Validate.notNull(config);
         
-        this.random = random;
-        this.chordState = chordState;
-        this.finder = finder;
-        this.listener = listener;
+        this.state = state;
+        this.config = config;
     }
     
     @Override
@@ -56,10 +48,10 @@ final class MaintainTask<A> extends AbstractMultiTask {
      
         Set<Task> newTasks = new HashSet<>();
         if (finished.isEmpty()) { // initial call
-            newTasks.add(new RespondTask(random, chordState, listener));
-            newTasks.add(new PeriodicStabilizeTask<>(3000L, random, chordState, finder, listener));
-            newTasks.add(new PeriodicFixFingerTask<>(3000L, random, chordState, finder));
-            newTasks.add(new PeriodicUpdateSuccessorsTask<>(3000L, random, chordState, finder, listener));
+            newTasks.add(new RespondTask<>(state, config));
+            newTasks.add(new PeriodicStabilizeTask<>(state, config));
+            newTasks.add(new PeriodicFixFingerTask<>(state, config));
+            newTasks.add(new PeriodicCheckPredecessorTask<>(state, config));
         }
         
         return newTasks;

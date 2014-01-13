@@ -17,17 +17,19 @@
 package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.helpers.AbstractRequestTask;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 
 final class GetClosestPrecedingFingerTask<A> extends AbstractRequestTask {
     
     private Pointer<A> closestPredecessor;
     
-    public GetClosestPrecedingFingerTask(Random random , Id id, Pointer<A> pointer, EndpointFinder<A> finder) {
-        super(random, new GetClosestPrecedingFinger(id), finder.findEndpoint(pointer.getAddress()));
+    public GetClosestPrecedingFingerTask(Id id, Pointer<A> pointer, ChordConfig<A> config) {
+        super(config.getRandom(),
+                new GetClosestPrecedingFinger(id),
+                config.getFinder().findEndpoint(pointer.getAddress()),
+                config.getRpcTimeoutDuration(),
+                config.getRpcMaxSendAttempts());
     }
 
     @Override

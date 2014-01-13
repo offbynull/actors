@@ -16,35 +16,30 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class FindSuccessorTask<A> extends AbstractChainedTask {
-    private Random random;
     private Id findId;
-    private ChordState<A> chordState;
-    private Stage stage;
+    private ChordState<A> state;
+    private ChordConfig<A> config;
     
-    private EndpointFinder<A> finder;
+    private Stage stage;
     
     private Pointer<A> result;
 
-    public FindSuccessorTask(Random random, Id findId, ChordState<A> chordState, EndpointFinder<A> finder) {
-        Validate.notNull(random);
+    public FindSuccessorTask(Id findId, ChordState<A> state, ChordConfig<A> config) {
         Validate.notNull(findId);
-        Validate.notNull(chordState);
-        Validate.notNull(finder);
+        Validate.notNull(state);
+        Validate.notNull(config);
 
-        this.random = random;
         this.findId = findId;
-        this.chordState = chordState;
-        this.finder = finder;
+        this.state = state;
+        this.config = config;
         
         stage = Stage.INITIAL;
     }
@@ -59,12 +54,19 @@ final class FindSuccessorTask<A> extends AbstractChainedTask {
         switch (stage) {
             case INITIAL: {
                 stage = Stage.FIND_PREDECESSOR;
-                return new FindPredecessorTask(random, findId, chordState, finder);
+                return new FindPredecessorTask(findId, state, config);
             }
             case FIND_PREDECESSOR: {
                 Pointer<A> pointer = ((FindPredecessorTask<A>) prev).getResult();
-                stage = Stage.FIND_SUCCESSOR;
-                return new GetSuccessorTask(random, pointer, finder);
+                
+                if (pointer.equals(state.getBase())) {
+                    result = state.getSuccessor();
+                    setFinished(false);
+                    return null;
+                } else {
+                    stage = Stage.FIND_SUCCESSOR;
+                    return new GetSuccessorTask(pointer, config);
+                }
             }
             case FIND_SUCCESSOR: {
                 result = ((GetSuccessorTask<A>) prev).getResult();

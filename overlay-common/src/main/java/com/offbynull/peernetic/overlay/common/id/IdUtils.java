@@ -87,12 +87,24 @@ public final class IdUtils {
      */
     public static void ensureLimitPowerOfTwo(Id id) {
         Validate.notNull(id);
+        ensureLimitPowerOfTwo(id.getLimitAsByteArray());
+    }
+
+    /**
+     * Validates that a limit intended for an {@link Id} matches {@code 2^n-1}. In otherwords, ensures that all bits making up the limit are
+     * 1.
+     * @param limit limit
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if the limit  doesn't match {@code 2^n-1}
+     */
+    public static void ensureLimitPowerOfTwo(byte[] limit) {
+        Validate.notNull(limit);
         
-        BigInteger limit = id.getLimitAsBigInteger();
-        int bitLength = limit.bitLength();
+        BigInteger limitBigInt = new BigInteger(limit);
+        int bitLength = limitBigInt.bitLength();
         
         for (int i = 0; i < bitLength; i++) {
-            if (!limit.testBit(i)) {
+            if (!limitBigInt.testBit(i)) {
                 throw new IllegalArgumentException();
             }
         }
@@ -108,6 +120,18 @@ public final class IdUtils {
         Validate.notNull(id);
         
         return id.getLimitAsBigInteger().bitLength();
+    }
+
+    /**
+     * Gets the bit length of a limit intended for an {@link Id}.
+     * @param limit limit
+     * @return bit length of {@code id}'s limit
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static int getLimitBitLength(byte[] limit) {
+        Validate.notNull(limit);
+        
+        return new BigInteger(limit).bitLength();
     }
     
     /**

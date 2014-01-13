@@ -19,60 +19,57 @@ package com.offbynull.peernetic.overlay.chord;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
+import com.offbynull.peernetic.overlay.common.id.Pointer;
 import org.apache.commons.lang3.Validate;
 
-final class ChordTask<A> extends AbstractChainedTask {
-
-    private ChordConfig<A> config;
+final class CheckPredecessorTask<A> extends AbstractChainedTask {
     private ChordState<A> state;
+    private ChordConfig<A> config;
 
     private Stage stage = Stage.INITIAL;
 
-    public ChordTask(ChordConfig<A> config) {
+    public CheckPredecessorTask(ChordState<A> state, ChordConfig<A> config) {
+        Validate.notNull(state);
         Validate.notNull(config);
+        
+        this.state = state;
         this.config = config;
     }
 
     @Override
     protected Task switchTask(long timestamp, Task prev) {
-        if (prev != null && prev.getState() == TaskState.FAILED) {
-            setFinished(true);
-            return null;
-        }
+//        if (prev != null && prev.getState() == TaskState.FAILED) {
+//            setFinished(true);
+//            return null;
+//        }
         
         switch (stage) {
             case INITIAL: {
-                InitializeTask<A> initializeTask = new InitializeTask<>(config);
-                stage = Stage.INITIALIZE;
-                return initializeTask;
+                Pointer<A> predecessor = state.getPredecessor();
+                
+                if (predecessor == null) {
+                    setFinished(false);
+                    return null;
+                }
+                
+                stage = Stage.CHECK_PREDECESSOR;
+                return new GetSuccessorTask<>(predecessor, config);
             }
-            case INITIALIZE: {
-                InitializeTask<A> initializeTask = (InitializeTask<A>) prev;
-                state = initializeTask.getResult();
+            case CHECK_PREDECESSOR: {
+                if (prev.getState() == TaskState.FAILED) {
+                    state.removePredecessor();
+                }
                 
-                config.getListener().stateUpdated("Initialized",
-                        state.getBase(),
-                        state.getPredecessor(),
-                        state.dumpFingerTable(),
-                        state.dumpSuccessorTable());
-                
-                MaintainTask<A> maintainTask = new MaintainTask<>(state, config);
-                stage = Stage.MAINTAIN;
-                
-                return maintainTask;
+                setFinished(false);
+                return null;
             }
-//            case MAINTAIN: {
-//                break;
-//            }
             default:
                 throw new IllegalStateException();
         }
     }
-
+    
     private enum Stage {
-
         INITIAL,
-        INITIALIZE,
-        MAINTAIN
+        CHECK_PREDECESSOR,
     }
 }

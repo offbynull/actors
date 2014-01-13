@@ -33,6 +33,9 @@ public abstract class AbstractRequestTask implements Task {
     private Endpoint destination;
     private TaskState taskState;
     
+    private long timeout;
+    private int maxAttempts;
+    
     private RequestManager requestManager;
     
     private InternalOutgoingRequestHandler internalOutgoingRequestHandler;
@@ -42,15 +45,23 @@ public abstract class AbstractRequestTask implements Task {
      * @param random random for internal request manager
      * @param request request to push out
      * @param destination destination to push request to
+     * @param timeout timeout per attempt
+     * @param maxAttempts maximum number of attempts
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any numeric argument is non-positive ({@code <= 0})
      */
-    public AbstractRequestTask(Random random, Object request, Endpoint destination) {
+    public AbstractRequestTask(Random random, Object request, Endpoint destination, long timeout, int maxAttempts) {
         Validate.notNull(random);
         Validate.notNull(request);
         Validate.notNull(destination);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, timeout);
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, maxAttempts);
 
         this.request = request;
         this.destination = destination;
         this.requestManager = new RequestManager(random);
+        this.timeout = timeout;
+        this.maxAttempts = maxAttempts;
         
         taskState = TaskState.START;
     }
@@ -83,7 +94,7 @@ public abstract class AbstractRequestTask implements Task {
     private void start(long timestamp) {
         internalOutgoingRequestHandler = new InternalOutgoingRequestHandler();
 
-        requestManager.newRequest(timestamp, request, destination, internalOutgoingRequestHandler, 10000L, 3);
+        requestManager.newRequest(timestamp, request, destination, internalOutgoingRequestHandler, timeout, maxAttempts);
         taskState = TaskState.PROCESSING;
     }
     

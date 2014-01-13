@@ -17,16 +17,18 @@
 package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.helpers.AbstractRequestTask;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 
 final class GetSuccessorTask<A> extends AbstractRequestTask {
     
     private Pointer<A> successor;
     
-    public GetSuccessorTask(Random random, Pointer<A> pointer, EndpointFinder<A> finder) {
-        super(random, new GetSuccessor(), finder.findEndpoint(pointer.getAddress()));
+    public GetSuccessorTask(Pointer<A> pointer, ChordConfig<A> config) {
+        super(config.getRandom(),
+                new GetSuccessor(),
+                config.getFinder().findEndpoint(pointer.getAddress()),
+                config.getRpcTimeoutDuration(),
+                config.getRpcMaxSendAttempts());
     }
 
     @Override

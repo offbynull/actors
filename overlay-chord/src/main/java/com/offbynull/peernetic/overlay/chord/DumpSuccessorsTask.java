@@ -17,17 +17,19 @@
 package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.helpers.AbstractRequestTask;
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.util.List;
-import java.util.Random;
 
 final class DumpSuccessorsTask<A> extends AbstractRequestTask {
     
     private List<Pointer<A>> successors;
     
-    public DumpSuccessorsTask(Random random, Pointer<A> pointer, EndpointFinder<A> finder) {
-        super(random, new DumpSuccessors(), finder.findEndpoint(pointer.getAddress()));
+    public DumpSuccessorsTask(Pointer<A> pointer, ChordConfig<A> config) {
+        super(config.getRandom(),
+                new DumpSuccessors(),
+                config.getFinder().findEndpoint(pointer.getAddress()),
+                config.getRpcTimeoutDuration(),
+                config.getRpcMaxSendAttempts());
     }
 
     @Override

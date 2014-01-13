@@ -16,33 +16,28 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
-import com.offbynull.peernetic.actor.EndpointFinder;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class FixFingerTask<A> extends AbstractChainedTask {
     
-    private Random random;
-    private ChordState<A> chordState;
-    private int idx;
+    private ChordState<A> state;
+    private ChordConfig<A> config;
     
-    private EndpointFinder<A> finder;
+    private int idx;
 
     private Stage stage = Stage.INITIAL;
 
-    public FixFingerTask(Random random, ChordState<A> chordState, EndpointFinder<A> finder, int idx) {
-        Validate.notNull(random);
-        Validate.notNull(chordState);
-        Validate.notNull(finder);
-        Validate.inclusiveBetween(1, chordState.getBitCount(), idx); // cannot be 0
+    public FixFingerTask(ChordState<A> state, ChordConfig<A> config, int idx) {
+        Validate.notNull(state);
+        Validate.notNull(config);
+        Validate.inclusiveBetween(1, state.getBitCount(), idx); // cannot be 0
         
-        this.random = random;
-        this.chordState = chordState;
-        this.finder = finder;
+        this.state = state;
+        this.config = config;
         this.idx = idx;
     }
     
@@ -58,21 +53,21 @@ final class FixFingerTask<A> extends AbstractChainedTask {
         switch (stage) {
             case INITIAL: {
                 stage = Stage.FIND_SUCCESSOR;
-                return new FindSuccessorTask(random, chordState.getExpectedFingerId(idx), chordState, finder);
+                return new FindSuccessorTask(state.getExpectedFingerId(idx), state, config);
             }
             case FIND_SUCCESSOR: {
                 Pointer<A> result = ((FindSuccessorTask) prev).getResult();
                 
-                Pointer<A> self = chordState.getBase();
+                Pointer<A> self = state.getBase();
                 if (result.equals(self)) {
                     // if we got back ourself then remove the finger (this ensures that the fingertable will reset to us), unless it's
                     // already set to us (because there would be no point in resetting it at that point)
-                    Pointer<A> fingerAtIdx = chordState.getFinger(idx);
-                    if (fingerAtIdx.equals(self)) {
-                        chordState.removeFinger(fingerAtIdx);
+                    Pointer<A> fingerAtIdx = state.getFinger(idx);
+                    if (!fingerAtIdx.equals(self)) {
+                        state.removeFinger(fingerAtIdx);
                     }
                 } else {
-                    chordState.putFinger(result);
+                    state.putFinger(result);
                 }
                 
                 setFinished(false);

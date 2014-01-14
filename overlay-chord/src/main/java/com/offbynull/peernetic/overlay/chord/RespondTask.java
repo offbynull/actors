@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
+import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Incoming;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.RequestManager;
@@ -23,6 +24,9 @@ import com.offbynull.peernetic.actor.helpers.RequestManager.IncomingRequestHandl
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 final class RespondTask<A> implements Task {
@@ -31,6 +35,9 @@ final class RespondTask<A> implements Task {
     private ChordConfig<A> config;
     
     private RequestManager requestManager;
+    
+    private List<RouteTask<A>> routeTasks;
+    
     private TaskState taskState = TaskState.START;
     
 
@@ -40,6 +47,8 @@ final class RespondTask<A> implements Task {
         this.state = state;
         this.requestManager = new RequestManager(config.getRandom());
         this.config = config;
+        
+        this.routeTasks = new LinkedList<>();
     }
 
     @Override
@@ -57,20 +66,47 @@ final class RespondTask<A> implements Task {
                 requestManager.mapRequestHandler(DumpSuccessors.class, new DumpSuccessorsRequestHandler());
                 requestManager.mapRequestHandler(Notify.class, new NotifyRequestHandler());
                 taskState = TaskState.PROCESSING;
-                break;
+                return requestManager.process(timestamp, pushQueue);
             }
             case PROCESSING: {
-                break;
+                long nextTimestamp = Long.MAX_VALUE;
+                if (incoming != null) {
+                    requestManager.incomingMessage(timestamp, incoming);
+                    
+                    if (incoming.getContent() instanceof RouteRequest) {
+                        RouteRequest request = (RouteRequest) incoming.getContent();
+                        Endpoint requestEndpoint = incoming.getSource();
+                        
+                        routeTasks.add(new RouteTask(request, requestEndpoint, state, config));
+                    }
+                }
+                
+                Iterator<RouteTask<A>> it = routeTasks.iterator();
+                while (it.hasNext()) {
+                    RouteTask<A> routeTask = it.next();
+                    
+                    long nextRouteTimestamp = routeTask.process(timestamp, incoming, pushQueue);
+                    nextTimestamp = Math.min(nextTimestamp, nextRouteTimestamp);
+                    
+                    switch (routeTask.getState()) {
+                        case COMPLETED:
+                        case FAILED:
+                            it.remove();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                
+                long nextReqManagerTimestamp = requestManager.process(timestamp, pushQueue);
+                nextTimestamp = Math.min(nextTimestamp, nextReqManagerTimestamp);
+                
+                
+                return nextTimestamp;
             }
             default:
                 throw new IllegalStateException();
         }
-        
-        if (incoming != null) {
-            requestManager.incomingMessage(timestamp, incoming);
-        }
-        
-        return requestManager.process(timestamp, pushQueue);
     }
     
     private final class GetClosestPrecedingFingerRequestHandler implements IncomingRequestHandler<GetClosestPrecedingFinger> {

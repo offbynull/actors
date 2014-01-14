@@ -17,10 +17,12 @@
 package com.offbynull.peernetic.demos.chord;
 
 import com.offbynull.peernetic.actor.ActorRunner;
+import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.network.NetworkEndpointFinder;
 import com.offbynull.peernetic.actor.network.transports.test.RandomLine;
 import com.offbynull.peernetic.actor.network.transports.test.TestHub;
 import com.offbynull.peernetic.actor.network.transports.test.TestTransport;
+import com.offbynull.peernetic.overlay.chord.ChordAccessor;
 import com.offbynull.peernetic.overlay.chord.ChordConfig;
 import com.offbynull.peernetic.overlay.chord.ChordOverlay;
 import com.offbynull.peernetic.overlay.chord.ChordOverlayListener;
@@ -36,12 +38,15 @@ import com.offbynull.peernetic.overlay.common.visualizer.Visualizer;
 import com.offbynull.peernetic.overlay.common.visualizer.VisualizerEventListener;
 import com.offbynull.peernetic.overlay.common.visualizer.VisualizerUtils;
 import java.awt.Color;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Range;
 
 /**
@@ -79,21 +84,28 @@ public final class App {
         ActorRunner hubRunner = ActorRunner.createAndStart(hub);
         
         
-        int limit = 15;
+        Endpoint overlay0Endpoint = null;
+        int limit = 1023;
         BigInteger limigBigInt = new BigInteger("" + limit);
         
         for (int i = 0; i <= limit; i++) {
+            if (i % 125 != 0) {
+                continue;
+            }
+            
             final BigInteger iBigInt = new BigInteger("" + i);
             
             visualizer.step("Adding node " + i,
                     new AddNodeCommand<>(i),
-                    new ChangeNodeCommand(i, null, VisualizerUtils.pointOnCircle(500, iBigInt.doubleValue() / (limigBigInt.doubleValue() + 1.0)),
+                    new ChangeNodeCommand(i,
+                            null,
+                            VisualizerUtils.pointOnCircle(500, iBigInt.doubleValue() / (limigBigInt.doubleValue() + 1.0)),
                             null));
             
             ChordOverlayListener<Integer> listener = new ChordOverlayListener<Integer>() {
                 
-                Integer oldPredecessor;
-                Set<Integer> oldFingers = Collections.emptySet();
+                private Integer oldPredecessor;
+                private Set<Integer> oldFingers = Collections.emptySet();
 
                 @Override
                 public void stateUpdated(String event,
@@ -157,10 +169,28 @@ public final class App {
             
             ChordOverlay<Integer> overlay = new ChordOverlay<>(config);
             ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
+            if (i == 0) {
+                overlay0Endpoint = overlayRunner.getEndpoint();
+            }
             
             testTransport.setDestinationEndpoint(overlayRunner.getEndpoint());
             
             Thread.sleep((long) (Math.random() * 1000L)); // sleep for 0 to 1 seconds, so things will look more varied when running
+        }
+        
+        
+        
+        System.out.println("Type in ID to route...");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        
+        while (true) {
+            String idToFind = reader.readLine();
+            ChordAccessor<Integer> accessor = new ChordAccessor(overlay0Endpoint);
+            Pointer<Integer> res = accessor.routeTo(
+                    new Id(new BigInteger(idToFind).toByteArray(), limigBigInt.toByteArray()),
+                    5000L, TimeUnit.MILLISECONDS);
+            
+            System.out.println(res);
         }
     }
 }

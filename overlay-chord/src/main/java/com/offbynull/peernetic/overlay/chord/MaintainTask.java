@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
+import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.AbstractMultiTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
@@ -38,7 +39,7 @@ final class MaintainTask<A> extends AbstractMultiTask {
     }
     
     @Override
-    protected Set<Task> taskStateUpdated(Set<Task> finished) {
+    protected Set<Task> taskStateUpdated(Set<Task> finished, long timestamp, PushQueue pushQueue) {
         for (Task task : finished) {
             if (task.getState() == TaskState.FAILED) {
                 setFinished(true);

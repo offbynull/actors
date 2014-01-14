@@ -35,7 +35,7 @@ public abstract class AbstractMultiTask implements Task {
     public final long process(long timestamp, Incoming incoming, PushQueue pushQueue) {
         switch (state) {
             case START:
-                currentTasks = taskStateUpdated(Collections.<Task>emptySet());
+                currentTasks = taskStateUpdated(Collections.<Task>emptySet(), timestamp, pushQueue);
                 if (state == TaskState.COMPLETED || state == TaskState.FAILED) { // if task switch marked this task as finished, stop
                     return Long.MAX_VALUE;
                 }
@@ -53,7 +53,7 @@ public abstract class AbstractMultiTask implements Task {
         iterateTasks(timestamp, incoming, pushQueue, currentTasks, finishedTasks, nextTimestamps);
 
         while (!finishedTasks.isEmpty()) {
-            Set<Task> newTasks = taskStateUpdated(finishedTasks); // notify finished tasks and get new tasks
+            Set<Task> newTasks = taskStateUpdated(finishedTasks, timestamp, pushQueue); // notify finished tasks and get new tasks
             
             if (state == TaskState.COMPLETED || state == TaskState.FAILED) {
                 break;
@@ -105,9 +105,11 @@ public abstract class AbstractMultiTask implements Task {
     /**
      * Called when one or more sub-tasks have completed/failed, and when this task first starts.
      * @param finished finished sub-tasks -- empty if this task was just started
+     * @param timestamp current time
+     * @param pushQueue push queue
      * @return next {@code Task}s to run
      */
-    protected abstract Set<Task> taskStateUpdated(Set<Task> finished);
+    protected abstract Set<Task> taskStateUpdated(Set<Task> finished, long timestamp, PushQueue pushQueue);
 
     /**
      * Sets this task's completion state.

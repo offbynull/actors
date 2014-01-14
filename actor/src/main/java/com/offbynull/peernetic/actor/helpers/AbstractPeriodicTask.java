@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.actor.helpers;
 
+import com.offbynull.peernetic.actor.PushQueue;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -38,7 +39,7 @@ public abstract class AbstractPeriodicTask extends AbstractChainedTask {
     }
     
     @Override
-    protected final Task switchTask(long timestamp, Task prev) {
+    protected final Task switchTask(long timestamp, Task prev, PushQueue pushQueue) {
         switch (stage) {
             case START:
             case PROCESSING: {

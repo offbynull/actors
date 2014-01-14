@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
+import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
@@ -23,26 +24,28 @@ import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import org.apache.commons.lang3.Validate;
 
-final class FixFingerTask<A> extends AbstractChainedTask {
-    
+final class RouteTask<A> extends AbstractChainedTask {
+
     private ChordState<A> state;
     private ChordConfig<A> config;
+    private Stage stage = Stage.START;
     
-    private int idx;
-
-    private Stage stage = Stage.INITIAL;
-
-    public FixFingerTask(ChordState<A> state, ChordConfig<A> config, int idx) {
+    private RouteRequest request;
+    private Endpoint requestEndpoint;
+    
+    public RouteTask(RouteRequest request, Endpoint requestEndpoint, ChordState<A> state, ChordConfig<A> config) {
+        Validate.notNull(request);
+        Validate.notNull(requestEndpoint);
         Validate.notNull(state);
         Validate.notNull(config);
-        Validate.inclusiveBetween(1, state.getBitCount(), idx); // cannot be 0
-        
+
+        this.request = request;
+        this.requestEndpoint = requestEndpoint;
         this.state = state;
         this.config = config;
-        this.idx = idx;
+        
+        stage = Stage.START;
     }
-    
-    
 
     @Override
     protected Task switchTask(long timestamp, Task prev, PushQueue pushQueue) {
@@ -50,33 +53,15 @@ final class FixFingerTask<A> extends AbstractChainedTask {
             setFinished(true);
             return null;
         }
-        
+
         switch (stage) {
-            case INITIAL: {
-                stage = Stage.FIND_SUCCESSOR;
-                return new FindSuccessorTask(state.getExpectedFingerId(idx), state, config);
+            case START: {
+                stage = Stage.ROUTING;
+                return new FindSuccessorTask(request.getDestination(), state, config);
             }
-            case FIND_SUCCESSOR: {
-                Pointer<A> result = ((FindSuccessorTask) prev).getResult();
-                
-                Pointer<A> self = state.getBase();
-                if (result.equals(self)) {
-                    // if we got back ourself then remove the finger (this ensures that the fingertable will reset to us), unless it's
-                    // already set to us (because there would be no point in resetting it at that point)
-                    Pointer<A> fingerAtIdx = state.getFinger(idx);
-                    if (!fingerAtIdx.equals(self)) {
-                        state.removeFinger(fingerAtIdx);
-                    }
-                } else {
-                    state.putFinger(result);
-                    
-                    config.getListener().stateUpdated("Finger Updated " + idx,
-                            state.getBase(),
-                            state.getPredecessor(),
-                            state.dumpFingerTable(),
-                            state.dumpSuccessorTable());
-                }
-                
+            case ROUTING: {
+                Pointer<A> result = ((FindSuccessorTask<A>) prev).getResult();
+                pushQueue.push(requestEndpoint, new RouteResponse<>(result));
                 setFinished(false);
                 return null;
             }
@@ -84,9 +69,10 @@ final class FixFingerTask<A> extends AbstractChainedTask {
                 throw new IllegalStateException();
         }
     }
-    
+
     private enum Stage {
-        INITIAL,
-        FIND_SUCCESSOR
+
+        START,
+        ROUTING
     }
 }

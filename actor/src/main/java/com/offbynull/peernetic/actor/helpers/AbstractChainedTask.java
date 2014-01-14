@@ -32,7 +32,7 @@ public abstract class AbstractChainedTask implements Task {
     public final long process(long timestamp, Incoming incoming, PushQueue pushQueue) {
         switch (state) {
             case START:
-                currentTask = switchTask(timestamp, null);
+                currentTask = switchTask(timestamp, null, pushQueue);
                 if (state == TaskState.COMPLETED || state == TaskState.FAILED) { // if task switch marked this task as finished, stop
                     return Long.MAX_VALUE;
                 }
@@ -57,7 +57,7 @@ public abstract class AbstractChainedTask implements Task {
                     break top;
                 case COMPLETED:
                 case FAILED:
-                    currentTask = switchTask(timestamp, currentTask);
+                    currentTask = switchTask(timestamp, currentTask, pushQueue);
                     if (state == TaskState.COMPLETED || state == TaskState.FAILED) { // if task switch marked this task as finished, stop
                         break top;
                     }
@@ -88,9 +88,10 @@ public abstract class AbstractChainedTask implements Task {
      * Called when the sub-task has completed/failed, and when this task first starts.
      * @param timestamp current time
      * @param prev current processing sub-task, or {@code null} if this task was just started
+     * @param pushQueue push queue
      * @return next {@code Task}
      */
-    protected abstract Task switchTask(long timestamp, Task prev);
+    protected abstract Task switchTask(long timestamp, Task prev, PushQueue pushQueue);
 
     /**
      * Sets this task's completion state.

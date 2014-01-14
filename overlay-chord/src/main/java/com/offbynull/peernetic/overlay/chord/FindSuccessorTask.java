@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.overlay.chord;
 
+import com.offbynull.peernetic.actor.PushQueue;
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
@@ -45,7 +46,7 @@ final class FindSuccessorTask<A> extends AbstractChainedTask {
     }
 
     @Override
-    protected Task switchTask(long timestamp, Task prev) {
+    protected Task switchTask(long timestamp, Task prev, PushQueue pushQueue) {
         if (prev != null && prev.getState() == TaskState.FAILED) {
             setFinished(true);
             return null;

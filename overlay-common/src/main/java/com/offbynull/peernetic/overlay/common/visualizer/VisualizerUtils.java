@@ -55,8 +55,8 @@ public final class VisualizerUtils {
         double angle = percentage * Math.PI * 2.0;
         angle -= Math.PI / 2.0; // adjust so that percentage 0.0 is at top middle, if not it'ld be at middle right
         
-        double y = (Math.sin(angle) * radius) + radius;
-        double x = (Math.cos(angle) * radius) + radius;
+        double y = (Math.sin(angle) * radius) + radius; // NOPMD
+        double x = (Math.cos(angle) * radius) + radius; // NOPMD
         
         return new Point((int) x, (int) y);
     }

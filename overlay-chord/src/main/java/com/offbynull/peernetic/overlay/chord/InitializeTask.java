@@ -18,6 +18,7 @@ package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.helpers.AbstractChainedTask;
 import com.offbynull.peernetic.actor.helpers.Task;
+import com.offbynull.peernetic.overlay.chord.ChordOverlayListener.FailureMode;
 import com.offbynull.peernetic.overlay.chord.core.ChordState;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
@@ -43,8 +44,8 @@ final class InitializeTask<A> extends AbstractChainedTask {
     @Override
     protected Task switchTask(long timestamp, Task prev) {
         if (prev != null && prev.getState() == TaskState.FAILED) {
-            setFinished(true);
-            return null;
+            config.getListener().failed(FailureMode.INITIALIZATION_FAILED);
+            throw new IllegalStateException();
         }
         
         switch (stage) {

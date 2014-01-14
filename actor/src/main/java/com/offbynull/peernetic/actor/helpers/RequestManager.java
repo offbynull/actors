@@ -195,7 +195,8 @@ public final class RequestManager {
         }
         responses.clear();
 
-        return result.getNextTimeoutTimestamp();
+        return requestTimeoutManager.process(timestamp).getNextTimeoutTimestamp(); // you can't use the timestamp from the old result object
+                                                                                   // -- we're potentially readding the timedout items
     }
 
     private static final class RequestEntity {

@@ -48,6 +48,10 @@ public interface ChordOverlayListener<A> {
         /**
          * Indicates that the node ran out of successors.
          */
-        SUCCESSOR_TABLE_DEPLETED
+        SUCCESSOR_TABLE_DEPLETED,
+        /**
+         * Indicates that the node failed to initialize.
+         */
+        INITIALIZATION_FAILED
     }
 }

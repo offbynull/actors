@@ -76,7 +76,7 @@ public final class IncomingMessageManager<A> {
         Object content;
         try {
             content = deserializer.deserialize(tempData);
-        } catch (IllegalArgumentException iae) { // NOPMD
+        } catch (IllegalArgumentException | IllegalStateException e) { // NOPMD
             // throws if deserialized item is null
             return;
         }

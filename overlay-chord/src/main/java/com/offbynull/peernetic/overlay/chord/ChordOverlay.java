@@ -62,13 +62,31 @@ public final class ChordOverlay<A> extends Actor {
         while ((incoming = pullQueue.pull()) != null) {
             hit = true;
             long stepNextHitTime = chordTask.process(timestamp, incoming, pushQueue);
+            
+            switch (chordTask.getState()) {
+                case COMPLETED:
+                    return -1L;
+                case FAILED:
+                    return -1L;
+                default:
+                    break;
+            }
+            
             nextHitTime = Math.min(nextHitTime, stepNextHitTime);
         }
         
         if (!hit) {
             nextHitTime = chordTask.process(timestamp, null, pushQueue);
+            switch (chordTask.getState()) {
+                case COMPLETED:
+                    return -1L;
+                case FAILED:
+                    return -1L;
+                default:
+                    break;
+            }
         }
-        
+
         return nextHitTime;
     }
 

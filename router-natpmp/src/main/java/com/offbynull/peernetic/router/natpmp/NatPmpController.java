@@ -475,7 +475,7 @@ public final class NatPmpController {
         byte[] requestCopy = ByteBufferUtils.copyContentsToArray(requestBuffer);
 
         for (int i = 1; i <= sendAttempts; i++) {
-            // timeout duration should double each iteration, starting from 250
+            // timeout duration should double each iteration, starting from 250 according to spec
             // i = 1, timeoutDuration = (1 << (1-1)) * 250 = (1 << 0) * 250 = 1 * 250 = 250
             // i = 2, timeoutDuration = (1 << (2-1)) * 250 = (1 << 1) * 250 = 2 * 250 = 500
             // i = 3, timeoutDuration = (1 << (3-1)) * 250 = (1 << 2) * 250 = 4 * 250 = 1000

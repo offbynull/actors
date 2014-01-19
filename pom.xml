@@ -20,6 +20,7 @@
         <module>demo</module>
         <module>actor</module>
         <module>actor-network</module>
+    <module>router-natpmp</module>
   </modules>
     
     <dependencyManagement>

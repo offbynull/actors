@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.common.utils;
 
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 /**
  * Utility class to help with {@link ByteBuffer}s.
@@ -35,6 +36,7 @@ public final class ByteBufferUtils {
      * @throws NullPointerException if any arguments are {@code null}
      */
     public static byte[] copyContentsToArray(ByteBuffer src) {
+        Validate.notNull(src);
         return copyContentsToArray(src, true);
     }
     
@@ -46,6 +48,7 @@ public final class ByteBufferUtils {
      * @throws NullPointerException if any arguments are {@code null}
      */
     public static byte[] copyContentsToArray(ByteBuffer src, boolean incrementSrc) {
+        Validate.notNull(src);
         if (!incrementSrc) {
             src.mark();
         }
@@ -68,6 +71,7 @@ public final class ByteBufferUtils {
      * @throws NullPointerException if any arguments are {@code null}
      */
     public static ByteBuffer copyContents(ByteBuffer src) {
+        Validate.notNull(src);
         return copyContents(src, true, false);
     }
     
@@ -80,6 +84,7 @@ public final class ByteBufferUtils {
      * @throws NullPointerException if any arguments are {@code null}
      */
     public static ByteBuffer copyContents(ByteBuffer src, boolean incrementSrc, boolean incrementDst) {
+        Validate.notNull(src);
         if (!incrementSrc) {
             src.mark();
         }

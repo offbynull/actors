@@ -8,9 +8,9 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <groupId>com.offbynull.peernetic</groupId>
-    <artifactId>common</artifactId>
+    <artifactId>router-natpmp</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>common</name>
+    <name>router-natpmp</name>
     <url>http://maven.apache.org</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -30,6 +30,11 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>

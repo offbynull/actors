@@ -89,7 +89,7 @@ public final class App {
         BigInteger limigBigInt = new BigInteger("" + limit);
         
         for (int i = 0; i <= limit; i++) {
-            if (i % 125 != 0) {
+            if (i % 25 != 0) {
                 continue;
             }
             
@@ -99,7 +99,7 @@ public final class App {
                     new AddNodeCommand<>(i),
                     new ChangeNodeCommand(i,
                             null,
-                            VisualizerUtils.pointOnCircle(500, iBigInt.doubleValue() / (limigBigInt.doubleValue() + 1.0)),
+                            VisualizerUtils.pointOnCircle(350, iBigInt.doubleValue() / (limigBigInt.doubleValue() + 1.0)),
                             null));
             
             ChordOverlayListener<Integer> listener = new ChordOverlayListener<Integer>() {

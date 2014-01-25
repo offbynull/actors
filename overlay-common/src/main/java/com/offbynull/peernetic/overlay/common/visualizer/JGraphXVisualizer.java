@@ -369,9 +369,11 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
                 Validate.isTrue(nodeLookupMap.containsKey(command.getFrom()), "Connection source doesn't exist");
                 Validate.isTrue(nodeLookupMap.containsKey(command.getTo()), "Connection destination doesn't exist");
 
-                Object edge = graph.insertEdge(parent, null, null, fromVertex, toVertex);
-                connToEdgeLookupMap.put(conn, edge);
-                edgeToConnLookupMap.put(edge, conn);
+                if (!connToEdgeLookupMap.containsKey(conn)) {
+                    Object edge = graph.insertEdge(parent, null, null, fromVertex, toVertex);
+                    connToEdgeLookupMap.put(conn, edge);
+                    edgeToConnLookupMap.put(edge, conn);
+                }
 
                 zoomFit();
             }

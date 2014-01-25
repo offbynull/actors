@@ -17,6 +17,6 @@
 
 /**
  * NAT-PMP client implementation. For more information on NAT-PMP, visit http://miniupnp.free.fr/nat-pmp.html or
- * http://tools.ietf.org/html/draft-cheshire-nat-pmp-03.
+ * http://tools.ietf.org/html/rfc6886.
  */
 package com.offbynull.peernetic.router.natpmp;

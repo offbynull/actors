@@ -35,7 +35,7 @@ import org.apache.commons.lang3.Validate;
  * it's result has a 'seconds since last epoch' property {@link ExternalAddressResult#getSecondsSinceStartOfEpoch() }  which you can track
  * to determine if the device rebooted.
  * <p/>
- * For more information see section 3.2.1 of http://tools.ietf.org/html/draft-cheshire-nat-pmp-03.
+ * For more information see section 3.2.1 of http://tools.ietf.org/html/rfc6886.
  *
  * @author Kasra Faghihi
  */
@@ -55,7 +55,7 @@ public final class NatPmpReceiver {
     }
     
     /**
-     * Start listening for NAT-PMP events. This method blocks until {@link #stop() } is called.S
+     * Start listening for NAT-PMP events. This method blocks until {@link #stop() } is called.
      * @param listener listener to notify of events
      * @throws IOException if socket error occurs
      * @throws NullPointerException if any argument is {@code null}
@@ -74,6 +74,7 @@ public final class NatPmpReceiver {
             final InetSocketAddress groupAddress = new InetSocketAddress(group, port);
 
             socket = new MulticastSocket(port);
+            socket.setReuseAddress(true);
             
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces.hasMoreElements()) {

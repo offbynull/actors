@@ -18,9 +18,13 @@ package com.offbynull.peernetic.router.natpmp;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
+import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
@@ -67,10 +71,21 @@ public final class NatPmpReceiver {
         try {
             final InetAddress group = InetAddress.getByName("224.0.0.1"); // NOPMD
             final int port = 5350;
+            final InetSocketAddress groupAddress = new InetSocketAddress(group, port);
 
             socket = new MulticastSocket(port);
-            socket.joinGroup(group);
-            socket.setSoTimeout(0);
+            
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+                while (addrs.hasMoreElements()) { // make sure atleast 1 ipv4 addr bound to interface
+                    if (addrs.nextElement() instanceof Inet4Address) {
+                        socket.joinGroup(groupAddress, networkInterface);
+                        break;
+                    }
+                }
+            }
 
             ByteBuffer buffer = ByteBuffer.allocate(12);
             DatagramPacket data = new DatagramPacket(buffer.array(), buffer.capacity());

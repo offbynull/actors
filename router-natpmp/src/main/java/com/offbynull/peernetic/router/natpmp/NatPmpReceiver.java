@@ -123,7 +123,7 @@ public final class NatPmpReceiver {
                         continue; // data doesn't have a successful result, ignore
                 }
                 
-                listener.publicAddressUpdated(new ExternalAddressResult(buffer));
+                listener.publicAddressUpdated(new ExternalAddressResponse(buffer));
             }
 
         } catch (IOException ioe) {

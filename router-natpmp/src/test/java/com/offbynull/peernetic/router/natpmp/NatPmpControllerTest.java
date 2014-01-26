@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.router.natpmp;
 
+import com.offbynull.peernetic.router.natpmp.common.PortType;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -39,7 +40,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), 4);
         
-        ExternalAddressResult res = controller.getExternalAddress();
+        ExternalAddressResponse res = controller.getExternalAddress();
         InetAddress address = res.getAddress();
         
         Assert.assertEquals(InetAddress.getLoopbackAddress(), address);
@@ -73,7 +74,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), 4);
         
-        CreateMappingResult res = controller.createMapping(PortType.UDP, 1, 2, 9);
+        CreateMappingResponse res = controller.createMapping(PortType.UDP, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());
@@ -87,7 +88,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), 4);
         
-        CreateMappingResult res = controller.createMapping(PortType.TCP, 1, 2, 9);
+        CreateMappingResponse res = controller.createMapping(PortType.TCP, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());
@@ -101,7 +102,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), 4);
         
-        CreateMappingResult res = controller.createMapping(PortType.UDP, 1, 2, 9);
+        CreateMappingResponse res = controller.createMapping(PortType.UDP, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());
@@ -115,7 +116,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), 4);
         
-        CreateMappingResult res = controller.createMapping(PortType.TCP, 1, 2, 9);
+        CreateMappingResponse res = controller.createMapping(PortType.TCP, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());

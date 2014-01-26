@@ -16,30 +16,30 @@
  */
 package com.offbynull.peernetic.router.natpmp;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.Validate;
 
 /**
- * Gateway/router response to a 'get external IP address' request.
+ * Gateway/router response to a 'new port mapping' request.
  * @author Kasra Faghihi
  */
-public final class ExternalAddressResult extends NatPmpResult {
+public final class CreateMappingResponse extends NatPmpResponse {
     private long secondsSinceStartOfEpoch;
-    private InetAddress address;
+    private int internalPort;
+    private int externalPort;
+    private long lifetime;
 
-    ExternalAddressResult(ByteBuffer buffer) {
+    CreateMappingResponse(ByteBuffer buffer, int expectedInternalPort) {
         super(buffer);
         
         secondsSinceStartOfEpoch = buffer.getInt() & 0xFFFFFFFFL;
-        byte[] addr = new byte[4];
-        buffer.get(addr);
+        internalPort = buffer.getShort() & 0xFFFF;
+        externalPort = buffer.getShort() & 0xFFFF;
+        lifetime = buffer.getInt() & 0xFFFFFFFFL;
         
-        try {
-            address = InetAddress.getByAddress(addr);
-        } catch (UnknownHostException uhe) {
-            throw new IllegalStateException(uhe); // should never happen, will always be 4 bytes
-        }
+        Validate.isTrue(expectedInternalPort == internalPort);
+        Validate.inclusiveBetween(1, 65535, externalPort);
+        Validate.inclusiveBetween(1L, 0xFFFFFFFFL, lifetime);
     }
 
     /**
@@ -51,11 +51,27 @@ public final class ExternalAddressResult extends NatPmpResult {
     }
 
     /**
-     * External IP address.
-     * @return external IP address
+     * Get the internal/local port number.
+     * @return internal/local port number
      */
-    public InetAddress getAddress() {
-        return address;
+    public int getInternalPort() {
+        return internalPort;
+    }
+
+    /**
+     * Get the external/remote port number.
+     * @return external/remote port number
+     */
+    public int getExternalPort() {
+        return externalPort;
+    }
+
+    /**
+     * Get the lifetime for this mapping.
+     * @return lifetime for this mapping
+     */
+    public long getLifetime() {
+        return lifetime;
     }
     
 }

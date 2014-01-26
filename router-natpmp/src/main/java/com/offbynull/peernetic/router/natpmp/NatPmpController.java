@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.router.natpmp;
 
+import com.offbynull.peernetic.router.natpmp.common.PortType;
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -61,7 +62,7 @@ public final class NatPmpController {
      * @return external IP address
      * @throws IOException if there's a problem with the socket or there is no response / there's an unexpected response
      */
-    public ExternalAddressResult getExternalAddress() throws IOException {
+    public ExternalAddressResponse getExternalAddress() throws IOException {
         DatagramSocket datagramSocket = null;
         ByteBuffer requestBuffer = ByteBuffer.allocate(12);
         ByteBuffer responseBuffer = ByteBuffer.allocate(16);
@@ -89,7 +90,7 @@ public final class NatPmpController {
             //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             //   | External IP Address (a.b.c.d)                                 |
             //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            return new ExternalAddressResult(responseBuffer);
+            return new ExternalAddressResponse(responseBuffer);
         } finally {
             IOUtils.closeQuietly(datagramSocket);
         }
@@ -112,7 +113,7 @@ public final class NatPmpController {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is not positive ({@code <= 0})
      */
-    public CreateMappingResult createMapping(PortType portType, int internalPort, int externalPort, int lifetime) throws IOException {
+    public CreateMappingResponse createMapping(PortType portType, int internalPort, int externalPort, int lifetime) throws IOException {
         Validate.notNull(portType);
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.inclusiveBetween(1, 65535, externalPort); // 0 = high-numbered "anonymous" port
@@ -172,7 +173,7 @@ public final class NatPmpController {
             performRequest(datagramSocket, requestBuffer, responseBuffer, 16, 128 + op);
 
             try {
-                return new CreateMappingResult(responseBuffer, internalPort);
+                return new CreateMappingResponse(responseBuffer, internalPort);
             } catch (IllegalArgumentException iae) {
                 throw new IOException(iae);
             }
@@ -196,7 +197,7 @@ public final class NatPmpController {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is not positive ({@code <= 0})
      */
-    public CreateMappingResult createMapping(PortType portType, int internalPort, int lifetime) throws IOException {
+    public CreateMappingResponse createMapping(PortType portType, int internalPort, int lifetime) throws IOException {
         Validate.notNull(portType);
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, lifetime);
@@ -281,7 +282,7 @@ public final class NatPmpController {
             performRequest(datagramSocket, requestBuffer, responseBuffer, 16, 128 + op);
 
             try {
-                return new CreateMappingResult(responseBuffer, internalPort);
+                return new CreateMappingResponse(responseBuffer, internalPort);
             } catch (IllegalArgumentException iae) {
                 throw new IOException(iae);
             }
@@ -487,14 +488,18 @@ public final class NatPmpController {
             DatagramPacket request = new DatagramPacket(requestCopy, requestCopy.length, gatewayAddress, 5351);
             socket.send(request);
 
-            DatagramPacket publicAddressResponse = new DatagramPacket(responseBuffer.array(), responseBuffer.capacity());
+            DatagramPacket response = new DatagramPacket(responseBuffer.array(), responseBuffer.capacity());
             try {
-                socket.receive(publicAddressResponse);
+                socket.receive(response);
             } catch (SocketTimeoutException ste) {
                 continue;
             }
 
-            responseBuffer.position(publicAddressResponse.getLength());
+            if (!response.getAddress().equals(gatewayAddress)) { // data isn't from our gateway, ignore
+                continue;
+            }
+
+            responseBuffer.position(response.getLength());
             responseBuffer.flip();
 
             if (responseBuffer.remaining() < 4) { // must contain atleast version(1), opcode(1), resultcode(2)

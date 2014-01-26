@@ -19,12 +19,12 @@ package com.offbynull.peernetic.router.natpmp;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-abstract class NatPmpResult {
+abstract class NatPmpResponse {
     private int version;
     private int op;
     private int resultCode;
     
-    NatPmpResult(ByteBuffer buffer) {
+    NatPmpResponse(ByteBuffer buffer) {
         Validate.notNull(buffer);
         
         version = buffer.get() & 0xFF;

@@ -16,30 +16,30 @@
  */
 package com.offbynull.peernetic.router.natpmp;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import org.apache.commons.lang3.Validate;
 
 /**
- * Gateway/router response to a 'new port mapping' request.
+ * Gateway/router response to a 'get external IP address' request.
  * @author Kasra Faghihi
  */
-public final class CreateMappingResult extends NatPmpResult {
+public final class ExternalAddressResponse extends NatPmpResponse {
     private long secondsSinceStartOfEpoch;
-    private int internalPort;
-    private int externalPort;
-    private long lifetime;
+    private InetAddress address;
 
-    CreateMappingResult(ByteBuffer buffer, int expectedInternalPort) {
+    ExternalAddressResponse(ByteBuffer buffer) {
         super(buffer);
         
         secondsSinceStartOfEpoch = buffer.getInt() & 0xFFFFFFFFL;
-        internalPort = buffer.getShort() & 0xFFFF;
-        externalPort = buffer.getShort() & 0xFFFF;
-        lifetime = buffer.getInt() & 0xFFFFFFFFL;
+        byte[] addr = new byte[4];
+        buffer.get(addr);
         
-        Validate.isTrue(expectedInternalPort == internalPort);
-        Validate.inclusiveBetween(1, 65535, externalPort);
-        Validate.inclusiveBetween(1L, 0xFFFFFFFFL, lifetime);
+        try {
+            address = InetAddress.getByAddress(addr);
+        } catch (UnknownHostException uhe) {
+            throw new IllegalStateException(uhe); // should never happen, will always be 4 bytes
+        }
     }
 
     /**
@@ -51,27 +51,11 @@ public final class CreateMappingResult extends NatPmpResult {
     }
 
     /**
-     * Get the internal/local port number.
-     * @return internal/local port number
+     * External IP address.
+     * @return external IP address
      */
-    public int getInternalPort() {
-        return internalPort;
-    }
-
-    /**
-     * Get the external/remote port number.
-     * @return external/remote port number
-     */
-    public int getExternalPort() {
-        return externalPort;
-    }
-
-    /**
-     * Get the lifetime for this mapping.
-     * @return lifetime for this mapping
-     */
-    public long getLifetime() {
-        return lifetime;
+    public InetAddress getAddress() {
+        return address;
     }
     
 }

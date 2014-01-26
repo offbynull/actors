@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.natpmp;
+package com.offbynull.peernetic.router.natpmp.common;
 
 /**
  * Describes the port type.
@@ -25,10 +25,21 @@ public enum PortType {
     /**
      * UDP port.
      */
-    UDP,
+    UDP(17),
     
     /**
      * TCP port.
      */
-    TCP
+    TCP(6);
+    
+    private final int protocolNumber;
+    
+    PortType(int protocolNumber) {
+        this.protocolNumber = protocolNumber;
+    }
+
+    public int getProtocolNumber() {
+        return protocolNumber;
+    }
+    
 }

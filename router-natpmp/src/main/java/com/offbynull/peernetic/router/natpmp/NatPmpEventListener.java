@@ -25,5 +25,5 @@ public interface NatPmpEventListener {
      * Called when the NAT-PMP server broadcasts a change in the public address.
      * @param result external address result
      */
-    void publicAddressUpdated(ExternalAddressResult result);
+    void publicAddressUpdated(ExternalAddressResponse result);
 }

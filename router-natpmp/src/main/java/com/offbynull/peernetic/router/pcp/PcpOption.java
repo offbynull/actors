@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.router.pcp;
 
+import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
@@ -27,6 +28,28 @@ abstract class PcpOption {
         for (int i = 0; i < remainder; i++) {
             buffer.get();
         }
+    }
+
+    public PcpOption(int code, ByteBuffer data) {
+        Validate.inclusiveBetween(0, 255, code);
+        Validate.notNull(data);
+        
+        this.code = code;
+        this.length = data.remaining();
+        this.data = ByteBuffer.wrap(new byte[length + (length % 4)]);
+        this.data = ByteBufferUtils.copyContents(data).asReadOnlyBuffer();
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public ByteBuffer getData() {
+        return data.asReadOnlyBuffer();
     }
     
     

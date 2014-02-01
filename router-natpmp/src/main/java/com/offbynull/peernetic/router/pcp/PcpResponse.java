@@ -42,7 +42,7 @@ abstract class PcpResponse {
         if ((temp & 128) != 128) {
             throw new IllegalArgumentException("Bad R-flag: " + temp);
         }
-        op = temp >> 7; // discard first bit, it was used for rflag
+        op = temp & 0x7F; // discard first bit, it was used for rflag
         
         buffer.get(); // skip reserved field
         

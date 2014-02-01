@@ -17,7 +17,7 @@ public class PeerPcpRequest extends PcpRequest {
     
     public PeerPcpRequest(ByteBuffer mappingNonce, int protocol, int internalPort, int suggestedExternalPort,
             InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime) {
-        super(1, lifetime);
+        super(2, lifetime);
         
         Validate.notNull(mappingNonce);
         Validate.isTrue(mappingNonce.remaining() == 12);

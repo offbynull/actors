@@ -28,7 +28,7 @@ public final class PcpController {
         this.random = new Random();
     }
     
-    public MapPcpResponse createMapping(PortType portType, int internalPort, int suggestedExternalPort,
+    public MapPcpResponse createInboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
             InetAddress suggestedExternalIpAddress, long lifetime) {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
@@ -36,19 +36,35 @@ public final class PcpController {
         MapPcpRequest req = new MapPcpRequest(ByteBuffer.wrap(nonce), portType.getProtocolNumber(), internalPort, suggestedExternalPort,
                 suggestedExternalIpAddress, lifetime);
 
+        MapResponseCreator creator = new MapResponseCreator(req);
+        return performRequest(req, creator);
+    }
+    
+    public PeerPcpResponse createOutboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
+            InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime) {
+        byte[] nonce = new byte[12];
+        random.nextBytes(nonce);
+        
+        PeerPcpRequest req = new PeerPcpRequest(ByteBuffer.wrap(nonce), portType.getProtocolNumber(), internalPort, suggestedExternalPort,
+                suggestedExternalIpAddress, remotePeerPort, remotePeerIpAddress, lifetime);
+
+        PeerResponseCreator creator = new PeerResponseCreator(req);
+        return performRequest(req, creator);
+    }
+
+    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) {
         DatagramSocket socket = null;
         ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
         ByteBuffer recvBuffer = ByteBuffer.allocate(1100);
             
-        req.dump(sendBuffer, selfAddress);
+        request.dump(sendBuffer, selfAddress);
         sendBuffer.flip();
 
         try {
             socket = new DatagramSocket(0);
-            MapResponseCreator creator = new MapResponseCreator(req);
             
             for (int i = 1; i <= sendAttempts; i++) {
-                MapPcpResponse response = performRequest(socket, sendBuffer, recvBuffer, i, creator);
+                T response = attemptRequest(socket, sendBuffer, recvBuffer, i, creator);
                 if (response != null) {
                     return response;
                 }
@@ -60,7 +76,7 @@ public final class PcpController {
         throw new NoResponseException();
     }
     
-    private <T extends PcpResponse> T performRequest(DatagramSocket socket, ByteBuffer sendBuffer, ByteBuffer recvBuffer, int attempt,
+    private <T extends PcpResponse> T attemptRequest(DatagramSocket socket, ByteBuffer sendBuffer, ByteBuffer recvBuffer, int attempt,
             Creator<T> creator) throws IOException {
         
         DatagramPacket request = new DatagramPacket(sendBuffer.array(), sendBuffer.limit(), gatewayAddress, 5351);
@@ -118,13 +134,14 @@ public final class PcpController {
         }
 
         @Override
-        public MapPcpResponse create(ByteBuffer response) {
+        public MapPcpResponse create(ByteBuffer recvBuffer) {
             try {
-                MapPcpResponse pcpResponse = new MapPcpResponse(response);
+                MapPcpResponse response = new MapPcpResponse(recvBuffer);
                 
-                if (pcpResponse.getMappingNonce().equals(request.getMappingNonce()) ||
-                       pcpResponse.getProtocol() == request.getProtocol()) {
-                    return pcpResponse;
+                if (response.getMappingNonce().equals(request.getMappingNonce()) &&
+                        response.getProtocol() == request.getProtocol() &&
+                        response.getInternalPort() == request.getInternalPort()) {
+                    return response;
                 }
             } catch (Exception e) { // NOPMD
                 // do nothing
@@ -132,6 +149,32 @@ public final class PcpController {
             
             return null;
         }
+    }
+    
+    private static final class PeerResponseCreator implements Creator<PeerPcpResponse> {
+        private PeerPcpRequest request;
         
+        public PeerResponseCreator(PeerPcpRequest request) {
+            Validate.notNull(request);
+            this.request = request;
+        }
+
+        @Override
+        public PeerPcpResponse create(ByteBuffer recvBuffer) {
+            try {
+                PeerPcpResponse response = new PeerPcpResponse(recvBuffer);
+                
+                if (response.getMappingNonce().equals(request.getMappingNonce()) &&
+                        response.getProtocol() == request.getProtocol() &&
+                        response.getRemotePeerPort() == request.getRemotePeerPort() &&
+                        response.getRemotePeerIpAddress().equals(request.getRemotePeerIpAddress())) {
+                    return response;
+                }
+            } catch (Exception e) { // NOPMD
+                // do nothing
+            }
+            
+            return null;
+        }
     }
 }

@@ -42,7 +42,7 @@ public class MapPcpRequest extends PcpRequest {
         
         dst.putShort((short) internalPort);
         dst.putShort((short) suggestedExternalPort);
-        dst.put(PcpUtils.convertToIpv6(suggestedExternalIpAddress).getAddress());
+        dst.put(PcpUtils.convertToIpv6Array(suggestedExternalIpAddress));
     }
 
     public ByteBuffer getMappingNonce() {

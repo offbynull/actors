@@ -29,7 +29,7 @@ public final class ThirdPartyPcpOption extends PcpOption {
     private static ByteBuffer toDataSection(InetAddress address) {
         Validate.notNull(address);
         ByteBuffer buffer = ByteBuffer.allocate(16);
-        buffer.put(PcpUtils.convertToIpv6(address).getAddress());
+        buffer.put(PcpUtils.convertToIpv6Array(address));
         
         return buffer;
     }

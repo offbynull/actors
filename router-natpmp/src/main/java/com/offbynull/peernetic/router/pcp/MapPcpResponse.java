@@ -16,15 +16,9 @@ public final class MapPcpResponse extends PcpResponse {
         super(buffer);
         
         Validate.isTrue(super.getOp() == 1);
-        
-        Validate.inclusiveBetween(0, 255, protocol);
-        Validate.inclusiveBetween(0, 65535, internalPort);
-        Validate.inclusiveBetween(0, 65535, assignedExternalPort);
-        Validate.notNull(assignedExternalIpAddress);
 
         mappingNonce = ByteBuffer.allocate(12);
-        mappingNonce.put(buffer);
-        mappingNonce.flip();
+        buffer.get(mappingNonce.array());
         mappingNonce = mappingNonce.asReadOnlyBuffer();
         this.protocol = buffer.get() & 0xFF;
         
@@ -36,14 +30,17 @@ public final class MapPcpResponse extends PcpResponse {
         this.assignedExternalPort = buffer.getShort() & 0xFFFF;
         byte[] addrArr = new byte[16];
         buffer.get(addrArr);
-        InetAddress addr;
         try {
-            addr = InetAddress.getByAddress(addrArr);
+            this.assignedExternalIpAddress = InetAddress.getByAddress(addrArr); // should automatically shift down to ipv4 if ipv4-to-ipv6
+                                                                                // mapped address
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe); // should never happen, will always be 16 bytes
         }
         
-        this.assignedExternalIpAddress = PcpUtils.convertToIpv4IfPossible(addr);
+        Validate.inclusiveBetween(0, 255, protocol);
+        Validate.inclusiveBetween(1, 65535, internalPort);
+        Validate.inclusiveBetween(1, 65535, assignedExternalPort);
+        Validate.notNull(assignedExternalIpAddress);
     }
 
     public ByteBuffer getMappingNonce() {

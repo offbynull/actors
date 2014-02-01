@@ -47,7 +47,7 @@ public final class FilterPcpOption extends PcpOption {
         buffer.put((byte) 0); // reserved
         buffer.put((byte) prefixLength);
         buffer.putShort((short) remotePeerPort);
-        buffer.put(PcpUtils.convertToIpv6(address).getAddress());
+        buffer.put(PcpUtils.convertToIpv6Array(address));
         
         return buffer;
     }

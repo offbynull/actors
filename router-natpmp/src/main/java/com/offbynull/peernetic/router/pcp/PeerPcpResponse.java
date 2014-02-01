@@ -38,13 +38,12 @@ public final class PeerPcpResponse extends PcpResponse {
         this.assignedExternalPort = buffer.getShort() & 0xFFFF;
         byte[] addrArr = new byte[16];
         buffer.get(addrArr);
-        InetAddress addr;
         try {
-            addr = InetAddress.getByAddress(addrArr);
+            this.assignedExternalIpAddress = InetAddress.getByAddress(addrArr); // should automatically shift down to ipv4 if ipv4-to-ipv6
+                                                                                // mapped address
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe); // should never happen, will always be 16 bytes
         }
-        this.assignedExternalIpAddress = PcpUtils.convertToIpv4IfPossible(addr);
         this.remotePeerPort = buffer.getShort() & 0xFFFF;
         
         for (int i = 0; i < 2; i++) { // reserved block
@@ -53,11 +52,11 @@ public final class PeerPcpResponse extends PcpResponse {
         
         buffer.get(addrArr);
         try {
-            addr = InetAddress.getByAddress(addrArr);
+            this.remotePeerIpAddress = InetAddress.getByAddress(addrArr); // should automatically shift down to ipv4 if ipv4-to-ipv6
+                                                                          // mapped address
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe); // should never happen, will always be 16 bytes
         }
-        this.remotePeerIpAddress = PcpUtils.convertToIpv4IfPossible(addr);
     }
 
     public ByteBuffer getMappingNonce() {

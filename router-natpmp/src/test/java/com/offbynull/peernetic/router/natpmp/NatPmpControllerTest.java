@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.router.natpmp;
 
-import com.offbynull.peernetic.router.natpmp.common.PortType;
+import com.offbynull.peernetic.router.common.PortType;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;

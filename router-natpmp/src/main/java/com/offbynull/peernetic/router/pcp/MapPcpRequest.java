@@ -14,8 +14,8 @@ public class MapPcpRequest extends PcpRequest {
     private InetAddress suggestedExternalIpAddress;
 
     public MapPcpRequest(ByteBuffer mappingNonce, int protocol, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, long lifetime) {
-        super(1, lifetime);
+            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) {
+        super(1, lifetime, options);
         
         Validate.notNull(mappingNonce);
         Validate.isTrue(mappingNonce.remaining() == 12);

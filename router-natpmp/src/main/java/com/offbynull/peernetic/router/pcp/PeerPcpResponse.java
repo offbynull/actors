@@ -56,6 +56,8 @@ public final class PeerPcpResponse extends PcpResponse {
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.inclusiveBetween(1, 65535, assignedExternalPort);
         Validate.inclusiveBetween(1, 65535, remotePeerPort);
+        
+        parseOptions(buffer);
     }
 
     public ByteBuffer getMappingNonce() {

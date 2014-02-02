@@ -11,6 +11,7 @@ public final class ThirdPartyPcpOption extends PcpOption {
     
     public ThirdPartyPcpOption(ByteBuffer buffer) {
         super(buffer);
+        Validate.isTrue(super.getCode() == 1);
         Validate.isTrue(buffer.remaining() == 16);
         byte[] addrArr = new byte[16];
         buffer.get(addrArr);

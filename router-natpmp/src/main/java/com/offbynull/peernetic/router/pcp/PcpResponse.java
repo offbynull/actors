@@ -17,12 +17,16 @@
 package com.offbynull.peernetic.router.pcp;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-abstract class PcpResponse {
+public abstract class PcpResponse {
     private int op;
     private long lifetime;
     private long epochTime;
+    private List<PcpOption> options;
     
     PcpResponse(ByteBuffer buffer) {
         Validate.notNull(buffer);
@@ -65,6 +69,8 @@ abstract class PcpResponse {
                 throw new IllegalArgumentException("Reserved space indicates unsuccessful response");
             }
         }
+        
+        options = Collections.emptyList();
     }
 
     public int getOp() {
@@ -78,5 +84,48 @@ abstract class PcpResponse {
     public long getEpochTime() {
         return epochTime;
     }
+
+    public List<PcpOption> getOptions() {
+        return options;
+    }
     
+    // must be called by child classes's constructor
+    protected final void parseOptions(ByteBuffer buffer) {
+        List<PcpOption> pcpOptionsList = new ArrayList<>();
+        while (buffer.hasRemaining()) {
+            PcpOption option;
+
+            try {
+                buffer.mark();
+                option = new FilterPcpOption(buffer);
+                pcpOptionsList.add(option);
+                continue;
+            } catch (IllegalArgumentException iae) {
+                buffer.reset();
+            }
+            
+            try {
+                buffer.mark();
+                option = new PreferFailurePcpOption(buffer.asReadOnlyBuffer());
+                pcpOptionsList.add(option);
+                continue;
+            } catch (IllegalArgumentException iae) {
+                buffer.reset();
+            }
+            
+            try {
+                buffer.mark();
+                option = new ThirdPartyPcpOption(buffer.asReadOnlyBuffer());
+                pcpOptionsList.add(option);
+                continue;
+            } catch (IllegalArgumentException iae) {
+                buffer.reset();
+            }
+            
+            option = new UnknownPcpOption(buffer);
+            pcpOptionsList.add(option);
+        }
+        
+        options = Collections.unmodifiableList(pcpOptionsList);
+    } 
 }

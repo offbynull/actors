@@ -9,5 +9,7 @@ public final class AnnouncePcpResponse extends PcpResponse {
         super(buffer);
         
         Validate.isTrue(super.getOp() == 0);
+        
+        parseOptions(buffer);
     }
 }

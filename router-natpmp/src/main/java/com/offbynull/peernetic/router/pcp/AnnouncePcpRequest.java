@@ -4,8 +4,8 @@ import java.nio.ByteBuffer;
 
 public final class AnnouncePcpRequest extends PcpRequest {
 
-    public AnnouncePcpRequest() {
-        super(0, 0L);
+    public AnnouncePcpRequest(PcpOption ... options) {
+        super(0, 0L, options);
     }
 
     @Override

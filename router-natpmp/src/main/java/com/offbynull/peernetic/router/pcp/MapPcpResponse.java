@@ -40,6 +40,8 @@ public final class MapPcpResponse extends PcpResponse {
         Validate.inclusiveBetween(0, 255, protocol);
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.inclusiveBetween(1, 65535, assignedExternalPort);
+        
+        parseOptions(buffer);
     }
 
     public ByteBuffer getMappingNonce() {

@@ -13,6 +13,8 @@ public final class FilterPcpOption extends PcpOption {
     public FilterPcpOption(ByteBuffer buffer) {
         super(buffer);
         
+        Validate.isTrue(super.getCode() == 3);
+        
         buffer.get(); // reserved
         prefixLength = buffer.get() & 0xFF;
         remotePeerPort = buffer.getShort() & 0xFFFF;

@@ -2,18 +2,25 @@ package com.offbynull.peernetic.router.pcp;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-abstract class PcpRequest {
+public abstract class PcpRequest {
     private int op;
     private long lifetime;
+    private List<PcpOption> options;
 
-    PcpRequest(int op, long lifetime) {
+    PcpRequest(int op, long lifetime, PcpOption ... options) {
         Validate.inclusiveBetween(0, 127, op);
         Validate.inclusiveBetween(0L, 0xFFFFFFFFL, lifetime);
+        Validate.noNullElements(options);
 
         this.op = op;
         this.lifetime = lifetime;
+        this.options = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(options)));
     }
 
     public int getOp() {
@@ -22,6 +29,10 @@ abstract class PcpRequest {
 
     public long getLifetime() {
         return lifetime;
+    }
+
+    public List<PcpOption> getOptions() {
+        return options;
     }
 
     public void dump(ByteBuffer dst, InetAddress selfAddress) {
@@ -57,6 +68,10 @@ abstract class PcpRequest {
         }
         
         dumpOpCodeSpecificInformation(dst);
+
+        for (PcpOption option : options) {
+            option.dump(dst);
+        }
     }
     
     protected abstract void dumpOpCodeSpecificInformation(ByteBuffer dst);

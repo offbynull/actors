@@ -33,7 +33,7 @@ public class MapPcpRequest extends PcpRequest {
     
     @Override
     protected void dumpOpCodeSpecificInformation(ByteBuffer dst) {
-        dst.put(mappingNonce);
+        dst.put(mappingNonce.asReadOnlyBuffer());
         dst.put((byte) protocol);
         
         for (int i = 0; i < 3; i++) { // reserved block

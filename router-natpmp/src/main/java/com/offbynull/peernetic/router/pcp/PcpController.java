@@ -2,6 +2,7 @@ package com.offbynull.peernetic.router.pcp;
 
 import com.offbynull.peernetic.router.common.NoResponseException;
 import com.offbynull.peernetic.router.common.PortType;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -9,27 +10,35 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.util.Random;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class PcpController {
-    private InetAddress gatewayAddress;
-    private InetAddress selfAddress;
-    private int sendAttempts;
-    private Random random;
+public final class PcpController implements Closeable {
+    private final DatagramSocket socket;
+    private final InetAddress gatewayAddress;
+    private final InetAddress selfAddress;
+    private final int sendAttempts;
+    private final Random random;
 
-    public PcpController(InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts) {
+    public PcpController(InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts) throws IOException {
         Validate.notNull(gatewayAddress);
         Validate.notNull(selfAddress);
         Validate.inclusiveBetween(1, 9, sendAttempts);
+        this.socket = new DatagramSocket(0);
         this.gatewayAddress = gatewayAddress;
         this.selfAddress = selfAddress;
         this.sendAttempts = sendAttempts;
         this.random = new Random();
     }
     
+    public AnnouncePcpResponse announce() throws IOException {
+        AnnouncePcpRequest req = new AnnouncePcpRequest();
+        
+        AnnounceResponseCreator creator = new AnnounceResponseCreator();
+        return performRequest(req, creator);
+    }
+    
     public MapPcpResponse createInboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, long lifetime) {
+            InetAddress suggestedExternalIpAddress, long lifetime) throws IOException {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -41,7 +50,7 @@ public final class PcpController {
     }
     
     public PeerPcpResponse createOutboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime) {
+            InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime) throws IOException {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -52,25 +61,18 @@ public final class PcpController {
         return performRequest(req, creator);
     }
 
-    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) {
-        DatagramSocket socket = null;
+    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) throws IOException {
         ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
         ByteBuffer recvBuffer = ByteBuffer.allocate(1100);
             
         request.dump(sendBuffer, selfAddress);
         sendBuffer.flip();
 
-        try {
-            socket = new DatagramSocket(0);
-            
-            for (int i = 1; i <= sendAttempts; i++) {
-                T response = attemptRequest(socket, sendBuffer, recvBuffer, i, creator);
-                if (response != null) {
-                    return response;
-                }
+        for (int i = 1; i <= sendAttempts; i++) {
+            T response = attemptRequest(socket, sendBuffer, recvBuffer, i, creator);
+            if (response != null) {
+                return response;
             }
-        } catch (IOException ex) {
-            IOUtils.closeQuietly(socket);
         }
         
         throw new NoResponseException();
@@ -120,11 +122,34 @@ public final class PcpController {
         
         return pcpResponse;
     }
+
+    @Override
+    public void close() throws IOException {
+        socket.close();
+    }
     
     private interface Creator<T extends PcpResponse> {
         T create(ByteBuffer response);
     }
-    
+
+    private static final class AnnounceResponseCreator implements Creator<AnnouncePcpResponse> {
+        public AnnounceResponseCreator() {
+        }
+
+        @Override
+        public AnnouncePcpResponse create(ByteBuffer recvBuffer) {
+            try {
+                AnnouncePcpResponse response = new AnnouncePcpResponse(recvBuffer);
+                
+                return response;
+            } catch (Exception e) { // NOPMD
+                // do nothing
+            }
+            
+            return null;
+        }
+    }
+
     private static final class MapResponseCreator implements Creator<MapPcpResponse> {
         private MapPcpRequest request;
 

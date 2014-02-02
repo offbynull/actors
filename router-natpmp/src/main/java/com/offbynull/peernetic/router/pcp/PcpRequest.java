@@ -9,7 +9,7 @@ abstract class PcpRequest {
     private long lifetime;
 
     PcpRequest(int op, long lifetime) {
-        Validate.inclusiveBetween(1, 127, op);
+        Validate.inclusiveBetween(0, 127, op);
         Validate.inclusiveBetween(0L, 0xFFFFFFFFL, lifetime);
 
         this.op = op;

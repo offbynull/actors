@@ -23,6 +23,14 @@ public class MapPcpRequest extends PcpRequest {
         Validate.inclusiveBetween(0, 65535, internalPort);
         Validate.inclusiveBetween(0, 65535, suggestedExternalPort);
         Validate.notNull(suggestedExternalIpAddress);
+        
+        if (protocol == 0) {
+            Validate.isTrue(internalPort == 0);
+        }
+        
+        if (internalPort == 0) {
+            Validate.isTrue(super.getLifetime() == 0L);
+        }
 
         this.mappingNonce = ByteBufferUtils.copyContents(mappingNonce).asReadOnlyBuffer();
         this.protocol = protocol;

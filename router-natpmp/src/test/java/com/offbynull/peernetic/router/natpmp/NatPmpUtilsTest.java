@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.router.natpmp;
 
+import com.offbynull.peernetic.router.common.DiscoveryUtils;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +36,7 @@ public class NatPmpUtilsTest {
     @Ignore // ignored because there is no way to test this without a NAT-PMP enabled router with the gateway address 192.168.1.1
     @Test
     public void findGatewayTest() throws Throwable {
-        List<InetAddress> addresses = NatPmpUtils.findGateway();
+        List<InetAddress> addresses = DiscoveryUtils.findGateway();
 
         Assert.assertEquals(Collections.singletonList(InetAddress.getByName("192.168.1.1")), addresses);
     }

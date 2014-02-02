@@ -22,7 +22,7 @@ public class PeerPcpRequest extends PcpRequest {
         
         Validate.notNull(mappingNonce);
         Validate.isTrue(mappingNonce.remaining() == 12);
-        Validate.inclusiveBetween(0, 255, protocol);
+        Validate.inclusiveBetween(1, 255, protocol);
         Validate.inclusiveBetween(1, 65535, internalPort); // must not be 0
         Validate.inclusiveBetween(0, 65535, suggestedExternalPort); // 0 = no preference
         Validate.notNull(suggestedExternalIpAddress);

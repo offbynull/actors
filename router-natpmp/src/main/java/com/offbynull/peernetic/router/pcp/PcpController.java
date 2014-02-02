@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.router.pcp;
 
+import com.offbynull.peernetic.router.common.BadResponseException;
 import com.offbynull.peernetic.router.common.NoResponseException;
 import com.offbynull.peernetic.router.common.PortType;
 import java.io.IOException;
@@ -7,6 +8,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import org.apache.commons.io.IOUtils;
@@ -18,17 +21,18 @@ public final class PcpController {
     private int sendAttempts;
     private Random random;
 
-    public PcpController(InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts) {
+    public PcpController(Random random, InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts) {
+        Validate.notNull(random);
         Validate.notNull(gatewayAddress);
         Validate.notNull(selfAddress);
         Validate.inclusiveBetween(1, 9, sendAttempts);
         this.gatewayAddress = gatewayAddress;
         this.selfAddress = selfAddress;
         this.sendAttempts = sendAttempts;
-        this.random = new Random();
+        this.random = random;
     }
     
-    public AnnouncePcpResponse announce() {
+    public AnnouncePcpResponse announce() throws IOException {
         AnnouncePcpRequest req = new AnnouncePcpRequest();
         
         AnnounceResponseCreator creator = new AnnounceResponseCreator();
@@ -36,7 +40,7 @@ public final class PcpController {
     }
     
     public MapPcpResponse createInboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) {
+            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) throws IOException {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -49,7 +53,7 @@ public final class PcpController {
     
     public PeerPcpResponse createOutboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
             InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime,
-            PcpOption ... options) {
+            PcpOption ... options) throws IOException {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -60,7 +64,7 @@ public final class PcpController {
         return performRequest(req, creator);
     }
 
-    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) {
+    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) throws IOException {
         DatagramSocket socket = null;
         ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
         ByteBuffer recvBuffer = ByteBuffer.allocate(1100);
@@ -77,7 +81,7 @@ public final class PcpController {
                     return response;
                 }
             }
-        } catch (IOException ex) {
+        } finally {
             IOUtils.closeQuietly(socket);
         }
         
@@ -107,6 +111,7 @@ public final class PcpController {
             
             socket.setSoTimeout((int) waitTime);
 
+            recvBuffer.clear();
             DatagramPacket response = new DatagramPacket(recvBuffer.array(), recvBuffer.capacity());
             try {
                 socket.receive(response);
@@ -139,15 +144,14 @@ public final class PcpController {
 
         @Override
         public AnnouncePcpResponse create(ByteBuffer recvBuffer) {
+            AnnouncePcpResponse response;
             try {
-                AnnouncePcpResponse response = new AnnouncePcpResponse(recvBuffer);
-                
-                return response;
-            } catch (Exception e) { // NOPMD
-                // do nothing
+                response = new AnnouncePcpResponse(recvBuffer);
+            } catch (BufferUnderflowException | BufferOverflowException | IllegalArgumentException e) {
+                throw new BadResponseException(e);
             }
-            
-            return null;
+
+            return response;
         }
     }
 
@@ -161,16 +165,17 @@ public final class PcpController {
 
         @Override
         public MapPcpResponse create(ByteBuffer recvBuffer) {
+            MapPcpResponse response;
             try {
-                MapPcpResponse response = new MapPcpResponse(recvBuffer);
-                
-                if (response.getMappingNonce().equals(request.getMappingNonce()) &&
-                        response.getProtocol() == request.getProtocol() &&
-                        response.getInternalPort() == request.getInternalPort()) {
-                    return response;
-                }
-            } catch (Exception e) { // NOPMD
-                // do nothing
+                response = new MapPcpResponse(recvBuffer);
+            } catch (BufferUnderflowException | BufferOverflowException | IllegalArgumentException e) {
+                throw new BadResponseException(e);
+            }
+            
+            if (response.getMappingNonce().equals(request.getMappingNonce())
+                    && response.getProtocol() == request.getProtocol()
+                    && response.getInternalPort() == request.getInternalPort()) {
+                return response;
             }
             
             return null;
@@ -187,17 +192,18 @@ public final class PcpController {
 
         @Override
         public PeerPcpResponse create(ByteBuffer recvBuffer) {
+            PeerPcpResponse response;
             try {
-                PeerPcpResponse response = new PeerPcpResponse(recvBuffer);
-                
-                if (response.getMappingNonce().equals(request.getMappingNonce()) &&
-                        response.getProtocol() == request.getProtocol() &&
-                        response.getRemotePeerPort() == request.getRemotePeerPort() &&
-                        response.getRemotePeerIpAddress().equals(request.getRemotePeerIpAddress())) {
-                    return response;
-                }
-            } catch (Exception e) { // NOPMD
-                // do nothing
+                response = new PeerPcpResponse(recvBuffer);
+            } catch (BufferUnderflowException | BufferOverflowException | IllegalArgumentException e) {
+                throw new BadResponseException(e);
+            }
+
+            if (response.getMappingNonce().equals(request.getMappingNonce())
+                    && response.getProtocol() == request.getProtocol()
+                    && response.getRemotePeerPort() == request.getRemotePeerPort()
+                    && response.getRemotePeerIpAddress().equals(request.getRemotePeerIpAddress())) {
+                return response;
             }
             
             return null;

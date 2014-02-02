@@ -14,10 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.natpmp;
+package com.offbynull.peernetic.router.common;
 
 import com.offbynull.peernetic.common.utils.ProcessUtils;
 import com.offbynull.peernetic.common.utils.RegexUtils;
+import com.offbynull.peernetic.router.natpmp.NatPmpController;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Arrays;
@@ -34,15 +35,15 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Utilities for NAT-PMP.
+ * Utilities for discovering gateways/routers. Used for NAT-PMP and PCP.
  * @author Kasra Faghihi
  */
-public final class NatPmpUtils {
+public final class DiscoveryUtils {
     /**
      * IPs grabbed from http://www.techspot.com/guides/287-default-router-ip-addresses/ + comments @ 1/19/2014.
      */
     @SuppressWarnings("PMD")
-    private static final Set<String> PRESET_IPS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+    private static final Set<String> PRESET_IPV4_GATEWAY_ADDRESSES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
         "192.168.1.1", // 3Com
         "10.0.1.1", // Apple
         "192.168.1.1", "192.168.1.220", // Asus
@@ -65,7 +66,7 @@ public final class NatPmpUtils {
         "192.168.1.1", "192.168.2.1", "192.168.4.1", "192.168.10.1", "192.168.1.254", "10.0.0.2", "10.0.0.138" // Zyxel
     )));
     
-    private NatPmpUtils() {
+    private DiscoveryUtils() {
         // do nothing
     }
 
@@ -92,7 +93,7 @@ public final class NatPmpUtils {
         
         
         // Push in defaults
-        addresses.addAll(PRESET_IPS);
+        addresses.addAll(PRESET_IPV4_GATEWAY_ADDRESSES);
         
         
         // Send requests

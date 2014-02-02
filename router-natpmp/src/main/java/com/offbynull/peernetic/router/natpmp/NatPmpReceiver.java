@@ -19,6 +19,7 @@ package com.offbynull.peernetic.router.natpmp;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
@@ -41,7 +42,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class NatPmpReceiver {
     private InetAddress gatewayAddress;
-    private AtomicReference<Thread> currentThread = new AtomicReference<>();
+    private AtomicReference<MulticastSocket> currentSocket = new AtomicReference<>();
 
     /**
      * Construct a {@link NatPmpReceiver} object.
@@ -62,10 +63,6 @@ public final class NatPmpReceiver {
      */
     public void start(NatPmpEventListener listener) throws IOException {
         Validate.notNull(listener);
-        
-        if (!currentThread.compareAndSet(null, Thread.currentThread())) {
-            throw new IllegalStateException("Already running");
-        }
 
         MulticastSocket socket = null;
         try {
@@ -74,6 +71,12 @@ public final class NatPmpReceiver {
             final InetSocketAddress groupAddress = new InetSocketAddress(group, port);
 
             socket = new MulticastSocket(port);
+            
+            if (!currentSocket.compareAndSet(null, socket)) {
+                IOUtils.closeQuietly(socket);
+                return;
+            }
+            
             socket.setReuseAddress(true);
             
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -81,9 +84,14 @@ public final class NatPmpReceiver {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
                 while (addrs.hasMoreElements()) { // make sure atleast 1 ipv4 addr bound to interface
-                    if (addrs.nextElement() instanceof Inet4Address) {
-                        socket.joinGroup(groupAddress, networkInterface);
-                        break;
+                    InetAddress addr = addrs.nextElement();
+                    
+                    try {
+                        if (addr instanceof Inet4Address) {
+                            socket.joinGroup(groupAddress, networkInterface);
+                        }
+                    } catch (IOException ioe) { // occurs with certain interfaces
+                        // do nothing
                     }
                 }
             }
@@ -127,14 +135,14 @@ public final class NatPmpReceiver {
             }
 
         } catch (IOException ioe) {
-            if (currentThread.get() == null) {
+            if (currentSocket.get() == null) {
                 return; // ioexception caused by interruption/stop, so just return without propogating error up
             }
             
             throw ioe;
         } finally {
             IOUtils.closeQuietly(socket);
-            currentThread.set(null);
+            currentSocket.set(null);
         }
     }
     
@@ -142,9 +150,9 @@ public final class NatPmpReceiver {
      * Stop listening.
      */
     public void stop() {
-        Thread oldThread = currentThread.getAndSet(null);
-        if (oldThread != null) {
-            oldThread.interrupt();
+        MulticastSocket socket = currentSocket.getAndSet(null);
+        if (socket != null) {
+            IOUtils.closeQuietly(socket);
         }
     }
 }

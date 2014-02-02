@@ -19,6 +19,7 @@ package com.offbynull.peernetic.router.pcp;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
@@ -31,7 +32,7 @@ import org.apache.commons.lang3.Validate;
 
 public final class PcpReceiver {
     private InetAddress gatewayAddress;
-    private AtomicReference<Thread> currentThread = new AtomicReference<>();
+    private AtomicReference<MulticastSocket> currentSocket = new AtomicReference<>();
 
     public PcpReceiver(InetAddress gatewayAddress) {
         Validate.notNull(gatewayAddress);
@@ -41,18 +42,22 @@ public final class PcpReceiver {
     
     public void start(PcpEventListener listener) throws IOException {
         Validate.notNull(listener);
-        
-        if (!currentThread.compareAndSet(null, Thread.currentThread())) {
-            throw new IllegalStateException("Already running");
-        }
 
         MulticastSocket socket = null;
         try {
-            final InetAddress group = InetAddress.getByName("224.0.0.1"); // NOPMD
+            final InetAddress ipv4Group = InetAddress.getByName("224.0.0.1"); // NOPMD
+            final InetAddress ipv6Group = InetAddress.getByName("ff02::1"); // NOPMD
             final int port = 5350;
-            final InetSocketAddress groupAddress = new InetSocketAddress(group, port);
+            final InetSocketAddress ipv4GroupAddress = new InetSocketAddress(ipv4Group, port);
+            final InetSocketAddress ipv6GroupAddress = new InetSocketAddress(ipv6Group, port);
 
             socket = new MulticastSocket(port);
+            
+            if (!currentSocket.compareAndSet(null, socket)) {
+                IOUtils.closeQuietly(socket);
+                return;
+            }
+            
             socket.setReuseAddress(true);
             
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -60,9 +65,16 @@ public final class PcpReceiver {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
                 while (addrs.hasMoreElements()) { // make sure atleast 1 ipv4 addr bound to interface
-                    if (addrs.nextElement() instanceof Inet4Address) {
-                        socket.joinGroup(groupAddress, networkInterface);
-                        break;
+                    InetAddress addr = addrs.nextElement();
+                    
+                    try {
+                        if (addr instanceof Inet4Address) {
+                            socket.joinGroup(ipv4GroupAddress, networkInterface);
+                        } else if (addr instanceof Inet6Address) {
+                            socket.joinGroup(ipv6GroupAddress, networkInterface);
+                        }
+                    } catch (IOException ioe) { // occurs with certain interfaces
+                        // do nothing
                     }
                 }
             }
@@ -73,8 +85,7 @@ public final class PcpReceiver {
             while (true) {
                 buffer.clear();
                 socket.receive(data);
-                buffer.position(data.getLength());
-                buffer.flip();
+                buffer.limit(data.getLength());
                 
                 if (!data.getAddress().equals(gatewayAddress)) { // data isn't from our gateway, ignore
                     continue;
@@ -90,14 +101,14 @@ public final class PcpReceiver {
                 listener.incomingEvent(response);
             }
         } catch (IOException ioe) {
-            if (currentThread.get() == null) {
-                return; // ioexception caused by interruption/stop, so just return without propogating error up
+            if (currentSocket.get() == null) {
+                return; // caused by stop();
             }
             
             throw ioe;
         } finally {
             IOUtils.closeQuietly(socket);
-            currentThread.set(null);
+            currentSocket.set(null);
         }
     }
     
@@ -105,9 +116,9 @@ public final class PcpReceiver {
      * Stop listening.
      */
     public void stop() {
-        Thread oldThread = currentThread.getAndSet(null);
-        if (oldThread != null) {
-            oldThread.interrupt();
+        MulticastSocket socket = currentSocket.getAndSet(null);
+        if (socket != null) {
+            IOUtils.closeQuietly(socket);
         }
     }
 }

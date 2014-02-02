@@ -95,7 +95,7 @@ public abstract class PcpResponse {
             
             try {
                 buffer.mark();
-                option = new PreferFailurePcpOption(buffer.asReadOnlyBuffer());
+                option = new PreferFailurePcpOption(buffer);
                 pcpOptionsList.add(option);
                 continue;
             } catch (IllegalArgumentException iae) {
@@ -104,7 +104,7 @@ public abstract class PcpResponse {
             
             try {
                 buffer.mark();
-                option = new ThirdPartyPcpOption(buffer.asReadOnlyBuffer());
+                option = new ThirdPartyPcpOption(buffer);
                 pcpOptionsList.add(option);
                 continue;
             } catch (IllegalArgumentException iae) {

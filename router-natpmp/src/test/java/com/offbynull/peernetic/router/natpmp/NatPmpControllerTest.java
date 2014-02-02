@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.router.natpmp;
 
-import com.offbynull.peernetic.router.testtools.UdpTestHelper;
+import com.offbynull.peernetic.router.testtools.UdpServerEmulator;
 import com.offbynull.peernetic.router.common.PortType;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -14,7 +14,7 @@ import org.junit.Test;
 
 public class NatPmpControllerTest {
 
-    private UdpTestHelper helper;
+    private UdpServerEmulator helper;
 
     @BeforeClass
     public static void setUpClass() {
@@ -26,7 +26,7 @@ public class NatPmpControllerTest {
 
     @Before
     public void setUp() throws Throwable {
-        helper = UdpTestHelper.create(5351);
+        helper = UdpServerEmulator.create(5351);
     }
 
     @After

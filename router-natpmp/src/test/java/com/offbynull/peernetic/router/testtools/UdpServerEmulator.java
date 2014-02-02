@@ -10,11 +10,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class UdpTestHelper implements Closeable {
+public final class UdpServerEmulator implements Closeable {
     public DatagramSocket socket;
     public Map<ByteBuffer, ByteBuffer> requestResponseMap;
     
-    private UdpTestHelper(int port) throws IOException {
+    private UdpServerEmulator(int port) throws IOException {
         socket = new DatagramSocket(port);
         requestResponseMap = Collections.synchronizedMap(new HashMap<ByteBuffer, ByteBuffer>());
     }
@@ -25,8 +25,8 @@ public final class UdpTestHelper implements Closeable {
                 ByteBufferUtils.copyContents(response).asReadOnlyBuffer());
     }
     
-    public static UdpTestHelper create(int port) throws IOException {
-        final UdpTestHelper helper = new UdpTestHelper(port);
+    public static UdpServerEmulator create(int port) throws IOException {
+        final UdpServerEmulator helper = new UdpServerEmulator(port);
         
         Thread thread = new Thread(new Runnable() {
 

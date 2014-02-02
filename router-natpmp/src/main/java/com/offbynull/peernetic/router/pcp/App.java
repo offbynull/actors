@@ -14,11 +14,16 @@ public class App {
 //        System.out.println(address);
 
         PcpController controller = new PcpController(new Random(), InetAddress.getByName("192.168.25.129"), InetAddress.getByName("192.168.25.1"), 4);
-        MapPcpResponse response;
-
-        response = controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
-        response = controller.createInboundMapping(PortType.TCP, 12345, 12346, InetAddress.getByName("192.168.10.129"), 100,
-                new PreferFailurePcpOption());
+        PeerPcpResponse response;
+        
+        response = controller.createOutboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
+//        MapPcpResponse response;
+//
+//        response = controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
+//        response = controller.createInboundMapping(PortType.TCP, 12345, 12346, InetAddress.getByName("192.168.10.129"), 100,
+//                new PreferFailurePcpOption());
+        
+        
 //        AnnouncePcpResponse response = controller.announce();
 //        MapPcpResponse response = controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
 //        PeerPcpResponse response = controller.createOutboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.25.1"),

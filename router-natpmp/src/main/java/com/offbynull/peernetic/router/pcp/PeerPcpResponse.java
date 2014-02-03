@@ -25,7 +25,7 @@ public final class PeerPcpResponse extends PcpResponse {
         this.protocol = buffer.get() & 0xFF;
         
         for (int i = 0; i < 3; i++) { // reserved block
-            buffer.put((byte) 0);
+            buffer.get();
         }
         
         this.internalPort = buffer.getShort() & 0xFFFF;
@@ -41,7 +41,7 @@ public final class PeerPcpResponse extends PcpResponse {
         this.remotePeerPort = buffer.getShort() & 0xFFFF;
         
         for (int i = 0; i < 2; i++) { // reserved block
-            buffer.put((byte) 0);
+            buffer.get();
         }
         
         buffer.get(addrArr);

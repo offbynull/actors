@@ -23,7 +23,7 @@ public final class MapPcpResponse extends PcpResponse {
         this.protocol = buffer.get() & 0xFF;
         
         for (int i = 0; i < 3; i++) { // reserved block
-            buffer.put((byte) 0);
+            buffer.get();
         }
         
         this.internalPort = buffer.getShort() & 0xFFFF;

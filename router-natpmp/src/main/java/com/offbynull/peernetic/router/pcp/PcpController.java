@@ -3,36 +3,42 @@ package com.offbynull.peernetic.router.pcp;
 import com.offbynull.peernetic.router.common.BadResponseException;
 import com.offbynull.peernetic.router.common.NoResponseException;
 import com.offbynull.peernetic.router.common.PortType;
+import java.io.Closeable;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketTimeoutException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Random;
-import org.apache.commons.io.IOUtils;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
-public final class PcpController {
-    private InetAddress gatewayAddress;
+public final class PcpController implements Closeable {
+    private PcpCommunicator communicator;
     private InetAddress selfAddress;
     private int sendAttempts;
     private Random random;
 
-    public PcpController(Random random, InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts) {
+    public PcpController(Random random, InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts,
+            PcpResponseListener unsolicitedListener) {
         Validate.notNull(random);
         Validate.notNull(gatewayAddress);
         Validate.notNull(selfAddress);
         Validate.inclusiveBetween(1, 9, sendAttempts);
-        this.gatewayAddress = gatewayAddress;
+        this.communicator = new PcpCommunicator(gatewayAddress);
         this.selfAddress = selfAddress;
         this.sendAttempts = sendAttempts;
         this.random = random;
+        
+        this.communicator.startAsync().awaitRunning();
+        
+        if (unsolicitedListener != null) {
+            this.communicator.addListener(unsolicitedListener);
+        }
     }
     
-    public AnnouncePcpResponse announce() throws IOException {
+    public AnnouncePcpResponse announce() throws IOException, InterruptedException {
         AnnouncePcpRequest req = new AnnouncePcpRequest();
         
         AnnounceResponseCreator creator = new AnnounceResponseCreator();
@@ -40,7 +46,7 @@ public final class PcpController {
     }
     
     public MapPcpResponse createInboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) throws IOException {
+            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) throws IOException, InterruptedException {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -53,7 +59,7 @@ public final class PcpController {
     
     public PeerPcpResponse createOutboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
             InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime,
-            PcpOption ... options) throws IOException {
+            PcpOption ... options) throws IOException, InterruptedException {
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -64,35 +70,41 @@ public final class PcpController {
         return performRequest(req, creator);
     }
 
-    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) throws IOException {
-        DatagramSocket socket = null;
+    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) throws IOException, InterruptedException {
         ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
-        ByteBuffer recvBuffer = ByteBuffer.allocate(1100);
             
         request.dump(sendBuffer, selfAddress);
         sendBuffer.flip();
-
-        try {
-            socket = new DatagramSocket(0);
-            
-            for (int i = 1; i <= sendAttempts; i++) {
-                T response = attemptRequest(socket, sendBuffer, recvBuffer, i, creator);
-                if (response != null) {
-                    return response;
-                }
+        
+        for (int i = 1; i <= sendAttempts; i++) {
+            T response = attemptRequest(sendBuffer, i, creator);
+            if (response != null) {
+                return response;
             }
-        } finally {
-            IOUtils.closeQuietly(socket);
         }
         
         throw new NoResponseException();
     }
     
-    private <T extends PcpResponse> T attemptRequest(DatagramSocket socket, ByteBuffer sendBuffer, ByteBuffer recvBuffer, int attempt,
-            Creator<T> creator) throws IOException {
+    private <T extends PcpResponse> T attemptRequest(ByteBuffer sendBuffer, int attempt, Creator<T> creator)
+            throws IOException, InterruptedException {
         
-        DatagramPacket request = new DatagramPacket(sendBuffer.array(), sendBuffer.limit(), gatewayAddress, 5351);
-        socket.send(request);
+        final LinkedBlockingQueue<ByteBuffer> recvBufferQueue = new LinkedBlockingQueue<>();
+        
+        PcpResponseListener listener = new PcpResponseListener() {
+
+            @Override
+            public void incomingPacket(CommunicationType type, ByteBuffer packet) {
+                if (type != CommunicationType.UNICAST) {
+                    return;
+                }
+                
+                recvBufferQueue.add(packet);
+            }
+        };
+        communicator.addListener(listener);
+        communicator.send(sendBuffer);
+
         
         // timeout duration should double each iteration, starting from 250 according to spec
         // i = 1, maxWaitTime = (1 << (1-1)) * 250 = (1 << 0) * 250 = 1 * 250 = 250
@@ -100,38 +112,39 @@ public final class PcpController {
         // i = 3, maxWaitTime = (1 << (3-1)) * 250 = (1 << 2) * 250 = 4 * 250 = 1000
         // i = 4, maxWaitTime = (1 << (4-1)) * 250 = (1 << 3) * 250 = 8 * 250 = 2000
         // ...
-        int maxWaitTime = (1 << (attempt - 1)) * 250; // NOPMD
-        
-        T pcpResponse = null;
-        
-        long endTime = System.currentTimeMillis() + maxWaitTime;
-        long waitTime;
-        while ((waitTime = endTime - System.currentTimeMillis()) > 0L) {
-            waitTime = Math.max(waitTime, 0L); // must be at least 0, probably should never happen
-            
-            socket.setSoTimeout((int) waitTime);
+        try {
+            int maxWaitTime = (1 << (attempt - 1)) * 250; // NOPMD
 
-            recvBuffer.clear();
-            DatagramPacket response = new DatagramPacket(recvBuffer.array(), recvBuffer.capacity());
-            try {
-                socket.receive(response);
-            } catch (SocketTimeoutException ste) {
-                break;
+            T pcpResponse = null;
+
+            long endTime = System.currentTimeMillis() + maxWaitTime;
+            long waitTime;
+            while ((waitTime = endTime - System.currentTimeMillis()) > 0L) {
+                waitTime = Math.max(waitTime, 0L); // must be at least 0, probably should never happen
+
+                ByteBuffer recvBuffer = recvBufferQueue.poll(waitTime, TimeUnit.MILLISECONDS);
+
+                if (recvBuffer != null) {
+                    pcpResponse = creator.create(recvBuffer);
+                    if (pcpResponse != null) {
+                        break;
+                    }
+                }
             }
 
-            if (!response.getAddress().equals(gatewayAddress)) { // data isn't from our gateway, ignore
-                continue;
-            }
-            
-            recvBuffer.limit(response.getLength());
-            
-            pcpResponse = creator.create(recvBuffer);
-            if (pcpResponse != null) {
-                break;
-            }
+            return pcpResponse;
+        } finally {
+            communicator.removeListener(listener);
         }
-        
-        return pcpResponse;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            communicator.stopAsync().awaitTerminated();
+        } catch (IllegalStateException iae) {
+            throw new IOException(iae);
+        }
     }
     
     private interface Creator<T extends PcpResponse> {

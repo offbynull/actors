@@ -24,15 +24,17 @@ public final class PcpPortMapper extends PortMapper {
     private PcpController controller;
     private Timer timer;
     private Lock lock;
-    private Map<ImmutablePair<PortType, Integer>, RefreshTask> openPorts; // used to refresh mappings periodically
+    private Map<ImmutablePair<PortType, Integer>, RefreshTask> refreshTasks; // used to refresh mappings periodically
+    private Map<ImmutablePair<PortType, Integer>, NotifyDeathTask> deathTasks; // used to notify when mappings haven't been refreshed
 
     public PcpPortMapper(InetAddress gatewayAddress, InetAddress selfAddress, PortMapperEventListener listener) {
         super(listener);
         
         random = new Random();
         controller = new PcpController(random, gatewayAddress, selfAddress, new CustomPcpControllerListener());
-        timer = new Timer("PCP Client Refresh Timer", true);
-        openPorts = new HashMap<>();
+        timer = new Timer("PCP Client Timer", true);
+        refreshTasks = new HashMap<>();
+        deathTasks = new HashMap<>();
         lock = new ReentrantLock();
     }
     
@@ -60,8 +62,14 @@ public final class PcpPortMapper extends PortMapper {
             
             lock.lock();
             try {
+                ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portType, mappedPort.getInternalPort());
+                
+                NotifyDeathTask notifyDeathTask = new NotifyDeathTask(mappedPort);
+                deathTasks.put(key, notifyDeathTask);
+                timer.schedule(notifyDeathTask, actualLifetime);
+                
                 RefreshTask refreshTask = new RefreshTask(mappedPort);
-                openPorts.put(new ImmutablePair<>(portType, mappedPort.getInternalPort()), refreshTask);
+                refreshTasks.put(key, refreshTask);
                 timer.schedule(refreshTask, random.nextInt((int) (actualLifetime / 4L)));
             } finally {
                 lock.unlock();
@@ -89,8 +97,9 @@ public final class PcpPortMapper extends PortMapper {
 
             lock.lock();
             try {
-                TimerTask task = openPorts.remove(new ImmutablePair<>(portType, internalPort));
-                task.cancel();
+                ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portType, internalPort);
+                refreshTasks.remove(key).cancel();
+                deathTasks.remove(key).cancel();
             } finally {
                 lock.unlock();
             }
@@ -106,6 +115,33 @@ public final class PcpPortMapper extends PortMapper {
         controller.close();
     }
     
+    private class NotifyDeathTask extends TimerTask {
+        
+        private MappedPort portDetails;
+
+        public NotifyDeathTask(MappedPort portDetails) {
+            Validate.notNull(portDetails);
+            this.portDetails = portDetails;
+        }
+
+        @Override
+        public void run() {
+            lock.lock();
+            try {
+                ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portDetails.getPortType(), portDetails.getInternalPort());
+                refreshTasks.remove(key).cancel();
+                deathTasks.remove(key).cancel();
+                
+                timer.cancel();
+                timer.purge();
+            } finally {
+                lock.unlock();
+            }
+
+            getListener().needRestart("Unable to refresh portmapping: " + portDetails);
+        }
+    }
+
     private class RefreshTask extends TimerTask {
 
         private MappedPort portDetails;
@@ -117,6 +153,7 @@ public final class PcpPortMapper extends PortMapper {
         
         @Override
         public void run() {
+            // trigger restart
             controller.requestMapOperationAsync(portDetails.getPortType(),
                     portDetails.getInternalPort(),
                     portDetails.getExternalPort(),
@@ -158,7 +195,12 @@ public final class PcpPortMapper extends PortMapper {
                 MappedPort oldPortDetails;
                 lock.lock();
                 try {
-                    RefreshTask task = openPorts.get(new ImmutablePair<>(portType, mapPcpResponse.getInternalPort()));
+                    RefreshTask task = refreshTasks.get(new ImmutablePair<>(portType, mapPcpResponse.getInternalPort()));
+                    
+                    if (task == null) {
+                        return;
+                    }
+                    
                     oldPortDetails = task.getPortDetails();
                 } finally {
                     lock.unlock();
@@ -172,6 +214,31 @@ public final class PcpPortMapper extends PortMapper {
                     } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
+                }
+                
+                // reset tasks
+                int newLifetime = (int) Math.max(Integer.MAX_VALUE, mapPcpResponse.getLifetime());
+                
+                lock.lock();
+                try {
+                    ImmutablePair<PortType, Integer> oldKey = new ImmutablePair<>(oldPortDetails.getPortType(),
+                            oldPortDetails.getInternalPort());
+                    deathTasks.remove(oldKey).cancel();
+                    refreshTasks.remove(oldKey).cancel();
+
+                    
+                    ImmutablePair<PortType, Integer> newKey = new ImmutablePair<>(newPortDetails.getPortType(),
+                            newPortDetails.getInternalPort());
+
+                    NotifyDeathTask notifyDeathTask = new NotifyDeathTask(newPortDetails);
+                    deathTasks.put(newKey, notifyDeathTask);
+                    timer.schedule(notifyDeathTask, newLifetime);
+
+                    RefreshTask refreshTask = new RefreshTask(newPortDetails);
+                    refreshTasks.put(newKey, refreshTask);
+                    timer.schedule(refreshTask, random.nextInt((int) (newLifetime / 4L)));
+                } finally {
+                    lock.unlock();
                 }
             }
         }

@@ -60,6 +60,9 @@ public final class PcpPortMapper extends PortMapper {
                 throw new PortMapException("Server returned 0 lifetime");
             }
             
+            long epochTime = response.getEpochTime();
+            refreshExistingMappingsIfRequired(epochTime);
+            
             lock.lock();
             try {
                 ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portType, mappedPort.getInternalPort());
@@ -107,7 +110,11 @@ public final class PcpPortMapper extends PortMapper {
             // do nothing
         }
     }
-
+    
+    private void refreshExistingMappingsIfRequired(long epoch) {
+        IMPLEMENT ME; // see section 8.5
+    }
+    
     @Override
     public void close() throws IOException {
         timer.cancel();

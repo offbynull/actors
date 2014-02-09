@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.router.pcp;
 
 import com.offbynull.peernetic.router.PortMapper;
@@ -22,6 +38,10 @@ import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A PCP {@link PortMapper} implementation.
+ * @author Kasra Faghihi
+ */
 public final class PcpPortMapper extends PortMapper {
     private static final int ATTEMPTS = 4;
     
@@ -34,6 +54,13 @@ public final class PcpPortMapper extends PortMapper {
     private Map<TaskKey, RefreshTask> refreshTasks; // used to refresh mappings periodically
     private Map<TaskKey, NotifyRefreshFailedTask> deathTasks; // used to notify when mappings haven't been refreshed
 
+    /**
+     * Constructs a {@link PcpPortMapper} object.
+     * @param gatewayAddress address of router/gateway
+     * @param selfAddress address of the interface that can talk to the router/gateway
+     * @param listener event listener
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     public PcpPortMapper(InetAddress gatewayAddress, InetAddress selfAddress, PortMapperEventListener listener) {
         super(listener);
         
@@ -101,8 +128,8 @@ public final class PcpPortMapper extends PortMapper {
 //                throw new PortMapException("Port not being handled");
 //            }
             
-            controller.requestMapOperationAsync(portType, internalPort, 0, anyExternalAddr, 0);
             removeMappings(portType, internalPort);
+            controller.requestMapOperationAsync(portType, internalPort, 0, anyExternalAddr, 0);
         } catch (IllegalArgumentException | BufferUnderflowException e) {
             throw new PortMapException(e);
         } finally {
@@ -318,7 +345,12 @@ public final class PcpPortMapper extends PortMapper {
         @Override
         public void incomingResponse(CommunicationType type, PcpResponse response) {
             if (response instanceof AnnouncePcpResponse) {
-                
+                lock.lock();
+                try {
+                    
+                } finally {
+                    lock.unlock();
+                }
             } else if (response instanceof MapPcpResponse) {
                 // construct new port details object
                 MapPcpResponse mapPcpResponse = (MapPcpResponse) response;

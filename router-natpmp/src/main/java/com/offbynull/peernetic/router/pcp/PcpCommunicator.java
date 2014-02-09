@@ -18,7 +18,6 @@ package com.offbynull.peernetic.router.pcp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
-import com.offbynull.peernetic.router.pcp.CommunicationType;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;

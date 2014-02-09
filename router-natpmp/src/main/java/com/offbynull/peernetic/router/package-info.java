@@ -14,21 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.pcp;
 
 /**
- * Communication type.
- * @author Kasra Faghihi
+ * Port mapping interfaces and utility classes.
  */
-public enum CommunicationType {
-    /**
-     * A unicast packet. Packets on unicast could be a response to a PCP request, or could be an unsolicited update to a PCP request, or
-     * could be a ANNOUNCE notification.
-     */
-    UNICAST,
-    /**
-     * A multicast packet. Packets on multicast are usually ANNOUNCE notifications. See RFC section on "Rapid Recovery".
-     */
-    MULTICAST
-    
-}
+package com.offbynull.peernetic.router;

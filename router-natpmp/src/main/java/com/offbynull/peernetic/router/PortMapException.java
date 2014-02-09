@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.router;
 
 /**
- * Exception that signals that the port could not be opened by {@link PortMapper#mapPort(com.offbynull.peernetic.router.PortType) }.
+ * Exception that signals that the port could not be opened by {@link PortMapper#mapPort(com.offbynull.peernetic.router.PortType, int)  }.
  * @author Kasra Faghihi
  */
 public final class PortMapException extends RuntimeException {

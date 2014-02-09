@@ -63,7 +63,8 @@ final class PcpUtils {
                     if (addr instanceof Inet4Address) {
                         channel.join(ipv4Group, networkInterface);
                     }
-                } catch (IOException ioe) { // occurs with certain interfaces
+                } catch (IOException ioe) { // NOPMD
+                    // occurs with certain interfaces
                     // do nothing
                 }
             }
@@ -84,8 +85,8 @@ final class PcpUtils {
                     if (addr instanceof Inet6Address) {
                         channel.join(ipv6Group, networkInterface);
                     }
-                } catch (IOException ioe) { // occurs with certain interfaces
-                    // do nothing
+                } catch (IOException ioe) { // NOPMD
+                    // occurs with certain interfaces, do nothing
                 }
             }
         }

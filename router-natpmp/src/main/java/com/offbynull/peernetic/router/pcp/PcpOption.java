@@ -104,7 +104,7 @@ public abstract class PcpOption {
         
         this.code = code;
         this.length = data.remaining();
-        this.data = ByteBuffer.allocate(length + (length % 4)).put(data).asReadOnlyBuffer();
+        this.data = ByteBuffer.allocate(length + (length % 4)).put(data).asReadOnlyBuffer(); // NOPMD
     }
 
     /**

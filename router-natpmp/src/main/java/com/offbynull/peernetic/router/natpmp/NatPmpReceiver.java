@@ -89,7 +89,8 @@ public final class NatPmpReceiver {
                         if (addr instanceof Inet4Address) {
                             socket.joinGroup(groupAddress, networkInterface);
                         }
-                    } catch (IOException ioe) { // occurs with certain interfaces
+                    } catch (IOException ioe) { // NOPMD
+                        // occurs with certain interfaces
                         // do nothing
                     }
                 }

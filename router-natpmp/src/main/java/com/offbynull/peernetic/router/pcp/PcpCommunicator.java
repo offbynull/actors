@@ -18,7 +18,7 @@ package com.offbynull.peernetic.router.pcp;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
-import com.offbynull.peernetic.router.pcp.PcpResponseListener.CommunicationType;
+import com.offbynull.peernetic.router.pcp.CommunicationType;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
@@ -34,7 +34,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
 final class PcpCommunicator extends AbstractExecutionThreadService {
-    private final CopyOnWriteArrayList<PcpResponseListener> listeners;
+    private final CopyOnWriteArrayList<PcpCommunicatorListener> listeners;
     private final LinkedBlockingQueue<ByteBuffer> sendQueue;
     private volatile boolean stopFlag;
     private volatile Selector selector;
@@ -51,14 +51,14 @@ final class PcpCommunicator extends AbstractExecutionThreadService {
         sendQueue = new LinkedBlockingQueue<>();
     }
 
-    public void addListener(PcpResponseListener e) {
+    public void addListener(PcpCommunicatorListener e) {
         if (!isRunning()) {
             throw new IllegalStateException();
         }
         listeners.add(0, e);
     }
 
-    public void removeListener(PcpResponseListener e) {
+    public void removeListener(PcpCommunicatorListener e) {
         if (!isRunning()) {
             throw new IllegalStateException();
         }
@@ -128,8 +128,12 @@ final class PcpCommunicator extends AbstractExecutionThreadService {
                     InetSocketAddress incomingAddress = (InetSocketAddress) channel.receive(recvBuffer);
                     if (incomingAddress != null && incomingAddress.getAddress().equals(gatewayAddress)) {
                         recvBuffer.flip();
-                        for (PcpResponseListener listener : listeners) {
-                            listener.incomingPacket(commType, recvBuffer.asReadOnlyBuffer());
+                        for (PcpCommunicatorListener listener : listeners) {
+                            try {
+                                listener.incomingPacket(commType, recvBuffer.asReadOnlyBuffer());
+                            } catch (RuntimeException re) { // NOPMD
+                                // do nothing
+                            }
                         }
                     }
                 } else if (key.isWritable()) {

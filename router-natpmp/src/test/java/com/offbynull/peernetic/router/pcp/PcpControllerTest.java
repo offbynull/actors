@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.router.pcp;
 
-import com.offbynull.peernetic.router.common.PortType;
-import com.offbynull.peernetic.router.pcp.PcpResponseListener.CommunicationType;
+import com.offbynull.peernetic.router.PortType;
 import com.offbynull.peernetic.router.testtools.UdpServerEmulator;
 import com.offbynull.peernetic.router.testtools.UdpTestUtils;
 import java.net.InetAddress;
@@ -56,10 +55,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // reserved
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("127.0.0.1"), 4, null);
-            AnnouncePcpResponse response = controller.announce();
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("127.0.0.1"), null);
+            AnnouncePcpResponse response = controller.requestAnnounceOperation(4);
 
             Assert.assertEquals(0L, response.getLifetime());
             Assert.assertEquals(1L, response.getEpochTime());
@@ -88,10 +87,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // reserved
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("127.0.0.1"), 4, null);
-            controller.announce();
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("127.0.0.1"), null);
+            controller.requestAnnounceOperation(4);
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -115,10 +114,10 @@ public final class PcpControllerTest {
             0, // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // reserved
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("127.0.0.1"), 4, null);
-            controller.announce();
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("127.0.0.1"), null);
+            controller.requestAnnounceOperation(4);
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -154,10 +153,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -64, -88, 10, -128 // external ip
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            MapPcpResponse response = controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            MapPcpResponse response = controller.requestMapOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
 
             Assert.assertEquals(120L, response.getLifetime());
             Assert.assertEquals(1L, response.getEpochTime());
@@ -203,10 +202,10 @@ public final class PcpControllerTest {
             2, 0, 0, 0 // prefer failure
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            MapPcpResponse response = controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100, new PreferFailurePcpOption());
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            MapPcpResponse response = controller.requestMapOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100, new PreferFailurePcpOption());
 
             Assert.assertEquals(120L, response.getLifetime());
             Assert.assertEquals(1L, response.getEpochTime());
@@ -245,10 +244,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // reserved
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            controller.requestMapOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -277,10 +276,10 @@ public final class PcpControllerTest {
             0, 0,
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            controller.createInboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            controller.requestMapOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 100);
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -323,10 +322,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, 1, 1, 1, 1 // remote peer ip
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            PeerPcpResponse response = controller.createOutboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            PeerPcpResponse response = controller.requestPeerOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
 
             Assert.assertEquals(120L, response.getLifetime());
             Assert.assertEquals(1L, response.getEpochTime());
@@ -379,10 +378,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, 1, 1, 1, 1 // remote peer ip
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            PeerPcpResponse response = controller.createOutboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            PeerPcpResponse response = controller.requestPeerOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
 
             Assert.assertEquals(120L, response.getLifetime());
             Assert.assertEquals(1L, response.getEpochTime());
@@ -426,10 +425,10 @@ public final class PcpControllerTest {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // reserved
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            controller.createOutboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            controller.requestPeerOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -470,10 +469,10 @@ public final class PcpControllerTest {
             48, //57, // assigned remote peer port
             }));
         
-        PcpClient controller = null;
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), 4, null);
-            controller.createOutboundMapping(PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.25.1"), null);
+            controller.requestPeerOperation(4, PortType.TCP, 12345, 12345, InetAddress.getByName("192.168.10.129"), 12345, InetAddress.getByName("1.1.1.1"), 100);
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -482,11 +481,11 @@ public final class PcpControllerTest {
     @Test
     @Ignore // ignored because "gateway address" is non-deterministic -- address of this machine on a local interface
     public void receiverIpv4Test() throws Throwable {
-        PcpResponseListener listener = Mockito.mock(PcpResponseListener.class);
-        PcpClient controller = null;
+        PcpControllerListener listener = Mockito.mock(PcpControllerListener.class);
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("192.168.25.1"),
-                    InetAddress.getByName("192.168.25.1"), 4, listener);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("192.168.25.1"),
+                    InetAddress.getByName("192.168.25.1"), listener);
 
 
             ByteBuffer buffer = ByteBuffer.wrap(new byte[] {
@@ -499,8 +498,8 @@ public final class PcpControllerTest {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // reserved
             });
             UdpTestUtils.sendMulticast(InetAddress.getByName("224.0.0.1"), 5350, buffer);
-            Mockito.verify(listener, Mockito.timeout(1000)).incomingPacket(Mockito.eq(CommunicationType.MULTICAST),
-                    Mockito.any(ByteBuffer.class));
+            Mockito.verify(listener, Mockito.timeout(1000)).incomingResponse(Mockito.eq(CommunicationType.MULTICAST),
+                    Mockito.any(AnnouncePcpResponse.class));
         } finally {
             IOUtils.closeQuietly(controller);
         }
@@ -509,11 +508,11 @@ public final class PcpControllerTest {
     @Test
     @Ignore // ignored because "gateway address" is non-deterministic -- address of this machine on a local interface
     public void receiverIpv6Test() throws Throwable {
-        PcpResponseListener listener = Mockito.mock(PcpResponseListener.class);
-        PcpClient controller = null;
+        PcpControllerListener listener = Mockito.mock(PcpControllerListener.class);
+        PcpController controller = null;
         try {
-            controller = new PcpClient(Mockito.mock(Random.class), InetAddress.getByName("fe80:0:0:0:fd40:c842:7926:64cb%35"),
-                InetAddress.getByName("fe80:0:0:0:fd40:c842:7926:64cb%35"), 4, listener);
+            controller = new PcpController(Mockito.mock(Random.class), InetAddress.getByName("fe80:0:0:0:fd40:c842:7926:64cb%35"),
+                InetAddress.getByName("fe80:0:0:0:fd40:c842:7926:64cb%35"), listener);
 
             ByteBuffer buffer = ByteBuffer.wrap(new byte[] {
                 2, // version
@@ -526,8 +525,8 @@ public final class PcpControllerTest {
             });
             UdpTestUtils.sendMulticast(InetAddress.getByName("ff02::1"), 5350, buffer);
         
-            Mockito.verify(listener, Mockito.timeout(1000)).incomingPacket(Mockito.eq(CommunicationType.MULTICAST),
-                    Mockito.any(ByteBuffer.class));
+            Mockito.verify(listener, Mockito.timeout(1000)).incomingResponse(Mockito.eq(CommunicationType.MULTICAST),
+                    Mockito.any(AnnouncePcpResponse.class));
         } finally {
             IOUtils.closeQuietly(controller);
         }

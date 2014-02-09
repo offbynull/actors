@@ -14,34 +14,36 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.pcp;
-
-import java.nio.ByteBuffer;
+package com.offbynull.peernetic.router;
 
 /**
- * PCP response listener.
+ * Describes the port type.
  * @author Kasra Faghihi
  */
-public interface PcpResponseListener {
+public enum PortType {
+
     /**
-     * Called when a PCP packet arrives.
-     * @param type packet type
-     * @param packet packet contents
+     * UDP port.
      */
-    void incomingPacket(CommunicationType type, ByteBuffer packet);
+    UDP(17),
     
     /**
-     * Communication type.
+     * TCP port.
      */
-    public enum CommunicationType {
-        /**
-         * A unicast packet. Packets on unicast could be a response to a PCP request, or could be an unsolicited update to a PCP request, or
-         * could be a ANNOUNCE notification.
-         */
-        UNICAST,
-        /**
-         * A multicast packet. Packets on multicast are usually ANNOUNCE notifications. See RFC section on "Rapid Recovery".
-         */
-        MULTICAST
+    TCP(6);
+    
+    private final int protocolNumber;
+    
+    PortType(int protocolNumber) {
+        this.protocolNumber = protocolNumber;
     }
+
+    /**
+     * Get the IANA protocol number.
+     * @return IANA protocol number
+     */
+    public int getProtocolNumber() {
+        return protocolNumber;
+    }
+    
 }

@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.router.natpmp;
 
 import com.offbynull.peernetic.router.testtools.UdpServerEmulator;
-import com.offbynull.peernetic.router.common.PortType;
+import com.offbynull.peernetic.router.PortType;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;

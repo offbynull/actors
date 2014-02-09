@@ -14,36 +14,19 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.common;
+package com.offbynull.peernetic.router.pcp;
+
+import java.nio.ByteBuffer;
 
 /**
- * Describes the port type.
+ * PCP response listener.
  * @author Kasra Faghihi
  */
-public enum PortType {
-
+public interface PcpCommunicatorListener {
     /**
-     * UDP port.
+     * Called when a PCP packet arrives.
+     * @param type packet type
+     * @param packet packet contents
      */
-    UDP(17),
-    
-    /**
-     * TCP port.
-     */
-    TCP(6);
-    
-    private final int protocolNumber;
-    
-    PortType(int protocolNumber) {
-        this.protocolNumber = protocolNumber;
-    }
-
-    /**
-     * Get the IANA protocol number.
-     * @return IANA protocol number
-     */
-    public int getProtocolNumber() {
-        return protocolNumber;
-    }
-    
+    void incomingPacket(CommunicationType type, ByteBuffer packet);
 }

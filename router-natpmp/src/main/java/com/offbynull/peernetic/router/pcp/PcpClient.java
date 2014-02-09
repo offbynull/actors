@@ -1,7 +1,21 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.router.pcp;
 
-import com.offbynull.peernetic.router.common.BadResponseException;
-import com.offbynull.peernetic.router.common.NoResponseException;
 import com.offbynull.peernetic.router.common.PortType;
 import java.io.Closeable;
 import java.io.IOException;
@@ -14,13 +28,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
-public final class PcpController implements Closeable {
+/**
+ * PCP client.
+ * @author Kasra Faghihi
+ */
+public final class PcpClient implements Closeable {
     private PcpCommunicator communicator;
     private InetAddress selfAddress;
     private int sendAttempts;
     private Random random;
 
-    public PcpController(Random random, InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts,
+    /**
+     * Constructs a PCP client.
+     * @param random used to generate nonce values for requests
+     * @param gatewayAddress address of router/gateway
+     * @param selfAddress address of the interface that can talk to the router/gateway
+     * @param sendAttempts number of times to try to submit each request
+     * @param unsolicitedListener a listener to listen for unsolicited router packets (e.g. for things like ANNOUNCE)
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code sendAttempts < 1 || > 9}
+     */
+    public PcpClient(Random random, InetAddress gatewayAddress, InetAddress selfAddress, int sendAttempts,
             PcpResponseListener unsolicitedListener) {
         Validate.notNull(random);
         Validate.notNull(gatewayAddress);
@@ -38,15 +66,42 @@ public final class PcpController implements Closeable {
         }
     }
     
-    public AnnouncePcpResponse announce() throws IOException, InterruptedException {
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Send a ANNOUNCE request to the gateway.
+     * @return ANNOUNCE response
+     * @throws PcpNoResponseException if no response available
+     * @throws InterruptedException if thread was interrupted while waiting
+     */
+    
+    public AnnouncePcpResponse announce() throws InterruptedException {
+        // CHECKSTYLE:ON
         AnnouncePcpRequest req = new AnnouncePcpRequest();
         
         AnnounceResponseCreator creator = new AnnounceResponseCreator();
         return performRequest(req, creator);
     }
-    
+
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Send a MAP request to the gateway.
+     * @param portType port type
+     * @param internalPort internal port ({@code 0} is valid, see Javadoc header)
+     * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
+     * @param suggestedExternalIpAddress suggested external IP address ({@code ::} for no preference)
+     * @param lifetime requested lifetime in seconds
+     * @param options PCP options to use
+     * @return MAP response
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if any numeric argument is negative, or if {@code protocol > 255}, or if
+     * {@code internalPort > 65535}, or if {@code suggestedExternalPort > 65535}
+     * remaining, or if {@code protocol == 0} but {@code internalPort != 0}, or if {@code internalPort == 0} but {@code lifetime != 0}
+     * @throws PcpNoResponseException if the expected response never came in
+     * @throws InterruptedException if thread was interrupted while waiting
+     */
     public MapPcpResponse createInboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) throws IOException, InterruptedException {
+            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) throws InterruptedException {
+        // CHECKSTYLE:ON
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -57,9 +112,28 @@ public final class PcpController implements Closeable {
         return performRequest(req, creator);
     }
     
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Send a PEER request to the gateway.
+     * @param portType port type
+     * @param internalPort internal port
+     * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
+     * @param suggestedExternalIpAddress suggested external IP address ({@code null} or {@code ::} for no preference)
+     * @param remotePeerPort remote port
+     * @param remotePeerIpAddress remote IP address
+     * @param lifetime requested lifetime in seconds
+     * @param options PCP options to use
+     * @return PEER response
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code internalPort < 1 or > 65535}, or if {@code suggestedExternalPort > 65535},
+     * or if {@code remotePort < 1 or > 65535}
+     * @throws PcpNoResponseException if the expected response never came in
+     * @throws InterruptedException if thread was interrupted while waiting
+     */
     public PeerPcpResponse createOutboundMapping(PortType portType, int internalPort, int suggestedExternalPort,
             InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime,
-            PcpOption ... options) throws IOException, InterruptedException {
+            PcpOption ... options) throws InterruptedException {
+        // CHECKSTYLE:ON
         byte[] nonce = new byte[12];
         random.nextBytes(nonce);
         
@@ -70,7 +144,7 @@ public final class PcpController implements Closeable {
         return performRequest(req, creator);
     }
 
-    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) throws IOException, InterruptedException {
+    private <T extends PcpResponse> T performRequest(PcpRequest request, Creator<T> creator) throws InterruptedException {
         ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
             
         request.dump(sendBuffer, selfAddress);
@@ -83,11 +157,11 @@ public final class PcpController implements Closeable {
             }
         }
         
-        throw new NoResponseException();
+        throw new PcpNoResponseException();
     }
     
     private <T extends PcpResponse> T attemptRequest(ByteBuffer sendBuffer, int attempt, Creator<T> creator)
-            throws IOException, InterruptedException {
+            throws InterruptedException {
         
         final LinkedBlockingQueue<ByteBuffer> recvBufferQueue = new LinkedBlockingQueue<>();
         
@@ -161,7 +235,8 @@ public final class PcpController implements Closeable {
             try {
                 response = new AnnouncePcpResponse(recvBuffer);
             } catch (BufferUnderflowException | BufferOverflowException | IllegalArgumentException e) {
-                throw new BadResponseException(e);
+                //throw new BadResponseException(e);
+                return null;
             }
 
             return response;
@@ -182,7 +257,8 @@ public final class PcpController implements Closeable {
             try {
                 response = new MapPcpResponse(recvBuffer);
             } catch (BufferUnderflowException | BufferOverflowException | IllegalArgumentException e) {
-                throw new BadResponseException(e);
+                //throw new BadResponseException(e);
+                return null;
             }
             
             if (response.getMappingNonce().equals(request.getMappingNonce())
@@ -209,7 +285,8 @@ public final class PcpController implements Closeable {
             try {
                 response = new PeerPcpResponse(recvBuffer);
             } catch (BufferUnderflowException | BufferOverflowException | IllegalArgumentException e) {
-                throw new BadResponseException(e);
+                //throw new BadResponseException(e);
+                return null;
             }
 
             if (response.getMappingNonce().equals(request.getMappingNonce())

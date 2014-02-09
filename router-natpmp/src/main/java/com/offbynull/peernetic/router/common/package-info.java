@@ -14,36 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.common;
 
 /**
- * Describes the port type.
- * @author Kasra Faghihi
+ * Common classes.
  */
-public enum PortType {
-
-    /**
-     * UDP port.
-     */
-    UDP(17),
-    
-    /**
-     * TCP port.
-     */
-    TCP(6);
-    
-    private final int protocolNumber;
-    
-    PortType(int protocolNumber) {
-        this.protocolNumber = protocolNumber;
-    }
-
-    /**
-     * Get the IANA protocol number.
-     * @return IANA protocol number
-     */
-    public int getProtocolNumber() {
-        return protocolNumber;
-    }
-    
-}
+package com.offbynull.peernetic.router.common;

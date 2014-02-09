@@ -1,6 +1,10 @@
 package com.offbynull.peernetic.router;
 
 public interface PortMapperEventListener {
-    void needRestart(Object reason);
+    void mappingCreationSuccessful(MappedPort oldMappedPort);
+    void mappingCreationFailed(PortType portType, int internalPort);
+    
     void mappingChanged(MappedPort oldMappedPort, MappedPort newMappedPort);
+    
+    void mappingLost(MappedPort oldMappedPort);
 }

@@ -11,9 +11,9 @@ public abstract class PortMapper implements Closeable {
         this.portMapperListener = portMapperListener;
     }
 
-    protected abstract MappedPort mapPort(PortType portType) throws InterruptedException;
+    protected abstract void mapPort(PortType portType, int internalPort);
     
-    protected abstract void unmapPort(PortType portType, int internalPort) throws InterruptedException;
+    protected abstract void unmapPort(PortType portType, int internalPort);
     
     protected final PortMapperEventListener getListener() {
         return portMapperListener;

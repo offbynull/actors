@@ -110,7 +110,7 @@ public final class PcpController implements Closeable {
     }
 
     /**
-     * Send a ANNOUNCE request to the gateway.
+     * Send a ANNOUNCE request to the gateway. Only sends 1 packet, does not implement retry algorithm like blocking equivalent.
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
      */
     public void requestAnnounceOperationAsync() {
@@ -123,7 +123,7 @@ public final class PcpController implements Closeable {
      * Send a request to the gateway to create an inbound mapping (open a port that you can listen on).
      * @param sendAttempts number of times to try to submit each request
      * @param portType port type
-     * @param internalPort internal port ({@code 0} is valid, see Javadoc header)
+     * @param internalPort internal port ({@code 0} is valid, see {@link MapPcpRequest} header)
      * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
      * @param suggestedExternalIpAddress suggested external IP address ({@code ::} for no preference)
      * @param lifetime requested lifetime in seconds
@@ -152,9 +152,10 @@ public final class PcpController implements Closeable {
     }
 
     /**
-     * Send a request to the gateway to create an inbound mapping (open a port that you can listen on).
+     * Send a request to the gateway to create an inbound mapping (open a port that you can listen on). Only sends 1 packet, does not
+     * implement retry algorithm like blocking equivalent.
      * @param portType port type
-     * @param internalPort internal port ({@code 0} is valid, see Javadoc header)
+     * @param internalPort internal port ({@code 0} is valid, see {@link MapPcpRequest} header)
      * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
      * @param suggestedExternalIpAddress suggested external IP address ({@code ::} for no preference)
      * @param lifetime requested lifetime in seconds
@@ -211,7 +212,8 @@ public final class PcpController implements Closeable {
     }
 
     /**
-     * Send a request to the gateway to create an outbound mapping (open a port that you can connect from).
+     * Send a request to the gateway to create an outbound mapping (open a port that you can connect from).  Only sends 1 packet, does not
+     * implement retry algorithm like blocking equivalent.
      * @param portType port type
      * @param internalPort internal port
      * @param suggestedExternalPort suggested external port ({@code 0} for no preference)

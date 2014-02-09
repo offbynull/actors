@@ -9,112 +9,208 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class PcpPortMapper extends PortMapper {
+    private static final int ATTEMPTS = 4;
+    
     private Random random;
     private PcpController controller;
     private Timer timer;
     private Lock lock;
-    private Map<ImmutablePair<PortType, Integer>, RefreshTask> refreshTasks; // used to refresh mappings periodically
-    private Map<ImmutablePair<PortType, Integer>, NotifyDeathTask> deathTasks; // used to notify when mappings haven't been refreshed
+    private MultiMap<TaskKey, CreateTask> createTasks; // used to notify when mappings are created
+    private Map<TaskKey, NotifyCreateFailedTask> createFailedTasks; // used to notify when mappings weren't created
+    private Map<TaskKey, RefreshTask> refreshTasks; // used to refresh mappings periodically
+    private Map<TaskKey, NotifyRefreshFailedTask> deathTasks; // used to notify when mappings haven't been refreshed
 
     public PcpPortMapper(InetAddress gatewayAddress, InetAddress selfAddress, PortMapperEventListener listener) {
         super(listener);
         
+        Validate.notNull(gatewayAddress);
+        Validate.notNull(selfAddress);
+        Validate.notNull(listener);
+        
         random = new Random();
         controller = new PcpController(random, gatewayAddress, selfAddress, new CustomPcpControllerListener());
         timer = new Timer("PCP Client Timer", true);
+        createTasks = new MultiValueMap<>();
+        createFailedTasks = new HashMap<>();
         refreshTasks = new HashMap<>();
         deathTasks = new HashMap<>();
         lock = new ReentrantLock();
     }
     
     @Override
-    public MappedPort mapPort(PortType portType) throws InterruptedException {
+    public void mapPort(PortType portType, int internalPort) {
         Validate.notNull(portType);
+        Validate.inclusiveBetween(1, 65535, internalPort);
         
-        InetAddress suggestedExternalAddr;
+        lock.lock();
         try {
-            suggestedExternalAddr = InetAddress.getByName("::");
-        } catch (UnknownHostException uhe) { // should never happen
-            throw new IllegalStateException(uhe);
-        }
-        
-        try {
-            MapPcpResponse response = controller.requestMapOperation(4, portType, 0, 0, suggestedExternalAddr, 3600);
-            MappedPort mappedPort = new MappedPort(response.getInternalPort(), response.getAssignedExternalPort(),
-                    response.getAssignedExternalIpAddress(), portType);
-            
-            long actualLifetime = response.getLifetime();
-            
-            if (actualLifetime == 0L) {
-                throw new PortMapException("Server returned 0 lifetime");
+            if (isPortAlreadyBeingHandled(portType, internalPort)) {
+                throw new PortMapException("Port already being handled");
             }
-            
-            long epochTime = response.getEpochTime();
-            refreshExistingMappingsIfRequired(epochTime);
-            
-            lock.lock();
-            try {
-                ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portType, mappedPort.getInternalPort());
+
+            for (int i = 0; i < ATTEMPTS; i++) {
+                TaskKey key = new TaskKey(portType, internalPort);
+                CreateTask createTask = new CreateTask(portType, internalPort);
+                createTasks.put(key, createTask);
                 
-                NotifyDeathTask notifyDeathTask = new NotifyDeathTask(mappedPort);
-                deathTasks.put(key, notifyDeathTask);
-                timer.schedule(notifyDeathTask, actualLifetime);
-                
-                RefreshTask refreshTask = new RefreshTask(mappedPort);
-                refreshTasks.put(key, refreshTask);
-                timer.schedule(refreshTask, random.nextInt((int) (actualLifetime / 4L)));
-            } finally {
-                lock.unlock();
+                // timeout duration should double each iteration, starting from 250 according to spec
+                // i = 1, maxWaitTime = (1 << (1-1)) * 250 = (1 << 0) * 250 = 1 * 250 = 250
+                // i = 2, maxWaitTime = (1 << (2-1)) * 250 = (1 << 1) * 250 = 2 * 250 = 500
+                // i = 3, maxWaitTime = (1 << (3-1)) * 250 = (1 << 2) * 250 = 4 * 250 = 1000
+                // i = 4, maxWaitTime = (1 << (4-1)) * 250 = (1 << 3) * 250 = 8 * 250 = 2000
+                // ...
+                timer.schedule(createTask, (1 << (i - 1)) * 250);
             }
-            
-            return mappedPort;
-        } catch (PcpNoResponseException | IllegalArgumentException | BufferUnderflowException e) {
+        } catch (IllegalArgumentException | BufferUnderflowException e) {
             throw new PortMapException(e);
+        } finally {
+            lock.unlock();
         }
     }
     
     @Override
-    public void unmapPort(PortType portType, int internalPort) throws InterruptedException {
+    public void unmapPort(PortType portType, int internalPort) {
         Validate.notNull(portType);
+        Validate.inclusiveBetween(1, 65535, internalPort);
         
-        InetAddress suggestedExternalAddr;
+        InetAddress anyExternalAddr;
         try {
-            suggestedExternalAddr = InetAddress.getByName("::");
+            anyExternalAddr = InetAddress.getByName("::");
         } catch (UnknownHostException uhe) { // should never happen
             throw new IllegalStateException(uhe);
         }
-        
-        try {
-            controller.requestMapOperation(4, portType, 0, 0, suggestedExternalAddr, 0L);
 
-            lock.lock();
-            try {
-                ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portType, internalPort);
-                refreshTasks.remove(key).cancel();
-                deathTasks.remove(key).cancel();
-            } finally {
-                lock.unlock();
-            }
-        } catch (PcpNoResponseException | IllegalArgumentException | BufferUnderflowException e) { // NOPMD
-            // do nothing
+        lock.lock();
+        try {
+            // ignore, in case this method gets called multiple times
+//            if (!isPortAlreadyBeingHandled(portType, internalPort)) {
+//                throw new PortMapException("Port not being handled");
+//            }
+            
+            controller.requestMapOperationAsync(portType, internalPort, 0, anyExternalAddr, 0);
+            removeMappings(portType, internalPort);
+        } catch (IllegalArgumentException | BufferUnderflowException e) {
+            throw new PortMapException(e);
+        } finally {
+            lock.unlock();
         }
     }
     
-    private void refreshExistingMappingsIfRequired(long epoch) {
-        IMPLEMENT ME; // see section 8.5
+    private boolean isPortAlreadyBeingHandled(PortType portType, int internalPort) {
+        lock.lock();
+        try {
+            TaskKey key = new TaskKey(portType, internalPort);
+            return createTasks.containsKey(key) || refreshTasks.containsKey(key) || deathTasks.containsKey(key);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void removeMappings(PortType portType, int internalPort) {
+        lock.lock();
+        try {
+            TaskKey key = new TaskKey(portType, internalPort);
+            
+            Collection<CreateTask> createTaskItems = (Collection<CreateTask>) createTasks.remove(key);
+            if (createTasks != null) {
+                for (CreateTask task : createTaskItems) {
+                    task.cancel();
+                }
+            }
+            NotifyCreateFailedTask createFailedTask = createFailedTasks.get(key);
+            if (createFailedTask != null) {
+                createFailedTask.cancel();
+            }
+            RefreshTask refreshTask = refreshTasks.remove(key);
+            if (refreshTask != null) {
+                refreshTask.cancel();
+            }
+            NotifyRefreshFailedTask deathTask = deathTasks.remove(key);
+            if (deathTask != null) {
+                deathTask.cancel();
+            }
+        } finally {
+            lock.unlock();
+        }        
+    }
+
+    private boolean removeCreateMappings(PortType portType, int internalPort) {
+        lock.lock();
+        try {
+            TaskKey key = new TaskKey(portType, internalPort);
+            
+            boolean found = false;
+            Collection<CreateTask> createTaskItems = (Collection<CreateTask>) createTasks.remove(key);
+            if (createTasks != null) {
+                for (CreateTask task : createTaskItems) {
+                    task.cancel();
+                }
+                found = true;
+            }
+            NotifyCreateFailedTask createFailedTask = createFailedTasks.get(key);
+            if (createFailedTask != null) {
+                createFailedTask.cancel();
+                found = true;
+            }
+            return found;
+        } finally {
+            lock.unlock();
+        }        
     }
     
+    private MappedPort removeRefreshMappings(PortType portType, int internalPort) {
+        lock.lock();
+        try {
+            TaskKey key = new TaskKey(portType, internalPort);
+    
+            MappedPort mappedPort = null;
+            RefreshTask refreshTask = refreshTasks.remove(key);
+            if (refreshTask != null) {
+                refreshTask.cancel();
+                mappedPort = refreshTask.getPortDetails();
+            }
+            NotifyRefreshFailedTask deathTask = deathTasks.remove(key);
+            if (deathTask != null) {
+                deathTask.cancel();
+            }
+            
+            return mappedPort;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void addRefreshMappings(MappedPort portDetails, int lifetime) {
+        lock.lock();
+        try {
+            TaskKey key = new TaskKey(portDetails.getPortType(), portDetails.getInternalPort());
+
+            NotifyRefreshFailedTask notifyDeathTask = new NotifyRefreshFailedTask(portDetails);
+            deathTasks.put(key, notifyDeathTask);
+            timer.schedule(notifyDeathTask, lifetime);
+
+            RefreshTask refreshTask = new RefreshTask(portDetails);
+            refreshTasks.put(key, refreshTask);
+            timer.schedule(refreshTask, random.nextInt((int) (lifetime / 4L)));
+        } finally {
+            lock.unlock();
+        }
+    }
+
     @Override
     public void close() throws IOException {
         timer.cancel();
@@ -122,30 +218,52 @@ public final class PcpPortMapper extends PortMapper {
         controller.close();
     }
     
-    private class NotifyDeathTask extends TimerTask {
-        
-        private MappedPort portDetails;
+    private class CreateTask extends TimerTask {
 
-        public NotifyDeathTask(MappedPort portDetails) {
-            Validate.notNull(portDetails);
-            this.portDetails = portDetails;
+        private PortType portType;
+        private int internalPort;
+
+        public CreateTask(PortType portType, int internalPort) {
+            Validate.notNull(portType);
+            Validate.inclusiveBetween(1, 65535, internalPort);
+            this.portType = portType;
+            this.internalPort = internalPort;
         }
-
+        
         @Override
         public void run() {
-            lock.lock();
+            InetAddress anyAddress;
             try {
-                ImmutablePair<PortType, Integer> key = new ImmutablePair<>(portDetails.getPortType(), portDetails.getInternalPort());
-                refreshTasks.remove(key).cancel();
-                deathTasks.remove(key).cancel();
-                
-                timer.cancel();
-                timer.purge();
-            } finally {
-                lock.unlock();
+                anyAddress = InetAddress.getByName("::");
+            } catch (UnknownHostException uhe) { // should never happen
+                throw new IllegalStateException(uhe);
             }
+            
+            controller.requestMapOperationAsync(portType, internalPort, 0, anyAddress, 3600L);
+        }
+    }
 
-            getListener().needRestart("Unable to refresh portmapping: " + portDetails);
+    private class NotifyCreateFailedTask extends TimerTask {
+
+        private PortType portType;
+        private int internalPort;
+
+        public NotifyCreateFailedTask(PortType portType, int internalPort) {
+            Validate.notNull(portType);
+            Validate.inclusiveBetween(1, 65535, internalPort);
+            this.portType = portType;
+            this.internalPort = internalPort;
+        }
+        
+        @Override
+        public void run() {
+            removeMappings(portType, internalPort);
+
+            try {
+                getListener().mappingCreationFailed(portType, internalPort);
+            } catch (RuntimeException re) { // NOPMD
+                // do nothing
+            }
         }
     }
 
@@ -165,7 +283,7 @@ public final class PcpPortMapper extends PortMapper {
                     portDetails.getInternalPort(),
                     portDetails.getExternalPort(),
                     portDetails.getExternalAddress(),
-                    3600L);
+                    3600L, new PreferFailurePcpOption());
         }
 
         public MappedPort getPortDetails() {
@@ -173,7 +291,28 @@ public final class PcpPortMapper extends PortMapper {
         }
         
     }
-    
+
+    private class NotifyRefreshFailedTask extends TimerTask {
+        
+        private MappedPort portDetails;
+
+        public NotifyRefreshFailedTask(MappedPort portDetails) {
+            Validate.notNull(portDetails);
+            this.portDetails = portDetails;
+        }
+
+        @Override
+        public void run() {
+            removeMappings(portDetails.getPortType(), portDetails.getInternalPort());
+
+            try {
+                getListener().mappingLost(portDetails);
+            } catch (RuntimeException re) { // NOPMD
+                // do nothing
+            }
+        }
+    }
+
     private class CustomPcpControllerListener implements PcpControllerListener {
 
         @Override
@@ -194,60 +333,81 @@ public final class PcpPortMapper extends PortMapper {
                     throw new IllegalArgumentException();
                 }
                 
+                MappedPort oldPortDetails = null;
                 MappedPort newPortDetails = new MappedPort(mapPcpResponse.getInternalPort(), mapPcpResponse.getAssignedExternalPort(),
                         mapPcpResponse.getAssignedExternalIpAddress(), portType);
                 
-                
-                // get old port details object
-                MappedPort oldPortDetails;
                 lock.lock();
                 try {
-                    RefreshTask task = refreshTasks.get(new ImmutablePair<>(portType, mapPcpResponse.getInternalPort()));
-                    
-                    if (task == null) {
-                        return;
+                    if (removeCreateMappings(portType, mapPcpResponse.getInternalPort())) {
+                        // add refresh tasks
+                        int newLifetime = (int) Math.min(Integer.MAX_VALUE, mapPcpResponse.getLifetime());
+                        addRefreshMappings(newPortDetails, newLifetime);                        
+                    } else if ((oldPortDetails = removeRefreshMappings(portType, mapPcpResponse.getInternalPort())) != null) {
+                        // re-add refresh tasks
+                        int newLifetime = (int) Math.min(Integer.MAX_VALUE, mapPcpResponse.getLifetime());
+                        addRefreshMappings(newPortDetails, newLifetime);
                     }
-                    
-                    oldPortDetails = task.getPortDetails();
                 } finally {
                     lock.unlock();
                 }
                 
-                
-                // compare and notify if different
-                if (!oldPortDetails.equals(newPortDetails)) {
+                // if refreshed, compare if port mappings are different and notify if they are
+                if (!newPortDetails.equals(oldPortDetails)) {
                     try {
                         getListener().mappingChanged(oldPortDetails, newPortDetails);
                     } catch (RuntimeException re) { // NOPMD
                         // do nothing
                     }
                 }
-                
-                // reset tasks
-                int newLifetime = (int) Math.max(Integer.MAX_VALUE, mapPcpResponse.getLifetime());
-                
-                lock.lock();
-                try {
-                    ImmutablePair<PortType, Integer> oldKey = new ImmutablePair<>(oldPortDetails.getPortType(),
-                            oldPortDetails.getInternalPort());
-                    deathTasks.remove(oldKey).cancel();
-                    refreshTasks.remove(oldKey).cancel();
-
-                    
-                    ImmutablePair<PortType, Integer> newKey = new ImmutablePair<>(newPortDetails.getPortType(),
-                            newPortDetails.getInternalPort());
-
-                    NotifyDeathTask notifyDeathTask = new NotifyDeathTask(newPortDetails);
-                    deathTasks.put(newKey, notifyDeathTask);
-                    timer.schedule(notifyDeathTask, newLifetime);
-
-                    RefreshTask refreshTask = new RefreshTask(newPortDetails);
-                    refreshTasks.put(newKey, refreshTask);
-                    timer.schedule(refreshTask, random.nextInt((int) (newLifetime / 4L)));
-                } finally {
-                    lock.unlock();
-                }
             }
         }
+    }
+
+    private static final class TaskKey {
+        private PortType portType;
+        private int internalPort;
+
+        public TaskKey(PortType portType, int internalPort) {
+            Validate.notNull(portType);
+            Validate.inclusiveBetween(1, 65535, internalPort);
+            this.portType = portType;
+            this.internalPort = internalPort;
+        }
+
+        public PortType getPortType() {
+            return portType;
+        }
+
+        public int getInternalPort() {
+            return internalPort;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 83 * hash + Objects.hashCode(this.portType);
+            hash = 83 * hash + this.internalPort;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final TaskKey other = (TaskKey) obj;
+            if (this.portType != other.portType) {
+                return false;
+            }
+            if (this.internalPort != other.internalPort) {
+                return false;
+            }
+            return true;
+        }
+        
     }
 }

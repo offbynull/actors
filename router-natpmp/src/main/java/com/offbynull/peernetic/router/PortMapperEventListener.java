@@ -22,32 +22,9 @@ package com.offbynull.peernetic.router;
  */
 public interface PortMapperEventListener {
     /**
-     * Indicates that a port mapping request completed successfully.
-     * @param mappedPort mapped port
-     * @throws NullPointerException if any argument is {@code null}
+     * Indicates that one or more port mappings may have been lost or changed. If this occurs, the mapper should be closed and the
+     * recreated. If the mapper isn't recreated, it may or may not continue to operate. The behaviour is undefined.
+     * @param details details of the problem that caused this invocation
      */
-    void mappingCreationSuccessful(MappedPort mappedPort);
-    /**
-     * Indicates that a port mapping request wasn't successful.
-     * @param portType port type
-     * @param internalPort internal port
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code internalPort < 1 || > 65535}
-     */
-    void mappingCreationFailed(PortType portType, int internalPort);
-
-    /**
-     * Indicates that a port mapping has changed.
-     * @param oldMappedPort old mapped port
-     * @param newMappedPort new mapped port
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    void mappingChanged(MappedPort oldMappedPort, MappedPort newMappedPort);
-
-    /**
-     * Indicates that a port mapping has been lost.
-     * @param oldMappedPort old mapped port
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    void mappingLost(MappedPort oldMappedPort);
+    void resetRequired(String details);
 }

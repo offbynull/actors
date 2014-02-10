@@ -282,8 +282,6 @@ public final class PcpController implements Closeable {
                 recvBufferQueue.add(packet);
             }
         };
-        communicator.addListener(listener);
-        communicator.send(sendBuffer);
 
         
         // timeout duration should double each iteration, starting from 250 according to spec
@@ -293,6 +291,9 @@ public final class PcpController implements Closeable {
         // i = 4, maxWaitTime = (1 << (4-1)) * 250 = (1 << 3) * 250 = 8 * 250 = 2000
         // ...
         try {
+            communicator.addListener(listener);
+            communicator.send(sendBuffer);
+
             int maxWaitTime = (1 << (attempt - 1)) * 250; // NOPMD
 
             T pcpResponse = null;

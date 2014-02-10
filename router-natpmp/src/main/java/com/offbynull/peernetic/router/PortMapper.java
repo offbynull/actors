@@ -40,19 +40,24 @@ public abstract class PortMapper implements Closeable {
      * Map a port asynchronously.
      * @param portType port type
      * @param internalPort internal port
+     * @return a future that can be used to wait until the port mapping completes
+     * @throws PortMapException if port/portType combo already being handled by this mapper
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
+     * @throws InterruptedException if the thread is interrupted while the port is being obtained
      */
-    protected abstract void mapPort(PortType portType, int internalPort);
+    protected abstract void mapPort(PortType portType, int internalPort) throws InterruptedException;
 
     /**
      * Unmap a port asynchronously.
      * @param portType port type
      * @param internalPort internal port
+     * @return a future that can be used to wait until the port unmapping completes
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
+     * @throws InterruptedException if the thread is interrupted while the port is being obtained
      */
-    protected abstract void unmapPort(PortType portType, int internalPort);
+    protected abstract void unmapPort(PortType portType, int internalPort) throws InterruptedException;
     
     /**
      * Get the event listener.

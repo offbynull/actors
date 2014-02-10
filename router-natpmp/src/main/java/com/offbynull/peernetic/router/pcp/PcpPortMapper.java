@@ -90,7 +90,7 @@ public final class PcpPortMapper extends PortMapper {
             TaskKey key = new TaskKey(portType, internalPort);
             MaintainCallable maintainCallable = new MaintainCallable(timer, controller, portType, internalPort,
                     response.getAssignedExternalPort(), response.getAssignedExternalIpAddress(), response.getLifetime());
-            NotifyStaleCallable notifyStaleCallable = new NotifyStaleCallable(timer, response.getLifetime(), internalPort);
+            NotifyStaleCallable notifyStaleCallable = new NotifyStaleCallable(timer, getListener(), response.getLifetime(), internalPort);
             
             tasks.put(key, new TaskValue(maintainCallable, notifyStaleCallable));
         } catch (IllegalArgumentException | BufferUnderflowException | UnknownHostException e) {
@@ -163,7 +163,7 @@ public final class PcpPortMapper extends PortMapper {
         }
     }
     
-    private static class MaintainCallable implements Callable<Void> {
+    private static final class MaintainCallable implements Callable<Void> {
 
         private ScheduledExecutorService scheduler;
         private PcpController controller;
@@ -228,7 +228,7 @@ public final class PcpPortMapper extends PortMapper {
         }
     }
 
-    private static class NotifyStaleCallable implements Callable<Void> {
+    private static final class NotifyStaleCallable implements Callable<Void> {
 
         private ScheduledExecutorService scheduler;
         private PortMapperEventListener listener;
@@ -236,11 +236,13 @@ public final class PcpPortMapper extends PortMapper {
         private volatile ScheduledFuture<Void> selfFuture;
                 
 
-        private NotifyStaleCallable(ScheduledExecutorService scheduler, long duration, int internalPort) {
+        private NotifyStaleCallable(ScheduledExecutorService scheduler, PortMapperEventListener listener, long duration, int internalPort) {
             Validate.notNull(scheduler);
+            Validate.notNull(listener);
             Validate.inclusiveBetween(0L, Long.MAX_VALUE, duration);
             Validate.inclusiveBetween(1, 65535, internalPort);
             this.scheduler = scheduler;
+            this.listener = listener;
             this.internalPort = internalPort;
             selfFuture = scheduler.schedule(this, duration, TimeUnit.SECONDS);
         }

@@ -17,9 +17,9 @@
 package com.offbynull.peernetic.router.pcp;
 
 import java.net.InetAddress;
-import java.nio.BufferOverflowException;
+import java.nio.BufferOverflowException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
 import java.nio.ByteBuffer;
-import java.nio.ReadOnlyBufferException;
+import java.nio.ReadOnlyBufferException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

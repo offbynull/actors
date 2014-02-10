@@ -18,7 +18,7 @@ package com.offbynull.peernetic.router.pcp;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.BufferUnderflowException;
+import java.nio.BufferUnderflowException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 

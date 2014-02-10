@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.router.pcp;
 
-import java.nio.BufferUnderflowException;
+import java.nio.BufferUnderflowException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
 import java.nio.ByteBuffer;
 
 /**

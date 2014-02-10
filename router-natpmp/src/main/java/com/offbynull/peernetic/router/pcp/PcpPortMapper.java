@@ -88,9 +88,10 @@ public final class PcpPortMapper extends PortMapper {
                     3600);
             
             TaskKey key = new TaskKey(portType, internalPort);
-            MaintainCallable maintainCallable = new MaintainCallable(timer, controller, portType, internalPort,
+            MaintainCallable maintainCallable = MaintainCallable.createAndScheduler(timer, controller, portType, internalPort,
                     response.getAssignedExternalPort(), response.getAssignedExternalIpAddress(), response.getLifetime());
-            NotifyStaleCallable notifyStaleCallable = new NotifyStaleCallable(timer, getListener(), response.getLifetime(), internalPort);
+            NotifyStaleCallable notifyStaleCallable = NotifyStaleCallable.createAndScheduler(timer, getListener(), response.getLifetime(),
+                    internalPort);
             
             tasks.put(key, new TaskValue(maintainCallable, notifyStaleCallable));
         } catch (IllegalArgumentException | BufferUnderflowException | UnknownHostException e) {
@@ -174,7 +175,14 @@ public final class PcpPortMapper extends PortMapper {
         private volatile int duration;
         private volatile ScheduledFuture<Void> selfFuture;
                 
-
+        public static MaintainCallable createAndScheduler(ScheduledExecutorService scheduler, PcpController controller, PortType portType,
+                int internalPort, int preferredExternalPort, InetAddress preferredExternalAddress, long duration) {
+            MaintainCallable callable = new MaintainCallable(scheduler, controller, portType, internalPort, preferredExternalPort,
+                    preferredExternalAddress, duration);
+            callable.selfFuture = scheduler.schedule(callable, callable.duration, TimeUnit.SECONDS);
+            return callable;
+        }
+        
         public MaintainCallable(ScheduledExecutorService scheduler, PcpController controller, PortType portType, int internalPort,
                 int preferredExternalPort, InetAddress preferredExternalAddress, long duration) {
         
@@ -192,8 +200,6 @@ public final class PcpPortMapper extends PortMapper {
             this.preferredExternalAddress = preferredExternalAddress;
             this.scheduler = scheduler;
             this.duration = (int) Math.min(Integer.MAX_VALUE, duration / (long) ATTEMPTS);
-            
-            selfFuture = scheduler.schedule(this, duration, TimeUnit.SECONDS);
         }
 
         public void reset(long duration) {
@@ -235,16 +241,21 @@ public final class PcpPortMapper extends PortMapper {
         private int internalPort;
         private volatile ScheduledFuture<Void> selfFuture;
                 
-
-        private NotifyStaleCallable(ScheduledExecutorService scheduler, PortMapperEventListener listener, long duration, int internalPort) {
+        public static NotifyStaleCallable createAndScheduler(ScheduledExecutorService scheduler, PortMapperEventListener listener,
+                long duration, int internalPort) {
+            NotifyStaleCallable callable = new NotifyStaleCallable(scheduler, listener, internalPort);
+            scheduler.schedule(callable, duration, TimeUnit.SECONDS);
+            
+            return callable;
+        }
+        
+        private NotifyStaleCallable(ScheduledExecutorService scheduler, PortMapperEventListener listener, int internalPort) {
             Validate.notNull(scheduler);
             Validate.notNull(listener);
-            Validate.inclusiveBetween(0L, Long.MAX_VALUE, duration);
             Validate.inclusiveBetween(1, 65535, internalPort);
             this.scheduler = scheduler;
             this.listener = listener;
             this.internalPort = internalPort;
-            selfFuture = scheduler.schedule(this, duration, TimeUnit.SECONDS);
         }
 
         public void reset(long duration) {
@@ -264,6 +275,32 @@ public final class PcpPortMapper extends PortMapper {
             return null;
         }
     }
+
+    private static final class DeferredNotifyCallable implements Callable<Void> {
+
+        private PortMapperEventListener listener;
+        private String message;
+                
+        public static DeferredNotifyCallable createAndScheduleImmediate(ScheduledExecutorService scheduler,
+                PortMapperEventListener listener, String message) {
+            DeferredNotifyCallable callable = new DeferredNotifyCallable(listener, message);
+            scheduler.schedule(callable, 1, TimeUnit.SECONDS);
+            return callable;
+        }
+        
+        private DeferredNotifyCallable(PortMapperEventListener listener, String message) {
+            Validate.notNull(listener);
+            Validate.notNull(message);
+            this.listener = listener;
+            this.message = message;
+        }
+        
+        @Override
+        public Void call() throws Exception {
+            listener.resetRequired(message);
+            return null;
+        }
+    }
     
     private class CustomPcpControllerListener implements PcpControllerListener {
 
@@ -271,7 +308,13 @@ public final class PcpPortMapper extends PortMapper {
         public void incomingResponse(CommunicationType type, PcpResponse response) {
             if (response instanceof AnnouncePcpResponse) {
                 // re-send mapping requests
-                getListener().resetRequired("PCP server sent out an ANNOUNCE response");
+                lock.lock();
+                try {
+                    Validate.validState(!timer.isShutdown());
+                    DeferredNotifyCallable.createAndScheduleImmediate(timer, getListener(), "PCP server sent out an ANNOUNCE response");
+                } finally {
+                    lock.unlock();
+                }                
             } else if (response instanceof MapPcpResponse) {
                 // construct new port details object
                 MapPcpResponse mapPcpResponse = (MapPcpResponse) response;
@@ -286,9 +329,6 @@ public final class PcpPortMapper extends PortMapper {
                     throw new IllegalArgumentException();
                 }
                 
-                int oldExternalPort;
-                InetAddress oldExternalAddress;
-                
                 lock.lock();
                 try {
                     Validate.validState(!timer.isShutdown());
@@ -299,24 +339,20 @@ public final class PcpPortMapper extends PortMapper {
                         return;
                     }
                     
-                    value.getNotifyStale().reset(mapPcpResponse.getLifetime());
-                    value.getMaintain().reset(mapPcpResponse.getLifetime());
+                    int oldExternalPort = value.getMaintain().getPreferredExternalPort();
+                    InetAddress oldExternalAddress = value.getMaintain().getPreferredExternalAddress();
                     
-                    oldExternalAddress = value.getMaintain().getPreferredExternalAddress();
-                    oldExternalPort = value.getMaintain().getPreferredExternalPort();
+                    // if refreshed, compare if port mappings are different and notify if they are
+                    if (oldExternalPort != mapPcpResponse.getAssignedExternalPort()
+                            || !oldExternalAddress.equals(mapPcpResponse.getAssignedExternalIpAddress())) {
+                        DeferredNotifyCallable.createAndScheduleImmediate(timer, getListener(),
+                                "PCP server changed external IP/port for internal port " + mapPcpResponse.getInternalPort());
+                    } else {
+                        value.getNotifyStale().reset(mapPcpResponse.getLifetime());
+                        value.getMaintain().reset(mapPcpResponse.getLifetime());
+                    }
                 } finally {
                     lock.unlock();
-                }
-                
-                // if refreshed, compare if port mappings are different and notify if they are
-                if (oldExternalPort != mapPcpResponse.getAssignedExternalPort()
-                        || !oldExternalAddress.equals(mapPcpResponse.getAssignedExternalIpAddress())) {
-                    try {
-                        getListener().resetRequired("PCP server changed external IP/port for internal port "
-                                + mapPcpResponse.getInternalPort());
-                    } catch (RuntimeException re) { // NOPMD
-                        // do nothing
-                    }
                 }
             }
         }

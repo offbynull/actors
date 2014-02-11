@@ -22,9 +22,11 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Describes a mapped port.
+ *
  * @author Kasra Faghihi
  */
 public final class MappedPort {
+
     private int internalPort;
     private int externalPort;
     private InetAddress externalAddress;
@@ -32,6 +34,7 @@ public final class MappedPort {
 
     /**
      * Constructs a {@link MappedPort} object.
+     *
      * @param internalPort internal port
      * @param externalPort external port
      * @param externalAddress external address
@@ -44,7 +47,7 @@ public final class MappedPort {
         Validate.inclusiveBetween(1, 65535, externalPort);
         Validate.notNull(externalAddress);
         Validate.notNull(portType);
-        
+
         this.internalPort = internalPort;
         this.externalPort = externalPort;
         this.externalAddress = externalAddress;
@@ -53,6 +56,7 @@ public final class MappedPort {
 
     /**
      * Get internal port.
+     *
      * @return internal port
      */
     public int getInternalPort() {
@@ -61,6 +65,7 @@ public final class MappedPort {
 
     /**
      * Get external port.
+     *
      * @return external port
      */
     public int getExternalPort() {
@@ -69,6 +74,7 @@ public final class MappedPort {
 
     /**
      * Get external address.
+     *
      * @return external address
      */
     public InetAddress getExternalAddress() {
@@ -77,6 +83,7 @@ public final class MappedPort {
 
     /**
      * Get port type.
+     *
      * @return port type
      */
     public PortType getPortType() {
@@ -122,5 +129,5 @@ public final class MappedPort {
         return "MappedPort{" + "internalPort=" + internalPort + ", externalPort=" + externalPort + ", externalAddress=" + externalAddress
                 + ", portType=" + portType + '}';
     }
-    
+
 }

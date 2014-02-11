@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.channels.MulticastChannel;
 import java.util.Enumeration;
+import org.apache.commons.lang3.Validate;
 
 final class PcpUtils {
     private PcpUtils() {
@@ -30,6 +31,8 @@ final class PcpUtils {
     }
     
     static byte[] convertToIpv6Array(InetAddress address) {
+        Validate.notNull(address);
+        
         byte[] addrArr = address.getAddress();
         switch (addrArr.length) {
             case 4: {
@@ -50,6 +53,8 @@ final class PcpUtils {
     }
     
     static void multicastListenOnAllIpv4InterfaceAddresses(MulticastChannel channel) throws IOException {
+        Validate.notNull(channel);
+        
         final InetAddress ipv4Group = InetAddress.getByName("224.0.0.1"); // NOPMD
 
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -72,6 +77,8 @@ final class PcpUtils {
     }
 
     static void multicastListenOnAllIpv6InterfaceAddresses(MulticastChannel channel) throws IOException {
+        Validate.notNull(channel);
+        
         final InetAddress ipv6Group = InetAddress.getByName("ff02::1"); // NOPMD
 
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -90,5 +97,23 @@ final class PcpUtils {
                 }
             }
         }
+    }
+    
+    /**
+     * Get timeout duration for a PCP MAP/PEER request as defined by the PCP RFC.
+     * @param attempt attempt number (e.g. first attempt, second attempt, etc..)
+     * @return number of seconds to wait for a response
+     * @throws IllegalArgumentException if {@code attempt < 1 || > 9}
+     */
+    static long getPcpWaitTime(int attempt) {
+        Validate.inclusiveBetween(1, 9, attempt);
+        
+        // timeout duration should double each iteration, starting from 250 according to spec
+        // i = 1, maxWaitTime = (1 << (1-1)) * 250 = (1 << 0) * 250 = 1 * 250 = 250
+        // i = 2, maxWaitTime = (1 << (2-1)) * 250 = (1 << 1) * 250 = 2 * 250 = 500
+        // i = 3, maxWaitTime = (1 << (3-1)) * 250 = (1 << 2) * 250 = 4 * 250 = 1000
+        // i = 4, maxWaitTime = (1 << (4-1)) * 250 = (1 << 3) * 250 = 8 * 250 = 2000
+        // ...
+        return (1 << (attempt - 1)) * 250; // NOPMD
     }
 }

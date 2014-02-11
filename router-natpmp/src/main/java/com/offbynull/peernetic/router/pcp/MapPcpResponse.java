@@ -119,8 +119,8 @@ public final class MapPcpResponse extends PcpResponse {
         }
         
         Validate.inclusiveBetween(0, 255, protocol); // should never happen
-        Validate.inclusiveBetween(1, 65535, internalPort);
-        Validate.inclusiveBetween(1, 65535, assignedExternalPort);
+        Validate.inclusiveBetween(0, 65535, internalPort); // can be 0 if referencing all
+        Validate.inclusiveBetween(0, 65535, assignedExternalPort); // can be 0 if removing
         
         parseOptions(buffer);
     }

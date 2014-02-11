@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.router;
 
 import java.io.Closeable;
+import java.util.concurrent.Future;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -36,31 +37,25 @@ public abstract class PortMapper implements Closeable {
         this.portMapperListener = portMapperListener;
     }
 
-    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
     /**
-     * Map a port. Blocks until the operation completes or fails.
-     * @param portType port type
-     * @param internalPort internal port
-     * @throws PortMapException if port/portType combo already being handled by this mapper, or an internal error occurred
+     * Map a port. If the port has already been mapped, is in the process of being mapped, or is in the process of being unmapped, then
+     * the future will return an exception.
+     * @param port internal port
+     * @return future that can be used to check if the mapping has been acquired (not cancelable)
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
-     * @throws InterruptedException if the thread is interrupted while the port is being obtained
      */
-    protected abstract void mapPort(PortType portType, int internalPort) throws InterruptedException;
-    // CHECKSTYLE:ON
+    public abstract Future<MappedPort> mapPort(Port port);
 
-    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
     /**
-     * Unmap a port asynchronously. Blocks until the operation completes or fails.
-     * @param portType port type
-     * @param internalPort internal port
-     * @throws PortMapException if port/portType combo not being handled by this mapper, or an internal error occurred
+     * Unmap a port. If the port hasn't been mapped, is in the process of being mapped, or is in the process of already being unmapped, then
+     * the future will return an exception.
+     * @param port internal port
+     * @return future that can be used to check if the mapping has been released (not cancelable)
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
-     * @throws InterruptedException if the thread is interrupted while the port is being obtained
      */
-    protected abstract void unmapPort(PortType portType, int internalPort) throws InterruptedException;
-    // CHECKSTYLE:ON
+    public abstract Future<Void> unmapPort(Port port);
     
     /**
      * Get the event listener.

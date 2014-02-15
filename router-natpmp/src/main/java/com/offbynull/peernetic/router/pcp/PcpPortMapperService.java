@@ -511,7 +511,6 @@ final class PcpPortMapperService extends AbstractExecutionThreadService {
     private static final class MaintainPortState extends PortState {
 
         private int attempt;
-        private long duration;
         private MapPcpRequest request;
         private int externalPort;
         private InetAddress externalAddress;

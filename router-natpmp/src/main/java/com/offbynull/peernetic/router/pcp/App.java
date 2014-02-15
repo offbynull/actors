@@ -15,7 +15,8 @@ public class App {
             public void resetRequired(String details) {
                 System.out.println(details);
             }
-        }, InetAddress.getByName("192.168.25.129"), InetAddress.getByName("192.168.25.1"));
+        //}, InetAddress.getByName("192.168.25.129"), InetAddress.getByName("192.168.25.1"));
+        }, InetAddress.getByName("10.0.1.1"), InetAddress.getByName("10.0.1.3"));
         
         MappedPort mappedPort = mapper.mapPort(new Port(PortType.UDP, 10000)).get();
         System.out.println(mappedPort);

@@ -32,6 +32,10 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Network-related utility class.
+ * @author Kasra Faghihi
+ */
 public final class NetworkUtils {
     /**
      * IPs grabbed from http://www.techspot.com/guides/287-default-router-ip-addresses/ + comments @ 1/19/2014.

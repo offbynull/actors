@@ -39,6 +39,14 @@ public final class PcpPortMapper implements PortMapper {
     private boolean preferIpv6External;
     private volatile boolean closed;
 
+    /**
+     * Constructs a {@link PcpPortMapper} object.
+     * @param gatewayAddress gateway address
+     * @param selfAddress address of this machine on the interface that can talk to the router/gateway
+     * @param preferIpv6External if this mapper should tell the router to give it a ipv6 address when asking the router to map a new port
+     * @param listener event listener
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public PcpPortMapper(InetAddress gatewayAddress, InetAddress selfAddress, boolean preferIpv6External,
             final PortMapperEventListener listener) {
         Validate.notNull(gatewayAddress);
@@ -154,7 +162,7 @@ public final class PcpPortMapper implements PortMapper {
         MappedPort newMappedPort;
         try {
             MapPcpResponse resp = controller.requestMapOperation(4, mappedPort.getPortType(), mappedPort.getInternalPort(),
-                    mappedPort.getExternalPort(), mappedPort.getExternalAddress(), lifetime);//, new PreferFailurePcpOption());
+                    mappedPort.getExternalPort(), mappedPort.getExternalAddress(), lifetime); //, new PreferFailurePcpOption());
             // Preferfailurd does not work on Apple Airport Extreme :( unsupp_option.
 
             newMappedPort = new MappedPort(resp.getInternalPort(), resp.getAssignedExternalPort(),

@@ -64,7 +64,7 @@ public abstract class NatPmpResponse {
      * Get opcode.
      * @return opcode
      */
-    public int getOp() {
+    public final int getOp() {
         return op;
     }
     
@@ -72,7 +72,7 @@ public abstract class NatPmpResponse {
      * Get the number of seconds since the start of epoch. AKA seconds since this device rebooted.
      * @return number of seconds since start of epoch
      */
-    public long getSecondsSinceStartOfEpoch() {
+    public final long getSecondsSinceStartOfEpoch() {
         return secondsSinceStartOfEpoch;
     }
 }

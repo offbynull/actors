@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.router;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -60,7 +59,7 @@ public final class MappedPort {
      * Get internal port.
      * @return internal port
      */
-    public final int getInternalPort() {
+    public int getInternalPort() {
         return internalPort;
     }
 
@@ -68,7 +67,7 @@ public final class MappedPort {
      * Get external port.
      * @return external port
      */
-    public final int getExternalPort() {
+    public int getExternalPort() {
         return externalPort;
     }
 
@@ -76,7 +75,7 @@ public final class MappedPort {
      * Get external address.
      * @return external address
      */
-    public final InetAddress getExternalAddress() {
+    public InetAddress getExternalAddress() {
         return externalAddress;
     }
     
@@ -84,7 +83,7 @@ public final class MappedPort {
      * Get port type.
      * @return port type
      */
-    public final PortType getPortType() {
+    public PortType getPortType() {
         return portType;
     }
 

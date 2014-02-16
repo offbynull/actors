@@ -37,6 +37,12 @@ public final class NatPmpPortMapper implements PortMapper {
     private volatile boolean closed;
     
 
+    /**
+     * Constructs a {@link NatPmpPortMapper} object.
+     * @param gatewayAddress gateway address
+     * @param listener event listener
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public NatPmpPortMapper(InetAddress gatewayAddress, final PortMapperEventListener listener) {
         Validate.notNull(gatewayAddress);
         Validate.notNull(listener);

@@ -43,7 +43,7 @@ public final class PcpController implements Closeable {
      * Constructs a {@link PcpController} object.
      * @param random used to generate nonce values for requests
      * @param gatewayAddress address of router/gateway
-     * @param selfAddress address of the interface that can talk to the router/gateway
+     * @param selfAddress address of this machine on the interface that can talk to the router/gateway
      * @param listener a listener to listen for all PCP packets from this router
      * @throws NullPointerException if any argument is {@code null}
      */

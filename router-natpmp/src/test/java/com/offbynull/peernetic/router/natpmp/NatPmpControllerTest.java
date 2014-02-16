@@ -74,7 +74,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), null);
         
-        RequestUdpMappingNatPmpResponse res = controller.requestUdpMappingOperation(4, 1, 2, 9);
+        UdpMappingNatPmpResponse res = controller.requestUdpMappingOperation(4, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());
@@ -88,7 +88,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), null);
         
-        RequestTcpMappingNatPmpResponse res = controller.requestTcpMappingOperation(4, 1, 2, 9);
+        TcpMappingNatPmpResponse res = controller.requestTcpMappingOperation(4, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());
@@ -102,7 +102,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), null);
         
-        RequestUdpMappingNatPmpResponse res = controller.requestUdpMappingOperation(4, 1, 2, 9);
+        UdpMappingNatPmpResponse res = controller.requestUdpMappingOperation(4, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());
@@ -116,7 +116,7 @@ public class NatPmpControllerTest {
         
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.1"), null);
         
-        RequestTcpMappingNatPmpResponse res = controller.requestTcpMappingOperation(4, 1, 2, 9);
+        TcpMappingNatPmpResponse res = controller.requestTcpMappingOperation(4, 1, 2, 9);
 
         Assert.assertEquals(3, res.getExternalPort());
         Assert.assertEquals(1, res.getInternalPort());

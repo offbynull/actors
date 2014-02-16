@@ -111,10 +111,24 @@ import org.apache.commons.lang3.Validate;
  *    client originally suggested.  As described above, this enables the
  *    gateway to automatically recover its mapping state after a crash or
  *    reboot.
+ * 
+ * ...
+ * 
+ *    When a mapping is destroyed successfully as a result of the client
+ *    explicitly requesting the deletion, the NAT gateway MUST send a
+ *    response packet that is formatted as defined in Section 3.3,
+ *    "Requesting a Mapping".  The response MUST contain a result code of
+ *    0, the internal port as indicated in the deletion request, an
+ *    external port of 0, and a lifetime of 0.  The NAT gateway MUST
+ *    respond to a request to destroy a mapping that does not exist as if
+ *    the request were successful.  This is because of the case where the
+ *    acknowledgment is lost, and the client retransmits its request to
+ *    delete the mapping.  In this case, the second request to delete the
+ *    mapping MUST return the same response packet as the first request.
  * </pre>
  * @author Kasra Faghihi
  */
-public final class RequestUdpMappingNatPmpResponse extends NatPmpResponse {
+public final class UdpMappingNatPmpResponse extends NatPmpResponse {
     private long secondsSinceStartOfEpoch;
     private int internalPort;
     private int externalPort;
@@ -128,7 +142,7 @@ public final class RequestUdpMappingNatPmpResponse extends NatPmpResponse {
      * @throws IllegalArgumentException if the version doesn't match the expected version (must always be {@code 0}), or if the op
      * {@code != 129}, or if external port in the buffer is {@code < 1 || > 65535}, or if there's an unsuccessful/unrecognized result code
      */
-    public RequestUdpMappingNatPmpResponse(ByteBuffer buffer) {
+    public UdpMappingNatPmpResponse(ByteBuffer buffer) {
         super(buffer);
         
         Validate.isTrue(getOp() == 129);
@@ -138,7 +152,7 @@ public final class RequestUdpMappingNatPmpResponse extends NatPmpResponse {
         externalPort = buffer.getShort() & 0xFFFF;
         lifetime = buffer.getInt() & 0xFFFFFFFFL;
         
-        Validate.inclusiveBetween(1, 65535, externalPort);
+        Validate.inclusiveBetween(0, 65535, externalPort); // 0 valid for deletion
     }
 
     /**

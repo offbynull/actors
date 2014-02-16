@@ -47,7 +47,7 @@ public abstract class NatPmpResponse {
         Validate.isTrue(version == 0, "Unknown version: %d", version);
         
         op = buffer.get() & 0xFF;
-        Validate.isTrue(op < 128, "Op must be >= 128: %d", op);
+        Validate.isTrue(op >= 128, "Op must be >= 128: %d", op);
 
         int resultCodeNum = buffer.getShort() & 0xFFFF;
         NatPmpResultCode[] resultCodes = NatPmpResultCode.values();

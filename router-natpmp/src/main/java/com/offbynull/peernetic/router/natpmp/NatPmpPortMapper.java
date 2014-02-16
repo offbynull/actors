@@ -1,0 +1,191 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
+package com.offbynull.peernetic.router.natpmp;
+
+import com.offbynull.peernetic.router.common.CommunicationType;
+import com.offbynull.peernetic.router.MappedPort;
+import com.offbynull.peernetic.router.PortMapper;
+import com.offbynull.peernetic.router.PortMapperEventListener;
+import com.offbynull.peernetic.router.PortType;
+import java.io.IOException;
+import java.net.InetAddress;
+import org.apache.commons.lang3.Validate;
+
+/**
+ * A NAT-PMP {@link PortMapper} implementation.
+ *
+ * @author Kasra Faghihi
+ */
+public final class NatPmpPortMapper implements PortMapper {
+
+    private NatPmpController controller;
+    private volatile boolean closed;
+
+    public NatPmpPortMapper(InetAddress gatewayAddress, final PortMapperEventListener listener) {
+        Validate.notNull(gatewayAddress);
+        Validate.notNull(listener);
+
+        controller = new NatPmpController(gatewayAddress, new NatPmpControllerListener() {
+
+            @Override
+            public void incomingResponse(CommunicationType type, NatPmpResponse response) {
+                if (closed) {
+                    return;
+                }
+
+                if (type == CommunicationType.MULTICAST && response instanceof ExternalAddressNatPmpResponse) {
+                    listener.resetRequired("Mappings may have been lost.");
+                }
+            }
+        });
+    }
+
+    @Override
+    public MappedPort mapPort(PortType portType, int internalPort, long lifetime) throws InterruptedException {
+        Validate.validState(!closed);
+        Validate.notNull(portType);
+        Validate.inclusiveBetween(1, 65535, internalPort);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, lifetime);
+
+        lifetime = Math.min(lifetime, (long) Integer.MAX_VALUE); // cap lifetime
+
+        ExternalAddressNatPmpResponse extAddrResp;
+        try {
+            extAddrResp = controller.requestExternalAddress(4);
+        } catch (RuntimeException re) {
+            throw new IllegalStateException(re);
+        }
+            
+        switch (portType) {
+            case TCP: {
+                try {
+                    TcpMappingNatPmpResponse tcpMapResp = controller.requestTcpMappingOperation(4, internalPort, 0, lifetime);
+                    return new MappedPort(tcpMapResp.getInternalPort(), tcpMapResp.getExternalPort(),
+                            extAddrResp.getAddress(), PortType.TCP, tcpMapResp.getLifetime());
+                } catch (RuntimeException re) {
+                    throw new IllegalStateException(re);
+                }
+            }
+            case UDP: {
+                try {
+                    UdpMappingNatPmpResponse udpMapResp = controller.requestUdpMappingOperation(4, internalPort, 0, lifetime);
+                    return new MappedPort(udpMapResp.getInternalPort(), udpMapResp.getExternalPort(),
+                            extAddrResp.getAddress(), PortType.TCP, udpMapResp.getLifetime());
+                } catch (RuntimeException re) {
+                    throw new IllegalStateException(re);
+                }
+            }
+            default:
+                throw new IllegalStateException(); // should never happen
+       }
+    }
+
+    @Override
+    public void unmapPort(PortType portType, int internalPort) throws InterruptedException {
+        Validate.validState(!closed);
+        Validate.notNull(portType);
+        Validate.inclusiveBetween(1, 65535, internalPort);
+            
+        switch (portType) {
+            case TCP: {
+                try {
+                    controller.requestTcpMappingOperation(4, internalPort, 0, 0);
+                } catch (RuntimeException re) {
+                    throw new IllegalStateException(re);
+                }
+                break;
+            }
+            case UDP: {
+                try {
+                    controller.requestUdpMappingOperation(4, internalPort, 0, 0);
+                } catch (RuntimeException re) {
+                    throw new IllegalStateException(re);
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException(); // should never happen
+       }
+    }
+
+    @Override
+    public MappedPort refreshPort(MappedPort mappedPort, long lifetime) throws InterruptedException {
+        Validate.validState(!closed);
+        Validate.notNull(mappedPort);
+        Validate.inclusiveBetween(1L, Long.MAX_VALUE, lifetime);
+
+        lifetime = Math.min(lifetime, (long) Integer.MAX_VALUE); // cap lifetime
+
+        ExternalAddressNatPmpResponse extAddrResp;
+        try {
+            extAddrResp = controller.requestExternalAddress(4);
+        } catch (RuntimeException re) {
+            throw new IllegalStateException(re);
+        }
+
+        MappedPort newMappedPort;
+        switch (mappedPort.getPortType()) {
+            case TCP: {
+                try {
+                    TcpMappingNatPmpResponse tcpMapResp = controller.requestTcpMappingOperation(4, mappedPort.getInternalPort(),
+                            mappedPort.getExternalPort(), lifetime);
+                    newMappedPort = new MappedPort(tcpMapResp.getInternalPort(), tcpMapResp.getExternalPort(),
+                            extAddrResp.getAddress(), PortType.TCP, tcpMapResp.getLifetime());
+                } catch (RuntimeException re) {
+                    throw new IllegalStateException(re);
+                }
+                break;
+            }
+            case UDP: {
+                try {
+                    UdpMappingNatPmpResponse udpMapResp = controller.requestUdpMappingOperation(4, mappedPort.getInternalPort(),
+                            mappedPort.getExternalPort(), lifetime);
+                    newMappedPort = new MappedPort(udpMapResp.getInternalPort(), udpMapResp.getExternalPort(),
+                            extAddrResp.getAddress(), PortType.TCP, udpMapResp.getLifetime());
+                } catch (RuntimeException re) {
+                    throw new IllegalStateException(re);
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException(); // should never happen
+        }
+        
+        try {
+            Validate.isTrue(mappedPort.getExternalAddress().equals(mappedPort.getExternalAddress()), "External address changed");
+            Validate.isTrue(mappedPort.getInternalPort() == mappedPort.getInternalPort(), "External port changed");
+        } catch (IllegalStateException ise) {
+            // port has been mapped to different external ip and/or port, unmap and return error
+            try {
+                unmapPort(newMappedPort.getPortType(), newMappedPort.getInternalPort());
+            } catch (RuntimeException re) { // NOPMD
+                // do nothing
+            }
+            
+            throw ise;
+        }
+
+
+        return newMappedPort;
+    }
+    
+    @Override
+    public void close() throws IOException {
+        closed = true;
+        controller.close();
+    }
+}

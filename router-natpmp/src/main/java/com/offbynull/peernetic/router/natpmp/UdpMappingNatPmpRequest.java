@@ -81,7 +81,7 @@ import org.apache.commons.lang3.Validate;
  * 
  *    The RECOMMENDED Port Mapping Lifetime is 7200 seconds (two hours).
  * 
- * ... snip ...
+ * ...
  * 
  * 3.4.  Destroying a Mapping
  * 
@@ -101,10 +101,29 @@ import org.apache.commons.lang3.Validate;
  *    requesting the mapping, with the Requested Lifetime in Seconds set to
  *    zero.  The Suggested External Port MUST be set to zero by the client
  *    on sending, and MUST be ignored by the gateway on reception.
+ * 
+ * ...
+ * 
+ *    A client can request the explicit deletion of all its UDP or TCP
+ *    mappings by sending the same deletion request to the NAT gateway with
+ *    the external port, internal port, and lifetime set to zero.  A client
+ *    MAY choose to do this when it first acquires a new IP address in
+ *    order to protect itself from port mappings that were performed by a
+ *    previous owner of the IP address.  After receiving such a deletion
+ *    request, the gateway MUST delete all its UDP or TCP port mappings
+ *    (depending on the opcode).  The gateway responds to such a deletion
+ *    request with a response as described above, with the internal port
+ *    set to zero.  If the gateway is unable to delete a port mapping, for
+ *    example, because the mapping was manually configured by the
+ *    administrator, the gateway MUST still delete as many port mappings as
+ *    possible, but respond with a non-zero result code.  The exact result
+ *    code to return depends on the cause of the failure.  If the gateway
+ *    is able to successfully delete all port mappings as requested, it
+ *    MUST respond with a result code of zero.
  * </pre>
  * @author Kasra Faghihi
  */
-public final class RequestUdpMappingNatPmpRequest extends NatPmpRequest {
+public final class UdpMappingNatPmpRequest extends NatPmpRequest {
     private int internalPort;
     private int suggestedExternalPort;
     private long lifetime;
@@ -117,7 +136,7 @@ public final class RequestUdpMappingNatPmpRequest extends NatPmpRequest {
      * @throws IllegalArgumentException if {@code internalPort < 1 || > 65535}, or if {@code suggestedExternalPort < 0 || > 65535}, or if
      * {@code lifetime < 0 || > 0xFFFFFFFFL}
      */
-    public RequestUdpMappingNatPmpRequest(int internalPort, int suggestedExternalPort, long lifetime) {
+    public UdpMappingNatPmpRequest(int internalPort, int suggestedExternalPort, long lifetime) {
         super(1);
         
         Validate.inclusiveBetween(1, 65535, internalPort);

@@ -38,7 +38,7 @@ public final class App {
      */
     public static void main(String []args) throws Throwable {
                 //}, InetAddress.getByName("192.168.25.129"), InetAddress.getByName("192.168.25.1")); //miniupnpd details
-        PortMapper mapper = new PcpPortMapper(InetAddress.getByName("10.0.1.1"), InetAddress.getByName("10.0.1.3"), false, //apple details
+        PortMapper mapper = new PcpPortMapper(InetAddress.getByName("10.0.1.1"), InetAddress.getByName("10.0.1.3"), false,  // NOPMD
                 new PortMapperEventListener() {
 
             @Override

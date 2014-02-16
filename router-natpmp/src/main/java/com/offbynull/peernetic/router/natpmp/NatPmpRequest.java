@@ -16,9 +16,9 @@
  */
 package com.offbynull.peernetic.router.natpmp;
 
-import java.nio.BufferOverflowException;
+import java.nio.BufferOverflowException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
 import java.nio.ByteBuffer;
-import java.nio.ReadOnlyBufferException;
+import java.nio.ReadOnlyBufferException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
 import org.apache.commons.lang3.Validate;
 
 /**

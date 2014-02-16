@@ -116,7 +116,7 @@ public final class PcpPortMapper implements PortMapper {
             if (preferIpv6External) {
                 externalAddress = InetAddress.getByName("::");
             } else {
-                externalAddress = InetAddress.getByName("::ffff:0:0");
+                externalAddress = InetAddress.getByName("::ffff:0:0"); // NOPMD
             }
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe);

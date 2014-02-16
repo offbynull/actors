@@ -38,7 +38,7 @@ public final class App {
      */
     public static void main(String []args) throws Throwable {
                 //}, InetAddress.getByName("192.168.25.129"), InetAddress.getByName("192.168.25.1")); //miniupnpd details
-        PortMapper mapper = new NatPmpPortMapper(InetAddress.getByName("10.0.1.1"), new PortMapperEventListener() {
+        PortMapper mapper = new NatPmpPortMapper(InetAddress.getByName("10.0.1.1"), new PortMapperEventListener() { // NOPMD
 
             @Override
             public void resetRequired(String details) {

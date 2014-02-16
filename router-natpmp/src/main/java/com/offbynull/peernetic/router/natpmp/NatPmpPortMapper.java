@@ -59,17 +59,15 @@ public final class NatPmpPortMapper implements PortMapper {
                 
                 // As described in section 3.6 of the RFC
                 if (!lastAvailable) {
-                    lastRecvTime = System.currentTimeMillis();
+                    lastRecvTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
                     lastEpoch = response.getSecondsSinceStartOfEpoch();
                     lastAvailable = true;
                 } else {
-                    long recvTime = System.currentTimeMillis();
+                    long recvTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
                     long epoch = response.getSecondsSinceStartOfEpoch();
 
                     long elapsedTime = Math.max(0L, recvTime - lastRecvTime); // max just in case
-                    long elapsedTimeInSeconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime);
-                    
-                    long epochWindow = elapsedTimeInSeconds * 7L / 8L;
+                    long epochWindow = elapsedTime * 7L / 8L;
 
                     long minEpoch = (lastEpoch + epochWindow - 2L) & 0xFFFFFFFFL; // add and truncate top 32bits
 

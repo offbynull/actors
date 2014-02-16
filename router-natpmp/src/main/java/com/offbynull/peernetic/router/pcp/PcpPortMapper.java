@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -48,15 +49,47 @@ public final class PcpPortMapper implements PortMapper {
 
         controller = new PcpController(new Random(), gatewayAddress, selfAddress, new PcpControllerListener() {
 
+            private boolean lastAvailable;
+            private long lastEpoch;
+            private long lastRecvTime;
+
             @Override
             public void incomingResponse(CommunicationType type, PcpResponse response) {
                 if (closed) {
                     return;
                 }
 
-                if (response instanceof AnnouncePcpResponse) {
-                    listener.resetRequired("Mappings may have been lost.");
+                if (type == CommunicationType.MULTICAST && response instanceof AnnouncePcpResponse) {
+                    listener.resetRequired("Mappings may have been lost via device reset and/or external IP change.");
+                    return;
                 }
+                
+                // As described in section 8.5 of the RFC
+                if (!lastAvailable) {
+                    lastRecvTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+                    lastEpoch = response.getEpochTime();
+                    lastAvailable = true;
+                } else {
+                    long recvTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+                    long epoch = response.getEpochTime();
+                    
+                    if (epoch < lastEpoch - 1) {
+                        listener.resetRequired("Mappings may have been lost via device reset.");
+                        return;
+                    }
+
+                    long clientDelta = Math.max(0L, recvTime - lastRecvTime); // max just in case
+                    long serverDelta = epoch - lastEpoch;
+                    
+                    if (clientDelta + 2L < serverDelta - serverDelta / 16
+                            || serverDelta + 2L < clientDelta - clientDelta / 16) {
+                        listener.resetRequired("Mappings may have been lost via device reset.");
+                        return;
+                    }
+                    
+                    lastRecvTime = recvTime;
+                    lastEpoch = epoch;
+                }                
             }
         });
     }

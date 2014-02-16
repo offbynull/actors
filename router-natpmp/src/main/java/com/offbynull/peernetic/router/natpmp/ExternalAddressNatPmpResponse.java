@@ -52,7 +52,6 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ExternalAddressNatPmpResponse extends NatPmpResponse {
-    private long secondsSinceStartOfEpoch;
     private InetAddress address;
 
     /**
@@ -68,7 +67,6 @@ public final class ExternalAddressNatPmpResponse extends NatPmpResponse {
         
         Validate.isTrue(getOp() == 128);
         
-        secondsSinceStartOfEpoch = buffer.getInt() & 0xFFFFFFFFL;
         byte[] addr = new byte[4];
         buffer.get(addr);
         
@@ -77,14 +75,6 @@ public final class ExternalAddressNatPmpResponse extends NatPmpResponse {
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe); // should never happen, will always be 4 bytes
         }
-    }
-
-    /**
-     * Get the number of seconds since the start of epoch. AKA seconds since this device rebooted.
-     * @return number of seconds since start of epoch
-     */
-    public long getSecondsSinceStartOfEpoch() {
-        return secondsSinceStartOfEpoch;
     }
 
     /**

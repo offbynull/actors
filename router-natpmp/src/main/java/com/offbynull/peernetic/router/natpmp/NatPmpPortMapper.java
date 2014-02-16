@@ -23,6 +23,7 @@ import com.offbynull.peernetic.router.PortMapperEventListener;
 import com.offbynull.peernetic.router.PortType;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -34,12 +35,16 @@ public final class NatPmpPortMapper implements PortMapper {
 
     private NatPmpController controller;
     private volatile boolean closed;
+    
 
     public NatPmpPortMapper(InetAddress gatewayAddress, final PortMapperEventListener listener) {
         Validate.notNull(gatewayAddress);
         Validate.notNull(listener);
 
         controller = new NatPmpController(gatewayAddress, new NatPmpControllerListener() {
+            private boolean lastAvailable;
+            private long lastEpoch;
+            private long lastRecvTime;
 
             @Override
             public void incomingResponse(CommunicationType type, NatPmpResponse response) {
@@ -48,7 +53,33 @@ public final class NatPmpPortMapper implements PortMapper {
                 }
 
                 if (type == CommunicationType.MULTICAST && response instanceof ExternalAddressNatPmpResponse) {
-                    listener.resetRequired("Mappings may have been lost.");
+                    listener.resetRequired("Mappings may have been lost via external IP address change.");
+                    return;
+                }
+                
+                // As described in section 3.6 of the RFC
+                if (!lastAvailable) {
+                    lastRecvTime = System.currentTimeMillis();
+                    lastEpoch = response.getSecondsSinceStartOfEpoch();
+                    lastAvailable = true;
+                } else {
+                    long recvTime = System.currentTimeMillis();
+                    long epoch = response.getSecondsSinceStartOfEpoch();
+
+                    long elapsedTime = Math.max(0L, recvTime - lastRecvTime); // max just in case
+                    long elapsedTimeInSeconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime);
+                    
+                    long epochWindow = elapsedTimeInSeconds * 7L / 8L;
+
+                    long minEpoch = (lastEpoch + epochWindow - 2L) & 0xFFFFFFFFL; // add and truncate top 32bits
+
+                    if (epoch < minEpoch) {
+                        listener.resetRequired("Mappings may have been lost via device reset.");
+                        return;
+                    }
+                    
+                    lastRecvTime = recvTime;
+                    lastEpoch = epoch;
                 }
             }
         });

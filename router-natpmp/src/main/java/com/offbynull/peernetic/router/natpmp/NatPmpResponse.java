@@ -22,11 +22,12 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Represents a NAT-PMP response. Provides NAT-PMP response header construction functionality, which is basically just the version, the OP,
- * and the result code.
+ * the result code, and the seconds since start of epoch.
  * @author Kasra Faghihi
  */
 public abstract class NatPmpResponse {
     private int op;
+    private long secondsSinceStartOfEpoch;
     
     /**
      * Constructs a {@link NatPmpResponse} object by parsing a buffer.
@@ -39,7 +40,7 @@ public abstract class NatPmpResponse {
     NatPmpResponse(ByteBuffer buffer) {
         Validate.notNull(buffer);
         
-        if (buffer.remaining() < 4 || buffer.remaining() > 1100 || buffer.remaining() % 4 != 0) {
+        if (buffer.remaining() < 2) {
             throw new IllegalArgumentException("Bad packet size: " + buffer.remaining());
         }
         
@@ -55,6 +56,8 @@ public abstract class NatPmpResponse {
         Validate.isTrue(resultCodeNum < resultCodes.length, "Unknown result code encountered: %d", resultCodeNum);
         Validate.isTrue(resultCodeNum == NatPmpResultCode.SUCCESS.ordinal(), "Unsuccessful result code: %s [%s]",
                 resultCodes[resultCodeNum].toString(), resultCodes[resultCodeNum].getMessage());
+        
+        secondsSinceStartOfEpoch = buffer.getInt() & 0xFFFFFFFFL;
     }
     
     /**
@@ -65,4 +68,11 @@ public abstract class NatPmpResponse {
         return op;
     }
     
+    /**
+     * Get the number of seconds since the start of epoch. AKA seconds since this device rebooted.
+     * @return number of seconds since start of epoch
+     */
+    public long getSecondsSinceStartOfEpoch() {
+        return secondsSinceStartOfEpoch;
+    }
 }

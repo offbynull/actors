@@ -129,7 +129,6 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class TcpMappingNatPmpResponse extends NatPmpResponse {
-    private long secondsSinceStartOfEpoch;
     private int internalPort;
     private int externalPort;
     private long lifetime;
@@ -147,20 +146,11 @@ public final class TcpMappingNatPmpResponse extends NatPmpResponse {
         
         Validate.isTrue(getOp() == 130);
         
-        secondsSinceStartOfEpoch = buffer.getInt() & 0xFFFFFFFFL;
         internalPort = buffer.getShort() & 0xFFFF;
         externalPort = buffer.getShort() & 0xFFFF;
         lifetime = buffer.getInt() & 0xFFFFFFFFL;
         
         Validate.inclusiveBetween(0, 65535, externalPort);
-    }
-
-    /**
-     * Get the number of seconds since the start of epoch.
-     * @return number of seconds since start of epoch
-     */
-    public long getSecondsSinceStartOfEpoch() {
-        return secondsSinceStartOfEpoch;
     }
 
     /**

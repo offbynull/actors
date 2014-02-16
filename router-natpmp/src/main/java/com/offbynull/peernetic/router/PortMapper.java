@@ -17,51 +17,46 @@
 package com.offbynull.peernetic.router;
 
 import java.io.Closeable;
-import java.util.concurrent.Future;
-import org.apache.commons.lang3.Validate;
 
 /**
- * Base class for port mappers.
+ * Interface for port mapping.
  * @author Kasra Faghihi
  */
-public abstract class PortMapper implements Closeable {
-    private PortMapperEventListener portMapperListener;
+public interface PortMapper extends Closeable {
 
     /**
-     * Construct a {@link PortMapper} object.
-     * @param portMapperListener listener
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public PortMapper(PortMapperEventListener portMapperListener) {
-        Validate.notNull(portMapperListener);
-        this.portMapperListener = portMapperListener;
-    }
-
-    /**
-     * Map a port. If the port has already been mapped, is in the process of being mapped, or is in the process of being unmapped, then
-     * the future will return an exception.
-     * @param port internal port
-     * @return future that can be used to check if the mapping has been acquired (not cancelable)
+     * Map a port. Mapping the same port multiple times has undefined behaviour.
+     * @param portType port type
+     * @param internalPort internal port
+     * @param lifetime number of seconds to acquire mapping for (may be reduced or extended depending on server and/or client)
+     * @return object that describes mapping
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
+     * @throws IllegalStateException if the port could not be mapped for any reason
+     * @throws InterruptedException if thread was interrupted
      */
-    public abstract Future<MappedPort> mapPort(Port port);
-
-    /**
-     * Unmap a port. If the port hasn't been mapped, is in the process of being mapped, or is in the process of already being unmapped, then
-     * the future will return an exception.
-     * @param port internal port
-     * @return future that can be used to check if the mapping has been released (not cancelable)
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
-     */
-    public abstract Future<Void> unmapPort(Port port);
+    MappedPort mapPort(PortType portType, int internalPort, long lifetime) throws InterruptedException;
     
     /**
-     * Get the event listener.
-     * @return event listener
+     * Unmap a port. Unmapping the same port multiple times or unmapping a port that hasn't been mapped yet has undefined behaviour.
+     * @param portType port type
+     * @param internalPort internal port
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
+     * @throws IllegalStateException if the port could not be unmapped for any reason
+     * @throws InterruptedException if thread was interrupted
      */
-    protected final PortMapperEventListener getListener() {
-        return portMapperListener;
-    }
+    void unmapPort(PortType portType, int internalPort) throws InterruptedException;
+
+    /**
+     * Refresh a mapping. Refreshing a port that hasn't been mapped or has been unmapped has undefined behaviour.
+     * @param mappedPort mapped port
+     * @param lifetime number of seconds to acquire mapping for (may be reduced or extended depending on server and/or client)
+     * @return object that describes the refreshed mapping
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any numeric argument is non-positive
+     * @throws IllegalStateException if the port could not be refreshed to the same external IP/port for whatever reason
+     * @throws InterruptedException if thread was interrupted
+     */
+    MappedPort refreshPort(MappedPort mappedPort, long lifetime) throws InterruptedException;
 }

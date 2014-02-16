@@ -17,12 +17,11 @@
 package com.offbynull.peernetic.router;
 
 import java.net.InetAddress;
-import java.util.Objects;
+import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
 /**
  * Describes a mapped port.
- *
  * @author Kasra Faghihi
  */
 public final class MappedPort {
@@ -31,103 +30,76 @@ public final class MappedPort {
     private int externalPort;
     private InetAddress externalAddress;
     private PortType portType;
+    private long lifetime;
 
     /**
      * Constructs a {@link MappedPort} object.
-     *
      * @param internalPort internal port
      * @param externalPort external port
      * @param externalAddress external address
      * @param portType port type
+     * @param duration mapping lifetime
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535 || externalPort > 65535}
      */
-    public MappedPort(int internalPort, int externalPort, InetAddress externalAddress, PortType portType) {
+    public MappedPort(int internalPort, int externalPort, InetAddress externalAddress, PortType portType, long duration) {
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.inclusiveBetween(1, 65535, externalPort);
         Validate.notNull(externalAddress);
         Validate.notNull(portType);
+        Validate.inclusiveBetween(0L, Long.MAX_VALUE, duration);
 
         this.internalPort = internalPort;
         this.externalPort = externalPort;
         this.externalAddress = externalAddress;
         this.portType = portType;
+        this.lifetime = duration;
     }
 
     /**
      * Get internal port.
-     *
      * @return internal port
      */
-    public int getInternalPort() {
+    public final int getInternalPort() {
         return internalPort;
     }
 
     /**
      * Get external port.
-     *
      * @return external port
      */
-    public int getExternalPort() {
+    public final int getExternalPort() {
         return externalPort;
     }
 
     /**
      * Get external address.
-     *
      * @return external address
      */
-    public InetAddress getExternalAddress() {
+    public final InetAddress getExternalAddress() {
         return externalAddress;
     }
-
+    
     /**
      * Get port type.
-     *
      * @return port type
      */
-    public PortType getPortType() {
+    public final PortType getPortType() {
         return portType;
     }
 
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 31 * hash + this.internalPort;
-        hash = 31 * hash + this.externalPort;
-        hash = 31 * hash + Objects.hashCode(this.externalAddress);
-        hash = 31 * hash + Objects.hashCode(this.portType);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final MappedPort other = (MappedPort) obj;
-        if (this.internalPort != other.internalPort) {
-            return false;
-        }
-        if (this.externalPort != other.externalPort) {
-            return false;
-        }
-        if (!Objects.equals(this.externalAddress, other.externalAddress)) {
-            return false;
-        }
-        if (this.portType != other.portType) {
-            return false;
-        }
-        return true;
+    /**
+     * Get mapping lifetime.
+     * @return mapping lifetime
+     */
+    public long getLifetime() {
+        return lifetime;
     }
 
     @Override
     public String toString() {
-        return "MappedPort{" + "internalPort=" + internalPort + ", externalPort=" + externalPort + ", externalAddress=" + externalAddress
-                + ", portType=" + portType + '}';
+        return "MappedPort{" + "internalPort=" + internalPort + ", externalPort=" + externalPort + ", externalAddress=" + externalAddress 
+                + ", portType=" + portType + ", lifetime=" + lifetime + '}';
     }
-
+    
 }

@@ -109,17 +109,17 @@ public final class PcpController implements Closeable {
         return performRequest(sendAttempts, req, creator);
     }
 
-    /**
-     * Send a ANNOUNCE request to the gateway. Only sends 1 packet, does not implement retry algorithm like blocking equivalent.
-     * @return PCP request
-     * @throws BufferUnderflowException if the message is too big to be written in to the buffer
-     */
-    public AnnouncePcpRequest requestAnnounceOperationAsync() {
-        AnnouncePcpRequest req = new AnnouncePcpRequest();
-        performRequestAsync(req);
-        
-        return req;
-    }
+//    /**
+//     * Send a ANNOUNCE request to the gateway. Only sends 1 packet, does not implement retry algorithm like blocking equivalent.
+//     * @return PCP request
+//     * @throws BufferUnderflowException if the message is too big to be written in to the buffer
+//     */
+//    public AnnouncePcpRequest requestAnnounceOperationAsync() {
+//        AnnouncePcpRequest req = new AnnouncePcpRequest();
+//        performRequestAsync(req);
+//        
+//        return req;
+//    }
     
     // CHECKSTYLE:OFF custom exception in javadoc not being recognized
     /**
@@ -154,34 +154,34 @@ public final class PcpController implements Closeable {
         return performRequest(sendAttempts, req, creator);
     }
 
-    /**
-     * Send a request to the gateway to create an inbound mapping (open a port that you can listen on). Only sends 1 packet, does not
-     * implement retry algorithm like blocking equivalent.
-     * @param portType port type
-     * @param internalPort internal port ({@code 0} is valid, see {@link MapPcpRequest} header)
-     * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
-     * @param suggestedExternalIpAddress suggested external IP address ({@code ::} for no preference)
-     * @param lifetime requested lifetime in seconds
-     * @param options PCP options to use
-     * @return PCP request
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws BufferUnderflowException if the message is too big to be written in to the buffer
-     * @throws IllegalArgumentException if any numeric argument is negative, or if {@code protocol > 255}, or if
-     * {@code internalPort > 65535}, or if {@code suggestedExternalPort > 65535}
-     * remaining, or if {@code protocol == 0} but {@code internalPort != 0}, or if {@code internalPort == 0} but {@code lifetime != 0}
-     */
-    public MapPcpRequest requestMapOperationAsync(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) {
-        byte[] nonce = new byte[12];
-        random.nextBytes(nonce);
-        
-        MapPcpRequest req = new MapPcpRequest(ByteBuffer.wrap(nonce), portType.getProtocolNumber(), internalPort, suggestedExternalPort,
-                suggestedExternalIpAddress, lifetime, options);
-
-        performRequestAsync(req);
-        
-        return req;
-    }
+//    /**
+//     * Send a request to the gateway to create an inbound mapping (open a port that you can listen on). Only sends 1 packet, does not
+//     * implement retry algorithm like blocking equivalent.
+//     * @param portType port type
+//     * @param internalPort internal port ({@code 0} is valid, see {@link MapPcpRequest} header)
+//     * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
+//     * @param suggestedExternalIpAddress suggested external IP address ({@code ::} for no preference)
+//     * @param lifetime requested lifetime in seconds
+//     * @param options PCP options to use
+//     * @return PCP request
+//     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+//     * @throws BufferUnderflowException if the message is too big to be written in to the buffer
+//     * @throws IllegalArgumentException if any numeric argument is negative, or if {@code protocol > 255}, or if
+//     * {@code internalPort > 65535}, or if {@code suggestedExternalPort > 65535}
+//     * remaining, or if {@code protocol == 0} but {@code internalPort != 0}, or if {@code internalPort == 0} but {@code lifetime != 0}
+//     */
+//    public MapPcpRequest requestMapOperationAsync(PortType portType, int internalPort, int suggestedExternalPort,
+//            InetAddress suggestedExternalIpAddress, long lifetime, PcpOption ... options) {
+//        byte[] nonce = new byte[12];
+//        random.nextBytes(nonce);
+//        
+//        MapPcpRequest req = new MapPcpRequest(ByteBuffer.wrap(nonce), portType.getProtocolNumber(), internalPort, suggestedExternalPort,
+//                suggestedExternalIpAddress, lifetime, options);
+//
+//        performRequestAsync(req);
+//        
+//        return req;
+//    }
 
     // CHECKSTYLE:OFF custom exception in javadoc not being recognized
     /**
@@ -217,36 +217,36 @@ public final class PcpController implements Closeable {
         return performRequest(sendAttempts, req, creator);
     }
 
-    /**
-     * Send a request to the gateway to create an outbound mapping (open a port that you can connect from).  Only sends 1 packet, does not
-     * implement retry algorithm like blocking equivalent.
-     * @param portType port type
-     * @param internalPort internal port
-     * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
-     * @param suggestedExternalIpAddress suggested external IP address ({@code null} or {@code ::} for no preference)
-     * @param remotePeerPort remote port
-     * @param remotePeerIpAddress remote IP address
-     * @param lifetime requested lifetime in seconds
-     * @param options PCP options to use
-     * @return PCP request
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws BufferUnderflowException if the message is too big to be written in to the buffer
-     * @throws IllegalArgumentException if {@code internalPort < 1 or > 65535}, or if {@code suggestedExternalPort > 65535},
-     * or if {@code remotePort < 1 or > 65535}
-     */
-    public PeerPcpRequest requestPeerOperationAsync(PortType portType, int internalPort, int suggestedExternalPort,
-            InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime,
-            PcpOption ... options) {
-        byte[] nonce = new byte[12];
-        random.nextBytes(nonce);
-        
-        PeerPcpRequest req = new PeerPcpRequest(ByteBuffer.wrap(nonce), portType.getProtocolNumber(), internalPort, suggestedExternalPort,
-                suggestedExternalIpAddress, remotePeerPort, remotePeerIpAddress, lifetime, options);
-
-        performRequestAsync(req);
-        
-        return req;
-    }
+//    /**
+//     * Send a request to the gateway to create an outbound mapping (open a port that you can connect from).  Only sends 1 packet, does not
+//     * implement retry algorithm like blocking equivalent.
+//     * @param portType port type
+//     * @param internalPort internal port
+//     * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
+//     * @param suggestedExternalIpAddress suggested external IP address ({@code null} or {@code ::} for no preference)
+//     * @param remotePeerPort remote port
+//     * @param remotePeerIpAddress remote IP address
+//     * @param lifetime requested lifetime in seconds
+//     * @param options PCP options to use
+//     * @return PCP request
+//     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+//     * @throws BufferUnderflowException if the message is too big to be written in to the buffer
+//     * @throws IllegalArgumentException if {@code internalPort < 1 or > 65535}, or if {@code suggestedExternalPort > 65535},
+//     * or if {@code remotePort < 1 or > 65535}
+//     */
+//    public PeerPcpRequest requestPeerOperationAsync(PortType portType, int internalPort, int suggestedExternalPort,
+//            InetAddress suggestedExternalIpAddress, int remotePeerPort, InetAddress remotePeerIpAddress, long lifetime,
+//            PcpOption ... options) {
+//        byte[] nonce = new byte[12];
+//        random.nextBytes(nonce);
+//        
+//        PeerPcpRequest req = new PeerPcpRequest(ByteBuffer.wrap(nonce), portType.getProtocolNumber(), internalPort, suggestedExternalPort,
+//                suggestedExternalIpAddress, remotePeerPort, remotePeerIpAddress, lifetime, options);
+//
+//        performRequestAsync(req);
+//        
+//        return req;
+//    }
 
     private <T extends PcpResponse> T performRequest(int sendAttempts, PcpRequest request, Creator<T> creator) throws InterruptedException {
         Validate.inclusiveBetween(1, 9, sendAttempts);
@@ -266,14 +266,14 @@ public final class PcpController implements Closeable {
         throw new PcpNoResponseException();
     }
 
-    private void performRequestAsync(PcpRequest request) {
-        ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
-            
-        request.dump(sendBuffer, selfAddress);
-        sendBuffer.flip();
-        
-        communicator.send(sendBuffer);
-    }
+//    private void performRequestAsync(PcpRequest request) {
+//        ByteBuffer sendBuffer = ByteBuffer.allocate(1100);
+//            
+//        request.dump(sendBuffer, selfAddress);
+//        sendBuffer.flip();
+//        
+//        communicator.send(sendBuffer);
+//    }
 
     private <T extends PcpResponse> T attemptRequest(ByteBuffer sendBuffer, int attempt, Creator<T> creator)
             throws InterruptedException {

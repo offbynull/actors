@@ -14,25 +14,25 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.pcp;
+package com.offbynull.peernetic.router.common;
 
 /**
- * The expected PCP response never arrived.
+ * The expected response never arrived.
  * @author Kasra Faghihi
  */
-public final class PcpNoResponseException extends RuntimeException {
+public final class NoResponseException extends RuntimeException {
 
     /**
      * Construct a {@link NoResponseException}.
      */
-    public PcpNoResponseException() {
+    public NoResponseException() {
     }
 
     /**
      * Construct a {@link NoResponseException} with a message.
      * @param message message
      */
-    public PcpNoResponseException(String message) {
+    public NoResponseException(String message) {
         super(message);
     }
 
@@ -41,7 +41,7 @@ public final class PcpNoResponseException extends RuntimeException {
      * @param message message
      * @param cause cause
      */
-    public PcpNoResponseException(String message, Throwable cause) {
+    public NoResponseException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -49,7 +49,7 @@ public final class PcpNoResponseException extends RuntimeException {
      * Construct a {@link NoResponseException} with a cause.
      * @param cause cause
      */
-    public PcpNoResponseException(Throwable cause) {
+    public NoResponseException(Throwable cause) {
         super(cause);
     }
     

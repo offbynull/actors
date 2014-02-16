@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.router.pcp;
 
+import com.offbynull.peernetic.router.common.NetworkUtils;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)
@@ -101,7 +102,7 @@ public final class ThirdPartyPcpOption extends PcpOption {
     private static ByteBuffer toDataSection(InetAddress internalIpAddress) {
         Validate.notNull(internalIpAddress);
         ByteBuffer buffer = ByteBuffer.allocate(16);
-        buffer.put(PcpUtils.convertToIpv6Array(internalIpAddress));
+        buffer.put(NetworkUtils.convertToIpv6Array(internalIpAddress));
         
         return buffer;
     }

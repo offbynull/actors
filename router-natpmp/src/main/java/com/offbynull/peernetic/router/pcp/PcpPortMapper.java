@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.router.pcp;
 
+import com.offbynull.peernetic.router.common.CommunicationType;
 import com.offbynull.peernetic.router.MappedPort;
 import com.offbynull.peernetic.router.PortMapper;
 import com.offbynull.peernetic.router.PortMapperEventListener;

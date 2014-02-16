@@ -16,13 +16,14 @@
  */
 package com.offbynull.peernetic.router.pcp;
 
+import com.offbynull.peernetic.router.common.CommunicationType;
 import java.nio.ByteBuffer;
 
 /**
  * PCP response listener.
  * @author Kasra Faghihi
  */
-public interface PcpCommunicatorListener {
+interface PcpCommunicatorListener {
     /**
      * Called when a PCP packet arrives.
      * @param type packet type

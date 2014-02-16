@@ -14,19 +14,19 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.pcp;
+package com.offbynull.peernetic.router.natpmp;
 
 import com.offbynull.peernetic.router.common.CommunicationType;
 
 /**
- * PCP controller listener.
+ * NAT-PMP controller listener.
  * @author Kasra Faghihi
  */
-public interface PcpControllerListener {
+public interface NatPmpControllerListener {
     /**
-     * Called when a PCP response comes in.
+     * Called when a NAT-PMP response comes in.
      * @param type packet type
      * @param response response contents
      */
-    void incomingResponse(CommunicationType type, PcpResponse response);
+    void incomingResponse(CommunicationType type, NatPmpResponse response);
 }

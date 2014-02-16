@@ -1,6 +1,5 @@
-package com.offbynull.peernetic.router.natpmp;
+package com.offbynull.peernetic.router.common;
 
-import com.offbynull.peernetic.router.common.DiscoveryUtils;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
@@ -12,9 +11,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class NatPmpUtilsTest {
+public class DiscoveryUtilsTest {
 
-    public NatPmpUtilsTest() {
+    public DiscoveryUtilsTest() {
     }
 
     @BeforeClass

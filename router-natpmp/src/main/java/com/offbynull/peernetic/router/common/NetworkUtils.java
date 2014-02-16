@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.pcp;
+package com.offbynull.peernetic.router.common;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -25,12 +25,19 @@ import java.nio.channels.MulticastChannel;
 import java.util.Enumeration;
 import org.apache.commons.lang3.Validate;
 
-final class PcpUtils {
-    private PcpUtils() {
+public final class NetworkUtils {
+    private NetworkUtils() {
         // do nothing
     }
     
-    static byte[] convertToIpv6Array(InetAddress address) {
+    /**
+     * Convert a IP address to a IPv6 address and dump as a byte array. Essentially, if the input is IPv4 it'll be converted to an
+     * IPv4-to-IPv6 address. Otherwise, the IPv6 address will be dumped as-is.
+     * @param address address to convert to a ipv6 byte array
+     * @return ipv6 byte array
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static byte[] convertToIpv6Array(InetAddress address) {
         Validate.notNull(address);
         
         byte[] addrArr = address.getAddress();
@@ -52,7 +59,13 @@ final class PcpUtils {
         }
     }
     
-    static void multicastListenOnAllIpv4InterfaceAddresses(MulticastChannel channel) throws IOException {
+    /**
+     * Set a {@link MulticastChannel} to listen on all IPv4 interfaces.
+     * @param channel multicast channel to listen on
+     * @throws IOException if there's an error
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static void multicastListenOnAllIpv4InterfaceAddresses(MulticastChannel channel) throws IOException {
         Validate.notNull(channel);
         
         final InetAddress ipv4Group = InetAddress.getByName("224.0.0.1"); // NOPMD
@@ -76,7 +89,13 @@ final class PcpUtils {
         }
     }
 
-    static void multicastListenOnAllIpv6InterfaceAddresses(MulticastChannel channel) throws IOException {
+    /**
+     * Set a {@link MulticastChannel} to listen on all IPv6 interfaces.
+     * @param channel multicast channel to listen on
+     * @throws IOException if there's an error
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static void multicastListenOnAllIpv6InterfaceAddresses(MulticastChannel channel) throws IOException {
         Validate.notNull(channel);
         
         final InetAddress ipv6Group = InetAddress.getByName("ff02::1"); // NOPMD
@@ -100,12 +119,12 @@ final class PcpUtils {
     }
     
     /**
-     * Get timeout duration for a PCP MAP/PEER request as defined by the PCP RFC.
+     * Get timeout duration for a NAT-PMP/PCP request as defined by the NAT-PMP/PCP RFC.
      * @param attempt attempt number (e.g. first attempt, second attempt, etc..)
      * @return number of seconds to wait for a response
      * @throws IllegalArgumentException if {@code attempt < 1 || > 9}
      */
-    static long getPcpWaitTime(int attempt) {
+    public static long getNatPmpWaitTime(int attempt) {
         Validate.inclusiveBetween(1, 9, attempt);
         
         // timeout duration should double each iteration, starting from 250 according to spec

@@ -14,12 +14,12 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.pcp;
+package com.offbynull.peernetic.router.natpmp;
 
-import com.offbynull.peernetic.router.common.CommunicationType;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import com.offbynull.peernetic.router.common.NetworkUtils;
+import com.offbynull.peernetic.router.common.CommunicationType;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
@@ -34,8 +34,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
-final class PcpCommunicator extends AbstractExecutionThreadService {
-    private final CopyOnWriteArrayList<PcpCommunicatorListener> listeners;
+final class NatPmpCommunicator extends AbstractExecutionThreadService {
+    private final CopyOnWriteArrayList<NatPmpCommunicatorListener> listeners;
     private final LinkedBlockingQueue<ByteBuffer> sendQueue;
     private volatile boolean stopFlag;
     private volatile Selector selector;
@@ -44,7 +44,7 @@ final class PcpCommunicator extends AbstractExecutionThreadService {
     private DatagramChannel ipv6MulticastChannel;
     private InetAddress gatewayAddress;
 
-    public PcpCommunicator(InetAddress gatewayAddress) {
+    public NatPmpCommunicator(InetAddress gatewayAddress) {
         Validate.notNull(gatewayAddress);
         
         this.gatewayAddress = gatewayAddress;
@@ -52,14 +52,14 @@ final class PcpCommunicator extends AbstractExecutionThreadService {
         sendQueue = new LinkedBlockingQueue<>();
     }
 
-    public void addListener(PcpCommunicatorListener e) {
+    public void addListener(NatPmpCommunicatorListener e) {
         if (!isRunning()) {
             throw new IllegalStateException();
         }
         listeners.add(0, e);
     }
 
-    public void removeListener(PcpCommunicatorListener e) {
+    public void removeListener(NatPmpCommunicatorListener e) {
         if (!isRunning()) {
             throw new IllegalStateException();
         }
@@ -129,7 +129,7 @@ final class PcpCommunicator extends AbstractExecutionThreadService {
                     InetSocketAddress incomingAddress = (InetSocketAddress) channel.receive(recvBuffer);
                     if (incomingAddress != null && incomingAddress.getAddress().equals(gatewayAddress)) {
                         recvBuffer.flip();
-                        for (PcpCommunicatorListener listener : listeners) {
+                        for (NatPmpCommunicatorListener listener : listeners) {
                             try {
                                 listener.incomingPacket(commType, recvBuffer.asReadOnlyBuffer());
                             } catch (RuntimeException re) { // NOPMD

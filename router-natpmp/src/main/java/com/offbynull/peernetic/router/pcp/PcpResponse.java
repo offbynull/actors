@@ -107,8 +107,8 @@ public abstract class PcpResponse {
      * @param buffer buffer containing PCP response data
      * @throws NullPointerException if any argument is {@code null}
      * @throws BufferUnderflowException if not enough data is available in {@code buffer}
-     * @throws IllegalArgumentException if there's not enough or too much data remaining in the buffer, or if the version doesn't match the
-     * expected version (must always be {@code 2}), or if the r-flag isn't set, or if there's an unsuccessful/unrecognized response code
+     * @throws IllegalArgumentException if the version doesn't match the expected version (must always be {@code 2}), or if the r-flag isn't
+     * set, or if there's an unsuccessful/unrecognized result code
      */
     PcpResponse(ByteBuffer buffer) {
         Validate.notNull(buffer);

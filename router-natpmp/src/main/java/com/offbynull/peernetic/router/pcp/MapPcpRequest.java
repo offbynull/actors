@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.router.pcp;
 
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
+import com.offbynull.peernetic.router.common.NetworkUtils;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
@@ -147,7 +148,7 @@ public final class MapPcpRequest extends PcpRequest {
         
         dst.putShort((short) internalPort);
         dst.putShort((short) suggestedExternalPort);
-        dst.put(PcpUtils.convertToIpv6Array(suggestedExternalIpAddress));
+        dst.put(NetworkUtils.convertToIpv6Array(suggestedExternalIpAddress));
     }
 
     /**

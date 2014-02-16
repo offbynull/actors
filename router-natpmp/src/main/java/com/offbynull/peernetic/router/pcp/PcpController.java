@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.router.pcp;
 
+import com.offbynull.peernetic.router.common.NoResponseException;
+import com.offbynull.peernetic.router.common.CommunicationType;
 import com.offbynull.peernetic.router.PortType;
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,7 +40,7 @@ public final class PcpController implements Closeable {
     private Random random;
 
     /**
-     * Constructs a PCP client.
+     * Constructs a {@link PcpController} object.
      * @param random used to generate nonce values for requests
      * @param gatewayAddress address of router/gateway
      * @param selfAddress address of the interface that can talk to the router/gateway
@@ -97,7 +99,7 @@ public final class PcpController implements Closeable {
      * @param sendAttempts number of times to try to submit each request
      * @return ANNOUNCE response
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
-     * @throws PcpNoResponseException if no response available
+     * @throws NoResponseException if no response available
      * @throws InterruptedException if thread was interrupted while waiting
      * @throws IllegalArgumentException if {@code sendAttempts < 1 || > 9}
      */
@@ -138,7 +140,7 @@ public final class PcpController implements Closeable {
      * {@code internalPort > 65535}, or if {@code suggestedExternalPort > 65535}
      * remaining, or if {@code protocol == 0} but {@code internalPort != 0}, or if {@code internalPort == 0} but {@code lifetime != 0}, or
      * if {@code sendAttempts < 1 || > 9}
-     * @throws PcpNoResponseException if the expected response never came in
+     * @throws NoResponseException if the expected response never came in
      * @throws InterruptedException if thread was interrupted while waiting
      */
     public MapPcpResponse requestMapOperation(int sendAttempts, PortType portType, int internalPort, int suggestedExternalPort,
@@ -200,7 +202,7 @@ public final class PcpController implements Closeable {
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
      * @throws IllegalArgumentException if {@code internalPort < 1 or > 65535}, or if {@code suggestedExternalPort > 65535},
      * or if {@code remotePort < 1 or > 65535}, or if {@code sendAttempts < 1 || > 9}
-     * @throws PcpNoResponseException if the expected response never came in
+     * @throws NoResponseException if the expected response never came in
      * @throws InterruptedException if thread was interrupted while waiting
      */
     public PeerPcpResponse requestPeerOperation(int sendAttempts, PortType portType, int internalPort, int suggestedExternalPort,
@@ -263,7 +265,7 @@ public final class PcpController implements Closeable {
             }
         }
         
-        throw new PcpNoResponseException();
+        throw new NoResponseException();
     }
 
 //    private void performRequestAsync(PcpRequest request) {

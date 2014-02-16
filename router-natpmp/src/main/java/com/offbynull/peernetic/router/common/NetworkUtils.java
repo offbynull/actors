@@ -16,16 +16,50 @@
  */
 package com.offbynull.peernetic.router.common;
 
+import com.offbynull.peernetic.common.utils.ProcessUtils;
+import com.offbynull.peernetic.common.utils.RegexUtils;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.UnknownHostException;
 import java.nio.channels.MulticastChannel;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
 public final class NetworkUtils {
+    /**
+     * IPs grabbed from http://www.techspot.com/guides/287-default-router-ip-addresses/ + comments @ 1/19/2014.
+     */
+    @SuppressWarnings("PMD")
+    private static final Set<String> PRESET_IPV4_GATEWAY_ADDRESSES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+        "192.168.1.1", // 3Com
+        "10.0.1.1", // Apple
+        "192.168.1.1", "192.168.1.220", // Asus
+        "192.168.2.1", "10.1.1.1", // Belkin
+        "192.168.15.1", // Cisco
+        "192.168.11.1", // Buffalo
+        "192.168.1.1", // Dell
+        "192.168.0.1", "192.168.0.30", "192.168.0.50", "192.168.1.1", "192.10.1.1.1", // D-Link
+        "192.168.0.1", "192.168.1.1", // Linksys
+        "192.168.2.1", // Microsoft
+        "192.168.10.1", "192.168.20.1", "192.168.30.1", "192.168.62.1", "192.168.100.1", "192.168.102.1", "192.168.1.254", // Motorola
+        "192.168.1.254", // MSI
+        "192.168.0.1", "192.168.0.227", "192.168.1.1", // Netgear
+        "192.168.0.1", // Senao
+        "10.0.0.138", "192.168.1.254", // SpeedTouch
+        "10.0.0.138", // Telstra
+        "192.168.1.1", // TP-LINK
+        "192.168.0.1", "192.168.1.1", "192.168.2.1", "192.168.10.1", // Trendnet
+        "192.168.1.1", "192.168.2.1", "192.168.123.254", // U.S. Robotics
+        "192.168.1.1", "192.168.2.1", "192.168.4.1", "192.168.10.1", "192.168.1.254", "10.0.0.2", "10.0.0.138" // Zyxel
+    )));
+
     private NetworkUtils() {
         // do nothing
     }
@@ -134,5 +168,96 @@ public final class NetworkUtils {
         // i = 4, maxWaitTime = (1 << (4-1)) * 250 = (1 << 3) * 250 = 8 * 250 = 2000
         // ...
         return (1 << (attempt - 1)) * 250; // NOPMD
+    }
+    
+    /**
+     * Attempts to put together a list of gateway addresses using pre-set values and running OS-specific processes.
+     * @return a list of possible addresses for gateway device
+     * @throws InterruptedException if interrupted
+     */
+    public static Set<InetAddress> getPotentialGatewayAddresses() throws InterruptedException {
+        // Ask OS for gateway address
+        String netstatOutput = "";
+        try {
+            netstatOutput = ProcessUtils.runProcessAndDumpOutput(5000L, "netstat", "-rn");
+        } catch (IOException ioe) { // NOPMD
+            // do nothing
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException();
+            }
+        }
+        LinkedHashSet<String> strAddresses = new LinkedHashSet<>(RegexUtils.findAllIpv4Addresses(netstatOutput));
+        
+        // Push in defaults
+        strAddresses.addAll(PRESET_IPV4_GATEWAY_ADDRESSES);
+        
+        LinkedHashSet<InetAddress> addresses = new LinkedHashSet<>();
+        for (String strAddress : strAddresses) {
+            try {
+                addresses.add(InetAddress.getByName(strAddress));
+            } catch (UnknownHostException uhe) { // NOPMD
+                // do nothing
+            }
+        }
+        
+        return addresses;
+        
+        
+//        // Send requests
+//        ThreadPoolExecutor executor = null;
+//        
+//        try {
+//            // Num of threads based on 'Determining the Number of Threads' section of chapter 1 of 'Programming Concurrency on the JVM'
+//            // Blocking coefficient estimated at 0.9
+//            double availableCores = Runtime.getRuntime().availableProcessors();
+//            int maxThreadCount = (int) (availableCores / (1.0 - 0.9));
+//            
+//            // If number of attempts you need to make is < number of threads allotted, reduce number of threads allotted
+//            int threadCount = Math.min(maxThreadCount, addresses.size());
+//            
+//            // Create executor and add in tasks
+//            executor = new ThreadPoolExecutor(threadCount, threadCount, 5L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+//            
+//            List<Callable<InetAddress>> tasks = new LinkedList<>();
+//            for (final String address : addresses) {
+//                Callable<InetAddress> callable = new Callable<InetAddress>() {
+//
+//                    @Override
+//                    public InetAddress call() throws Exception {
+//                        InetAddress inetAddress = InetAddress.getByName(address);
+//                        NatPmpController controller = new NatPmpController(inetAddress, 4);
+//
+//                        controller.getExternalAddress(); // test
+//                        
+//                        return inetAddress;
+//                    }
+//                };
+//                
+//                tasks.add(callable);
+//            }
+//            
+//            List<Future<InetAddress>> futures = executor.invokeAll(tasks);
+//            executor.shutdown();
+//            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+//            
+//            List<InetAddress> completed = new LinkedList<>();
+//            for (Future<InetAddress> future : futures) {
+//                InetAddress address;
+//                try {
+//                    address = future.get();
+//                } catch (ExecutionException ee) {
+//                    continue;
+//                }
+//                
+//                completed.add(address);
+//            }
+//            
+//            return completed;
+//        } finally {
+//            if (executor != null) {
+//                executor.shutdownNow();
+//            }
+//        }
+//            
     }
 }

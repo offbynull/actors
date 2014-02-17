@@ -28,6 +28,7 @@ import java.nio.channels.MulticastChannel;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
@@ -98,6 +99,56 @@ public final class NetworkUtils {
     }
     
     /**
+     * Get IP addresses for all interfaces on this machine that are IPv4.
+     * @return IPv4 addresses assigned to this machine
+     * @throws IOException if there's an error
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static Set<InetAddress> getAllLocalIpv4Addresses() throws IOException {
+        Set<InetAddress> ret = new HashSet<>();
+        
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+            while (addrs.hasMoreElements()) { // make sure atleast 1 ipv4 addr bound to interface
+                InetAddress addr = addrs.nextElement();
+
+                if (addr instanceof Inet4Address) {
+                    ret.add(addr);
+                }
+            }
+        }
+        
+        return ret;
+    }
+    
+    /**
+     * Get IP addresses for all interfaces on this machine that are IPv6.
+     * @return IPv6 addresses assigned to this machine
+     * @throws IOException if there's an error
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static Set<InetAddress> getAllLocalIpv6Addresses() throws IOException {
+        Set<InetAddress> ret = new HashSet<>();
+        
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+            while (addrs.hasMoreElements()) { // make sure atleast 1 ipv4 addr bound to interface
+                InetAddress addr = addrs.nextElement();
+
+                if (addr instanceof Inet6Address) {
+                    ret.add(addr);
+                }
+            }
+        }
+        
+        return ret;
+    }
+
+    /**
      * Set a {@link MulticastChannel} to listen on all IPv4 interfaces.
      * @param channel multicast channel to listen on
      * @throws IOException if there's an error
@@ -154,24 +205,6 @@ public final class NetworkUtils {
                 }
             }
         }
-    }
-    
-    /**
-     * Get timeout duration for a NAT-PMP/PCP request as defined by the NAT-PMP/PCP RFC.
-     * @param attempt attempt number (e.g. first attempt, second attempt, etc..)
-     * @return number of seconds to wait for a response
-     * @throws IllegalArgumentException if {@code attempt < 1 || > 9}
-     */
-    public static long getNatPmpWaitTime(int attempt) {
-        Validate.inclusiveBetween(1, 9, attempt);
-        
-        // timeout duration should double each iteration, starting from 250 according to spec
-        // i = 1, maxWaitTime = (1 << (1-1)) * 250 = (1 << 0) * 250 = 1 * 250 = 250
-        // i = 2, maxWaitTime = (1 << (2-1)) * 250 = (1 << 1) * 250 = 2 * 250 = 500
-        // i = 3, maxWaitTime = (1 << (3-1)) * 250 = (1 << 2) * 250 = 4 * 250 = 1000
-        // i = 4, maxWaitTime = (1 << (4-1)) * 250 = (1 << 3) * 250 = 8 * 250 = 2000
-        // ...
-        return (1 << (attempt - 1)) * 250; // NOPMD
     }
     
     /**

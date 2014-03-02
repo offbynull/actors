@@ -1,16 +1,16 @@
 package com.offbynull.peernetic.router.upnpigd;
 
 import java.net.InetAddress;
-import java.net.URL;
+import java.net.URI;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class UpnpIgdDevice {
     private InetAddress gatewayAddress;
     private String name;
-    private URL url;
+    private URI url;
 
-    public UpnpIgdDevice(InetAddress gatewayAddress, String name, URL url) {
+    public UpnpIgdDevice(InetAddress gatewayAddress, String name, URI url) {
         Validate.notNull(gatewayAddress);
         Validate.notNull(url);
         this.gatewayAddress = gatewayAddress;
@@ -26,7 +26,7 @@ public final class UpnpIgdDevice {
         return name;
     }
 
-    public URL getUrl() {
+    public URI getUrl() {
         return url;
     }
 

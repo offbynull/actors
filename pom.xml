@@ -20,8 +20,8 @@
         <module>demo</module>
         <module>actor</module>
         <module>actor-network</module>
-    <module>router-natpmp</module>
-  </modules>
+        <module>router-natpmp</module>
+    </modules>
     
     <dependencyManagement>
         <dependencies>
@@ -87,6 +87,11 @@
                 <groupId>cglib</groupId>
                 <artifactId>cglib-nodep</artifactId>
                 <version>2.2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpasyncclient</artifactId>
+                <version>4.0.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

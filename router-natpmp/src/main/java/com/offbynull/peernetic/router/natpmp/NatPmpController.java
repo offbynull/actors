@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.router.natpmp;
 
 import com.offbynull.peernetic.router.common.CommunicationType;
-import com.offbynull.peernetic.router.common.NoResponseException;
+import com.offbynull.peernetic.router.common.ResponseException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -90,7 +90,7 @@ public final class NatPmpController implements Closeable {
      * @param sendAttempts number of times to try to submit each request
      * @return external address response
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
-     * @throws NoResponseException if no response available
+     * @throws NoResponseExceptionf no response available
      * @throws InterruptedException if thread was interrupted while waiting
      * @throws IllegalArgumentException if {@code sendAttempts < 1 || > 9}
      */
@@ -114,7 +114,7 @@ public final class NatPmpController implements Closeable {
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
      * @throws IllegalArgumentException if any numeric argument is negative, or if {@code internalPort < 1 || > 65535}, or if
      * {@code suggestedExternalPort > 65535}, or if {@code sendAttempts < 1 || > 9}
-     * @throws NoResponseException if the expected response never came in
+     * @throws NoReResponseExceptionthe expected response never came in
      * @throws InterruptedException if thread was interrupted while waiting
      */
     public UdpMappingNatPmpResponse requestUdpMappingOperation(int sendAttempts, int internalPort, int suggestedExternalPort,
@@ -138,7 +138,7 @@ public final class NatPmpController implements Closeable {
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
      * @throws IllegalArgumentException if any numeric argument is negative, or if {@code internalPort < 1 || > 65535}, or if
      * {@code suggestedExternalPort > 65535}, or if {@code sendAttempts < 1 || > 9}
-     * @throws NoResponseException if the expected response never came in
+     * @throws NoRespResponseExceptione expected response never came in
      * @throws InterruptedException if thread was interrupted while waiting
      */
     public TcpMappingNatPmpResponse requestTcpMappingOperation(int sendAttempts, int internalPort, int suggestedExternalPort,
@@ -166,7 +166,7 @@ public final class NatPmpController implements Closeable {
             }
         }
         
-        throw new NoResponseException();
+        throw new ResponseException();
     }
 
 

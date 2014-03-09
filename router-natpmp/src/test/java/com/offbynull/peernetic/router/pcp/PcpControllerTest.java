@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.router.pcp;
 
-import com.offbynull.peernetic.router.common.NoResponseException;
 import com.offbynull.peernetic.router.common.CommunicationType;
 import com.offbynull.peernetic.router.PortType;
+import com.offbynull.peernetic.router.common.ResponseException;
 import com.offbynull.peernetic.router.testtools.UdpServerEmulator;
 import com.offbynull.peernetic.router.testtools.UdpTestUtils;
 import java.net.InetAddress;
@@ -71,7 +71,7 @@ public final class PcpControllerTest {
         }
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void failedAnnounceTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {
             2, // version
@@ -98,7 +98,7 @@ public final class PcpControllerTest {
         }
     }
     
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void truncatedAnnounceTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {
             2, // version
@@ -222,7 +222,7 @@ public final class PcpControllerTest {
         }
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void failedMapTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {
             2, // version
@@ -255,7 +255,7 @@ public final class PcpControllerTest {
         }
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void truncatedMapTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {
             2, // version
@@ -343,7 +343,7 @@ public final class PcpControllerTest {
         }
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void peerBadVersionTest() throws Throwable {
         
         helper.addMapping(ByteBuffer.wrap(new byte[] {
@@ -400,7 +400,7 @@ public final class PcpControllerTest {
     }
 
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void failedPeerTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {
             2, // version
@@ -436,7 +436,7 @@ public final class PcpControllerTest {
         }
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void truncatedPeerTest() throws Throwable {
         
         helper.addMapping(ByteBuffer.wrap(new byte[] {

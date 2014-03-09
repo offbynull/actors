@@ -16,10 +16,12 @@
  */
 package com.offbynull.peernetic.router.upnpigd;
 
+import com.offbynull.peernetic.router.PortType;
+import java.net.InetAddress;
 import java.util.Set;
 
 /**
- * PCP test.
+ * UPnP-IGD test.
  * @author Kasra Faghihi
  */
 public final class App {
@@ -35,8 +37,13 @@ public final class App {
     public static void main(String []args) throws Throwable {
         Set<UpnpIgdService> services = UpnpIgdDiscovery.discover();
         UpnpIgdService service = services.iterator().next();
-        UpnpIgdController controller = new UpnpIgdController(service);
+        UpnpIgdController controller = new UpnpIgdController(InetAddress.getByName("192.168.25.1"), service);
         
-        controller.getExternalIp();
+        //System.out.println(controller.getExternalIp());
+        
+        controller.addPortMapping(23422, 12221, PortType.TCP, 3600);
+        System.out.println(controller.getMappingDetails(23422, PortType.TCP));
+        controller.deletePortMapping(23422, PortType.TCP);
+        System.out.println(controller.getMappingDetails(23422, PortType.TCP));
     }
 }

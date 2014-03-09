@@ -1,8 +1,7 @@
 package com.offbynull.peernetic.router.natpmp;
 
-import com.offbynull.peernetic.router.common.NoResponseException;
+import com.offbynull.peernetic.router.common.ResponseException;
 import com.offbynull.peernetic.router.testtools.UdpServerEmulator;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import org.junit.After;
@@ -47,7 +46,7 @@ public class NatPmpControllerTest {
         Assert.assertEquals(InetAddress.getLoopbackAddress(), address);
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void failedExposedAddressTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 0}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128, 0, 1, 0, 0, 0, 0, 127, 0, 0, 1}));
@@ -58,7 +57,7 @@ public class NatPmpControllerTest {
     }
 
     
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void truncatedExposedAddressTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 0}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128, 0, 0}));
@@ -96,7 +95,7 @@ public class NatPmpControllerTest {
         Assert.assertEquals(10, res.getLifetime());
     }
     
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void openUdpPortWrongPortTypeResponseTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 9}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128 + 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 0, 0, 0, 10}));
@@ -110,7 +109,7 @@ public class NatPmpControllerTest {
         Assert.assertEquals(10, res.getLifetime());
     }
     
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void openTcpPortWrongPortTypeResponseTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 2, 0, 0, 0, 1, 0, 2, 0, 0, 0, 9}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128 + 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 0, 0, 0, 10}));
@@ -124,7 +123,7 @@ public class NatPmpControllerTest {
         Assert.assertEquals(10, res.getLifetime());
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void failedOpenUdpPortTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 9}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128 + 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 3, 0, 0, 0, 10}));
@@ -134,7 +133,7 @@ public class NatPmpControllerTest {
         controller.requestUdpMappingOperation(4, 1, 2, 9);
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void failedOpenTcpPortTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 2, 0, 0, 0, 1, 0, 2, 0, 0, 0, 9}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128 + 2, 0, 1, 0, 0, 0, 0, 0, 1, 0, 3, 0, 0, 0, 10}));
@@ -145,7 +144,7 @@ public class NatPmpControllerTest {
     }
 
     
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void truncatedOpenUdpPortTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 9}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128 + 1, 0, 0}));
@@ -155,7 +154,7 @@ public class NatPmpControllerTest {
         controller.requestUdpMappingOperation(4, 1, 2, 9);
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void truncatedOpenTcpPortTest() throws Throwable {
         helper.addMapping(ByteBuffer.wrap(new byte[] {0, 2, 0, 0, 0, 1, 0, 2, 0, 0, 0, 9}),
                 ByteBuffer.wrap(new byte[] {0, (byte) 128 + 2, 0, 0}));
@@ -165,7 +164,7 @@ public class NatPmpControllerTest {
         controller.requestTcpMappingOperation(4, 1, 2, 9);
     }
 
-    @Test(expected = NoResponseException.class)
+    @Test(expected = ResponseException.class)
     public void timedOutTest() throws Throwable {        
         NatPmpController controller = new NatPmpController(InetAddress.getByName("127.0.0.2"), null);
         

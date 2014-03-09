@@ -20,19 +20,19 @@ package com.offbynull.peernetic.router.common;
  * The expected response never arrived.
  * @author Kasra Faghihi
  */
-public final class NoResponseException extends RuntimeException {
+public final class ResponseException extends RuntimeException {
 
     /**
      * Construct a {@link NoResponseException}.
      */
-    public NoResponseException() {
+    public ResponseException() {
     }
 
     /**
      * Construct a {@link NoResponseException} with a message.
      * @param message message
      */
-    public NoResponseException(String message) {
+    public ResponseException(String message) {
         super(message);
     }
 
@@ -41,7 +41,7 @@ public final class NoResponseException extends RuntimeException {
      * @param message message
      * @param cause cause
      */
-    public NoResponseException(String message, Throwable cause) {
+    public ResponseException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -49,7 +49,7 @@ public final class NoResponseException extends RuntimeException {
      * Construct a {@link NoResponseException} with a cause.
      * @param cause cause
      */
-    public NoResponseException(Throwable cause) {
+    public ResponseException(Throwable cause) {
         super(cause);
     }
     

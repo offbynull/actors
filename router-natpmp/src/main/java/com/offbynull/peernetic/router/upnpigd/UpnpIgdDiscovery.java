@@ -4,23 +4,36 @@ import com.offbynull.peernetic.common.utils.ByteBufferUtils;
 import com.offbynull.peernetic.router.common.NetworkUtils;
 import com.offbynull.peernetic.router.common.UdpCommunicator;
 import com.offbynull.peernetic.router.common.UdpCommunicatorListener;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,13 +45,11 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -66,7 +77,20 @@ public final class UpnpIgdDiscovery {
         // do nothing
     }
 
-    public static Set<UpnpIgdDevice> findIpv4Devices() throws IOException, InterruptedException {
+    public static Set<UpnpIgdService> discover() throws IOException, InterruptedException {
+        Set<UpnpIgdDevice> devices = new HashSet<>();
+        devices.addAll(findIpv4Devices());
+        devices.addAll(findIpv6Devices());
+        
+        Map<UpnpIgdDevice, byte[]> rootXmls = getRootXmlForEachDevice(devices);
+        Set<UpnpIgdServiceReference> services = parseServiceReferences(rootXmls);
+        Map<UpnpIgdServiceReference, byte[]> scpds = getServiceDescriptions(services);
+        Set<UpnpIgdService> serviceDescs = parseServiceDescriptions(scpds);
+        
+        return serviceDescs;
+    }
+    
+    private static Set<UpnpIgdDevice> findIpv4Devices() throws IOException, InterruptedException {
         InetSocketAddress multicastSocketAddress;
         try {
             multicastSocketAddress = new InetSocketAddress(InetAddress.getByName("239.255.255.250"), 1900);
@@ -78,7 +102,7 @@ public final class UpnpIgdDiscovery {
         return scanForDevices(multicastSocketAddress, localIpv4Addresses, IPV4_SEARCH_QUERY);
     }
 
-    public static Set<UpnpIgdDevice> findIpv6Devices() throws IOException, InterruptedException {
+    private static Set<UpnpIgdDevice> findIpv6Devices() throws IOException, InterruptedException {
         InetSocketAddress multicastSocketAddress;
         try {
             multicastSocketAddress = new InetSocketAddress(InetAddress.getByName("ff02::c"), 1900);
@@ -88,12 +112,6 @@ public final class UpnpIgdDiscovery {
 
         Set<InetAddress> localIpv6Addresses = NetworkUtils.getAllLocalIpv6Addresses();
         return scanForDevices(multicastSocketAddress, localIpv6Addresses, IPV6_SEARCH_QUERY);
-    }
-    
-    public static Set<UpnpIgdService> findServices(Set<UpnpIgdDevice> devices) throws InterruptedException {
-        Validate.noNullElements(devices);
-        
-        return scanForServicesInDevices(devices);
     }
 
     private static Set<UpnpIgdDevice> scanForDevices(InetSocketAddress multicastSocketAddress, Set<InetAddress> localAddresses,
@@ -174,50 +192,45 @@ public final class UpnpIgdDiscovery {
         }
     }
     
-    private static Set<UpnpIgdService> scanForServicesInDevices(Set<UpnpIgdDevice> devices) throws InterruptedException {
+    private static Map<UpnpIgdDevice, byte[]> getRootXmlForEachDevice(Set<UpnpIgdDevice> devices) throws InterruptedException {
+        Map<UpnpIgdDevice, byte[]> serviceRoots = new HashMap();
         
-        Set<UpnpIgdService> services = Collections.synchronizedSet(new HashSet<UpnpIgdService>());
-        CountDownLatch latch = new CountDownLatch(devices.size());
-        
-        
-        CloseableHttpAsyncClient httpclient = null;
+        ExecutorService executorService = null;
         try {
-            httpclient = HttpAsyncClients.createDefault();
-            httpclient.start();
-
-            for (UpnpIgdDevice device : devices) {
-                HttpGet request = new HttpGet(device.getUrl());
-                httpclient.execute(request, new ServiceFutureCallback(device, services, latch));
+            int maximumPoolSize = (int) ((double) Runtime.getRuntime().availableProcessors() / (1.0 - 0.95));
+            executorService = new ThreadPoolExecutor(0, maximumPoolSize, 1, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+            
+            List<HttpRequestCallable<UpnpIgdDevice>> tasks = new LinkedList<>();
+            for (UpnpIgdDevice device : devices)  {
+                tasks.add(new HttpRequestCallable<>(device.getUrl(), device));
             }
-
-            latch.await();
+            
+            List<Future<Pair<UpnpIgdDevice, byte[]>>> results = executorService.invokeAll(tasks);
+            
+            for (Future<Pair<UpnpIgdDevice, byte[]>> result : results) {
+                try {
+                    Pair<UpnpIgdDevice, byte[]> data = result.get();
+                    serviceRoots.put(data.getKey(), data.getValue());
+                } catch (InterruptedException | ExecutionException | CancellationException e) { // NOPMD
+                    // do nothing, skip
+                }
+            }
         } finally {
-            IOUtils.closeQuietly(httpclient);
+            if (executorService != null) {
+                executorService.shutdownNow();
+            }
         }
         
-        return new HashSet<>(services);
+        return serviceRoots;
     }
 
-    public static final class ServiceFutureCallback implements FutureCallback<HttpResponse> {
-        private final Set<UpnpIgdService> services;
-        private final CountDownLatch latch;
-        private final UpnpIgdDevice device;
-
-        public ServiceFutureCallback(UpnpIgdDevice device, Set<UpnpIgdService> services, CountDownLatch latch) {
-            this.device = device;
-            this.services = services;
-            this.latch = latch;
-        }
-        
-        @Override
-        public void completed(HttpResponse response) {
-            InputStream is = null;
+    private static Set<UpnpIgdServiceReference> parseServiceReferences(Map<UpnpIgdDevice, byte[]> rootBuffers) {
+        Set<UpnpIgdServiceReference> services = new HashSet<>();
+        for (Entry<UpnpIgdDevice, byte[]> rootBufferEntry : rootBuffers.entrySet()) {
             try {
-                is = response.getEntity().getContent();
-
                 DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                Document doc = dBuilder.parse(is);
+                Document doc = dBuilder.parse(new ByteArrayInputStream(rootBufferEntry.getValue()));
 
                 XPath xPath = XPathFactory.newInstance().newXPath();
                 NodeList serviceNodes = (NodeList) xPath.compile(".//service").evaluate(doc, XPathConstants.NODESET);
@@ -231,37 +244,169 @@ public final class UpnpIgdDiscovery {
                     String eventSubUrl = StringUtils.trim(xPath.compile("eventSubURL").evaluate(serviceNode));
                     String scpdUrl = StringUtils.trim(xPath.compile("SCPDURL").evaluate(serviceNode));
 
-                    UpnpIgdService service = new UpnpIgdService(device, serviceType, serviceId, controlUrl, eventSubUrl, scpdUrl);
+                    UpnpIgdServiceReference service = new UpnpIgdServiceReference(rootBufferEntry.getKey(), serviceType, serviceId,
+                            controlUrl, eventSubUrl, scpdUrl);
                     services.add(service);
                 }
             } catch (SAXException | ParserConfigurationException | IOException | XPathExpressionException e) { // NOPMD
-                // do nothing
-            } finally {
-                IOUtils.closeQuietly(is);
-                latch.countDown();
+                // do nothing, just skip
             }
         }
+        return services;
+    }
 
-        @Override
-        public void failed(Exception ex) {
-            latch.countDown();
+    private static Map<UpnpIgdServiceReference, byte[]> getServiceDescriptions(Set<UpnpIgdServiceReference> services)
+            throws InterruptedException {
+        Map<UpnpIgdServiceReference, byte[]> serviceXmls = new HashMap();
+        
+        ExecutorService executorService = null;
+        try {
+            int maximumPoolSize = (int) ((double) Runtime.getRuntime().availableProcessors() / (1.0 - 0.95));
+            executorService = new ThreadPoolExecutor(0, maximumPoolSize, 1, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+            
+            List<HttpRequestCallable<UpnpIgdServiceReference>> tasks = new LinkedList<>();
+            for (UpnpIgdServiceReference service : services)  {
+                tasks.add(new HttpRequestCallable<>(service.getScpdUrl(), service));
+            }
+            
+            List<Future<Pair<UpnpIgdServiceReference, byte[]>>> results = executorService.invokeAll(tasks);
+            
+            for (Future<Pair<UpnpIgdServiceReference, byte[]>> result : results) {
+                try {
+                    Pair<UpnpIgdServiceReference, byte[]> data = result.get();
+                    serviceXmls.put(data.getKey(), data.getValue());
+                } catch (InterruptedException | ExecutionException | CancellationException e) { // NOPMD
+                    // do nothing, skip
+                }
+            }
+        } finally {
+            if (executorService != null) {
+                executorService.shutdownNow();
+            }
         }
+        
+        return serviceXmls;
+    }
 
-        @Override
-        public void cancelled() {
-            latch.countDown();
+    private static Set<UpnpIgdService> parseServiceDescriptions(Map<UpnpIgdServiceReference, byte[]> scpds) {
+        Set<UpnpIgdService> descriptions = new HashSet<>();
+        
+        for (Entry<UpnpIgdServiceReference, byte[]> scpdEntry : scpds.entrySet()) {
+            try {
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = dBuilder.parse(new ByteArrayInputStream(scpdEntry.getValue()));
+
+                XPath xPath = XPathFactory.newInstance().newXPath();
+                Node geipaActionNode = (Node) xPath.evaluate("//actionList/action["
+                        + "name='GetExternalIPAddress' "
+                        + "and count(argumentList) = 1 "
+                        + "and argumentList/argument/name='NewExternalIPAddress']", doc, XPathConstants.NODE);
+                Node gspmeActionNode = (Node) xPath.evaluate("//actionList/action["
+                        + "name='GetSpecificPortMappingEntry' "
+                        + "and count(argumentList) = 1 "
+                        + "and argumentList/argument/name='NewRemoteHost' "
+                        + "and argumentList/argument/name='NewExternalPort' "
+                        + "and argumentList/argument/name='NewProtocol' "
+                        + "and argumentList/argument/name='NewInternalPort' "
+                        + "and argumentList/argument/name='NewInternalClient' "
+                        + "and argumentList/argument/name='NewEnabled' "
+                        + "and argumentList/argument/name='NewPortMappingDescription' "
+                        + "and argumentList/argument/name='NewLeaseDuration']", doc, XPathConstants.NODE);
+                Node dpmActionNode = (Node) xPath.evaluate("//actionList/action["
+                        + "name='DeletePortMapping' "
+                        + "and count(argumentList) = 1 "
+                        + "and argumentList/argument/name='NewRemoteHost' "
+                        + "and argumentList/argument/name='NewExternalPort' "
+                        + "and argumentList/argument/name='NewProtocol']", doc, XPathConstants.NODE);
+                Node apmActionNode = (Node) xPath.evaluate("//actionList/action["
+                        + "name='AddPortMapping' "
+                        + "and count(argumentList) = 1 "
+                        + "and argumentList/argument/name='NewRemoteHost' "
+                        + "and argumentList/argument/name='NewExternalPort' "
+                        + "and argumentList/argument/name='NewProtocol' "
+                        + "and argumentList/argument/name='NewInternalPort' "
+                        + "and argumentList/argument/name='NewInternalClient' "
+                        + "and argumentList/argument/name='NewEnabled' "
+                        + "and argumentList/argument/name='NewPortMappingDescription' "
+                        + "and argumentList/argument/name='NewLeaseDuration']", doc, XPathConstants.NODE);
+
+                if (geipaActionNode == null || gspmeActionNode == null || dpmActionNode == null || apmActionNode == null) {
+                    // One or more of the required methods aren't supported, skip this entry
+                    continue;
+                }
+
+
+                // set lease range
+                String pmldStateMinValue = xPath.evaluate("//serviceStateTable/stateVariable["
+                        + "name='PortMappingLeaseDuration']"
+                        + "/allowedValueRange/minimum/text()", doc);
+                String pmldStateMaxValue = xPath.evaluate("//serviceStateTable/stateVariable["
+                        + "name='PortMappingLeaseDuration']"
+                        + "/allowedValueRange/maximum/text()", doc);
+                Range<Long> leaseDurationRange = extractRangeIfAvailable(pmldStateMinValue, pmldStateMaxValue, 0L, null);
+
+                // set external port range
+                String epStateMinValue = xPath.evaluate("//serviceStateTable/stateVariable["
+                        + "name='ExternalPort']"
+                        + "/allowedValueRange/minimum/text()", doc);
+                String epStateMaxValue = xPath.evaluate("//serviceStateTable/stateVariable["
+                        + "name='ExternalPort']"
+                        + "/allowedValueRange/maximum/text()", doc);
+                Range<Long> externalPortRange = extractRangeIfAvailable(epStateMinValue, epStateMaxValue, 1L, 65535L);
+                
+                UpnpIgdService desc = new UpnpIgdService(scpdEntry.getKey(), leaseDurationRange, externalPortRange);
+                descriptions.add(desc);
+            } catch (SAXException | ParserConfigurationException | IOException | XPathExpressionException e) { // NOPMD
+                throw new IllegalArgumentException(e);
+            }
         }
+        
+        return descriptions;
     }
     
-    public static void main(String[] args) throws Throwable {
+    private static Range<Long> extractRangeIfAvailable(String min, String max, Long absoluteMin, Long absoluteMax) {
+        if (!NumberUtils.isNumber(min) || !NumberUtils.isNumber(max)) {
+            return null;
+        }
 
-        Set<UpnpIgdDevice> devices = new HashSet<>();
-        devices.addAll(findIpv4Devices());
-        devices.addAll(findIpv6Devices());
+        Range<Long> ret = Range.between(Long.valueOf(min), Long.valueOf(max));
         
-        Set<UpnpIgdService> services = findServices(devices);
-        for (UpnpIgdService service : services) {
-            System.out.println(service);
+        if (absoluteMin != null && ret.getMinimum() < absoluteMin) {
+            return null;
+        }
+
+        if (absoluteMax != null && ret.getMaximum() > absoluteMax) {
+            return null;
+        }
+        
+        return ret;
+    }
+
+    private static final class HttpRequestCallable<T> implements Callable<Pair<T, byte[]>> {
+        private static final int CONNECT_TIMEOUT = 1000;
+        private static final int READ_TIMEOUT = 3000;
+        
+        private final URI uri;
+        private final T reference;
+
+        public HttpRequestCallable(URI uri, T reference) {
+            this.uri = uri;
+            this.reference = reference;
+        }
+
+        @Override
+        public Pair<T, byte[]> call() throws Exception {
+            URLConnection connection = uri.toURL().openConnection(Proxy.NO_PROXY);
+            
+            connection.setConnectTimeout(CONNECT_TIMEOUT);
+            connection.setReadTimeout(READ_TIMEOUT);
+            
+            try (InputStream is = connection.getInputStream()) {
+                return new ImmutablePair<>(reference, IOUtils.toByteArray(is));
+            } finally {
+                IOUtils.close(connection);
+            }
         }
     }
 }

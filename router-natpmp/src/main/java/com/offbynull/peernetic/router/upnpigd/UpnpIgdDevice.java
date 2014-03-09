@@ -10,7 +10,7 @@ public final class UpnpIgdDevice {
     private String name;
     private URI url;
 
-    public UpnpIgdDevice(InetAddress gatewayAddress, String name, URI url) {
+    UpnpIgdDevice(InetAddress gatewayAddress, String name, URI url) {
         Validate.notNull(gatewayAddress);
         Validate.notNull(url);
         this.gatewayAddress = gatewayAddress;

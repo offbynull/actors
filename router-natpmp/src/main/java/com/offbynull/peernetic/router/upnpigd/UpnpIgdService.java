@@ -1,69 +1,42 @@
 package com.offbynull.peernetic.router.upnpigd;
 
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.util.Objects;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.Validate;
 
-public final class UpnpIgdService {
-    private final UpnpIgdDevice device;
-    private final String serviceType;
-    private final String serviceId;
-    private final URI controlUrl;
-    private final URI eventSubUrl;
-    private final URI scpdUrl;
+public class UpnpIgdService {
 
-    UpnpIgdService(UpnpIgdDevice device, String serviceType, String serviceId, String controlUrl, String eventSubUrl,
-            String scpdUrl) throws MalformedURLException {
-        Validate.notNull(device);
-        Validate.notNull(serviceType);
-        Validate.notNull(serviceId);
-//        Validate.notNull(controlUrl);
-//        Validate.notNull(eventSubUrl);
-//        Validate.notNull(scpdUrl);
-        this.device = device;
-        this.serviceType = serviceType;
-        this.serviceId = serviceId;
-        
-        URI baseUri = device.getUrl();
-        this.controlUrl = controlUrl == null ? null : baseUri.resolve(controlUrl);
-        this.eventSubUrl = eventSubUrl == null ? null : baseUri.resolve(eventSubUrl);
-        this.scpdUrl = scpdUrl == null ? null : baseUri.resolve(scpdUrl);
+    private UpnpIgdServiceReference service;
+
+    private Range<Long> leaseDurationRange;
+    private Range<Long> externalPortRange;
+
+    public UpnpIgdService(UpnpIgdServiceReference service, Range<Long> leaseDurationRange, Range<Long> externalPortRange) {
+        Validate.notNull(service);
+
+        this.service = service;
+        this.leaseDurationRange = leaseDurationRange;
+        this.externalPortRange = externalPortRange;
     }
 
-    public UpnpIgdDevice getDevice() {
-        return device;
+    public UpnpIgdServiceReference getService() {
+        return service;
     }
 
-    public String getServiceType() {
-        return serviceType;
+    public Range<Long> getLeaseDurationRange() {
+        return leaseDurationRange;
     }
 
-    public String getServiceId() {
-        return serviceId;
-    }
-
-    public URI getControlUrl() {
-        return controlUrl;
-    }
-
-    public URI getEventSubUrl() {
-        return eventSubUrl;
-    }
-
-    public URI getScpdUrl() {
-        return scpdUrl;
+    public Range<Long> getExternalPortRange() {
+        return externalPortRange;
     }
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 19 * hash + Objects.hashCode(this.device);
-        hash = 19 * hash + Objects.hashCode(this.serviceType);
-        hash = 19 * hash + Objects.hashCode(this.serviceId);
-        hash = 19 * hash + Objects.hashCode(this.controlUrl);
-        hash = 19 * hash + Objects.hashCode(this.eventSubUrl);
-        hash = 19 * hash + Objects.hashCode(this.scpdUrl);
+        int hash = 5;
+        hash = 79 * hash + Objects.hashCode(this.service);
+        hash = 79 * hash + Objects.hashCode(this.leaseDurationRange);
+        hash = 79 * hash + Objects.hashCode(this.externalPortRange);
         return hash;
     }
 
@@ -76,22 +49,13 @@ public final class UpnpIgdService {
             return false;
         }
         final UpnpIgdService other = (UpnpIgdService) obj;
-        if (!Objects.equals(this.device, other.device)) {
+        if (!Objects.equals(this.service, other.service)) {
             return false;
         }
-        if (!Objects.equals(this.serviceType, other.serviceType)) {
+        if (!Objects.equals(this.leaseDurationRange, other.leaseDurationRange)) {
             return false;
         }
-        if (!Objects.equals(this.serviceId, other.serviceId)) {
-            return false;
-        }
-        if (!Objects.equals(this.controlUrl, other.controlUrl)) {
-            return false;
-        }
-        if (!Objects.equals(this.eventSubUrl, other.eventSubUrl)) {
-            return false;
-        }
-        if (!Objects.equals(this.scpdUrl, other.scpdUrl)) {
+        if (!Objects.equals(this.externalPortRange, other.externalPortRange)) {
             return false;
         }
         return true;
@@ -99,7 +63,8 @@ public final class UpnpIgdService {
 
     @Override
     public String toString() {
-        return "UpnpIgdService{" + "device=" + device + ", serviceType=" + serviceType + ", serviceId=" + serviceId + ", controlUrl="
-                + controlUrl + ", eventSubUrl=" + eventSubUrl + ", scpdUrl=" + scpdUrl + '}';
+        return "UpnpIgdService{" + "service=" + service + ", leaseDurationRange=" + leaseDurationRange
+                + ", externalPortRange=" + externalPortRange + '}';
     }
+
 }

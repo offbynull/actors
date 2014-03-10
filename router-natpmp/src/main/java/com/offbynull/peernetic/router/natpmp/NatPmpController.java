@@ -17,15 +17,26 @@
 package com.offbynull.peernetic.router.natpmp;
 
 import com.offbynull.peernetic.router.common.CommunicationType;
+import com.offbynull.peernetic.router.common.NetworkUtils;
 import com.offbynull.peernetic.router.common.ResponseException;
+import com.offbynull.peernetic.router.common.UdpCommunicator;
+import com.offbynull.peernetic.router.common.UdpCommunicatorListener;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.StandardProtocolFamily;
+import java.net.StandardSocketOptions;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.DatagramChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -34,25 +45,73 @@ import org.apache.commons.lang3.Validate;
  */
 public final class NatPmpController implements Closeable {
 
-    private NatPmpCommunicator communicator;
+    private InetSocketAddress gateway;
+    private UdpCommunicator communicator;
+    
+    // closed by udpcomm
+    private DatagramChannel unicastChannel = null;
+    private DatagramChannel ipv4MulticastChannel = null;
+    private DatagramChannel ipv6MulticastChannel = null;
 
     /**
      * Constructs a {@link NatPmpController} object.
      * @param gatewayAddress address of router/gateway
      * @param listener a listener to listen for all NAT-PMP packets from this router
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IOException if problems initializing UDP channels
      */
-    public NatPmpController(InetAddress gatewayAddress, final NatPmpControllerListener listener) {
+    public NatPmpController(InetAddress gatewayAddress, final NatPmpControllerListener listener) throws IOException {
         Validate.notNull(gatewayAddress);
         
-        this.communicator = new NatPmpCommunicator(gatewayAddress);
+        this.gateway = new InetSocketAddress(gatewayAddress, 5351);
+        
+        List<DatagramChannel> channels = new ArrayList<>(3);
+
+        try {
+            unicastChannel = DatagramChannel.open();
+            unicastChannel.configureBlocking(false);
+            unicastChannel.socket().bind(new InetSocketAddress(0));
+
+            ipv4MulticastChannel = DatagramChannel.open(StandardProtocolFamily.INET);
+            ipv4MulticastChannel.configureBlocking(false);
+            ipv4MulticastChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+            ipv4MulticastChannel.socket().bind(new InetSocketAddress(5350));
+            NetworkUtils.multicastListenOnAllIpv4InterfaceAddresses(ipv4MulticastChannel);
+
+            ipv6MulticastChannel = DatagramChannel.open(StandardProtocolFamily.INET6);
+            ipv6MulticastChannel.configureBlocking(false);
+            ipv6MulticastChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+            ipv6MulticastChannel.socket().bind(new InetSocketAddress(5350));
+            NetworkUtils.multicastListenOnAllIpv6InterfaceAddresses(ipv6MulticastChannel);
+        } catch (IOException ioe) {
+            IOUtils.closeQuietly(unicastChannel);
+            IOUtils.closeQuietly(ipv4MulticastChannel);
+            IOUtils.closeQuietly(ipv6MulticastChannel);
+            throw ioe;
+        }
+        
+        channels.add(unicastChannel);
+        channels.add(ipv4MulticastChannel);
+        channels.add(ipv6MulticastChannel);
+        
+        this.communicator = new UdpCommunicator(channels);
         this.communicator.startAsync().awaitRunning();
         
         if (listener != null) {
-            this.communicator.addListener(new NatPmpCommunicatorListener() {
+            this.communicator.addListener(new UdpCommunicatorListener() {
+                
 
                 @Override
-                public void incomingPacket(CommunicationType type, ByteBuffer packet) {
+                public void incomingPacket(InetSocketAddress sourceAddress, Channel channel, ByteBuffer packet) {
+                    CommunicationType type;
+                    if (channel == unicastChannel) {
+                        type = CommunicationType.UNICAST;
+                    } else if (channel == ipv4MulticastChannel || channel == ipv6MulticastChannel) {
+                        type = CommunicationType.MULTICAST;
+                    } else {
+                        return; // unknown, do nothing
+                    }
+                    
                     try {
                         packet.mark();
                         listener.incomingResponse(type, new ExternalAddressNatPmpResponse(packet));
@@ -61,7 +120,7 @@ public final class NatPmpController implements Closeable {
                     } finally {
                         packet.reset();
                     }
-                    
+
                     try {
                         packet.mark();
                         listener.incomingResponse(type, new UdpMappingNatPmpResponse(packet));
@@ -70,7 +129,7 @@ public final class NatPmpController implements Closeable {
                     } finally {
                         packet.reset();
                     }
-                    
+
                     try {
                         packet.mark();
                         listener.incomingResponse(type, new TcpMappingNatPmpResponse(packet));
@@ -90,7 +149,7 @@ public final class NatPmpController implements Closeable {
      * @param sendAttempts number of times to try to submit each request
      * @return external address response
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
-     * @throws NoResponseExceptionf no response available
+     * @throws ResponseException no response available
      * @throws InterruptedException if thread was interrupted while waiting
      * @throws IllegalArgumentException if {@code sendAttempts < 1 || > 9}
      */
@@ -114,7 +173,7 @@ public final class NatPmpController implements Closeable {
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
      * @throws IllegalArgumentException if any numeric argument is negative, or if {@code internalPort < 1 || > 65535}, or if
      * {@code suggestedExternalPort > 65535}, or if {@code sendAttempts < 1 || > 9}
-     * @throws NoReResponseExceptionthe expected response never came in
+     * @throws ResponseException the expected response never came in
      * @throws InterruptedException if thread was interrupted while waiting
      */
     public UdpMappingNatPmpResponse requestUdpMappingOperation(int sendAttempts, int internalPort, int suggestedExternalPort,
@@ -138,7 +197,7 @@ public final class NatPmpController implements Closeable {
      * @throws BufferUnderflowException if the message is too big to be written in to the buffer
      * @throws IllegalArgumentException if any numeric argument is negative, or if {@code internalPort < 1 || > 65535}, or if
      * {@code suggestedExternalPort > 65535}, or if {@code sendAttempts < 1 || > 9}
-     * @throws NoRespResponseExceptione expected response never came in
+     * @throws ResponseException the expected response never came in
      * @throws InterruptedException if thread was interrupted while waiting
      */
     public TcpMappingNatPmpResponse requestTcpMappingOperation(int sendAttempts, int internalPort, int suggestedExternalPort,
@@ -175,11 +234,11 @@ public final class NatPmpController implements Closeable {
         
         final LinkedBlockingQueue<ByteBuffer> recvBufferQueue = new LinkedBlockingQueue<>();
         
-        NatPmpCommunicatorListener listener = new NatPmpCommunicatorListener() {
+        UdpCommunicatorListener listener = new UdpCommunicatorListener() {
 
             @Override
-            public void incomingPacket(CommunicationType type, ByteBuffer packet) {
-                if (type != CommunicationType.UNICAST) {
+            public void incomingPacket(InetSocketAddress sourceAddress, Channel channel, ByteBuffer packet) {
+                if (channel != unicastChannel) {
                     return;
                 }
                 
@@ -196,7 +255,7 @@ public final class NatPmpController implements Closeable {
         // ...
         try {
             communicator.addListener(listener);
-            communicator.send(sendBuffer);
+            communicator.send(unicastChannel, gateway, sendBuffer);
 
             int maxWaitTime = (1 << (attempt - 1)) * 250; // NOPMD
 

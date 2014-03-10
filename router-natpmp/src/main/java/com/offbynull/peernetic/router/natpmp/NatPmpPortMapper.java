@@ -130,15 +130,14 @@ public final class NatPmpPortMapper implements PortMapper {
     }
 
     @Override
-    public void unmapPort(PortType portType, int internalPort) throws InterruptedException {
+    public void unmapPort(MappedPort mappedPort) throws InterruptedException {
         Validate.validState(!closed);
-        Validate.notNull(portType);
-        Validate.inclusiveBetween(1, 65535, internalPort);
+        Validate.notNull(mappedPort);
             
-        switch (portType) {
+        switch (mappedPort.getPortType()) {
             case TCP: {
                 try {
-                    controller.requestTcpMappingOperation(4, internalPort, 0, 0);
+                    controller.requestTcpMappingOperation(4, mappedPort.getInternalPort(), 0, 0);
                 } catch (RuntimeException re) {
                     throw new IllegalStateException(re);
                 }
@@ -146,7 +145,7 @@ public final class NatPmpPortMapper implements PortMapper {
             }
             case UDP: {
                 try {
-                    controller.requestUdpMappingOperation(4, internalPort, 0, 0);
+                    controller.requestUdpMappingOperation(4, mappedPort.getInternalPort(), 0, 0);
                 } catch (RuntimeException re) {
                     throw new IllegalStateException(re);
                 }
@@ -206,7 +205,7 @@ public final class NatPmpPortMapper implements PortMapper {
         } catch (IllegalStateException ise) {
             // port has been mapped to different external ip and/or port, unmap and return error
             try {
-                unmapPort(newMappedPort.getPortType(), newMappedPort.getInternalPort());
+                unmapPort(newMappedPort);
             } catch (RuntimeException re) { // NOPMD
                 // do nothing
             }

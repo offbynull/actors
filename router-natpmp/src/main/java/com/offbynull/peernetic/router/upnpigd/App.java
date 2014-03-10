@@ -16,7 +16,11 @@
  */
 package com.offbynull.peernetic.router.upnpigd;
 
+import com.offbynull.peernetic.router.MappedPort;
+import com.offbynull.peernetic.router.PortMapper;
+import com.offbynull.peernetic.router.PortMapperEventListener;
 import com.offbynull.peernetic.router.PortType;
+import com.offbynull.peernetic.router.upnpigd.UpnpIgdController.PortMappingInfo;
 import java.net.InetAddress;
 import java.util.Set;
 
@@ -37,13 +41,28 @@ public final class App {
     public static void main(String []args) throws Throwable {
         Set<UpnpIgdService> services = UpnpIgdDiscovery.discover();
         UpnpIgdService service = services.iterator().next();
-        UpnpIgdController controller = new UpnpIgdController(InetAddress.getByName("192.168.25.1"), service);
+        
+        PortMapper mapper = new UpnpIgdPortMapper(service, InetAddress.getByName("192.168.25.1"), new PortMapperEventListener() {
+
+            @Override
+            public void resetRequired(String details) {
+                System.out.println(details);
+                System.exit(0);
+            }
+        });
+        
         
         //System.out.println(controller.getExternalIp());
         
-        controller.addPortMapping(23422, 12221, PortType.TCP, 3600);
-        System.out.println(controller.getMappingDetails(23422, PortType.TCP));
-        controller.deletePortMapping(23422, PortType.TCP);
-        System.out.println(controller.getMappingDetails(23422, PortType.TCP));
+        MappedPort mappedPort = mapper.mapPort(PortType.TCP, 12345, 10L);
+        for (int i = 0; i < 3; i++) {
+            Thread.sleep(5000L);
+            System.out.println("Refreshing...");
+            mapper.refreshPort(mappedPort, 10L);
+        }
+        
+        Thread.sleep(20000L);
+        
+        mapper.close();
     }
 }

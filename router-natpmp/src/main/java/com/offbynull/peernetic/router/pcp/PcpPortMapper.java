@@ -133,9 +133,9 @@ public final class PcpPortMapper implements PortMapper {
     }
 
     @Override
-    public void unmapPort(PortType portType, int internalPort) throws InterruptedException {
+    public void unmapPort(MappedPort mappedPort) throws InterruptedException {
         Validate.validState(!closed);
-        Validate.inclusiveBetween(1, 65535, internalPort);
+        Validate.notNull(mappedPort);
 
         InetAddress externalAddress;
         try {
@@ -145,7 +145,7 @@ public final class PcpPortMapper implements PortMapper {
         }
 
         try {
-            controller.requestMapOperation(4, portType, internalPort, 0, externalAddress, 0L);
+            controller.requestMapOperation(4, mappedPort.getPortType(), mappedPort.getInternalPort(), 0, externalAddress, 0L);
         } catch (RuntimeException re) {
             throw new IllegalStateException(re);
         }
@@ -177,7 +177,7 @@ public final class PcpPortMapper implements PortMapper {
         } catch (IllegalStateException ise) {
             // port has been mapped to different external ip and/or port, unmap and return error
             try {
-                unmapPort(newMappedPort.getPortType(), newMappedPort.getInternalPort());
+                unmapPort(mappedPort);
             } catch (RuntimeException re) { // NOPMD
                 // do nothing
             }

@@ -12,11 +12,20 @@ import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.Proxy;
+import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.xml.namespace.QName;
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.MimeHeaders;
@@ -35,6 +44,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -42,21 +52,99 @@ import org.w3c.dom.DOMException;
 
 public final class UpnpIgdController implements Closeable {
 
+    private static final long RANDOM_PORT_TEST_SLEEP = 5L;
+    
     private InetAddress selfAddress;
-    private UpnpIgdService service;
+    private URI controlUri;
+    private String serviceType;
+    private Range<Long> externalPortRange;
+    private Range<Long> leaseDurationRange;
+    
+    private Lock activePortsLock;
+    private Map<Integer, PortMappingInfo> activePorts; // external port to mapping info
+    private ScheduledExecutorService scheduledPortTester;
 
-    public UpnpIgdController(InetAddress selfAddress , UpnpIgdService service) {
+    public UpnpIgdController(InetAddress selfAddress, UpnpIgdService service, UpnpIgdControllerListener listener) {
+        this(selfAddress, service.getService().getControlUrl(), service.getService().getServiceType(), listener);
+        externalPortRange = service.getExternalPortRange();
+        leaseDurationRange = service.getLeaseDurationRange();
+    }
+    
+    public UpnpIgdController(InetAddress selfAddress, URI controlUri, String serviceType, final UpnpIgdControllerListener listener) {
         Validate.notNull(selfAddress);
-        Validate.notNull(service);
+        Validate.notNull(controlUri);
+        Validate.notNull(serviceType);
         this.selfAddress = selfAddress;
-        this.service = service;
+        this.controlUri = controlUri;
+        this.serviceType = serviceType;
+        
+        activePortsLock = new ReentrantLock();
+        activePorts = new HashMap<>();
+        scheduledPortTester = Executors.newSingleThreadScheduledExecutor(
+                new BasicThreadFactory.Builder().daemon(false).namingPattern("upnp-port-tester").build());
+        
+        if (listener != null) {
+            scheduledPortTester.scheduleAtFixedRate(new Runnable() {
+
+                @Override
+                public void run() {
+                    // get random port mapping
+                    List<PortMappingInfo> ports;        
+                    activePortsLock.lock();
+                    try {
+                        ports = new ArrayList<>(activePorts.values());
+                    } finally {
+                        activePortsLock.unlock();
+                    }
+                    
+                    if (ports.isEmpty()) {
+                        return;
+                    }
+                    
+                    Random random = new Random();
+                    PortMappingInfo oldPmi = ports.get(random.nextInt(ports.size()));
+                    
+                    
+                    // check to see if its still active
+                    boolean mappingFailed;
+                    try {
+                        PortMappingInfo newPmi = getMappingDetails(oldPmi.getExternalPort(), oldPmi.getPortType());
+                        
+                        mappingFailed = !newPmi.getInternalClient().equals(UpnpIgdController.this.selfAddress)
+                                || newPmi.getInternalPort() != oldPmi.getInternalPort()
+                                || newPmi.getPortType() != oldPmi.getPortType();
+                    } catch (Exception e) {
+                        mappingFailed = true;
+                    }
+                    
+                    // if it isn't, check to see that the user didn't remove it while we were testing it and notify
+                    if (mappingFailed) {
+                        activePortsLock.lock();
+                        try {
+                            PortMappingInfo testPmi = activePorts.get(oldPmi.getExternalPort());
+                            if (testPmi == null) {
+                                return;
+                            }
+                            
+                            if (testPmi.getInternalClient().equals(UpnpIgdController.this.selfAddress)
+                                    && testPmi.getInternalPort() == oldPmi.getInternalPort()
+                                    && testPmi.getPortType() == oldPmi.getPortType()) {
+                                activePorts.remove(oldPmi.externalPort);
+                                listener.mappingExpired(oldPmi);
+                            }
+                        } finally {
+                            activePortsLock.unlock();
+                        }
+                    }
+                }
+            }, RANDOM_PORT_TEST_SLEEP, RANDOM_PORT_TEST_SLEEP, TimeUnit.SECONDS);
+        }
     }
 
     public PortMappingInfo getMappingDetails(int externalPort, PortType portType) {
         Validate.inclusiveBetween(0, 65535, externalPort); // 0 = wildcard, any unassigned port? may not be supported according to docs
         Validate.notNull(portType);
         
-        Range<Long> externalPortRange = service.getExternalPortRange();
         if (externalPortRange != null) {
             Validate.inclusiveBetween(externalPortRange.getMinimum(), externalPortRange.getMaximum(), (long) externalPort);
         }
@@ -71,7 +159,7 @@ public final class UpnpIgdController implements Closeable {
             InetAddress internalClient = InetAddress.getByName(respParams.get("NewInternalClient"));
             long remainingDuration = NumberUtils.createInteger(respParams.get("NewLeaseDuration"));
             
-            return new PortMappingInfo(internalPort, internalClient, remainingDuration);
+            return new PortMappingInfo(internalPort, externalPort, portType, internalClient, remainingDuration);
         } catch (UnknownHostException | NumberFormatException | NullPointerException e) {
             throw new ResponseException(e);
         }
@@ -79,17 +167,29 @@ public final class UpnpIgdController implements Closeable {
     
     public static final class PortMappingInfo {
         private int internalPort;
+        private int externalPort;
+        private PortType portType;
         private InetAddress internalClient;
         private long remainingDuration;
 
-        private PortMappingInfo(int internalPort, InetAddress internalClient, long remainingDuration) {
+        private PortMappingInfo(int internalPort, int externalPort, PortType portType, InetAddress internalClient, long remainingDuration) {
             this.internalPort = internalPort;
+            this.externalPort = externalPort;
+            this.portType = portType;
             this.internalClient = internalClient;
             this.remainingDuration = remainingDuration;
         }
 
         public int getInternalPort() {
             return internalPort;
+        }
+
+        public int getExternalPort() {
+            return externalPort;
+        }
+
+        public PortType getPortType() {
+            return portType;
         }
 
         public InetAddress getInternalClient() {
@@ -102,8 +202,8 @@ public final class UpnpIgdController implements Closeable {
 
         @Override
         public String toString() {
-            return "PortMappingInfo{" + "internalPort=" + internalPort + ", internalClient=" + internalClient + ", remainingDuration="
-                    + remainingDuration + '}';
+            return "PortMappingInfo{" + "internalPort=" + internalPort + ", externalPort=" + externalPort + ", portType=" + portType
+                    + ", internalClient=" + internalClient + ", remainingDuration=" + remainingDuration + '}';
         }
         
     }
@@ -113,13 +213,11 @@ public final class UpnpIgdController implements Closeable {
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.notNull(portType);
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, duration);
-        
-        Range<Long> externalPortRange = service.getExternalPortRange();
+
         if (externalPortRange != null) {
             Validate.inclusiveBetween(externalPortRange.getMinimum(), externalPortRange.getMaximum(), (long) externalPort);
         }
 
-        Range<Long> leaseDurationRange = service.getLeaseDurationRange();
         if (leaseDurationRange != null) {
             if (duration == 0L) {
                 Validate.isTrue(leaseDurationRange.getMinimum() == 0, "Infinite duration not allowed");
@@ -139,16 +237,34 @@ public final class UpnpIgdController implements Closeable {
                 ImmutablePair.of("NewLeaseDuration", "" + duration));
         
         
-        return getMappingDetails(externalPort, portType);
+        PortMappingInfo info = getMappingDetails(externalPort, portType);
+        
+        activePortsLock.lock();
+        try {
+            activePorts.put(externalPort, info);
+        } finally {
+            activePortsLock.unlock();
+        }
+
+        return info;
     }
 
     public void deletePortMapping(int externalPort, PortType portType) {
         Validate.inclusiveBetween(1, 65535, externalPort);
         
+        PortMappingInfo info = getMappingDetails(externalPort, portType);
+        
         performRequest("DeletePortMapping",
                 ImmutablePair.of("NewRemoteHost", ""),
                 ImmutablePair.of("NewExternalPort", "" + externalPort),
                 ImmutablePair.of("NewProtocol", portType.name()));
+        
+        activePortsLock.lock();
+        try {
+            activePorts.remove(externalPort);
+        } finally {
+            activePortsLock.unlock();
+        }
     }
 
     public InetAddress getExternalIp() {
@@ -167,14 +283,14 @@ public final class UpnpIgdController implements Closeable {
         HttpURLConnection conn = null;
                 
         try {
-            URL url = service.getService().getControlUrl().toURL();
+            URL url = controlUri.toURL();
             conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
 
             conn.setRequestMethod("POST");
             conn.setReadTimeout(3000);
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "text/xml");
-            conn.setRequestProperty("SOAPAction", service.getService().getServiceType() + "#" + action);
+            conn.setRequestProperty("SOAPAction", serviceType + "#" + action);
             conn.setRequestProperty("Connection", "Close");
         } catch (IOException ex) {
             throw new IllegalStateException(ex); // should never happen
@@ -236,7 +352,7 @@ public final class UpnpIgdController implements Closeable {
             }
             
             Iterator<SOAPBodyElement> responseBlockIt = soapMessage.getSOAPBody().getChildElements(
-                    new QName(service.getService().getServiceType(), expectedTagName));
+                    new QName(serviceType, expectedTagName));
             if (!responseBlockIt.hasNext()) {
                 throw new ResponseException(expectedTagName + " tag missing");
             }
@@ -265,7 +381,7 @@ public final class UpnpIgdController implements Closeable {
             SOAPMessage soapMessage = factory.createMessage();
             
             SOAPBodyElement actionElement = soapMessage.getSOAPBody().addBodyElement(new QName(null, action, "m"));
-            actionElement.addNamespaceDeclaration("m", service.getService().getServiceType());
+            actionElement.addNamespaceDeclaration("m", serviceType);
             
             for (Pair<String, String> param : params) {
                 SOAPElement paramElement = actionElement.addChildElement(QName.valueOf(param.getKey()));
@@ -287,5 +403,6 @@ public final class UpnpIgdController implements Closeable {
 
     @Override
     public void close() throws IOException {
+        scheduledPortTester.shutdownNow();
     }
 }

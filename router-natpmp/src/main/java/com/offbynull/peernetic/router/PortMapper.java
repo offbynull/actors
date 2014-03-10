@@ -39,14 +39,12 @@ public interface PortMapper extends Closeable {
     
     /**
      * Unmap a port. Unmapping the same port multiple times or unmapping a port that hasn't been mapped yet has undefined behaviour.
-     * @param portType port type
-     * @param internalPort internal port
+     * @param mappedPort mapped port details
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if any numeric argument is non-positive, or if {@code internalPort > 65535}
      * @throws IllegalStateException if the port could not be unmapped for any reason
      * @throws InterruptedException if thread was interrupted
      */
-    void unmapPort(PortType portType, int internalPort) throws InterruptedException;
+    void unmapPort(MappedPort mappedPort) throws InterruptedException;
 
     /**
      * Refresh a mapping. Refreshing a port that hasn't been mapped or has been unmapped has undefined behaviour.

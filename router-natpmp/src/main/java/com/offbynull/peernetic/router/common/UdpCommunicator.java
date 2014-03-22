@@ -33,12 +33,21 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+/**
+ * NIO UDP communicator. Allows sending and receiving packets on multiple {@link DatagramChannel}s.
+ * @author Kasra Faghihi
+ */
 public final class UdpCommunicator extends AbstractExecutionThreadService {
     private final LinkedBlockingQueue<UdpCommunicatorListener> listeners;
     private final Map<DatagramChannel, LinkedBlockingQueue<ImmutablePair<InetSocketAddress, ByteBuffer>>> sendQueue;
     private volatile boolean stopFlag;
     private volatile Selector selector;
 
+    /**
+     * Constructs a {@link UdpCommunicator} channel.
+     * @param channels channels to use for communication (these will be closed when this class is shutdown)
+     * @throws NullPointerException if any argument is or contains {@code null}
+     */
     public UdpCommunicator(List<DatagramChannel> channels) {
         Validate.noNullElements(channels);
         
@@ -51,25 +60,50 @@ public final class UdpCommunicator extends AbstractExecutionThreadService {
         sendQueue = Collections.unmodifiableMap(intSendQueue);
     }
 
+    /**
+     * Add a {@link UdpCommunicatorListener}.
+     * @param e listener that gets triggered on incoming packet
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if this communicator isn't running
+     */
     public void addListener(UdpCommunicatorListener e) {
-        if (!isRunning()) {
-            throw new IllegalStateException();
-        }
+        Validate.notNull(e);
+        Validate.validState(isRunning());
+        
         listeners.add(e);
     }
 
+    /**
+     * Remove a {@link UdpCommunicatorListener}. Removing a listener that doesn't exist has no effect.
+     * @param e listener that gets triggered on incoming packet
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if this communicator isn't running
+     */
     public void removeListener(UdpCommunicatorListener e) {
-        if (!isRunning()) {
-            throw new IllegalStateException();
-        }
+        Validate.notNull(e);
+        Validate.validState(isRunning());
+        
         listeners.remove(e);
     }
     
+    /**
+     * Add a packet to the send queue of this UDP communicator.
+     * @param channel channel to send on
+     * @param dst destination to send to
+     * @param data packet to send
+     * @throws NullPointerException if any argument is {@code null}, or if {@code channel} doesn't belong to this communicator
+     * @throws IllegalStateException if this communicator isn't running
+     */
     public void send(DatagramChannel channel, InetSocketAddress dst, ByteBuffer data) {
-        if (!isRunning()) {
-            throw new IllegalStateException();
-        }
+        Validate.notNull(channel);
+        Validate.notNull(dst);
+        Validate.notNull(data);
+        Validate.validState(isRunning());
+        
         LinkedBlockingQueue<ImmutablePair<InetSocketAddress, ByteBuffer>> queue = sendQueue.get(channel);
+        
+        Validate.isTrue(channel != null);
+        
         queue.add(new ImmutablePair<>(dst, ByteBufferUtils.copyContents(data)));
         
         selector.wakeup();

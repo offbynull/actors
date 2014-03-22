@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.router.upnpigd;
 
 import com.offbynull.peernetic.router.PortType;
@@ -50,12 +66,16 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.w3c.dom.DOMException;
 
+/**
+ * UPNP-IGD controller.
+ * @author Kasra Faghihi
+ */
 public final class UpnpIgdController implements Closeable {
 
     private static final long RANDOM_PORT_TEST_SLEEP = 5L;
     
     private InetAddress selfAddress;
-    private URI controlUri;
+    private URI controlUrl;
     private String serviceType;
     private Range<Long> externalPortRange;
     private Range<Long> leaseDurationRange;
@@ -64,18 +84,32 @@ public final class UpnpIgdController implements Closeable {
     private Map<Integer, PortMappingInfo> activePorts; // external port to mapping info
     private ScheduledExecutorService scheduledPortTester;
 
+    /**
+     * Constructs a UPNP-IGD controller.
+     * @param selfAddress address of this machine
+     * @param service UPNP-IGD port mapping service
+     * @param listener event listener
+     */
     public UpnpIgdController(InetAddress selfAddress, UpnpIgdService service, UpnpIgdControllerListener listener) {
-        this(selfAddress, service.getService().getControlUrl(), service.getService().getServiceType(), listener);
+        this(selfAddress, service.getServiceReference().getControlUrl(), service.getServiceReference().getServiceType(), listener);
         externalPortRange = service.getExternalPortRange();
         leaseDurationRange = service.getLeaseDurationRange();
     }
     
-    public UpnpIgdController(InetAddress selfAddress, URI controlUri, String serviceType, final UpnpIgdControllerListener listener) {
+    /**
+     * Constructs a UPNP-IGD controller.
+     * @param selfAddress address of this machine.
+     * @param controlUrl control URL
+     * @param serviceType service type
+     * @param listener event listener
+     * @throws NullPointerException if any argument other than {@code listener} is {@code null}
+     */
+    public UpnpIgdController(InetAddress selfAddress, URI controlUrl, String serviceType, final UpnpIgdControllerListener listener) {
         Validate.notNull(selfAddress);
-        Validate.notNull(controlUri);
+        Validate.notNull(controlUrl);
         Validate.notNull(serviceType);
         this.selfAddress = selfAddress;
-        this.controlUri = controlUri;
+        this.controlUrl = controlUrl;
         this.serviceType = serviceType;
         
         activePortsLock = new ReentrantLock();
@@ -141,7 +175,19 @@ public final class UpnpIgdController implements Closeable {
         }
     }
 
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Get mapping detail for some exposed port.
+     * @param externalPort external port
+     * @param portType port type
+     * @return port mapping information for that external port
+     * @throws NullPointerException if portType is {@code null}
+     * @throws IllegalArgumentException if {@code externalPort} isn't between {@code 0} to {@code 65535}, or if the {@code externalPort}
+     * isn't between the external port range specified by the service (if one was specified)
+     * @throws ResponseException if the router responds with an error
+     */
     public PortMappingInfo getMappingDetails(int externalPort, PortType portType) {
+        // CHECKSTYLE:ON
         Validate.inclusiveBetween(0, 65535, externalPort); // 0 = wildcard, any unassigned port? may not be supported according to docs
         Validate.notNull(portType);
         
@@ -165,6 +211,9 @@ public final class UpnpIgdController implements Closeable {
         }
     }
     
+    /**
+     * Port mapping information.
+     */
     public static final class PortMappingInfo {
         private int internalPort;
         private int externalPort;
@@ -180,22 +229,42 @@ public final class UpnpIgdController implements Closeable {
             this.remainingDuration = remainingDuration;
         }
 
+        /**
+         * Get internal port.
+         * @return internal port
+         */
         public int getInternalPort() {
             return internalPort;
         }
 
+        /**
+         * Get external port.
+         * @return external port
+         */
         public int getExternalPort() {
             return externalPort;
         }
 
+        /**
+         * Get port type.
+         * @return port type
+         */
         public PortType getPortType() {
             return portType;
         }
 
+        /**
+         * Get internal client address.
+         * @return internal client address
+         */
         public InetAddress getInternalClient() {
             return internalClient;
         }
 
+        /**
+         * Get remaining duration for mapping.
+         * @return remaining duration for mapping
+         */
         public long getRemainingDuration() {
             return remainingDuration;
         }
@@ -208,7 +277,22 @@ public final class UpnpIgdController implements Closeable {
         
     }
     
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Add a port mapping.
+     * @param externalPort external port
+     * @param internalPort internal port
+     * @param portType port type
+     * @param duration mapping duration (0 = indefinite, may or may not be supported by router)
+     * @return port mapping information for the new mapping
+     * @throws NullPointerException if portType is {@code null}
+     * @throws IllegalArgumentException if {@code externalPort} isn't between {@code 0} to {@code 65535}, or if {@code externalPort}
+     * isn't between the external port range specified by the service (if one was specified), or if {@code internalPort} isn't between
+     * {@code 1} to {@code 65535}, or if {@code duration} isn't between the duration range specified by the service (if one was specified)
+     * @throws ResponseException if the router responds with an error, or if {@code duration} is negative
+     */
     public PortMappingInfo addPortMapping(int externalPort, int internalPort, PortType portType, long duration) {
+        // CHECKSTYLE:ON
         Validate.inclusiveBetween(0, 65535, externalPort); // 0 = wildcard, any unassigned port? may not be supported according to docs
         Validate.inclusiveBetween(1, 65535, internalPort);
         Validate.notNull(portType);
@@ -249,10 +333,26 @@ public final class UpnpIgdController implements Closeable {
         return info;
     }
 
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Delete a port mapping.
+     * @param externalPort external port
+     * @param portType port type
+     * @throws NullPointerException if portType is {@code null}
+     * @throws IllegalArgumentException if {@code externalPort} isn't between {@code 0} to {@code 65535}, or if the {@code externalPort}
+     * isn't between the external port range specified by the service (if one was specified)
+     * @throws ResponseException if the router responds with an error
+     */
     public void deletePortMapping(int externalPort, PortType portType) {
+        // CHECKSTYLE:ON
         Validate.inclusiveBetween(1, 65535, externalPort);
+        Validate.notNull(portType);
         
-        PortMappingInfo info = getMappingDetails(externalPort, portType);
+        if (externalPortRange != null) {
+            Validate.inclusiveBetween(externalPortRange.getMinimum(), externalPortRange.getMaximum(), (long) externalPort);
+        }
+        
+        /*PortMappingInfo info = */getMappingDetails(externalPort, portType);
         
         performRequest("DeletePortMapping",
                 ImmutablePair.of("NewRemoteHost", ""),
@@ -267,7 +367,14 @@ public final class UpnpIgdController implements Closeable {
         }
     }
 
+    // CHECKSTYLE:OFF custom exception in javadoc not being recognized
+    /**
+     * Get the external IP address.
+     * @return external IP address
+     * @throws ResponseException if the router responds with an error
+     */
     public InetAddress getExternalIp() {
+        // CHECKSTYLE:ON
         Map<String, String> responseParams = performRequest("GetExternalIPAddress");
         
         try {
@@ -283,7 +390,7 @@ public final class UpnpIgdController implements Closeable {
         HttpURLConnection conn = null;
                 
         try {
-            URL url = controlUri.toURL();
+            URL url = controlUrl.toURL();
             conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
 
             conn.setRequestMethod("POST");

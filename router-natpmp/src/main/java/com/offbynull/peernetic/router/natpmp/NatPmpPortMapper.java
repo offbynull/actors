@@ -42,8 +42,9 @@ public final class NatPmpPortMapper implements PortMapper {
      * @param gatewayAddress gateway address
      * @param listener event listener
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IOException if problems initializing UDP channels
      */
-    public NatPmpPortMapper(InetAddress gatewayAddress, final PortMapperEventListener listener) {
+    public NatPmpPortMapper(InetAddress gatewayAddress, final PortMapperEventListener listener) throws IOException {
         Validate.notNull(gatewayAddress);
         Validate.notNull(listener);
 

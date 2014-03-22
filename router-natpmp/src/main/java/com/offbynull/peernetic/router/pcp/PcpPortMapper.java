@@ -46,9 +46,10 @@ public final class PcpPortMapper implements PortMapper {
      * @param preferIpv6External if this mapper should tell the router to give it a ipv6 address when asking the router to map a new port
      * @param listener event listener
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IOException if problems initializing UDP channels
      */
     public PcpPortMapper(InetAddress gatewayAddress, InetAddress selfAddress, boolean preferIpv6External,
-            final PortMapperEventListener listener) {
+            final PortMapperEventListener listener) throws IOException {
         Validate.notNull(gatewayAddress);
         Validate.notNull(selfAddress);
         Validate.notNull(listener);

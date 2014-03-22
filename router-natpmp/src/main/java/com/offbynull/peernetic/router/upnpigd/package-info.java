@@ -14,18 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.router.upnpigd;
-
-import com.offbynull.peernetic.router.upnpigd.UpnpIgdController.PortMappingInfo;
 
 /**
- * UPNP-IGD controller listener.
- * @author Kasra Faghihi
+ * UPNP-IGD client implementation. Does not support eventing subscriptions. For more information on UPNP-IGD, visit
+ * http://www.upnp.org/specs/gw/UPnP-gw-WANIPConnection-v1-Service.pdf and
+ * http://www.upnp.org/resources/documents/UPnPIGD2vsIGD1d10032009.pdf and
+ * http://www.upnp-hacks.org/upnp.html.
  */
-public interface UpnpIgdControllerListener {
-    /**
-     * Called when a port mapping looks to be lost.
-     * @param mappedPort port mapping information
-     */
-    void mappingExpired(PortMappingInfo mappedPort);
-}
+package com.offbynull.peernetic.router.upnpigd;

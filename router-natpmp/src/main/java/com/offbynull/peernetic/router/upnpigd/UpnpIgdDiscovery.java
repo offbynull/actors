@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2013, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.router.upnpigd;
 
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
@@ -55,6 +71,10 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+/**
+ * Utility class used to discover UPNP-IGD routers.
+ * @author Kasra Faghihi
+ */
 public final class UpnpIgdDiscovery {
 
     private static final int MAX_WAIT = 3;
@@ -77,6 +97,12 @@ public final class UpnpIgdDiscovery {
         // do nothing
     }
 
+    /**
+     * Discovers UPNP-IGD routers.
+     * @return a collection of UPNP-IGD routers that were discovered
+     * @throws IOException on error
+     * @throws InterruptedException if thread was interrupted 
+     */
     public static Set<UpnpIgdService> discover() throws IOException, InterruptedException {
         Set<UpnpIgdDevice> devices = new HashSet<>();
         devices.addAll(findIpv4Devices());
@@ -93,7 +119,7 @@ public final class UpnpIgdDiscovery {
     private static Set<UpnpIgdDevice> findIpv4Devices() throws IOException, InterruptedException {
         InetSocketAddress multicastSocketAddress;
         try {
-            multicastSocketAddress = new InetSocketAddress(InetAddress.getByName("239.255.255.250"), 1900);
+            multicastSocketAddress = new InetSocketAddress(InetAddress.getByName("239.255.255.250"), 1900); // NOPMD
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe);
         }
@@ -105,7 +131,7 @@ public final class UpnpIgdDiscovery {
     private static Set<UpnpIgdDevice> findIpv6Devices() throws IOException, InterruptedException {
         InetSocketAddress multicastSocketAddress;
         try {
-            multicastSocketAddress = new InetSocketAddress(InetAddress.getByName("ff02::c"), 1900);
+            multicastSocketAddress = new InetSocketAddress(InetAddress.getByName("ff02::c"), 1900); // NOPMD
         } catch (UnknownHostException uhe) {
             throw new IllegalStateException(uhe);
         }
@@ -241,11 +267,11 @@ public final class UpnpIgdDiscovery {
                     String serviceType = StringUtils.trim(xPath.compile("serviceType").evaluate(serviceNode));
                     String serviceId = StringUtils.trim(xPath.compile("serviceId").evaluate(serviceNode));
                     String controlUrl = StringUtils.trim(xPath.compile("controlURL").evaluate(serviceNode));
-                    String eventSubUrl = StringUtils.trim(xPath.compile("eventSubURL").evaluate(serviceNode));
+                    //String eventSubUrl = StringUtils.trim(xPath.compile("eventSubURL").evaluate(serviceNode));
                     String scpdUrl = StringUtils.trim(xPath.compile("SCPDURL").evaluate(serviceNode));
 
                     UpnpIgdServiceReference service = new UpnpIgdServiceReference(rootBufferEntry.getKey(), serviceType, serviceId,
-                            controlUrl, eventSubUrl, scpdUrl);
+                            controlUrl, scpdUrl);
                     services.add(service);
                 }
             } catch (SAXException | ParserConfigurationException | IOException | XPathExpressionException e) { // NOPMD

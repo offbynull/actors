@@ -23,13 +23,13 @@ package com.offbynull.peernetic.router.common;
 public final class ResponseException extends RuntimeException {
 
     /**
-     * Construct a {@link NoResponseException}.
+     * Construct a {@link ResponseException}.
      */
     public ResponseException() {
     }
 
     /**
-     * Construct a {@link NoResponseException} with a message.
+     * Construct a {@link ResponseException} with a message.
      * @param message message
      */
     public ResponseException(String message) {
@@ -37,7 +37,7 @@ public final class ResponseException extends RuntimeException {
     }
 
     /**
-     * Construct a {@link NoResponseException} with a message and a cause.
+     * Construct a {@link ResponseException} with a message and a cause.
      * @param message message
      * @param cause cause
      */
@@ -46,7 +46,7 @@ public final class ResponseException extends RuntimeException {
     }
 
     /**
-     * Construct a {@link NoResponseException} with a cause.
+     * Construct a {@link ResponseException} with a cause.
      * @param cause cause
      */
     public ResponseException(Throwable cause) {

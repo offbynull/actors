@@ -39,7 +39,7 @@ public final class UpnpIgdPortMapper implements PortMapper {
     private volatile boolean closed;
 
     /**
-     * Constructs a {@link UpnpIgdPortMapper{ object.
+     * Constructs a {@link UpnpIgdPortMapper} object.
      * @param service UPNP-IGD service
      * @param selfAddress local address on the same interface that the router is on
      * @param listener event listener

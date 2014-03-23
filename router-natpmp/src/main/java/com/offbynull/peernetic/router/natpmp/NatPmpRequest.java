@@ -63,7 +63,7 @@ public abstract class NatPmpRequest {
     }
     
     /**
-     * Called by {@link #dump(java.nio.ByteBuffer, java.net.InetAddress) } to write op-code specific data to the buffer.
+     * Called by {@link #dump(java.nio.ByteBuffer) } to write op-code specific data to the buffer.
      * @param dst byte buffer to dump to
      * @throws NullPointerException if any argument is {@code null}
      * @throws BufferOverflowException if {@code dst} doesn't have enough space to write this option

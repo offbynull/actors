@@ -129,7 +129,7 @@ public final class TcpMappingNatPmpRequest extends NatPmpRequest {
     private long lifetime;
     
     /**
-     * Construct a {@link RequestUdpMappingNatPmpRequest} object.
+     * Construct a {@link TcpMappingNatPmpRequest} object.
      * @param internalPort internal port
      * @param suggestedExternalPort suggested external port ({@code 0} for no preference)
      * @param lifetime desired lifetime of mapping ({@code 0} to destroy mapping)

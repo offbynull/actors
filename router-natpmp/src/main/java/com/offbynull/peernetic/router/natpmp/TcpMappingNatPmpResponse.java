@@ -134,7 +134,7 @@ public final class TcpMappingNatPmpResponse extends NatPmpResponse {
     private long lifetime;
 
     /**
-     * Constructs a {@link RequestTcpMappingNatPmpResponse} object by parsing a buffer.
+     * Constructs a {@link TcpMappingNatPmpResponse} object by parsing a buffer.
      * @param buffer buffer containing PCP response data
      * @throws NullPointerException if any argument is {@code null}
      * @throws BufferUnderflowException if not enough data is available in {@code buffer}

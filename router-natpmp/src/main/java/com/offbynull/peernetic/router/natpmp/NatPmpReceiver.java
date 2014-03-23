@@ -31,9 +31,9 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * Listens for NAT-PMP events from a gateway/router. For best results, avoid using this and call
- * {@link NatPmpController#getExternalAddress() } periodically to determine if the external IP address changed or the device rebooted --
- * it's result has a 'seconds since last epoch' property {@link ExternalAddressResult#getSecondsSinceStartOfEpoch() }  which you can track
- * to determine if the device rebooted.
+ * {@link NatPmpController#requestExternalAddress(int) } periodically to determine if the external IP address changed or the device rebooted
+ * -- it's result has a 'seconds since last epoch' property {@link ExternalAddressNatPmpResponse#getSecondsSinceStartOfEpoch() } which you
+ * can track to determine if the device rebooted.
  * <p/>
  * For more information see section 3.2.1 of http://tools.ietf.org/html/rfc6886.
  *

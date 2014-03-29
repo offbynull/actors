@@ -1,5 +1,5 @@
 \Q/*\E
-\Q * Copyright (c) \E\d{4}\Q, Kasra Faghihi, All rights reserved.\E
+\Q * Copyright (c) \E\d{4}-\d{4}\Q, Kasra Faghihi, All rights reserved.\E
 \Q * \E
 \Q * This library is free software; you can redistribute it and/or\E
 \Q * modify it under the terms of the GNU Lesser General Public\E

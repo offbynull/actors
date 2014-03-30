@@ -26,23 +26,35 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class UpnpIgdDevice {
+    private InetAddress selfAddress;
     private InetAddress gatewayAddress;
     private String name;
     private URI url;
 
     /**
      * Constructs a UPNP-IGD router.
+     * @param selfAddress address of this machine (on the interface that routes to gateway address)
      * @param gatewayAddress router address
      * @param name router name
      * @param url root XML URL
      * @throws NullPointerException if any argument other than {@code name} is {@code null}
      */
-    public UpnpIgdDevice(InetAddress gatewayAddress, String name, URI url) {
+    public UpnpIgdDevice(InetAddress selfAddress, InetAddress gatewayAddress, String name, URI url) {
+        Validate.notNull(selfAddress);
         Validate.notNull(gatewayAddress);
         Validate.notNull(url);
+        this.selfAddress = selfAddress;
         this.gatewayAddress = gatewayAddress;
         this.name = name;
         this.url = url;
+    }
+
+    /**
+     * Get self address.
+     * @return self address
+     */
+    public InetAddress getSelfAddress() {
+        return selfAddress;
     }
 
     /**
@@ -72,6 +84,7 @@ public final class UpnpIgdDevice {
     @Override
     public int hashCode() {
         int hash = 7;
+        hash = 17 * hash + Objects.hashCode(this.selfAddress);
         hash = 17 * hash + Objects.hashCode(this.gatewayAddress);
 //        hash = 17 * hash + Objects.hashCode(this.name);
 //        hash = 17 * hash + Objects.hashCode(this.url);
@@ -87,6 +100,9 @@ public final class UpnpIgdDevice {
             return false;
         }
         final UpnpIgdDevice other = (UpnpIgdDevice) obj;
+        if (!Objects.equals(this.selfAddress, other.selfAddress)) {
+            return false;
+        }
         if (!Objects.equals(this.gatewayAddress, other.gatewayAddress)) {
             return false;
         }
@@ -101,7 +117,9 @@ public final class UpnpIgdDevice {
 
     @Override
     public String toString() {
-        return "Device{" + "gatewayAddress=" + gatewayAddress + ", name=" + name + ", url=" + url + '}';
+        return "UpnpIgdDevice{" + "selfAddress=" + selfAddress + ", gatewayAddress=" + gatewayAddress + ", name=" + name + ", url="
+                + url + '}';
     }
+
 
 }

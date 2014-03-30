@@ -86,12 +86,14 @@ public final class UpnpIgdController implements Closeable {
 
     /**
      * Constructs a UPNP-IGD controller.
-     * @param selfAddress address of this machine
      * @param service UPNP-IGD port mapping service
      * @param listener event listener
      */
-    public UpnpIgdController(InetAddress selfAddress, UpnpIgdService service, UpnpIgdControllerListener listener) {
-        this(selfAddress, service.getServiceReference().getControlUrl(), service.getServiceReference().getServiceType(), listener);
+    public UpnpIgdController(UpnpIgdService service, UpnpIgdControllerListener listener) {
+        this(service.getServiceReference().getDevice().getSelfAddress(),
+                service.getServiceReference().getControlUrl(),
+                service.getServiceReference().getServiceType(),
+                listener);
         externalPortRange = service.getExternalPortRange();
         leaseDurationRange = service.getLeaseDurationRange();
     }

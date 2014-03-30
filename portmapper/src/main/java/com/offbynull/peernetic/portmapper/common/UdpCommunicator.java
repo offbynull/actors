@@ -159,7 +159,11 @@ public final class UdpCommunicator extends AbstractExecutionThreadService {
                     ImmutablePair<InetSocketAddress, ByteBuffer> next = queue.poll();
                     
                     if (next != null) {
-                        channel.send(next.getValue(), next.getKey());
+                        try {
+                            channel.send(next.getValue(), next.getKey());
+                        } catch (RuntimeException re) { // NOPMD
+                            // do nothing
+                        }
                     }
                 }
             }

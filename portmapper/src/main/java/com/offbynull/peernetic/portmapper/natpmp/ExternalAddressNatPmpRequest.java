@@ -19,7 +19,6 @@ package com.offbynull.peernetic.portmapper.natpmp;
 import java.nio.ByteBuffer;
 
 /**
-/**
  * Represents a NAT-PMP external address request. From the RFC:
  * <pre>
  * 3.2.  Determining the External Address

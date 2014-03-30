@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.portmapper.upnpigd;
 
 import com.offbynull.peernetic.common.utils.ByteBufferUtils;
-import com.offbynull.peernetic.portmapper.common.NetworkUtils;
+import com.offbynull.peernetic.common.utils.NetworkUtils;
 import com.offbynull.peernetic.portmapper.common.UdpCommunicator;
 import com.offbynull.peernetic.portmapper.common.UdpCommunicatorListener;
 import java.io.ByteArrayInputStream;
@@ -72,7 +72,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Utility class used to discover UPNP-IGD routers.
+ * Utility class used to discover UPNP-IGD-enabled routers.
  * @author Kasra Faghihi
  */
 public final class UpnpIgdDiscovery {
@@ -100,8 +100,8 @@ public final class UpnpIgdDiscovery {
     /**
      * Discovers UPNP-IGD routers.
      * @return a collection of UPNP-IGD routers that were discovered
-     * @throws IOException on error
-     * @throws InterruptedException if thread was interrupted 
+     * @throws InterruptedException if interrupted
+     * @throws IOException if IO error occurs
      */
     public static Set<UpnpIgdService> discover() throws IOException, InterruptedException {
         Set<UpnpIgdDevice> devices = new HashSet<>();
@@ -144,11 +144,12 @@ public final class UpnpIgdDiscovery {
             String searchQuery) throws IOException, InterruptedException {
 
         final Set<UpnpIgdDevice> ret = Collections.synchronizedSet(new HashSet<UpnpIgdDevice>());
+        final Map<Channel, InetAddress> bindMap = Collections.synchronizedMap(new HashMap<Channel, InetAddress>());
 
         UdpCommunicatorListener listener = new UdpCommunicatorListener() {
 
             @Override
-            public void incomingPacket(InetSocketAddress sourceAddress, Channel channel, ByteBuffer packet) {
+            public void incomingPacket(InetSocketAddress sourceAddress, DatagramChannel channel, ByteBuffer packet) {
                 byte[] inPacket = ByteBufferUtils.copyContentsToArray(packet);
 
                 String inStr;
@@ -176,8 +177,10 @@ public final class UpnpIgdDiscovery {
                 if ((matcher = SERVER_PATTERN.matcher(inStr)).find()) {
                     name = matcher.group(1);
                 }
+                
+                InetAddress localAddress = bindMap.get(channel);
 
-                UpnpIgdDevice device = new UpnpIgdDevice(sourceAddress.getAddress(), name, url);
+                UpnpIgdDevice device = new UpnpIgdDevice(localAddress, sourceAddress.getAddress(), name, url);
                 ret.add(device);
             }
         };
@@ -191,6 +194,8 @@ public final class UpnpIgdDiscovery {
                 channel.configureBlocking(false);
                 channel.bind(new InetSocketAddress(localAddr, 0));
                 channels.add(channel);
+                
+                bindMap.put(channel, localAddr);
             }
 
             comm = new UdpCommunicator(channels);

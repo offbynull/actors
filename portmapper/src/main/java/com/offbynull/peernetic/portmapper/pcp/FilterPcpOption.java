@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.portmapper.pcp;
 
-import com.offbynull.peernetic.portmapper.common.NetworkUtils;
+import com.offbynull.peernetic.common.utils.NetworkUtils;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException; // NOPMD Javadoc not recognized (fixed in latest PMD but maven plugin has to catch up)

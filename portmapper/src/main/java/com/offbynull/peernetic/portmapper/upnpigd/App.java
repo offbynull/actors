@@ -20,7 +20,6 @@ import com.offbynull.peernetic.portmapper.MappedPort;
 import com.offbynull.peernetic.portmapper.PortMapper;
 import com.offbynull.peernetic.portmapper.PortMapperEventListener;
 import com.offbynull.peernetic.portmapper.PortType;
-import java.net.InetAddress;
 import java.util.Set;
 
 /**
@@ -41,7 +40,7 @@ public final class App {
         Set<UpnpIgdService> services = UpnpIgdDiscovery.discover();
         UpnpIgdService service = services.iterator().next();
         
-        PortMapper mapper = new UpnpIgdPortMapper(service, InetAddress.getByName("192.168.25.1"), new PortMapperEventListener() { // NOPMD
+        PortMapper mapper = new UpnpIgdPortMapper(service, new PortMapperEventListener() { // NOPMD
 
             @Override
             public void resetRequired(String details) {

@@ -18,7 +18,7 @@ package com.offbynull.peernetic.portmapper.common;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
+import java.nio.channels.DatagramChannel;
 
 /**
  * UDP response listener.
@@ -31,5 +31,5 @@ public interface UdpCommunicatorListener {
      * @param channel channel
      * @param packet packet contents
      */
-    void incomingPacket(InetSocketAddress sourceAddress, Channel channel, ByteBuffer packet);
+    void incomingPacket(InetSocketAddress sourceAddress, DatagramChannel channel, ByteBuffer packet);
 }

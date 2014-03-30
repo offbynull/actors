@@ -41,16 +41,14 @@ public final class UpnpIgdPortMapper implements PortMapper {
     /**
      * Constructs a {@link UpnpIgdPortMapper} object.
      * @param service UPNP-IGD service
-     * @param selfAddress local address on the same interface that the router is on
      * @param listener event listener
      * @throws NullPointerException if any argument is {@code null}
      */
-    public UpnpIgdPortMapper(UpnpIgdService service, InetAddress selfAddress, final PortMapperEventListener listener) {
+    public UpnpIgdPortMapper(UpnpIgdService service, final PortMapperEventListener listener) {
         Validate.notNull(service);
-        Validate.notNull(selfAddress);
         Validate.notNull(listener);
 
-        controller = new UpnpIgdController(selfAddress, service, new UpnpIgdControllerListener() {
+        controller = new UpnpIgdController(service, new UpnpIgdControllerListener() {
             @Override
             public void mappingExpired(UpnpIgdController.PortMappingInfo mappedPort) {
                 if (closed) {

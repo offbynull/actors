@@ -19,7 +19,7 @@ package com.offbynull.peernetic.portmapper.pcp;
 import com.offbynull.peernetic.portmapper.common.ResponseException;
 import com.offbynull.peernetic.portmapper.common.CommunicationType;
 import com.offbynull.peernetic.portmapper.PortType;
-import com.offbynull.peernetic.portmapper.common.NetworkUtils;
+import com.offbynull.peernetic.common.utils.NetworkUtils;
 import com.offbynull.peernetic.portmapper.common.UdpCommunicator;
 import com.offbynull.peernetic.portmapper.common.UdpCommunicatorListener;
 import java.io.Closeable;
@@ -31,7 +31,6 @@ import java.net.StandardSocketOptions;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +111,7 @@ public final class PcpController implements Closeable {
             this.communicator.addListener(new UdpCommunicatorListener() {
 
                 @Override
-                public void incomingPacket(InetSocketAddress sourceAddress, Channel channel, ByteBuffer packet) {
+                public void incomingPacket(InetSocketAddress sourceAddress, DatagramChannel channel, ByteBuffer packet) {
                     CommunicationType type;
                     if (channel == unicastChannel) {
                         type = CommunicationType.UNICAST;
@@ -345,7 +344,7 @@ public final class PcpController implements Closeable {
         UdpCommunicatorListener listener = new UdpCommunicatorListener() {
 
             @Override
-            public void incomingPacket(InetSocketAddress sourceAddress, Channel channel, ByteBuffer packet) {
+            public void incomingPacket(InetSocketAddress sourceAddress, DatagramChannel channel, ByteBuffer packet) {
                 if (channel != unicastChannel) {
                     return;
                 }

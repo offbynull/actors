@@ -18,7 +18,6 @@ package com.offbynull.peernetic.actor.network;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointFinder;
-import io.netty.channel.socket.DatagramChannel;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -28,22 +27,22 @@ import org.apache.commons.lang3.Validate;
  * @param <A> address type
  */
 public final class NetworkEndpointFinder<A> implements EndpointFinder<A> {
-    private DatagramChannel channel;
+    private Endpoint transportEndpoint;
 
     /**
      * Construct a {@link NetworkEndpoint} object.
-     * @param channel channel
+     * @param transportEndpoint transport endpoint
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public NetworkEndpointFinder(DatagramChannel channel) {
-        Validate.notNull(channel);
-        this.channel = channel;
+    public NetworkEndpointFinder(Endpoint transportEndpoint) {
+        Validate.notNull(transportEndpoint);
+        this.transportEndpoint = transportEndpoint;
     }
     
 
     @Override
     public Endpoint findEndpoint(A address) {
         Validate.notNull(address);
-        return new NetworkEndpoint(channel, address);
+        return new NetworkEndpoint(transportEndpoint, address);
     }
 }

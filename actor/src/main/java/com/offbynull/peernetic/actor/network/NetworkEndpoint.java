@@ -18,16 +18,12 @@ package com.offbynull.peernetic.actor.network;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Outgoing;
-import io.netty.channel.Channel;
-import io.netty.channel.DefaultAddressedEnvelope;
-import io.netty.channel.socket.DatagramChannel;
-import io.netty.channel.socket.SocketChannel;
-import java.net.SocketAddress;
+import com.offbynull.peernetic.actor.network.internal.SendMessageCommand;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
-import sun.rmi.transport.Transport;
 
 /**
  * An endpoint that points that proxies a {@link Transport}'s endpoint but also adds an address. Use to target a specific address over a
@@ -36,20 +32,19 @@ import sun.rmi.transport.Transport;
  * @param <A> address type
  */
 public final class NetworkEndpoint<A> implements Endpoint {
-    private Channel channel;
+    private Endpoint transportEndpoint;
     private A address;
 
     /**
      * Construct a {@link NetworkEndpoint} object.
-     * @param channel channel to shuttle objects to
+     * @param transportEndpoint endpoint of {@link Transport} object
      * @param address address to point to
      */
-    public NetworkEndpoint(Channel channel, A address) {
-        Validate.notNull(channel);
+    public NetworkEndpoint(Endpoint transportEndpoint, A address) {
+        Validate.notNull(transportEndpoint);
         Validate.notNull(address);
-        Validate.isTrue(channel instanceof SocketChannel || channel instanceof DatagramChannel);
         
-        this.channel = channel;
+        this.transportEndpoint = transportEndpoint;
         this.address = address;
     }
 
@@ -58,20 +53,17 @@ public final class NetworkEndpoint<A> implements Endpoint {
         Validate.notNull(source);
         Validate.noNullElements(outgoing);
         
-        if (channel instanceof DatagramChannel) {
-            for (Outgoing outgoingMsg : outgoing) {
-                Object originalContent = outgoingMsg.getContent();
-
-                Object nettyMsg = new DefaultAddressedEnvelope<>(originalContent, (SocketAddress) address);
-                channel.write(nettyMsg);
-            }
-        } else if (channel instanceof SocketChannel) {
+        Collection<Outgoing> transportOutgoing = new ArrayList<>(outgoing.size());
+        
+        for (Outgoing outgoingMsg : outgoing) {
+            Object originalContent = outgoingMsg.getContent();
             
-        } else {
-            throw new IllegalStateException();
+            Object transportContent = new SendMessageCommand<>(originalContent, address);
+            Outgoing transportOutgoingMsg = new Outgoing(transportContent, transportEndpoint);
+            transportOutgoing.add(transportOutgoingMsg);
         }
         
-        channel.flush();
+        transportEndpoint.push(source, transportOutgoing);
     }
 
     @Override
@@ -86,7 +78,7 @@ public final class NetworkEndpoint<A> implements Endpoint {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 89 * hash + Objects.hashCode(this.channel);
+        hash = 89 * hash + Objects.hashCode(this.transportEndpoint);
         hash = 89 * hash + Objects.hashCode(this.address);
         return hash;
     }
@@ -100,7 +92,7 @@ public final class NetworkEndpoint<A> implements Endpoint {
             return false;
         }
         final NetworkEndpoint<?> other = (NetworkEndpoint<?>) obj;
-        if (!Objects.equals(this.channel, other.channel)) {
+        if (!Objects.equals(this.transportEndpoint, other.transportEndpoint)) {
             return false;
         }
         if (!Objects.equals(this.address, other.address)) {

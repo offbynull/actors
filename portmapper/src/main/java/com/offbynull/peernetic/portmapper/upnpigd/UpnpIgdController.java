@@ -194,7 +194,7 @@ public final class UpnpIgdController implements Closeable {
         Validate.notNull(portType);
         
         if (externalPortRange != null) {
-            Validate.inclusiveBetween(externalPortRange.getMinimum(), externalPortRange.getMaximum(), (long) externalPort);
+            Validate.inclusiveBetween((long) externalPortRange.getMinimum(), (long) externalPortRange.getMaximum(), (long) externalPort);
         }
         
         Map<String, String> respParams = performRequest("GetSpecificPortMappingEntry",
@@ -301,7 +301,7 @@ public final class UpnpIgdController implements Closeable {
         Validate.inclusiveBetween(0L, Long.MAX_VALUE, duration);
 
         if (externalPortRange != null) {
-            Validate.inclusiveBetween(externalPortRange.getMinimum(), externalPortRange.getMaximum(), (long) externalPort);
+            Validate.inclusiveBetween((long) externalPortRange.getMinimum(), (long) externalPortRange.getMaximum(), (long) externalPort);
         }
 
         if (leaseDurationRange != null) {
@@ -351,7 +351,7 @@ public final class UpnpIgdController implements Closeable {
         Validate.notNull(portType);
         
         if (externalPortRange != null) {
-            Validate.inclusiveBetween(externalPortRange.getMinimum(), externalPortRange.getMaximum(), (long) externalPort);
+            Validate.inclusiveBetween((long) externalPortRange.getMinimum(), (long) externalPortRange.getMaximum(), (long) externalPort);
         }
         
         /*PortMappingInfo info = */getMappingDetails(externalPort, portType);

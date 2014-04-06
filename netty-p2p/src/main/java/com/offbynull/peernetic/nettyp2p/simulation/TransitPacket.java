@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.nettyp2p.simulation;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
@@ -25,8 +25,8 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class TransitPacket {
-    private InetSocketAddress from;
-    private InetSocketAddress to;
+    private SocketAddress from;
+    private SocketAddress to;
     private ByteBuffer data;
     private long arriveTime;
 
@@ -38,7 +38,7 @@ public final class TransitPacket {
      * @param arriveTime time the packet should arrive at its destination
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public TransitPacket(InetSocketAddress from, InetSocketAddress to, ByteBuffer data, long arriveTime) {
+    public TransitPacket(SocketAddress from, SocketAddress to, ByteBuffer data, long arriveTime) {
         Validate.notNull(from);
         Validate.notNull(to);
         Validate.notNull(data);
@@ -54,7 +54,7 @@ public final class TransitPacket {
      * Get source address.
      * @return source
      */
-    public InetSocketAddress getFrom() {
+    public SocketAddress getFrom() {
         return from;
     }
 
@@ -62,7 +62,7 @@ public final class TransitPacket {
      * Get destination address.
      * @return destination
      */
-    public InetSocketAddress getTo() {
+    public SocketAddress getTo() {
         return to;
     }
 

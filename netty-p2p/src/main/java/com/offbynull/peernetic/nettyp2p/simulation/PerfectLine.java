@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.nettyp2p.simulation;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ import java.util.Collection;
 public final class PerfectLine implements Line {
 
     @Override
-    public Collection<TransitPacket> depart(long timestamp, InetSocketAddress from, InetSocketAddress to, ByteBuffer data) {
+    public Collection<TransitPacket> depart(long timestamp, SocketAddress from, SocketAddress to, ByteBuffer data) {
         return new ArrayList<>(Arrays.asList(new TransitPacket(from, to, data, Long.MIN_VALUE)));
     }
 

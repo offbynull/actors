@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.nettyp2p.simulation;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -64,7 +64,7 @@ public final class RandomLine implements Line {
     
 
     @Override
-    public List<TransitPacket> depart(long timestamp, InetSocketAddress from, InetSocketAddress to, ByteBuffer data) {
+    public List<TransitPacket> depart(long timestamp, SocketAddress from, SocketAddress to, ByteBuffer data) {
         int len = data.remaining();
         
         double repeatRate = randomDoubleBetween(repeatRatePerByteRange) * len;

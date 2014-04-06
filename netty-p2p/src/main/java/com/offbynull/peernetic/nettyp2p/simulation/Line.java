@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.nettyp2p.simulation;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
@@ -34,7 +34,7 @@ public interface Line {
      * @param data packet contents
      * @return a collection of one or more {@link TransitPacket} objects
      */
-    Collection<TransitPacket> depart(long timestamp, InetSocketAddress from, InetSocketAddress to, ByteBuffer data);
+    Collection<TransitPacket> depart(long timestamp, SocketAddress from, SocketAddress to, ByteBuffer data);
     
     /**
      * Signals that {@link TransitPacket} objects that were created by this line have arrived.

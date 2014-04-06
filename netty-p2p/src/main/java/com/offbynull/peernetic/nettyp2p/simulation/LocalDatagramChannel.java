@@ -12,12 +12,11 @@ import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultAddressedEnvelope;
 import io.netty.channel.DefaultChannelConfig;
 import io.netty.channel.EventLoop;
 import io.netty.channel.SingleThreadEventLoop;
-import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.ReferenceCountUtil;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -57,7 +56,7 @@ public class LocalDatagramChannel extends AbstractChannel {
 
     private volatile State state;
     private volatile TransitPacketRepository repository;
-    private volatile InetSocketAddress localAddress;
+    private volatile SocketAddress localAddress;
     private volatile boolean readInProgress;
 
     public LocalDatagramChannel(EventLoop eventLoop, TransitPacketRepository repository) {
@@ -87,7 +86,7 @@ public class LocalDatagramChannel extends AbstractChannel {
 
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
-        this.localAddress = (InetSocketAddress) localAddress;
+        this.localAddress = (SocketAddress) localAddress;
         repository.registerChannel(this.localAddress, this);
         state = State.BOUND;
     }
@@ -143,7 +142,7 @@ public class LocalDatagramChannel extends AbstractChannel {
             in.remove();
 
             if (msg instanceof AddressedEnvelope) {
-                AddressedEnvelope<ByteBuf, InetSocketAddress> packet = (AddressedEnvelope<ByteBuf, InetSocketAddress>) msg;
+                AddressedEnvelope<ByteBuf, SocketAddress> packet = (AddressedEnvelope<ByteBuf, SocketAddress>) msg;
 
                 ByteBuf buf = packet.content();
                 byte[] bytes = new byte[buf.readableBytes()];
@@ -156,13 +155,13 @@ public class LocalDatagramChannel extends AbstractChannel {
         }
     }
 
-    void triggerRead(InetSocketAddress from, InetSocketAddress to, ByteBuffer data) {
-        final DatagramPacket datagramPacket = new DatagramPacket(Unpooled.wrappedBuffer(data), to, from);
+    void triggerRead(SocketAddress from, SocketAddress to, ByteBuffer data) {
+        final AddressedEnvelope envelope = new DefaultAddressedEnvelope(Unpooled.wrappedBuffer(data), to, from);
 
         eventLoop().execute(new Runnable() {
             @Override
             public void run() {
-                Collections.addAll(inboundBuffer, datagramPacket);
+                Collections.addAll(inboundBuffer, envelope);
 
                 if (readInProgress) {
                     readInProgress = false;

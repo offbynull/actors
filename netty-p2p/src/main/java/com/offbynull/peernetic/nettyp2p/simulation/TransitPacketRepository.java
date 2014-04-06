@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.nettyp2p.simulation;
 
 import java.io.Closeable;
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
@@ -58,21 +58,21 @@ public final class TransitPacketRepository implements Closeable {
         return repo;
     }
 
-    void registerChannel(InetSocketAddress address, LocalDatagramChannel channel) {
+    void registerChannel(SocketAddress address, LocalDatagramChannel channel) {
         if (closed) {
             return;
         }
         queue.add(new RegisterCommand(address, channel));
     }
 
-    void unregisterChannel(InetSocketAddress address) {
+    void unregisterChannel(SocketAddress address) {
         if (closed) {
             return;
         }
         queue.add(new UnregisterCommand(address));
     }
 
-    void sendPacket(InetSocketAddress fromAddress, InetSocketAddress toAddress, ByteBuffer data) {
+    void sendPacket(SocketAddress fromAddress, SocketAddress toAddress, ByteBuffer data) {
         if (closed) {
             return;
         }
@@ -94,7 +94,7 @@ public final class TransitPacketRepository implements Closeable {
         public void run() {
             // initialize
             PriorityQueue<TransitPacket> transitMessageQueue = new PriorityQueue<>(11, new TransitPacketArriveTimeComparator());
-            Map<InetSocketAddress, LocalDatagramChannel> addressMap = new HashMap<>();
+            Map<SocketAddress, LocalDatagramChannel> addressMap = new HashMap<>();
 
             // process commands
             long waitTime = Long.MAX_VALUE;
@@ -141,14 +141,14 @@ public final class TransitPacketRepository implements Closeable {
 
                 // notify of events
                 for (TransitPacket transitMessage : revisedOutgoingPackets) {
-                    InetSocketAddress to = transitMessage.getTo();
+                    SocketAddress to = transitMessage.getTo();
                     LocalDatagramChannel dst = addressMap.get(to);
 
                     if (dst == null) {
                         continue;
                     }
 
-                    InetSocketAddress from = transitMessage.getFrom();
+                    SocketAddress from = transitMessage.getFrom();
                     ByteBuffer msg = transitMessage.getData();
                     dst.triggerRead(from, to, msg);
                 }
@@ -163,10 +163,10 @@ public final class TransitPacketRepository implements Closeable {
 
     private static final class RegisterCommand {
 
-        private final InetSocketAddress address;
+        private final SocketAddress address;
         private final LocalDatagramChannel channel;
 
-        public RegisterCommand(InetSocketAddress address, LocalDatagramChannel channel) {
+        public RegisterCommand(SocketAddress address, LocalDatagramChannel channel) {
             Validate.notNull(address);
             Validate.notNull(channel);
 
@@ -174,7 +174,7 @@ public final class TransitPacketRepository implements Closeable {
             this.channel = channel;
         }
 
-        public InetSocketAddress getAddress() {
+        public SocketAddress getAddress() {
             return address;
         }
 
@@ -185,26 +185,26 @@ public final class TransitPacketRepository implements Closeable {
 
     private static final class UnregisterCommand {
 
-        private InetSocketAddress address;
+        private SocketAddress address;
 
-        public UnregisterCommand(InetSocketAddress address) {
+        public UnregisterCommand(SocketAddress address) {
             Validate.notNull(address);
 
             this.address = address;
         }
 
-        public InetSocketAddress getAddress() {
+        public SocketAddress getAddress() {
             return address;
         }
     }
 
     private static final class SendCommand {
 
-        private InetSocketAddress from;
-        private InetSocketAddress to;
+        private SocketAddress from;
+        private SocketAddress to;
         private ByteBuffer data;
 
-        public SendCommand(InetSocketAddress from, InetSocketAddress to, ByteBuffer data) {
+        public SendCommand(SocketAddress from, SocketAddress to, ByteBuffer data) {
             Validate.notNull(from);
             Validate.notNull(to);
             Validate.notNull(data);
@@ -214,11 +214,11 @@ public final class TransitPacketRepository implements Closeable {
             this.data = data;
         }
 
-        public InetSocketAddress getFrom() {
+        public SocketAddress getFrom() {
             return from;
         }
 
-        public InetSocketAddress getTo() {
+        public SocketAddress getTo() {
             return to;
         }
 

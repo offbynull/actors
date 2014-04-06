@@ -43,7 +43,7 @@ public final class RateLimitCheckHandler extends AbstractFilterHandler {
     private Lock lock;
 
     /**
-     * Constructs a {@link RateLimitIncomingFilter} object.
+     * Constructs a {@link RateLimitCheckHandler} object.
      *
      * @param maxHit maximum number of hits allowed within {@link duration}
      * @param maxDuration duration of time before the hit counter for an address resets

@@ -158,7 +158,7 @@ public final class NettyClientBuilder {
         
         for (WriteFromQueueHandlerSpec wfqhs : writeHandlers) {
             combinedHandlers.add(new WriteFromQueueHandler(wfqhs.getQueue(), wfqhs.getPollRate(),
-                    type == Type.UDP));
+                    type != Type.TCP));
         }
 
         if (checkSelfBlockId != null) {

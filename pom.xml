@@ -20,7 +20,7 @@
         <module>demo</module>
         <module>actor</module>
         <module>portmapper</module>
-        <module>netty-simulation</module>
+        <module>netty-p2p</module>
     </modules>
     
     <dependencyManagement>

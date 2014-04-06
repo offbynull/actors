@@ -7,7 +7,7 @@ import io.netty.handler.codec.MessageToMessageEncoder;
 import java.net.SocketAddress;
 import java.util.List;
 
-public abstract class AbstractOutgoingTransformHandler extends MessageToMessageEncoder<Object> {
+public abstract class AbstractTransformDepartingHandler extends MessageToMessageEncoder<Object> {
 
     @Override
     protected final void encode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {
@@ -16,15 +16,18 @@ public abstract class AbstractOutgoingTransformHandler extends MessageToMessageE
             AddressedEnvelope<? extends Object, ? extends SocketAddress> envelopeMsg =
                     (AddressedEnvelope<? extends Object, ? extends SocketAddress>) msg;
             
-            Object encoded = transform(envelopeMsg.content());
+            SocketAddress sender = envelopeMsg.recipient() == null ? ctx.channel().localAddress() : envelopeMsg.recipient();
+            SocketAddress recipient = envelopeMsg.sender() == null ? ctx.channel().remoteAddress() : envelopeMsg.sender();
+            
+            Object encoded = transform(sender, recipient, envelopeMsg.content());
             
             res = new DefaultAddressedEnvelope<>(encoded, envelopeMsg.recipient(), envelopeMsg.sender());
         } else {
-            res = transform(msg);
+            res = transform(ctx.channel().localAddress(), ctx.channel().remoteAddress(), msg);
         }
         
         out.add(res);
     }
     
-    protected abstract Object transform(Object obj);
+    protected abstract Object transform(SocketAddress localAddress, SocketAddress remoteAddress, Object obj);
 }

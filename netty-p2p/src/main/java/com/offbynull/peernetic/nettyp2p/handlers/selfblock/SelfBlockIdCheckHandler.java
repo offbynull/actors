@@ -55,6 +55,7 @@ public final class SelfBlockIdCheckHandler extends AbstractFilterHandler {
                 ByteBuffer incomingIdByteBuf = ByteBuffer.allocate(SelfBlockId.LENGTH);
                 incomingIdBuf.readBytes(incomingIdByteBuf);
                 
+                incomingBuf.readerIndex(incomingBuf.readerIndex() + SelfBlockId.LENGTH); // move up read ptr by 16
                 incomingIdByteBuf.flip();
 
                 return id.getBuffer().equals(incomingIdByteBuf); // if it equals, we don't want this to propogate forward

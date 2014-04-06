@@ -71,7 +71,8 @@ public abstract class AbstractFilterHandler extends ChannelHandlerAdapter {
         
         try {
             if (filter(local, remote, content, Trigger.READ)) {
-                throw new RuntimeException("Filter triggered: " + getClass().getSimpleName());
+                //throw new RuntimeException("Filter triggered: " + getClass().getSimpleName());
+                return;
             }
         } finally {
             if(closeChannelOnFailure) {

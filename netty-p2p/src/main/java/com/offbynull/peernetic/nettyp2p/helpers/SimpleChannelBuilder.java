@@ -1,5 +1,9 @@
 package com.offbynull.peernetic.nettyp2p.helpers;
 
+import com.offbynull.peernetic.nettyp2p.handlers.read.IncomingMessage;
+import com.offbynull.peernetic.nettyp2p.handlers.read.IncomingMessageListener;
+import com.offbynull.peernetic.nettyp2p.handlers.read.ReadToListenerHandler;
+import com.offbynull.peernetic.nettyp2p.handlers.read.ReadToQueueHandler;
 import com.offbynull.peernetic.nettyp2p.simulation.LocalDatagramChannel;
 import com.offbynull.peernetic.nettyp2p.simulation.TransitPacketRepository;
 import io.netty.bootstrap.Bootstrap;
@@ -19,7 +23,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import org.apache.commons.lang3.Validate;
 
 public final class SimpleChannelBuilder {
 
@@ -28,13 +36,18 @@ public final class SimpleChannelBuilder {
     private TransitPacketRepository transitPacketRepository;
     private Type type;
     private ChannelHandler[] handlers;
+    private List<ChannelHandler> tailHandlers;
 
     public SimpleChannelBuilder() {
         type = Type.UDP;
         localAddress = new InetSocketAddress(9000);
+        tailHandlers = new ArrayList<>();
     }
 
     public SimpleChannelBuilder tcp(SocketAddress localAddress, SocketAddress remoteAddress) {
+        Validate.notNull(localAddress);
+        Validate.notNull(remoteAddress);
+        
         type = Type.TCP;
         this.localAddress = localAddress;
         this.remoteAddress = remoteAddress;
@@ -43,6 +56,8 @@ public final class SimpleChannelBuilder {
     }
 
     public SimpleChannelBuilder udp(SocketAddress localAddress) {
+        Validate.notNull(localAddress);
+        
         type = Type.UDP;
         this.localAddress = localAddress;
         this.remoteAddress = null;
@@ -51,6 +66,8 @@ public final class SimpleChannelBuilder {
     }
 
     public SimpleChannelBuilder simulatedUdp(SocketAddress localAddress, TransitPacketRepository packetRepository) {
+        Validate.notNull(localAddress);
+        Validate.notNull(packetRepository);
         type = Type.SIMULATED_UDP;
         this.localAddress = localAddress;
         this.remoteAddress = null;
@@ -59,11 +76,29 @@ public final class SimpleChannelBuilder {
     }
 
     public SimpleChannelBuilder handlers(ChannelHandler... handlers) {
+        Validate.noNullElements(handlers);
         this.handlers = Arrays.copyOf(handlers, handlers.length);
+        return this;
+    }
+    
+    public SimpleChannelBuilder funnelReadsToQueue(BlockingQueue<IncomingMessage> queue) {
+        Validate.notNull(queue);
+        tailHandlers.add(new ReadToQueueHandler(queue));
+        return this;
+    }
+
+    public SimpleChannelBuilder funnelReadsToListener(IncomingMessageListener listener) {
+        Validate.notNull(listener);
+        tailHandlers.add(new ReadToListenerHandler(listener));
         return this;
     }
 
     public SimpleChannel build() throws InterruptedException {
+        List<ChannelHandler> combinedHandlers = new ArrayList<>();
+        combinedHandlers.addAll(Arrays.asList(handlers));
+        combinedHandlers.addAll(tailHandlers);
+        final ChannelHandler[] allHandlers = combinedHandlers.toArray(new ChannelHandler[0]);
+        
         if (type == Type.TCP) {
             EventLoopGroup clientGroup = new NioEventLoopGroup(1);
             try {
@@ -74,7 +109,7 @@ public final class SimpleChannelBuilder {
                 cb.handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(handlers);
+                        ch.pipeline().addLast(allHandlers);
                     }
                 });
 
@@ -95,7 +130,7 @@ public final class SimpleChannelBuilder {
                         .handler(new ChannelInitializer<LocalDatagramChannel>() {
                             @Override
                             public void initChannel(LocalDatagramChannel ch) throws Exception {
-                                ch.pipeline().addLast(handlers);
+                                ch.pipeline().addLast(allHandlers);
                             }
                         });
                 return new SimpleChannel(cb.bind(localAddress).sync().channel(), clientGroup);
@@ -120,7 +155,7 @@ public final class SimpleChannelBuilder {
                         .handler(new ChannelInitializer<LocalDatagramChannel>() {
                             @Override
                             public void initChannel(LocalDatagramChannel ch) throws Exception {
-                                ch.pipeline().addLast(handlers);
+                                ch.pipeline().addLast(allHandlers);
                             }
                         });
                 return new SimpleChannel(cb.bind(localAddress).sync().channel(), clientGroup);

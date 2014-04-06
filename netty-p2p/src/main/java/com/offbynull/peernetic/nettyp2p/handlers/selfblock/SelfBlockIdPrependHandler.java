@@ -43,6 +43,7 @@ public final class SelfBlockIdPrependHandler extends AbstractEncodeHandler {
     protected ByteBuf encode(Object msg) {
         ByteBuf buf = (ByteBuf) msg;
         ByteBuf newBuffer = Unpooled.wrappedBuffer(new byte[SelfBlockId.LENGTH + buf.readableBytes()]);
+        newBuffer.writerIndex(0);
         buf.readerIndex(0);
         newBuffer.writeBytes(id.getBuffer());
         newBuffer.writeBytes(buf);

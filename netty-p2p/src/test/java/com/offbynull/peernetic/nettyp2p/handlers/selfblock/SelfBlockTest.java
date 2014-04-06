@@ -16,7 +16,8 @@
  */
 package com.offbynull.peernetic.nettyp2p.handlers.selfblock;
 
-import com.offbynull.peernetic.nettyp2p.handlers.queue.WriteToBlockingQueueHandler;
+import com.offbynull.peernetic.nettyp2p.handlers.read.IncomingMessage;
+import com.offbynull.peernetic.nettyp2p.handlers.read.ReadToQueueHandler;
 import com.offbynull.peernetic.nettyp2p.handlers.xstream.XStreamDecodeHandler;
 import com.offbynull.peernetic.nettyp2p.handlers.xstream.XStreamEncodeHandler;
 import com.offbynull.peernetic.nettyp2p.helpers.SimpleChannelBuilder;
@@ -57,21 +58,21 @@ public class SelfBlockTest {
 
     @Test
     public void ensureBlockedOnSameIdTest() throws Exception {
-        LinkedBlockingQueue<Object> recverQueue = new LinkedBlockingQueue<>();
+        LinkedBlockingQueue<IncomingMessage> recverQueue = new LinkedBlockingQueue<>();
         
         TransitPacketRepository packetRepository = TransitPacketRepository.create(new PerfectLine());
         SelfBlockId id = new SelfBlockId();
 
         SimpleChannel senderCh = new SimpleChannelBuilder()
                 .simulatedUdp(new InetSocketAddress("1.1.1.1", 1), packetRepository)
-                .handlers(new XStreamEncodeHandler(),
-                        new SelfBlockIdPrependHandler(id))
+                .handlers(new SelfBlockIdPrependHandler(id),
+                        new XStreamEncodeHandler())
                 .build();
         SimpleChannel recverCh = new SimpleChannelBuilder()
                 .simulatedUdp(new InetSocketAddress("2.2.2.2", 2), packetRepository)
                 .handlers(new SelfBlockIdCheckHandler(id, false),
-                        new XStreamDecodeHandler(),
-                        new WriteToBlockingQueueHandler(recverQueue))
+                        new XStreamDecodeHandler())
+                .funnelReadsToQueue(recverQueue)
                 .build();
 
         
@@ -90,7 +91,7 @@ public class SelfBlockTest {
 
     @Test
     public void ensurePassOnDifferentIdTest() throws Exception {
-        LinkedBlockingQueue<Object> recverQueue = new LinkedBlockingQueue<>();
+        LinkedBlockingQueue<IncomingMessage> recverQueue = new LinkedBlockingQueue<>();
         
         TransitPacketRepository packetRepository = TransitPacketRepository.create(new PerfectLine());
         SelfBlockId senderId = new SelfBlockId();
@@ -104,18 +105,18 @@ public class SelfBlockTest {
         SimpleChannel recverCh = new SimpleChannelBuilder()
                 .simulatedUdp(new InetSocketAddress("2.2.2.2", 2), packetRepository)
                 .handlers(new SelfBlockIdCheckHandler(recverId, false),
-                        new XStreamDecodeHandler(),
-                        new WriteToBlockingQueueHandler(recverQueue))
+                        new XStreamDecodeHandler())
+                .funnelReadsToQueue(recverQueue)
                 .build();
 
         
         Object sendMsg = "hello world";
-        Object recvMsg;
+        IncomingMessage recvMsg;
         
         senderCh.writeAndFlush(new DefaultAddressedEnvelope<>(sendMsg, new InetSocketAddress("2.2.2.2", 2)));
         recvMsg = recverQueue.poll(1, TimeUnit.SECONDS);
         
-        Assert.assertEquals(sendMsg, recvMsg);
+        Assert.assertEquals(sendMsg, recvMsg.getMessage());
         
         senderCh.close();
         recverCh.close();

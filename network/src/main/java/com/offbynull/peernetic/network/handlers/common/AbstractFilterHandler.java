@@ -35,14 +35,11 @@ public abstract class AbstractFilterHandler extends ChannelHandlerAdapter {
         
         Object content = msg instanceof AddressedEnvelope ? ((AddressedEnvelope) msg).content() : msg;
         
-        try {
-            if (filter(local, remote, content, Trigger.WRITE)) {
-                throw new RuntimeException("Filter triggered: " + getClass().getSimpleName());
-            }
-        } finally {
-            if(closeChannelOnFailure) {
+        if (filter(local, remote, content, Trigger.WRITE)) {
+            if (closeChannelOnFailure) {
                 ctx.close();
             }
+            return;
         }
         
         super.write(ctx, msg, promise);
@@ -69,15 +66,11 @@ public abstract class AbstractFilterHandler extends ChannelHandlerAdapter {
         
         Object content = msg instanceof AddressedEnvelope ? ((AddressedEnvelope) msg).content() : msg;
         
-        try {
-            if (filter(local, remote, content, Trigger.READ)) {
-                //throw new RuntimeException("Filter triggered: " + getClass().getSimpleName());
-                return;
-            }
-        } finally {
-            if(closeChannelOnFailure) {
+        if (filter(local, remote, content, Trigger.READ)) {
+            if (closeChannelOnFailure) {
                 ctx.close();
             }
+            return;
         }
         
         super.channelRead(ctx, msg);
@@ -88,14 +81,11 @@ public abstract class AbstractFilterHandler extends ChannelHandlerAdapter {
         SocketAddress remote = ctx.channel().remoteAddress();
         SocketAddress local = ctx.channel().localAddress();
         
-        try {
-            if (filter(local, remote, null, Trigger.CONNECTION)) {
-                throw new RuntimeException("Filter triggered: " + getClass().getSimpleName());
-            }
-        } finally {
-            if(closeChannelOnFailure) {
+        if (filter(local, remote, null, Trigger.CONNECTION)) {
+            if (closeChannelOnFailure) {
                 ctx.close();
             }
+            return;
         }
         
         super.channelActive(ctx);

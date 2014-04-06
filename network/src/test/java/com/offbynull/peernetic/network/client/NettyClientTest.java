@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class NettyClientTest {
+public final class NettyClientTest {
 
     public NettyClientTest() {
     }
@@ -129,23 +129,118 @@ public class NettyClientTest {
 
         TransitPacketRepository packetRepository = TransitPacketRepository.create(new PerfectLine());
 
-        NettyClient senderCh = new NettyClientBuilder()
-                .simulatedUdp(new InetSocketAddress("1.1.1.1", 1), packetRepository)
-                .writeFrom(senderQueue, 50L)
-                .build();
         NettyClient recverCh = new NettyClientBuilder()
                 .simulatedUdp(new InetSocketAddress("2.2.2.2", 2), packetRepository)
                 .readTo(recverQueue)
                 .build();
+        NettyClient senderCh = new NettyClientBuilder()
+                .simulatedUdp(new InetSocketAddress("1.1.1.1", 1), packetRepository)
+                .writeFrom(senderQueue, 50L)
+                .build();
         
         Thread.sleep(1000L);
+
+        Message incomingMsg;
         
-        Assert.assertEquals(messages.get(0).getMessage(), recverQueue.poll().getMessage());
-        Assert.assertEquals(messages.get(1).getMessage(), recverQueue.poll().getMessage());
-        Assert.assertEquals(messages.get(2).getMessage(), recverQueue.poll().getMessage());
+        incomingMsg = recverQueue.poll();
+        Assert.assertEquals(messages.get(0).getMessage(), incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("1.1.1.1", 1), incomingMsg.getRemoteAddress());
+        Assert.assertEquals(new InetSocketAddress("2.2.2.2", 2), incomingMsg.getLocalAddress());
+        
+        incomingMsg = recverQueue.poll();
+        Assert.assertEquals(messages.get(1).getMessage(), incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("1.1.1.1", 1), incomingMsg.getRemoteAddress());
+        Assert.assertEquals(new InetSocketAddress("2.2.2.2", 2), incomingMsg.getLocalAddress());
+        
+        incomingMsg = recverQueue.poll();
+        Assert.assertEquals(messages.get(2).getMessage(), incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("1.1.1.1", 1), incomingMsg.getRemoteAddress());
+        Assert.assertEquals(new InetSocketAddress("2.2.2.2", 2), incomingMsg.getLocalAddress());
+        
+        incomingMsg = recverQueue.poll();
+        Assert.assertNull(incomingMsg);
         
         senderCh.close();
         recverCh.close();
         packetRepository.close();
+    }
+    
+    @Test
+    public void simpleUdpTest() throws Exception {
+        final String msg1 = "hi!";
+        final String msg2 = "how are you?";
+        final String msg3 = "bye!";
+        
+        LinkedBlockingQueue<Message> ch1SenderQueue = new LinkedBlockingQueue<>(Arrays.asList(
+                new Message(null, new InetSocketAddress("127.0.0.1", 22222), msg1),
+                new Message(null, new InetSocketAddress("127.0.0.1", 22222), msg2),
+                new Message(null, new InetSocketAddress("127.0.0.1", 22222), msg3)));
+        LinkedBlockingQueue<Message> ch2SenderQueue = new LinkedBlockingQueue<>(Arrays.asList(
+                new Message(null, new InetSocketAddress("127.0.0.1", 11111), msg1),
+                new Message(null, new InetSocketAddress("127.0.0.1", 11111), msg2),
+                new Message(null, new InetSocketAddress("127.0.0.1", 11111), msg3)));
+        LinkedBlockingQueue<Message> ch1RecverQueue = new LinkedBlockingQueue<>();
+        LinkedBlockingQueue<Message> ch2RecverQueue = new LinkedBlockingQueue<>();
+
+        NettyClient ch1 = new NettyClientBuilder()
+                .udp(new InetSocketAddress("127.0.0.1", 11111))
+                .writeFrom(ch1SenderQueue, 50L)
+                .readTo(ch1RecverQueue)
+                .build();
+        NettyClient ch2 = new NettyClientBuilder()
+                .udp(new InetSocketAddress("127.0.0.1", 22222))
+                .writeFrom(ch2SenderQueue, 50L)
+                .readTo(ch2RecverQueue)
+                .build();
+        
+        Thread.sleep(1000L);
+
+        
+        Message incomingMsg;
+        
+        // check channel 1
+        incomingMsg = ch1RecverQueue.poll();
+        Assert.assertEquals(msg1, incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 22222), incomingMsg.getRemoteAddress());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 11111), incomingMsg.getLocalAddress());
+        
+        incomingMsg = ch1RecverQueue.poll();
+        Assert.assertEquals(msg2, incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 22222), incomingMsg.getRemoteAddress());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 11111), incomingMsg.getLocalAddress());
+        
+        incomingMsg = ch1RecverQueue.poll();
+        Assert.assertEquals(msg3, incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 22222), incomingMsg.getRemoteAddress());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 11111), incomingMsg.getLocalAddress());
+        
+        incomingMsg = ch1RecverQueue.poll();
+        Assert.assertNull(incomingMsg);
+        
+        
+        
+        // check channel 2
+        incomingMsg = ch2RecverQueue.poll();
+        Assert.assertEquals(msg1, incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 22222), incomingMsg.getLocalAddress());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 11111), incomingMsg.getRemoteAddress());
+        
+        incomingMsg = ch2RecverQueue.poll();
+        Assert.assertEquals(msg2, incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 22222), incomingMsg.getLocalAddress());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 11111), incomingMsg.getRemoteAddress());
+        
+        incomingMsg = ch2RecverQueue.poll();
+        Assert.assertEquals(msg3, incomingMsg.getMessage());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 22222), incomingMsg.getLocalAddress());
+        Assert.assertEquals(new InetSocketAddress("127.0.0.1", 11111), incomingMsg.getRemoteAddress());
+        
+        incomingMsg = ch2RecverQueue.poll();
+        Assert.assertNull(incomingMsg);
+        
+        
+        
+        ch1.close();
+        ch2.close();
     }
 }

@@ -111,6 +111,7 @@ public class LocalDatagramChannel extends AbstractChannel {
                 localAddress = null;
             }
             state = State.CLOSED;
+            pipeline().fireChannelInactive();
         }
     }
 

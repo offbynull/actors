@@ -22,8 +22,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -88,6 +88,10 @@ public final class NettyClientBuilder {
         return this;
     }
 
+    public NettyClientBuilder selfBlockId(SelfBlockId selfBlockId) {
+        return checkForSelfBlockId(selfBlockId).includeSelfBlockId(selfBlockId);
+    }
+
     public NettyClientBuilder checkForSelfBlockId(SelfBlockId selfBlockId) {
         Validate.notNull(selfBlockId);
         this.checkSelfBlockId = selfBlockId;
@@ -125,6 +129,10 @@ public final class NettyClientBuilder {
         return this;
     }
     
+    public NettyClientBuilder codec(Codec codec) {
+        return encoder(codec).decoder(codec);
+    }
+    
     public NettyClientBuilder encoder(Codec codec) {
         Validate.notNull(codec);
         encodeHandler = codec;
@@ -142,9 +150,9 @@ public final class NettyClientBuilder {
         
         for (WriteFromQueueHandlerSpec wfqhs : writeHandlers) {
             combinedHandlers.add(new WriteFromQueueHandler(wfqhs.getQueue(), wfqhs.getPollRate(),
-                    type == Type.SIMULATED_UDP || type == Type.UDP));
+                    type == Type.UDP));
         }
-        
+
         if (checkSelfBlockId != null) {
             combinedHandlers.add(new SelfBlockIdCheckHandler(checkSelfBlockId, false));
         }
@@ -212,10 +220,10 @@ public final class NettyClientBuilder {
             try {
                 Bootstrap cb = new Bootstrap();
                 cb.group(clientGroup)
-                        .channel(DatagramChannel.class)
-                        .handler(new ChannelInitializer<LocalDatagramChannel>() {
+                        .channel(NioDatagramChannel.class)
+                        .handler(new ChannelInitializer<NioDatagramChannel>() {
                             @Override
-                            public void initChannel(LocalDatagramChannel ch) throws Exception {
+                            public void initChannel(NioDatagramChannel ch) throws Exception {
                                 ch.pipeline().addLast(allHandlers);
                             }
                         });

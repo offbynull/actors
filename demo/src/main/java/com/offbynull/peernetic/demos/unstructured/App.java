@@ -17,14 +17,15 @@
 package com.offbynull.peernetic.demos.unstructured;
 
 import com.offbynull.peernetic.actor.ActorRunner;
+import com.offbynull.peernetic.actor.network.IncomingMessageToEndpointAdapter;
 import com.offbynull.peernetic.actor.network.NetworkEndpointFinder;
 import com.offbynull.peernetic.actor.network.NetworkEndpointKeyExtractor;
-import com.offbynull.peernetic.actor.network.filters.selfblock.SelfBlockId;
-import com.offbynull.peernetic.actor.network.filters.selfblock.SelfBlockIncomingFilter;
-import com.offbynull.peernetic.actor.network.filters.selfblock.SelfBlockOutgoingFilter;
-import com.offbynull.peernetic.actor.network.transports.test.PerfectLine;
-import com.offbynull.peernetic.actor.network.transports.test.TestHub;
-import com.offbynull.peernetic.actor.network.transports.test.TestTransport;
+import com.offbynull.peernetic.networktools.netty.builders.NettyClient;
+import com.offbynull.peernetic.networktools.netty.builders.NettyClientBuilder;
+import com.offbynull.peernetic.networktools.netty.handlers.selfblock.SelfBlockId;
+import com.offbynull.peernetic.networktools.netty.simulation.PerfectLine;
+import com.offbynull.peernetic.networktools.netty.simulation.TransitPacketRepository;
+import com.offbynull.peernetic.networktools.netty.simulation.WrappedSocketAddress;
 import com.offbynull.peernetic.overlay.common.visualizer.AddEdgeCommand;
 import com.offbynull.peernetic.overlay.common.visualizer.AddNodeCommand;
 import com.offbynull.peernetic.overlay.common.visualizer.ChangeNodeCommand;
@@ -37,6 +38,7 @@ import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlay;
 import com.offbynull.peernetic.overlay.unstructured.UnstructuredOverlayListener;
 import java.awt.Color;
 import java.awt.Point;
+import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -68,13 +70,12 @@ public final class App {
         
         
         
-        TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
+        TransitPacketRepository hub = TransitPacketRepository.create(new PerfectLine());
 //        TestHub<Integer> hub = new TestHub<>(new RandomLine<Integer>(12345L, // more realistic simulation
 //                Range.is(0.0001),
 //                Range.is(0.0),
 //                Range.is(1.0),
 //                Range.is(0.1)));
-        ActorRunner hubRunner = ActorRunner.createAndStart(hub);
         
         
         for (int i = 0; i < 100; i++) {
@@ -116,20 +117,22 @@ public final class App {
                 }
             };
             
-            TestTransport<Integer> testTransport = new TestTransport(i, hubRunner.getEndpoint());
             SelfBlockId selfBlockId = new SelfBlockId();
-            testTransport.setIncomingFilter(new SelfBlockIncomingFilter<Integer>(selfBlockId));
-            testTransport.setOutgoingFilter(new SelfBlockOutgoingFilter<Integer>(selfBlockId));
-            ActorRunner testTransportRunner = ActorRunner.createAndStart(testTransport);
+            IncomingMessageToEndpointAdapter msgToEndpointAdapter = new IncomingMessageToEndpointAdapter();
+            NettyClient client = new NettyClientBuilder()
+                    .simulatedUdp(new WrappedSocketAddress(i), hub)
+                    .selfBlockId(selfBlockId)
+                    .addReadDestination(msgToEndpointAdapter)
+                    .build();
             
-            NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(testTransportRunner.getEndpoint());
-            NetworkEndpointKeyExtractor<Integer> extractor = new NetworkEndpointKeyExtractor<>();
+            NetworkEndpointFinder finder = new NetworkEndpointFinder(client.channel());
+            NetworkEndpointKeyExtractor extractor = new NetworkEndpointKeyExtractor();
             
-            UnstructuredOverlay<Integer> overlay = new UnstructuredOverlay<>(listener, finder, extractor, 3, 10000L,
-                    Collections.singleton(0));
+            UnstructuredOverlay<SocketAddress> overlay = new UnstructuredOverlay<>(listener, finder, extractor, 3, 10000L,
+                    Collections.singleton((SocketAddress) new WrappedSocketAddress(0)));
             ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
             
-            testTransport.setDestinationEndpoint(overlayRunner.getEndpoint());
+            msgToEndpointAdapter.setEndpoint(overlayRunner.getEndpoint());
             
             Thread.sleep((long) (Math.random() * 1000L)); // sleep for 0 to 1 seconds, so things will look more varied when running
         }

@@ -12,7 +12,7 @@ public final class ResponseActor extends Actor {
 
     @Override
     protected ActorStartSettings onStart(long timestamp, PushQueue pushQueue, Map<Object, Object> initVars) throws Exception {
-        return new ActorStartSettings();
+        return new ActorStartSettings(Long.MAX_VALUE);
     }
 
     @Override

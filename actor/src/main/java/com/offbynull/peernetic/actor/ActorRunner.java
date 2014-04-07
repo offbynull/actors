@@ -171,12 +171,7 @@ public final class ActorRunner {
             PushQueue pushQueue = new PushQueue();
             ActorStartSettings settings = internalActor.onStart(startTime, pushQueue, internalStartupMap);
             
-            ActorQueueNotifier notifier = settings.getNotifier();
-            if (notifier == null) {
-                queue = new ActorQueue();
-            } else {
-                queue = new ActorQueue(notifier);
-            }
+            queue = new ActorQueue();
             internalEndpoint = new LocalEndpoint(queue);
             endpoint = internalEndpoint;
             

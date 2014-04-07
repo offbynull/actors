@@ -1,13 +1,17 @@
 package com.offbynull.peernetic.overlay.chord;
 
 import com.offbynull.peernetic.actor.ActorRunner;
+import com.offbynull.peernetic.actor.network.IncomingMessageToEndpointAdapter;
 import com.offbynull.peernetic.actor.network.NetworkEndpointFinder;
-import com.offbynull.peernetic.actor.network.transports.test.PerfectLine;
-import com.offbynull.peernetic.actor.network.transports.test.TestHub;
-import com.offbynull.peernetic.actor.network.transports.test.TestTransport;
+import com.offbynull.peernetic.networktools.netty.builders.NettyClient;
+import com.offbynull.peernetic.networktools.netty.builders.NettyClientBuilder;
+import com.offbynull.peernetic.networktools.netty.simulation.PerfectLine;
+import com.offbynull.peernetic.networktools.netty.simulation.TransitPacketRepository;
+import com.offbynull.peernetic.networktools.netty.simulation.WrappedSocketAddress;
 import com.offbynull.peernetic.overlay.common.id.Id;
 import com.offbynull.peernetic.overlay.common.id.Pointer;
 import java.math.BigInteger;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
@@ -40,19 +44,18 @@ public class ChordOverlayTest {
 
     @Test
     public void simpleJoinTest() throws Throwable {
-        TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
-        ActorRunner hubRunner = ActorRunner.createAndStart(hub);
+        TransitPacketRepository hub = TransitPacketRepository.create(new PerfectLine());
         
-        ChordOverlayListener<Integer> listener0 = Mockito.mock(ChordOverlayListener.class);
-        ChordOverlayListener<Integer> listener1 = Mockito.mock(ChordOverlayListener.class);
-        ChordOverlayListener<Integer> listener2 = Mockito.mock(ChordOverlayListener.class);
-        ChordOverlayListener<Integer> listener3 = Mockito.mock(ChordOverlayListener.class);
+        ChordOverlayListener<SocketAddress> listener0 = Mockito.mock(ChordOverlayListener.class);
+        ChordOverlayListener<SocketAddress> listener1 = Mockito.mock(ChordOverlayListener.class);
+        ChordOverlayListener<SocketAddress> listener2 = Mockito.mock(ChordOverlayListener.class);
+        ChordOverlayListener<SocketAddress> listener3 = Mockito.mock(ChordOverlayListener.class);
         
         
-        ActorRunner overlay0Runner = generateNode(0, null, listener0, hubRunner);
-        ActorRunner overlay1Runner = generateNode(1, 0, listener1, hubRunner);
-        ActorRunner overlay2Runner = generateNode(2, 0, listener2, hubRunner);
-        ActorRunner overlay3Runner = generateNode(3, 0, listener3, hubRunner);
+        ActorRunner overlay0Runner = generateNode(0, null, listener0, hub);
+        ActorRunner overlay1Runner = generateNode(1, 0, listener1, hub);
+        ActorRunner overlay2Runner = generateNode(2, 0, listener2, hub);
+        ActorRunner overlay3Runner = generateNode(3, 0, listener3, hub);
         
         
         
@@ -138,8 +141,8 @@ public class ChordOverlayTest {
                 Mockito.eq(generatePointerList(0))); // successors
     }
     
-    private List<Pointer<Integer>> generatePointerList(int ... ids) {
-        List<Pointer<Integer>> pointers = new ArrayList<>();
+    private List<Pointer<SocketAddress>> generatePointerList(int ... ids) {
+        List<Pointer<SocketAddress>> pointers = new ArrayList<>();
         
         for (int id : ids) {
             pointers.add(generatePointer(id));
@@ -147,19 +150,24 @@ public class ChordOverlayTest {
         
         return pointers;
     }
-    private Pointer<Integer> generatePointer(int id) {
+    private Pointer<SocketAddress> generatePointer(int id) {
         Id selfId = new Id(new BigInteger("" + id).toByteArray(), new BigInteger("3").toByteArray());
-        return new Pointer<>(selfId, id);
+        return new Pointer<>(selfId, (SocketAddress) new WrappedSocketAddress(id));
     }
     
-    private ActorRunner generateNode(int id, Integer bootstrap, ChordOverlayListener<Integer> listener, ActorRunner hubRunner)
-            throws Throwable {
-        TestTransport<Integer> transport = new TestTransport<>(id, hubRunner.getEndpoint());
-        ActorRunner transportRunner = ActorRunner.createAndStart(transport);
+    private ActorRunner generateNode(int id, Integer bootstrap, ChordOverlayListener<SocketAddress> listener,
+            TransitPacketRepository packetRepository) throws Throwable {
+        SocketAddress selfAddress = new WrappedSocketAddress(id);
+        SocketAddress bootstrapAddress = bootstrap == null ? null : new WrappedSocketAddress(bootstrap);
         
+        IncomingMessageToEndpointAdapter msgToEndpointAdapter = new IncomingMessageToEndpointAdapter();
+        NettyClient nettyClient = new NettyClientBuilder()
+                .simulatedUdp(selfAddress, packetRepository)
+                .addReadDestination(msgToEndpointAdapter)
+                .build();
         
-        NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(transportRunner.getEndpoint());
-        ChordConfig<Integer> config = new ChordConfig<>(id, new BigInteger("3").toByteArray(), finder);
+        NetworkEndpointFinder finder = new NetworkEndpointFinder(nettyClient.channel());
+        ChordConfig<SocketAddress> config = new ChordConfig<>(selfAddress, new BigInteger("3").toByteArray(), finder);
         
         config.setListener(listener);
         config.setRpcMaxSendAttempts(3);
@@ -169,19 +177,19 @@ public class ChordOverlayTest {
         
         
         Id selfId = new Id(new BigInteger("" + id).toByteArray(), new BigInteger("3").toByteArray());
-        Pointer<Integer> selfPtr = new Pointer<>(selfId, id);
+        Pointer<SocketAddress> selfPtr = new Pointer<>(selfId, selfAddress);
         config.setBase(selfPtr);
         
         if (bootstrap != null) {
             Id bootstrapId = new Id(new BigInteger("" + bootstrap).toByteArray(), new BigInteger("3").toByteArray());
-            Pointer<Integer> bootstrapPtr = new Pointer<>(bootstrapId, bootstrap);
+            Pointer<SocketAddress> bootstrapPtr = new Pointer<>(bootstrapId, bootstrapAddress);
             config.setBootstrap(bootstrapPtr);
         }
         
-        ChordOverlay<Integer> overlay = new ChordOverlay<>(config);
+        ChordOverlay<SocketAddress> overlay = new ChordOverlay<>(config);
         ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
         
-        transport.setDestinationEndpoint(overlayRunner.getEndpoint());
+        msgToEndpointAdapter.setEndpoint(overlayRunner.getEndpoint());
         
         
         return overlayRunner;

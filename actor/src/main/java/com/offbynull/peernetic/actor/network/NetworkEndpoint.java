@@ -18,33 +18,33 @@ package com.offbynull.peernetic.actor.network;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.Outgoing;
-import com.offbynull.peernetic.actor.network.internal.SendMessageCommand;
-import java.util.ArrayList;
+import io.netty.channel.AddressedEnvelope;
+import io.netty.channel.Channel;
+import io.netty.channel.DefaultAddressedEnvelope;
+import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An endpoint that points that proxies a {@link Transport}'s endpoint but also adds an address. Use to target a specific address over a
- * network.
+ * An endpoint that dumps messages to a packet-based Netty {@link Channel}. Messages will be wrapped in {@link AddressedEnvelope}.
  * @author Kasra Faghihi
- * @param <A> address type
  */
-public final class NetworkEndpoint<A> implements Endpoint {
-    private Endpoint transportEndpoint;
-    private A address;
+public final class NetworkEndpoint implements Endpoint {
+    private Channel channel;
+    private SocketAddress address;
 
     /**
      * Construct a {@link NetworkEndpoint} object.
-     * @param transportEndpoint endpoint of {@link Transport} object
+     * @param channel Netty channel
      * @param address address to point to
      */
-    public NetworkEndpoint(Endpoint transportEndpoint, A address) {
-        Validate.notNull(transportEndpoint);
+    public NetworkEndpoint(Channel channel, SocketAddress address) {
+        Validate.notNull(channel);
         Validate.notNull(address);
         
-        this.transportEndpoint = transportEndpoint;
+        this.channel = channel;
         this.address = address;
     }
 
@@ -53,17 +53,12 @@ public final class NetworkEndpoint<A> implements Endpoint {
         Validate.notNull(source);
         Validate.noNullElements(outgoing);
         
-        Collection<Outgoing> transportOutgoing = new ArrayList<>(outgoing.size());
-        
         for (Outgoing outgoingMsg : outgoing) {
-            Object originalContent = outgoingMsg.getContent();
-            
-            Object transportContent = new SendMessageCommand<>(originalContent, address);
-            Outgoing transportOutgoingMsg = new Outgoing(transportContent, transportEndpoint);
-            transportOutgoing.add(transportOutgoingMsg);
+            Object content = outgoingMsg.getContent();
+            channel.write(new DefaultAddressedEnvelope<>(content, address));
         }
         
-        transportEndpoint.push(source, transportOutgoing);
+        channel.flush();
     }
 
     @Override
@@ -71,14 +66,14 @@ public final class NetworkEndpoint<A> implements Endpoint {
         push(source, Arrays.asList(outgoing));
     }
 
-    A getAddress() {
+    SocketAddress getAddress() {
         return address;
     }
 
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 89 * hash + Objects.hashCode(this.transportEndpoint);
+        hash = 89 * hash + Objects.hashCode(this.channel);
         hash = 89 * hash + Objects.hashCode(this.address);
         return hash;
     }
@@ -91,8 +86,8 @@ public final class NetworkEndpoint<A> implements Endpoint {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final NetworkEndpoint<?> other = (NetworkEndpoint<?>) obj;
-        if (!Objects.equals(this.transportEndpoint, other.transportEndpoint)) {
+        final NetworkEndpoint other = (NetworkEndpoint) obj;
+        if (!Objects.equals(this.channel, other.channel)) {
             return false;
         }
         if (!Objects.equals(this.address, other.address)) {

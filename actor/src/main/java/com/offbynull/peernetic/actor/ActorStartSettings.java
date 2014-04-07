@@ -28,55 +28,24 @@ import org.apache.commons.lang3.Validate;
  */
 public final class ActorStartSettings {
     private long hitTime;
-    private ActorQueueNotifier notifier;
     private List<Object> messagesToSelf;
-
-    /**
-     * Constructs a {@link ActorStartSettings} object. Equivalent to calling {@code new ActorStartSettings(null)}.
-     */
-    public ActorStartSettings() {
-        this(null);
-    }
-
-    /**
-     * Constructs a {@link ActorStartSettings} object. Equivalent to calling {@code new ActorStartSettings(hitTime, null)}.
-     * @param hitTime maximum amount of time to wait before invoking {@link Actor#onStep(long, com.offbynull.peernetic.actor.PullQueue,
-     * com.offbynull.peernetic.actor.PushQueue, com.offbynull.peernetic.actor.Endpoint).
-     */
-    public ActorStartSettings(long hitTime) {
-        this(hitTime, null);
-    }
-
-    /**
-     * Constructs a {@link ActorStartSettings} object. Equivalent to calling {@code new ActorStartSettings(Long.MAX_VALUE, null)}.
-     * @param notifier notifier to use for internal queue (can be {@code null)
-     */
-    public ActorStartSettings(ActorQueueNotifier notifier) {
-        this(Long.MAX_VALUE, notifier);
-    }
 
     /**
      * Constructs a {@link ActorStartSettings} object.
      * @param hitTime maximum amount of time to wait before invoking {@link Actor#onStep(long, com.offbynull.peernetic.actor.PullQueue,
      * com.offbynull.peernetic.actor.PushQueue, com.offbynull.peernetic.actor.Endpoint).
-     * @param notifier notifier to use for internal queue (can be {@code null)
      * @param messagesToSelf messages to pass to self
      * @throws NullPointerException if {@code messagesToSelf} is {@code null} or contains {@code null}
      */
-    public ActorStartSettings(long hitTime, ActorQueueNotifier notifier, Object ... messagesToSelf) {
+    public ActorStartSettings(long hitTime, Object ... messagesToSelf) {
         Validate.noNullElements(messagesToSelf);
         
         this.hitTime = hitTime;
-        this.notifier = notifier;
         this.messagesToSelf = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(messagesToSelf)));
     }
 
     long getHitTime() {
         return hitTime;
-    }
-
-    ActorQueueNotifier getNotifier() {
-        return notifier;
     }
 
     List<Object> getMessagesToSelf() {

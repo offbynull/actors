@@ -18,31 +18,32 @@ package com.offbynull.peernetic.actor.network;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointFinder;
+import io.netty.channel.Channel;
+import java.net.SocketAddress;
 import org.apache.commons.lang3.Validate;
 
 /**
  * A simple {@link EndpointFinder} implementation that allows the user to specific which address they want to talk to over a network
  * transport.
  * @author Kasra Faghihi
- * @param <A> address type
  */
-public final class NetworkEndpointFinder<A> implements EndpointFinder<A> {
-    private Endpoint transportEndpoint;
+public final class NetworkEndpointFinder implements EndpointFinder<SocketAddress> {
+    private Channel channel;
 
     /**
-     * Construct a {@link NetworkEndpoint} object.
-     * @param transportEndpoint transport endpoint
+     * Construct a {@link NetworkEndpointFinder} object.
+     * @param channel transport endpoint
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public NetworkEndpointFinder(Endpoint transportEndpoint) {
-        Validate.notNull(transportEndpoint);
-        this.transportEndpoint = transportEndpoint;
+    public NetworkEndpointFinder(Channel channel) {
+        Validate.notNull(channel);
+        this.channel = channel;
     }
     
 
     @Override
-    public Endpoint findEndpoint(A address) {
+    public Endpoint findEndpoint(SocketAddress address) {
         Validate.notNull(address);
-        return new NetworkEndpoint(transportEndpoint, address);
+        return new NetworkEndpoint(channel, address);
     }
 }

@@ -18,10 +18,13 @@ package com.offbynull.peernetic.demos.chord;
 
 import com.offbynull.peernetic.actor.ActorRunner;
 import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.network.IncomingMessageToEndpointAdapter;
 import com.offbynull.peernetic.actor.network.NetworkEndpointFinder;
-import com.offbynull.peernetic.actor.network.transports.test.RandomLine;
-import com.offbynull.peernetic.actor.network.transports.test.TestHub;
-import com.offbynull.peernetic.actor.network.transports.test.TestTransport;
+import com.offbynull.peernetic.networktools.netty.builders.NettyClient;
+import com.offbynull.peernetic.networktools.netty.builders.NettyClientBuilder;
+import com.offbynull.peernetic.networktools.netty.simulation.RandomLine;
+import com.offbynull.peernetic.networktools.netty.simulation.TransitPacketRepository;
+import com.offbynull.peernetic.networktools.netty.simulation.WrappedSocketAddress;
 import com.offbynull.peernetic.overlay.chord.ChordAccessor;
 import com.offbynull.peernetic.overlay.chord.ChordConfig;
 import com.offbynull.peernetic.overlay.chord.ChordOverlay;
@@ -41,6 +44,7 @@ import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -75,13 +79,12 @@ public final class App {
         
         
         
-//        TestHub<Integer> hub = new TestHub<>(new PerfectLine<Integer>());
-        TestHub<Integer> hub = new TestHub<>(new RandomLine<Integer>(12345L, // more realistic simulation
+//        TransitPacketRepository hub = TransitPacketRepository.create(new PerfectLine());
+        TransitPacketRepository hub = TransitPacketRepository.create(new RandomLine(12345L, // more realistic simulation
                 Range.is(0.0001),
                 Range.is(0.0001),
                 Range.is(0.001),
                 Range.is(0.1)));
-        ActorRunner hubRunner = ActorRunner.createAndStart(hub);
         
         
         Endpoint overlay0Endpoint = null;
@@ -102,17 +105,17 @@ public final class App {
                             VisualizerUtils.pointOnCircle(350, iBigInt.doubleValue() / (limigBigInt.doubleValue() + 1.0)),
                             null));
             
-            ChordOverlayListener<Integer> listener = new ChordOverlayListener<Integer>() {
+            ChordOverlayListener<SocketAddress> listener = new ChordOverlayListener<SocketAddress>() {
                 
                 private Integer oldPredecessor;
                 private Set<Integer> oldFingers = Collections.emptySet();
 
                 @Override
                 public void stateUpdated(String event,
-                        Pointer<Integer> self,
-                        Pointer<Integer> predecessor,
-                        List<Pointer<Integer>> fingerTable,
-                        List<Pointer<Integer>> successorTable) {
+                        Pointer<SocketAddress> self,
+                        Pointer<SocketAddress> predecessor,
+                        List<Pointer<SocketAddress>> fingerTable,
+                        List<Pointer<SocketAddress>> successorTable) {
                     
                     ArrayList<Command<Integer>> commands = new ArrayList<>();
                     
@@ -135,7 +138,7 @@ public final class App {
                     }
                     
                     oldFingers = new HashSet<>();
-                    for (Pointer<Integer> newFingerPtr : fingerTable) {
+                    for (Pointer<SocketAddress> newFingerPtr : fingerTable) {
                         int newFinger = newFingerPtr.getId().getValueAsBigInteger().intValue();
                         if (oldPredecessor == null || newFinger != oldPredecessor) { // don't add a new edge if an edge was already added
                                                                                      // for pred, two edges from same src/dst currently not
@@ -155,25 +158,30 @@ public final class App {
                 }
             };
             
-            TestTransport<Integer> testTransport = new TestTransport(i, hubRunner.getEndpoint());
-            ActorRunner testTransportRunner = ActorRunner.createAndStart(testTransport);
+            IncomingMessageToEndpointAdapter msgToEndpointAdapter = new IncomingMessageToEndpointAdapter();
+            NettyClient client = new NettyClientBuilder()
+                    .simulatedUdp(new WrappedSocketAddress(i), hub)
+                    .addReadDestination(msgToEndpointAdapter)
+                    .build();
             
-            NetworkEndpointFinder<Integer> finder = new NetworkEndpointFinder<>(testTransportRunner.getEndpoint());
+            NetworkEndpointFinder finder = new NetworkEndpointFinder(client.channel());
             
-            ChordConfig<Integer> config = new ChordConfig<>(0, limigBigInt.toByteArray(), finder);
+            ChordConfig<SocketAddress> config = new ChordConfig<>(new WrappedSocketAddress(0), limigBigInt.toByteArray(), finder);
             config.setListener(listener);
-            config.setBase(new Pointer<>(new Id(iBigInt.toByteArray(), limigBigInt.toByteArray()), i));
+            config.setBase(new Pointer<>(new Id(iBigInt.toByteArray(), limigBigInt.toByteArray()),
+                    (SocketAddress) new WrappedSocketAddress(i)));
             if (i != 0) {
-                config.setBootstrap(new Pointer<>(new Id(BigInteger.ZERO.toByteArray(), limigBigInt.toByteArray()), 0));
+                config.setBootstrap(new Pointer<>(new Id(BigInteger.ZERO.toByteArray(), limigBigInt.toByteArray()),
+                        (SocketAddress) new WrappedSocketAddress(0)));
             }
             
-            ChordOverlay<Integer> overlay = new ChordOverlay<>(config);
+            ChordOverlay<SocketAddress> overlay = new ChordOverlay<>(config);
             ActorRunner overlayRunner = ActorRunner.createAndStart(overlay);
             if (i == 0) {
                 overlay0Endpoint = overlayRunner.getEndpoint();
             }
             
-            testTransport.setDestinationEndpoint(overlayRunner.getEndpoint());
+            msgToEndpointAdapter.setEndpoint(overlayRunner.getEndpoint());
             
             Thread.sleep((long) (Math.random() * 1000L)); // sleep for 0 to 1 seconds, so things will look more varied when running
         }

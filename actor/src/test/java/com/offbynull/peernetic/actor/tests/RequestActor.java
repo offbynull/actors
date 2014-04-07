@@ -22,7 +22,7 @@ public final class RequestActor extends Actor {
         
         pushQueue.push(friend, number);
         
-        return new ActorStartSettings();
+        return new ActorStartSettings(Long.MAX_VALUE);
     }
 
     @Override

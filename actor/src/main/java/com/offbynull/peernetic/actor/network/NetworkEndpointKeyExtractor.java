@@ -18,23 +18,23 @@ package com.offbynull.peernetic.actor.network;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointKeyExtractor;
+import java.net.SocketAddress;
 import org.apache.commons.lang3.Validate;
 
 /**
  * A simple {@link EndpointKeyExtractor} implementation that allows the user to extract the address out of a {@link NetworkEndpoint}.
  * @author Kasra Faghihi
- * @param <A> address type
  */
-public final class NetworkEndpointKeyExtractor<A> implements EndpointKeyExtractor<A> {
+public final class NetworkEndpointKeyExtractor implements EndpointKeyExtractor<SocketAddress> {
 
     @Override
-    public A findKey(Endpoint endpoint) {
+    public SocketAddress findKey(Endpoint endpoint) {
         Validate.notNull(endpoint);
         if (!(endpoint instanceof NetworkEndpoint)) {
             return null;
         }
 
-        return ((NetworkEndpoint<A>) endpoint).getAddress();
+        return ((NetworkEndpoint) endpoint).getAddress();
     }
     
 }

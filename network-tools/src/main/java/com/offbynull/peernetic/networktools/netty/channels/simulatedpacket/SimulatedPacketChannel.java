@@ -1,5 +1,5 @@
 // BASED OFF OF NETTY'S LocalChannel
-package com.offbynull.peernetic.networktools.netty.simulation;
+package com.offbynull.peernetic.networktools.netty.channels.simulatedpacket;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -27,7 +27,7 @@ import java.util.Queue;
 /**
  * A {@link Channel} for simulated packet-based network (e.g. datagram) transport.
  */
-public class LocalDatagramChannel extends AbstractChannel {
+public class SimulatedPacketChannel extends AbstractChannel {
 
     private enum State {
 
@@ -58,7 +58,7 @@ public class LocalDatagramChannel extends AbstractChannel {
     private volatile SocketAddress localAddress;
     private volatile boolean readInProgress;
 
-    public LocalDatagramChannel(EventLoop eventLoop, TransitPacketRepository repository) {
+    public SimulatedPacketChannel(EventLoop eventLoop, TransitPacketRepository repository) {
         super(null, eventLoop);
         this.repository = repository;
     }

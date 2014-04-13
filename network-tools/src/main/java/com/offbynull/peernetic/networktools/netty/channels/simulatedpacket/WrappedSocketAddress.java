@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.networktools.netty.simulation;
+package com.offbynull.peernetic.networktools.netty.channels.simulatedpacket;
 
 import java.net.SocketAddress;
 import java.util.Objects;

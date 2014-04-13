@@ -10,8 +10,8 @@ import com.offbynull.peernetic.networktools.netty.handlers.selfblock.SelfBlockId
 import com.offbynull.peernetic.networktools.netty.handlers.selfblock.SelfBlockIdPrependHandler;
 import com.offbynull.peernetic.networktools.netty.handlers.xstream.XStreamDecodeHandler;
 import com.offbynull.peernetic.networktools.netty.handlers.xstream.XStreamEncodeHandler;
-import com.offbynull.peernetic.networktools.netty.simulation.LocalDatagramChannel;
-import com.offbynull.peernetic.networktools.netty.simulation.TransitPacketRepository;
+import com.offbynull.peernetic.networktools.netty.channels.simulatedpacket.SimulatedPacketChannel;
+import com.offbynull.peernetic.networktools.netty.channels.simulatedpacket.TransitPacketRepository;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
 import io.netty.bootstrap.Bootstrap;
@@ -248,15 +248,15 @@ public final class NettyClientBuilder {
             try {
                 Bootstrap cb = new Bootstrap();
                 cb.group(clientGroup)
-                        .channelFactory(new ChannelFactory<LocalDatagramChannel>() {
+                        .channelFactory(new ChannelFactory<SimulatedPacketChannel>() {
                             @Override
-                            public LocalDatagramChannel newChannel(EventLoop eventLoop) {
-                                return new LocalDatagramChannel(eventLoop, transitPacketRepository);
+                            public SimulatedPacketChannel newChannel(EventLoop eventLoop) {
+                                return new SimulatedPacketChannel(eventLoop, transitPacketRepository);
                             }
                         })
-                        .handler(new ChannelInitializer<LocalDatagramChannel>() {
+                        .handler(new ChannelInitializer<SimulatedPacketChannel>() {
                             @Override
-                            public void initChannel(LocalDatagramChannel ch) throws Exception {
+                            public void initChannel(SimulatedPacketChannel ch) throws Exception {
                                 ch.pipeline().addLast(allHandlers);
                             }
                         });

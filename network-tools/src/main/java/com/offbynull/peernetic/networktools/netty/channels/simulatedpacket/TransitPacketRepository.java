@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.networktools.netty.simulation;
+package com.offbynull.peernetic.networktools.netty.channels.simulatedpacket;
 
 import java.io.Closeable;
 import java.net.SocketAddress;
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A hub that pipes messages between {@link LocalDatagramChannel}s.
+ * A hub that pipes messages between {@link SimulatedPacketChannel}s.
  *
  * @author Kasra Faghihi
  */
@@ -58,7 +58,7 @@ public final class TransitPacketRepository implements Closeable {
         return repo;
     }
 
-    void registerChannel(SocketAddress address, LocalDatagramChannel channel) {
+    void registerChannel(SocketAddress address, SimulatedPacketChannel channel) {
         if (closed) {
             return;
         }
@@ -94,7 +94,7 @@ public final class TransitPacketRepository implements Closeable {
         public void run() {
             // initialize
             PriorityQueue<TransitPacket> transitMessageQueue = new PriorityQueue<>(11, new TransitPacketArriveTimeComparator());
-            Map<SocketAddress, LocalDatagramChannel> addressMap = new HashMap<>();
+            Map<SocketAddress, SimulatedPacketChannel> addressMap = new HashMap<>();
 
             // process commands
             long waitTime = Long.MAX_VALUE;
@@ -142,7 +142,7 @@ public final class TransitPacketRepository implements Closeable {
                 // notify of events
                 for (TransitPacket transitMessage : revisedOutgoingPackets) {
                     SocketAddress to = transitMessage.getTo();
-                    LocalDatagramChannel dst = addressMap.get(to);
+                    SimulatedPacketChannel dst = addressMap.get(to);
 
                     if (dst == null) {
                         continue;
@@ -164,9 +164,9 @@ public final class TransitPacketRepository implements Closeable {
     private static final class RegisterCommand {
 
         private final SocketAddress address;
-        private final LocalDatagramChannel channel;
+        private final SimulatedPacketChannel channel;
 
-        public RegisterCommand(SocketAddress address, LocalDatagramChannel channel) {
+        public RegisterCommand(SocketAddress address, SimulatedPacketChannel channel) {
             Validate.notNull(address);
             Validate.notNull(channel);
 
@@ -178,7 +178,7 @@ public final class TransitPacketRepository implements Closeable {
             return address;
         }
 
-        public LocalDatagramChannel getChannel() {
+        public SimulatedPacketChannel getChannel() {
             return channel;
         }
     }

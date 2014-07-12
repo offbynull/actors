@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -20,8 +21,12 @@ public final class ActorRunnable implements Runnable {
     private final UnmodifiableList<Actor> actors;
     private final UnmodifiableMap<Actor, Endpoint> endpoints;
     private final LinkedBlockingQueue<InternalEnvelope> queue;
+    private final AtomicReference<State> state;
     private final Lock lock;
-    private final Condition startCondition;
+    private final Condition startingCondition;
+    private final Condition startedCondition;
+    private final Condition stoppedCondition;
+    private final Condition stoppingCondition;
     private volatile Thread thread;
 
     public static ActorRunnable createAndStart(Actor... actors) {
@@ -32,7 +37,7 @@ public final class ActorRunnable implements Runnable {
             Thread actorThread = new Thread(actorRunnable);
             actorThread.start();
 
-            actorRunnable.startCondition.awaitUninterruptibly();
+            actorRunnable.awaitState(State.STARTING);
         } finally {
             actorRunnable.lock.unlock();
         }
@@ -54,44 +59,68 @@ public final class ActorRunnable implements Runnable {
         }
 
         this.endpoints = (UnmodifiableMap<Actor, Endpoint>) UnmodifiableMap.<Actor, Endpoint>unmodifiableMap(endpoints);
+
+        this.state = new AtomicReference<>(State.CREATED);
         this.lock = new ReentrantLock();
-        this.startCondition = lock.newCondition();
+        this.startingCondition = lock.newCondition();
+        this.startedCondition = lock.newCondition();
+        this.stoppedCondition = lock.newCondition();
+        this.stoppingCondition = lock.newCondition();
     }
 
-    public void awaitRunning() {
-        if (thread != null) {
+    public void awaitState(State state) {
+        Validate.notNull(state);
+
+        if (this.state.get().ordinal() >= state.ordinal()) {
             return;
         }
 
         lock.lock();
         try {
-            if (thread != null) {
+            if (this.state.get().ordinal() >= state.ordinal()) {
                 return;
             }
-            startCondition.awaitUninterruptibly();
+
+            switch (state) {
+                case CREATED:
+                    break;
+                case STARTING:
+                    startingCondition.awaitUninterruptibly();
+                    break;
+                case STARTED:
+                    startedCondition.awaitUninterruptibly();
+                    break;
+                case STOPPING:
+                    stoppingCondition.awaitUninterruptibly();
+                    break;
+                case STOPPED:
+                    stoppedCondition.awaitUninterruptibly();
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
         } finally {
             lock.unlock();
         }
     }
 
     public Endpoint getEndpoint(Actor actor) {
-        Validate.validState(thread != null);
         Validate.notNull(actor);
 
         Endpoint endpoint = endpoints.get(actor);
         Validate.isTrue(endpoint != null, "Actor not found");
-        
+
         return endpoint;
     }
 
     public Thread getThread() {
-        Validate.validState(thread != null);
+        Validate.validState(this.state.get() != State.CREATED); // must be >= STARTING for thread to be non-null
 
         return thread;
     }
 
     public void shutdown() throws InterruptedException {
-        Validate.validState(thread != null);
+        Validate.validState(this.state.get() != State.CREATED); // must be >= STARTING for thread to be running
 
         thread.interrupt();
         thread.join();
@@ -101,20 +130,16 @@ public final class ActorRunnable implements Runnable {
     public void run() {
         Validate.validState(thread == null, "Already consumed");
 
-        lock.lock();
-        try {
-            thread = Thread.currentThread();
-            startCondition.signal();
-        } finally {
-            lock.unlock();
-        }
+        thread = Thread.currentThread(); // volatile field
 
         MutableInt activeCount = new MutableInt(actors.size());
         boolean[] active = new boolean[actors.size()];
         Arrays.fill(active, true);
 
         try {
+            updateState(State.STARTING);
             startActors(active, activeCount);
+            updateState(State.STARTED);
             if (activeCount.getValue() == 0) {
                 return;
             }
@@ -133,7 +158,35 @@ public final class ActorRunnable implements Runnable {
             System.err.println(ex);
             // TODO: Log here
         } finally {
+            updateState(State.STOPPING);
             stopActors(active);
+            updateState(State.STOPPED);
+        }
+    }
+
+    private void updateState(State newState) {
+        lock.lock();
+        try {
+            state.set(newState);
+
+            switch (newState) {
+                case STARTING:
+                    startingCondition.signalAll();
+                    break;
+                case STARTED:
+                    startedCondition.signalAll();
+                    break;
+                case STOPPING:
+                    stoppingCondition.signalAll();
+                    break;
+                case STOPPED:
+                    stoppedCondition.signalAll();
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -146,7 +199,7 @@ public final class ActorRunnable implements Runnable {
                 throw e;
             } catch (Exception e) {
                 // TODO: Log here
-                
+
                 active[counter] = false;
                 activeCount.decrement();
 
@@ -191,7 +244,7 @@ public final class ActorRunnable implements Runnable {
             throw e;
         } catch (Exception e) {
             // TODO: Log here
-            
+
             active[actorIndex] = false;
             activeCount.decrement();
 
@@ -252,5 +305,14 @@ public final class ActorRunnable implements Runnable {
             InternalEnvelope envelope = new InternalEnvelope(actorIndex, source, message);
             queue.add(envelope);
         }
+    }
+
+    private enum State {
+
+        CREATED,
+        STARTING,
+        STARTED,
+        STOPPING,
+        STOPPED
     }
 }

@@ -13,7 +13,7 @@
     
     <modules>
         <module>build-tools</module>
-        <module>actor</module>
+        <module>core</module>
     </modules>
     
     <dependencyManagement>

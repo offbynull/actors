@@ -11,23 +11,23 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import org.apache.commons.lang3.Validate;
 
-public final class TestHarness {
+public final class TestHarness<A> {
 
-    private MessageDriver messageDriver;
+    private MessageDriver<A> messageDriver;
     private PriorityQueue<Event> events;
-    private Map<String, ActorBundle> actorLookupById;
+    private Map<A, ActorBundle> actorLookupById;
     private Map<Endpoint, ActorBundle> actorLookupByEndpoint;
     private EndpointScheduler endpointScheduler;
-    private EndpointDirectory<String> endpointDirectory;
-    private EndpointIdentifier<String> endpointIdentifier;
+    private EndpointDirectory<A> endpointDirectory;
+    private EndpointIdentifier<A> endpointIdentifier;
     private Instant lastWhen;
 
     public TestHarness() {
-        this(Instant.ofEpochMilli(0L), new BasicMessageDriver());
+        this(Instant.ofEpochMilli(0L), new BasicMessageDriver<>());
     }
     
     public TestHarness(Instant startTime) {
-        this(startTime, new BasicMessageDriver());
+        this(startTime, new BasicMessageDriver<>());
     }
     
     public TestHarness(Instant startTime, MessageDriver messageDriver) {
@@ -44,21 +44,21 @@ public final class TestHarness {
         this.lastWhen = startTime;
     }
 
-    public void addActor(String name, Actor actor, Instant when) {
-        Validate.notNull(name);
+    public void addActor(A id, Actor actor, Instant when) {
+        Validate.notNull(id);
         Validate.notNull(actor);
         Validate.notNull(when);
         Validate.isTrue(!when.isBefore(lastWhen), "Attempting to add actor event prior to current time");
 
-        events.add(new JoinEvent(name, actor, when));
+        events.add(new JoinEvent(id, actor, when));
     }
 
-    public void removeActor(String name, Instant when) {
-        Validate.notNull(name);
+    public void removeActor(A id, Instant when) {
+        Validate.notNull(id);
         Validate.notNull(when);
         Validate.isTrue(!when.isBefore(lastWhen), "Attempting to remove actor event prior to current time");
 
-        events.add(new LeaveEvent(name, when));
+        events.add(new LeaveEvent(id, when));
     }
     
     public boolean hasMore() {
@@ -71,18 +71,18 @@ public final class TestHarness {
 
         lastWhen = event.getWhen();
 
-        if (event instanceof MessageEvent) {
+        if (event instanceof TestHarness.MessageEvent) {
             MessageEvent messageEvent = (MessageEvent) event;
             
             Object message = messageEvent.getMessage();
-            String from = messageEvent.getFrom();
-            String to = messageEvent.getTo();
+            A fromId = messageEvent.getFromId();
+            A toId = messageEvent.getToId();
             
-            ActorBundle srcBundle = actorLookupById.get(from);
-            ActorBundle dstBundle = actorLookupById.get(to);
+            ActorBundle srcBundle = actorLookupById.get(fromId);
+            ActorBundle dstBundle = actorLookupById.get(toId);
             if (dstBundle != null) {
                 Actor actor = dstBundle.getActor();
-                Endpoint source = srcBundle != null ? srcBundle.getEndpoint() : new InternalEndpoint(from); // create fake if not exists
+                Endpoint source = srcBundle != null ? srcBundle.getEndpoint() : new InternalEndpoint(fromId); // create fake if not exists
                 Endpoint destination = dstBundle.getEndpoint();
                 
                 try {
@@ -96,11 +96,11 @@ public final class TestHarness {
                         // TODO: Log here
                     }
 
-                    actorLookupById.remove(to);
+                    actorLookupById.remove(toId);
                     actorLookupByEndpoint.remove(destination);
                 }
             }
-        } else if (event instanceof ScheduledMessageEvent) {
+        } else if (event instanceof TestHarness.ScheduledMessageEvent) {
             ScheduledMessageEvent scheduledMessageEvent = (ScheduledMessageEvent) event;
             
             Object message = scheduledMessageEvent.getMessage();
@@ -126,16 +126,16 @@ public final class TestHarness {
                     actorLookupByEndpoint.remove(destination);
                 }
             }
-        } else if (event instanceof JoinEvent) {
+        } else if (event instanceof TestHarness.JoinEvent) {
             JoinEvent joinEvent = (JoinEvent) event;
 
-            String name = joinEvent.getName();
+            A id = joinEvent.getId();
             Actor actor = joinEvent.getActor();
-            InternalEndpoint endpoint = new InternalEndpoint(name);
+            InternalEndpoint endpoint = new InternalEndpoint(id);
             
-            ActorBundle bundle = new ActorBundle(name, actor, endpoint);
+            ActorBundle bundle = new ActorBundle(id, actor, endpoint);
 
-            ActorBundle prevBundle = actorLookupById.putIfAbsent(name, bundle);
+            ActorBundle prevBundle = actorLookupById.putIfAbsent(id, bundle);
             Validate.isTrue(prevBundle == null, "Actor identifier already in use");
             actorLookupByEndpoint.put(endpoint, bundle);
 
@@ -150,15 +150,15 @@ public final class TestHarness {
                     // TODO: Log here
                 }
                 
-                actorLookupById.remove(name);
+                actorLookupById.remove(id);
                 actorLookupByEndpoint.remove(endpoint);
             }
-        } else if (event instanceof LeaveEvent) {
+        } else if (event instanceof TestHarness.LeaveEvent) {
             LeaveEvent leaveEvent = (LeaveEvent) event;
 
-            String name = leaveEvent.getName();
+            A id = leaveEvent.getId();
 
-            ActorBundle bundle = actorLookupById.get(name);
+            ActorBundle bundle = actorLookupById.get(id);
             Validate.isTrue(bundle != null, "Actor identifier does not exist");
             
             try {
@@ -167,7 +167,7 @@ public final class TestHarness {
                 // TODO: Log here
             }
             
-            actorLookupById.remove(name);
+            actorLookupById.remove(id);
             actorLookupByEndpoint.remove(bundle.getEndpoint());
         } else {
             throw new IllegalStateException();
@@ -176,7 +176,9 @@ public final class TestHarness {
         return lastWhen;
     }
 
-    public Endpoint getEndpoint(String name) {
+    public Endpoint getEndpoint(A name) {
+        Validate.notNull(name);
+        
         ActorBundle bundle = actorLookupById.get(name);
         Validate.isTrue(bundle != null, "No actor found");
         
@@ -187,31 +189,31 @@ public final class TestHarness {
         return endpointScheduler;
     }
 
-    public EndpointDirectory<String> getEndpointDirectory() {
+    public EndpointDirectory<A> getEndpointDirectory() {
         return endpointDirectory;
     }
 
-    public EndpointIdentifier<String> getEndpointIdentifier() {
+    public EndpointIdentifier<A> getEndpointIdentifier() {
         return endpointIdentifier;
     }
 
-    public void scheduleFromNull(Duration duration, String name, Object message) {
-        endpointScheduler.scheduleMessage(duration, NullEndpoint.INSTANCE, new InternalEndpoint(name), message);
+    public void scheduleFromNull(Duration duration, A id, Object message) {
+        endpointScheduler.scheduleMessage(duration, NullEndpoint.INSTANCE, new InternalEndpoint(id), message);
     }
     
     private final class InternalEndpoint implements Endpoint {
-        private String name;
+        private final A id;
 
-        public InternalEndpoint(String name) {
-            Validate.notNull(name);
-            this.name = name;
+        public InternalEndpoint(A id) {
+            Validate.notNull(id);
+            this.id = id;
         }
         
         @Override
         public void send(Endpoint source, Object message) {
             ActorBundle sourceActorBundle = actorLookupByEndpoint.get(source);
             
-            List<MessageEnvelope> messageEnvelopes = messageDriver.onMessageSend(sourceActorBundle.getName(), name, message);
+            List<MessageEnvelope<A>> messageEnvelopes = messageDriver.onMessageSend(sourceActorBundle.getName(), id, message);
             messageEnvelopes.forEach(x -> {
                 Validate.isTrue(!x.getDuration().isNegative(), "Negative duration not allowed");
                 Instant when = lastWhen.plus(x.getDuration());
@@ -222,7 +224,7 @@ public final class TestHarness {
         @Override
         public int hashCode() {
             int hash = 7;
-            hash = 29 * hash + Objects.hashCode(this.name);
+            hash = 29 * hash + Objects.hashCode(this.id);
             return hash;
         }
 
@@ -235,7 +237,7 @@ public final class TestHarness {
                 return false;
             }
             final InternalEndpoint other = (InternalEndpoint) obj;
-            if (!Objects.equals(this.name, other.name)) {
+            if (!Objects.equals(this.id, other.id)) {
                 return false;
             }
             return true;
@@ -243,23 +245,23 @@ public final class TestHarness {
         
     }
     
-    private static final class ActorBundle {
-        private String name;
-        private Actor actor;
-        private Endpoint endpoint;
+    private final class ActorBundle {
+        private final A id;
+        private final Actor actor;
+        private final Endpoint endpoint;
 
-        public ActorBundle(String name, Actor actor, Endpoint endpoint) {
-            Validate.notNull(name);
+        public ActorBundle(A id, Actor actor, Endpoint endpoint) {
+            Validate.notNull(id);
             Validate.notNull(actor);
             Validate.notNull(endpoint);
             
-            this.name = name;
+            this.id = id;
             this.actor = actor;
             this.endpoint = endpoint;
         }
 
-        public String getName() {
-            return name;
+        public A getName() {
+            return id;
         }
 
         public Actor getActor() {
@@ -272,9 +274,9 @@ public final class TestHarness {
         
     }
     
-    private static abstract class Event implements Comparable<Event> {
+    private abstract class Event implements Comparable<Event> {
 
-        private Instant when;
+        private final Instant when;
 
         public Event(Instant when) {
             this.when = when;
@@ -290,25 +292,25 @@ public final class TestHarness {
         }
     }
 
-    private static final class MessageEvent extends Event {
+    private final class MessageEvent extends Event {
 
-        private String from;
-        private String to;
-        private Object message;
+        private final A fromId;
+        private final A toId;
+        private final Object message;
 
-        public MessageEvent(String from, String to, Object message, Instant when) {
+        public MessageEvent(A fromId, A toId, Object message, Instant when) {
             super(when);
-            this.from = from;
-            this.to = to;
+            this.fromId = fromId;
+            this.toId = toId;
             this.message = message;
         }
 
-        public String getFrom() {
-            return from;
+        public A getFromId() {
+            return fromId;
         }
 
-        public String getTo() {
-            return to;
+        public A getToId() {
+            return toId;
         }
 
         public Object getMessage() {
@@ -317,11 +319,11 @@ public final class TestHarness {
 
     }
 
-    private static final class ScheduledMessageEvent extends Event {
+    private final class ScheduledMessageEvent extends Event {
 
-        private Endpoint source;
-        private Endpoint destination;
-        private Object message;
+        private final Endpoint source;
+        private final Endpoint destination;
+        private final Object message;
 
         public ScheduledMessageEvent(Endpoint source, Endpoint destination, Object message, Instant when) {
             super(when);
@@ -344,19 +346,19 @@ public final class TestHarness {
 
     }
     
-    private static final class JoinEvent extends Event {
+    private final class JoinEvent extends Event {
 
-        private String name;
-        private Actor actor;
+        private final A id;
+        private final Actor actor;
 
-        public JoinEvent(String name, Actor actor, Instant when) {
+        public JoinEvent(A id, Actor actor, Instant when) {
             super(when);
-            this.name = name;
+            this.id = id;
             this.actor = actor;
         }
 
-        public String getName() {
-            return name;
+        public A getId() {
+            return id;
         }
 
         public Actor getActor() {
@@ -365,43 +367,43 @@ public final class TestHarness {
 
     }
 
-    private static final class LeaveEvent extends Event {
+    private final class LeaveEvent extends Event {
 
-        private String name;
+        private final A id;
 
-        public LeaveEvent(String name, Instant when) {
+        public LeaveEvent(A id, Instant when) {
             super(when);
-            this.name = name;
+            this.id = id;
         }
 
-        public String getName() {
-            return name;
+        public A getId() {
+            return id;
         }
 
     }
 
-    public interface MessageDriver {
+    public interface MessageDriver<A> {
 
-        List<MessageEnvelope> onMessageSend(String sender, String receiver, Object message);
+        List<MessageEnvelope<A>> onMessageSend(A sender, A receiver, Object message);
     }
     
-    public static final class BasicMessageDriver implements MessageDriver {
+    public static final class BasicMessageDriver<A> implements MessageDriver<A> {
 
         @Override
-        public List<MessageEnvelope> onMessageSend(String sender, String receiver, Object message) {
-            return Collections.singletonList(new MessageEnvelope(sender, receiver, message, Duration.ZERO));
+        public List<MessageEnvelope<A>> onMessageSend(A sender, A receiver, Object message) {
+            return Collections.singletonList(new MessageEnvelope<>(sender, receiver, message, Duration.ZERO));
         }
         
     }
 
-    public static final class MessageEnvelope {
+    public static final class MessageEnvelope<A> {
 
-        private Object message;
-        private String sender;
-        private String receiver;
-        private Duration duration;
+        private final Object message;
+        private final A sender;
+        private final A receiver;
+        private final Duration duration;
 
-        public MessageEnvelope(String sender, String receiver, Object message, Duration duration) {
+        public MessageEnvelope(A sender, A receiver, Object message, Duration duration) {
             Validate.notNull(sender);
             Validate.notNull(receiver);
             Validate.notNull(message);
@@ -417,11 +419,11 @@ public final class TestHarness {
             return message;
         }
 
-        public String getSender() {
+        public A getSender() {
             return sender;
         }
 
-        public String getReceiver() {
+        public A getReceiver() {
             return receiver;
         }
 
@@ -430,7 +432,7 @@ public final class TestHarness {
         }
     }
     
-    public final class InternalEndpointScheduler implements EndpointScheduler {
+    private final class InternalEndpointScheduler implements EndpointScheduler {
 
         @Override
         public void scheduleMessage(Duration delay, Endpoint source, Endpoint destination, Object message) {
@@ -445,20 +447,20 @@ public final class TestHarness {
         }
     }
     
-    public final class InternalEndpointDirectory implements EndpointDirectory<String> {
+    private final class InternalEndpointDirectory implements EndpointDirectory<A> {
 
         @Override
-        public Endpoint lookup(String id) {
+        public Endpoint lookup(A id) {
             Validate.notNull(id);
             return new InternalEndpoint(id);
         }
         
     }
     
-    public final class InternalEndpointIdentifier implements EndpointIdentifier<String> {
+    private final class InternalEndpointIdentifier implements EndpointIdentifier<A> {
 
         @Override
-        public String identify(Endpoint endpoint) {
+        public A identify(Endpoint endpoint) {
             Validate.notNull(endpoint);
             
             ActorBundle bundle = actorLookupByEndpoint.get(endpoint);

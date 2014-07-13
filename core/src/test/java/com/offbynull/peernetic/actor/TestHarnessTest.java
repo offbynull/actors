@@ -35,7 +35,7 @@ public final class TestHarnessTest {
 
     @Test
     public void basicTest() throws Throwable {
-        TestHarness harness = new TestHarness();
+        TestHarness<String> harness = new TestHarness<>();
         
         Actor actor1 = Mockito.mock(Actor.class);
         Actor actor2 = Mockito.mock(Actor.class);
@@ -85,7 +85,7 @@ public final class TestHarnessTest {
     
     @Test
     public void scheduleSendBeforeJoinTest() throws Throwable {
-        TestHarness harness = new TestHarness();
+        TestHarness<String> harness = new TestHarness<>();
         
         Actor actor1 = Mockito.mock(Actor.class);
         
@@ -104,7 +104,7 @@ public final class TestHarnessTest {
 
     @Test
     public void scheduleSendAfterLeaveTest() throws Throwable {
-        TestHarness harness = new TestHarness();
+        TestHarness<String> harness = new TestHarness<>();
         
         Actor actor1 = Mockito.mock(Actor.class);
         
@@ -127,7 +127,7 @@ public final class TestHarnessTest {
 
     @Test
     public void actorSendToNonExisting() throws Throwable {
-        TestHarness harness = new TestHarness();
+        TestHarness<String> harness = new TestHarness<>();
         
         Actor actor1 = Mockito.mock(Actor.class);
         Actor actor2 = new SendActor(harness.getEndpointDirectory(), "actor2", "actor1");

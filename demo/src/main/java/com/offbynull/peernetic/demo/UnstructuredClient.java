@@ -2,16 +2,29 @@ package com.offbynull.peernetic.demo;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
+import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
+import com.offbynull.peernetic.demo.messages.external.FailureResponse;
+import com.offbynull.peernetic.demo.messages.external.JoinNodeRequest;
+import com.offbynull.peernetic.demo.messages.external.JoinRequest;
+import com.offbynull.peernetic.demo.messages.external.KeepAliveRequest;
+import com.offbynull.peernetic.demo.messages.external.LeaveRequest;
+import com.offbynull.peernetic.demo.messages.external.SuccessResponse;
 import com.offbynull.peernetic.demo.messages.internal.QueryNextAddress;
 import com.offbynull.peernetic.demo.messages.internal.StartJoin;
 import com.offbynull.peernetic.demo.messages.internal.StartSeed;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Random;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.Validate;
 
 public final class UnstructuredClient<A> {
@@ -20,18 +33,30 @@ public final class UnstructuredClient<A> {
     private static final String ACTIVE_STATE = "ACTIVE";
     
     private EndpointDirectory<A> endpointDirectory;
+    private EndpointIdentifier<A> endpointIdentifier;
     private EndpointScheduler endpointScheduler;
     private LinkedHashSet<A> addressCache;
-    private LinkedHashSet<A> joinedNodes;
+    private Map<String, A> incomingJoinedNodes;
+    private Map<String, A> outgoingJoinedNodes;
     private Endpoint selfEndpoint;
+    private Random random;
 
-    public UnstructuredClient(EndpointDirectory<A> endpointDirectory, EndpointScheduler endpointScheduler) {
+    public UnstructuredClient(EndpointDirectory<A> endpointDirectory, EndpointIdentifier<A> endpointIdentifier,
+            EndpointScheduler endpointScheduler) {
         Validate.notNull(endpointDirectory);
+        Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
         
         this.endpointDirectory = endpointDirectory;
+        this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
         this.addressCache = new LinkedHashSet<>();
+        
+        try {
+            random = SecureRandom.getInstance("SHA1PRNG");
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new IllegalStateException(nsae);
+        }
     }
 
     @StateHandler(INITIAL_STATE)
@@ -43,34 +68,56 @@ public final class UnstructuredClient<A> {
     public void handleInitialJoin(String state, FiniteStateMachine fsm, Instant instant, StartJoin message, Object param) {
         selfEndpoint = message.getSelfEndpoint();
         addressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
-        joinedNodes = new LinkedHashSet<>(message.getBootstrapAddresses());
+        outgoingJoinedNodes = new HashMap<>();
+        incomingJoinedNodes = new HashMap<>();
         
         fsm.switchStateAndProcess(ACTIVE_STATE, instant, new QueryNextAddress(), null);
     }
 
     @StateHandler(ACTIVE_STATE)
     public void handleJoining(String state, FiniteStateMachine fsm, Instant instant, QueryNextAddress message, Object param) {
+        // Get next address from address cache
         Iterator<A> addressCacheIt = addressCache.iterator();
-        
         A address = addressCacheIt.next();
         addressCacheIt.remove();
         
-        Endpoint endpoint = endpointDirectory.lookup(address);
-        endpoint.send(selfEndpoint, joinmsg);
+        // Send join msg to address
+        Endpoint dstEndpoint = endpointDirectory.lookup(address);
+        Object dstMessage = new JoinNodeRequest(RandomStringUtils.random(32, 0, 32, true, true, null, random));
+        dstEndpoint.send(selfEndpoint, dstMessage);
         
+        // Reschedule this state to be triggered again in 5 seconds
         endpointScheduler.scheduleMessage(Duration.ofSeconds(5L), selfEndpoint, selfEndpoint, new QueryNextAddress());
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleJoining(String state, FiniteStateMachine fsm, Instant instant, QueryNextAddress message, Object param) {
-        Iterator<A> addressCacheIt = addressCache.iterator();
+    public void handleJoinRequests(String state, FiniteStateMachine fsm, Instant instant, JoinRequest message, Endpoint srcEndpoint) {
+        A address = endpointIdentifier.identify(srcEndpoint);
         
-        A address = addressCacheIt.next();
-        addressCacheIt.remove();
+        String key = message.getKey();
+        incomingJoinedNodes.put(key, address);
         
-        Endpoint endpoint = endpointDirectory.lookup(address);
-        endpoint.send(selfEndpoint, message);
+        srcEndpoint.send(selfEndpoint, new SuccessResponse(message));
+    }
+
+    @StateHandler(ACTIVE_STATE)
+    public void handleKeepAliveRequests(String state, FiniteStateMachine fsm, Instant instant, KeepAliveRequest message, Endpoint srcEndpoint) {
+        // TODO: use endpointscheduler to schedule some cleanup instruction to happen every x seconds. If this message is sent for a joined client, that client will not be cleaned up when the schedule runs
+    }
+
+    @StateHandler(ACTIVE_STATE)
+    public void handleLeaveRequests(String state, FiniteStateMachine fsm, Instant instant, LeaveRequest message, Endpoint srcEndpoint) {
+        String key = message.getKey();
+        incomingJoinedNodes.remove(key);
         
-        endpointScheduler.scheduleMessage(Duration.ofSeconds(5L), selfEndpoint, selfEndpoint, new QueryNextAddress());
+        srcEndpoint.send(selfEndpoint, new SuccessResponse(message));
+    }
+
+    @StateHandler(ACTIVE_STATE)
+    public void handleSuccessResponse(String state, FiniteStateMachine fsm, Instant instant, SuccessResponse message, Endpoint srcEndpoint) {
+    }
+
+    @StateHandler(ACTIVE_STATE)
+    public void handleFailureResponse(String state, FiniteStateMachine fsm, Instant instant, FailureResponse message, Endpoint srcEndpoint) {
     }
 }

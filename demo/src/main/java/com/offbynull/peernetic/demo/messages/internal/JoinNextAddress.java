@@ -1,5 +1,5 @@
 package com.offbynull.peernetic.demo.messages.internal;
 
-public final class QueryNextAddress {
+public final class JoinNextAddress {
     
 }

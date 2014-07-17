@@ -2,11 +2,11 @@ package com.offbynull.peernetic.demo.messages.external;
 
 import org.apache.commons.lang3.Validate;
 
-public final class LeaveRequest extends Request {
+public final class LinkRequest extends Request {
 
     private String key;
 
-    public LeaveRequest(String key, String nonce) {
+    public LinkRequest(String key, String nonce) {
         super(nonce);
         
         Validate.isTrue(key.length() == 32);
@@ -16,4 +16,5 @@ public final class LeaveRequest extends Request {
     public String getKey() {
         return key;
     }
+
 }

@@ -6,11 +6,11 @@ import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.demo.messages.external.FailureResponse;
 import com.offbynull.peernetic.demo.messages.external.JoinNodeRequest;
-import com.offbynull.peernetic.demo.messages.external.JoinRequest;
+import com.offbynull.peernetic.demo.messages.external.LinkRequest;
 import com.offbynull.peernetic.demo.messages.external.KeepAliveRequest;
 import com.offbynull.peernetic.demo.messages.external.LeaveRequest;
 import com.offbynull.peernetic.demo.messages.external.SuccessResponse;
-import com.offbynull.peernetic.demo.messages.internal.QueryNextAddress;
+import com.offbynull.peernetic.demo.messages.internal.JoinNextAddress;
 import com.offbynull.peernetic.demo.messages.internal.StartJoin;
 import com.offbynull.peernetic.demo.messages.internal.StartSeed;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
@@ -31,6 +31,10 @@ public final class UnstructuredClient<A> {
 
     private static final String INITIAL_STATE = "INITIAL";
     private static final String ACTIVE_STATE = "ACTIVE";
+    
+    private static final int MAX_INCOMING_JOINS = 32;
+    private static final int MAX_OUTGOING_JOINS = 32;
+    
     
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
@@ -71,11 +75,11 @@ public final class UnstructuredClient<A> {
         outgoingJoinedNodes = new HashMap<>();
         incomingJoinedNodes = new HashMap<>();
         
-        fsm.switchStateAndProcess(ACTIVE_STATE, instant, new QueryNextAddress(), null);
+        fsm.switchStateAndProcess(ACTIVE_STATE, instant, new JoinNextAddress(), null);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleJoining(String state, FiniteStateMachine fsm, Instant instant, QueryNextAddress message, Object param) {
+    public void handleSearch(String state, FiniteStateMachine fsm, Instant instant, JoinNextAddress message, Object param) {
         // Get next address from address cache
         Iterator<A> addressCacheIt = addressCache.iterator();
         A address = addressCacheIt.next();
@@ -87,12 +91,16 @@ public final class UnstructuredClient<A> {
         dstEndpoint.send(selfEndpoint, dstMessage);
         
         // Reschedule this state to be triggered again in 5 seconds
-        endpointScheduler.scheduleMessage(Duration.ofSeconds(5L), selfEndpoint, selfEndpoint, new QueryNextAddress());
+        endpointScheduler.scheduleMessage(Duration.ofSeconds(5L), selfEndpoint, selfEndpoint, new JoinNextAddress());
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleJoinRequests(String state, FiniteStateMachine fsm, Instant instant, JoinRequest message, Endpoint srcEndpoint) {
+    public void handleJoinRequests(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint) {
         A address = endpointIdentifier.identify(srcEndpoint);
+        
+        if (incomingJoinedNodes.size() >= MAX_INCOMING_JOINS) {
+            return;
+        }
         
         String key = message.getKey();
         incomingJoinedNodes.put(key, address);

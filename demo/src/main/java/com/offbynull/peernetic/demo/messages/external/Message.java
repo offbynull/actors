@@ -10,11 +10,11 @@ public abstract class Message {
         this.nonce = nonce;
     }
 
-    public String getNonce() {
+    public final String getNonce() {
         return nonce;
     }
     
-    protected final void validate() {
+    public final void validate() {
         Validate.isTrue(nonce.length() == 8);
         innerValidate();
     }

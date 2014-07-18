@@ -1,5 +1,5 @@
 package com.offbynull.peernetic.demo.messages.internal;
 
-public final class JoinNextAddress {
+public final class Timer {
     
 }

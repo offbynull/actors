@@ -1,16 +1,13 @@
 package com.offbynull.peernetic.demo;
 
+import com.offbynull.peernetic.SessionManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.demo.messages.external.FailureResponse;
-import com.offbynull.peernetic.demo.messages.external.JoinNodeRequest;
 import com.offbynull.peernetic.demo.messages.external.LinkRequest;
-import com.offbynull.peernetic.demo.messages.external.KeepAliveRequest;
-import com.offbynull.peernetic.demo.messages.external.LeaveRequest;
-import com.offbynull.peernetic.demo.messages.external.SuccessResponse;
-import com.offbynull.peernetic.demo.messages.internal.JoinNextAddress;
+import com.offbynull.peernetic.demo.messages.external.LinkResponse;
+import com.offbynull.peernetic.demo.messages.internal.Timer;
 import com.offbynull.peernetic.demo.messages.internal.StartJoin;
 import com.offbynull.peernetic.demo.messages.internal.StartSeed;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
@@ -19,10 +16,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.Validate;
@@ -32,6 +28,8 @@ public final class UnstructuredClient<A> {
     private static final String INITIAL_STATE = "INITIAL";
     private static final String ACTIVE_STATE = "ACTIVE";
     
+    private static final Duration SESSION_DURATION = Duration.ofSeconds(30L);
+    
     private static final int MAX_INCOMING_JOINS = 32;
     private static final int MAX_OUTGOING_JOINS = 32;
     
@@ -39,9 +37,10 @@ public final class UnstructuredClient<A> {
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
     private EndpointScheduler endpointScheduler;
+    
     private LinkedHashSet<A> addressCache;
-    private Map<String, A> incomingJoinedNodes;
-    private Map<String, A> outgoingJoinedNodes;
+    private SessionManager<A> incomingSessions;
+    private SessionManager<A> outgoingSessions;
     private Endpoint selfEndpoint;
     private Random random;
 
@@ -54,7 +53,6 @@ public final class UnstructuredClient<A> {
         this.endpointDirectory = endpointDirectory;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
-        this.addressCache = new LinkedHashSet<>();
         
         try {
             random = SecureRandom.getInstance("SHA1PRNG");
@@ -72,14 +70,20 @@ public final class UnstructuredClient<A> {
     public void handleInitialJoin(String state, FiniteStateMachine fsm, Instant instant, StartJoin message, Object param) {
         selfEndpoint = message.getSelfEndpoint();
         addressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
-        outgoingJoinedNodes = new HashMap<>();
-        incomingJoinedNodes = new HashMap<>();
+        incomingSessions = new SessionManager<>();
+        outgoingSessions = new SessionManager<>();
         
-        fsm.switchStateAndProcess(ACTIVE_STATE, instant, new JoinNextAddress(), null);
+        fsm.switchStateAndProcess(ACTIVE_STATE, instant, new Timer(), null);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleSearch(String state, FiniteStateMachine fsm, Instant instant, JoinNextAddress message, Object param) {
+    public void handleSearch(String state, FiniteStateMachine fsm, Instant instant, Timer message, Object param) {
+        // TODO:
+        //
+        // Check to see if you have open outgoing slots, if so, send requests to addresses in cache
+        // Prune session managers, nonce managers
+        // Reschedule endpoint
+        
         // Get next address from address cache
         Iterator<A> addressCacheIt = addressCache.iterator();
         A address = addressCacheIt.next();
@@ -91,41 +95,37 @@ public final class UnstructuredClient<A> {
         dstEndpoint.send(selfEndpoint, dstMessage);
         
         // Reschedule this state to be triggered again in 5 seconds
-        endpointScheduler.scheduleMessage(Duration.ofSeconds(5L), selfEndpoint, selfEndpoint, new JoinNextAddress());
+        endpointScheduler.scheduleMessage(Duration.ofSeconds(5L), selfEndpoint, selfEndpoint, new Timer());
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleJoinRequests(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint) {
+    public void handleLinkRequests(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint) {
         A address = endpointIdentifier.identify(srcEndpoint);
+        List<A> links = incomingSessions.getSessions();
         
-        if (incomingJoinedNodes.size() >= MAX_INCOMING_JOINS) {
+        if (incomingSessions.size() >= MAX_INCOMING_JOINS) {
+            srcEndpoint.send(selfEndpoint, new LinkResponse<>(false, links, message.getNonce()));
             return;
         }
         
-        String key = message.getKey();
-        incomingJoinedNodes.put(key, address);
+        incomingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
         
-        srcEndpoint.send(selfEndpoint, new SuccessResponse(message));
+        srcEndpoint.send(selfEndpoint, new LinkResponse(true, links, message.getNonce()));
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleKeepAliveRequests(String state, FiniteStateMachine fsm, Instant instant, KeepAliveRequest message, Endpoint srcEndpoint) {
-        // TODO: use endpointscheduler to schedule some cleanup instruction to happen every x seconds. If this message is sent for a joined client, that client will not be cleaned up when the schedule runs
-    }
-
-    @StateHandler(ACTIVE_STATE)
-    public void handleLeaveRequests(String state, FiniteStateMachine fsm, Instant instant, LeaveRequest message, Endpoint srcEndpoint) {
-        String key = message.getKey();
-        incomingJoinedNodes.remove(key);
+    public void handleLinkResponse(String state, FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
+        message.validate();
         
-        srcEndpoint.send(selfEndpoint, new SuccessResponse(message));
-    }
-
-    @StateHandler(ACTIVE_STATE)
-    public void handleSuccessResponse(String state, FiniteStateMachine fsm, Instant instant, SuccessResponse message, Endpoint srcEndpoint) {
-    }
-
-    @StateHandler(ACTIVE_STATE)
-    public void handleFailureResponse(String state, FiniteStateMachine fsm, Instant instant, FailureResponse message, Endpoint srcEndpoint) {
+        if (outgoingSessions.size() >= MAX_OUTGOING_JOINS) {
+            return; // ignore
+        }
+        
+        A address = endpointIdentifier.identify(srcEndpoint);
+        if (message.isSuccessful()) {
+            outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
+        }
+        
+        addressCache.addAll(message.getLinks());
     }
 }

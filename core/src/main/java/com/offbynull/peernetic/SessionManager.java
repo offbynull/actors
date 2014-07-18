@@ -2,9 +2,11 @@ package com.offbynull.peernetic;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -48,23 +50,44 @@ public final class SessionManager<A> {
         prune(time);
         
         Session<A> session = sessionLookup.remove(source);
+        Validate.isTrue(session != null);
         session.ignore(); // equivalent to sessionTimeoutQueue.remove(session);, will be removed when encountered
         
         lastCallTime = time;
     }
 
-    public void updateSession(Instant time, Duration duration, A source) {
+    public void addOrUpdateSession(Instant time, Duration duration, A source, Object param) {
         Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
         Validate.notNull(source);
 
         Validate.isTrue(sessionLookup.get(source) != null, "Session does not exist");
         
-        // Grab params
+        if (containsSession(source)) {
+            removeSession(time, source);
+        }
+        addSession(time, duration, source, param);
+    }
+
+    public List<A> getSessions() {
+        return new ArrayList<>(sessionLookup.keySet());
+    }
+
+    public Object getSessionParam(A source) {
+        Validate.notNull(source);
         Session<A> session = sessionLookup.get(source);
         
-        // Remove and re-add
-        removeSession(time, source);
-        addSession(time, duration, source, session.getParam());
+        Validate.isTrue(session != null);
+        
+        return session.getParam();
+    }
+    
+    public boolean containsSession(A source) {
+        Validate.notNull(source);
+        return sessionLookup.containsKey(source);
+    }
+
+    public int size() {
+        return sessionLookup.size();
     }
     
     public void prune(Instant time) {

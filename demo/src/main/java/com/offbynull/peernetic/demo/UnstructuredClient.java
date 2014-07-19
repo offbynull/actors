@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.demo;
 
+import com.offbynull.peernetic.NonceManager;
 import com.offbynull.peernetic.SessionManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
@@ -7,10 +8,12 @@ import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.demo.messages.external.LinkRequest;
 import com.offbynull.peernetic.demo.messages.external.LinkResponse;
-import com.offbynull.peernetic.demo.messages.internal.Timer;
+import com.offbynull.peernetic.demo.messages.external.Request;
 import com.offbynull.peernetic.demo.messages.internal.StartJoin;
 import com.offbynull.peernetic.demo.messages.internal.StartSeed;
+import com.offbynull.peernetic.demo.messages.internal.Timer;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
+import com.offbynull.peernetic.fsm.PreStateHandler;
 import com.offbynull.peernetic.fsm.StateHandler;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -19,6 +22,7 @@ import java.time.Instant;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.Validate;
@@ -39,6 +43,7 @@ public final class UnstructuredClient<A> {
     private EndpointScheduler endpointScheduler;
     
     private LinkedHashSet<A> addressCache;
+    private NonceManager<A> nonceManager;
     private SessionManager<A> incomingSessions;
     private SessionManager<A> outgoingSessions;
     private Endpoint selfEndpoint;
@@ -72,10 +77,25 @@ public final class UnstructuredClient<A> {
         addressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
         incomingSessions = new SessionManager<>();
         outgoingSessions = new SessionManager<>();
+        nonceManager = new NonceManager<>();
         
         fsm.switchStateAndProcess(ACTIVE_STATE, instant, new Timer(), null);
     }
 
+    @PreStateHandler(ACTIVE_STATE)
+    public boolean checkIfHandled(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint) {
+        A address = endpointIdentifier.identify(srcEndpoint);
+        Optional<Object> pastResponse = nonceManager.checkNonce(instant, address);
+        
+        if (pastResponse.isPresent()) {
+            Object response = pastResponse.get();
+            srcEndpoint.send(selfEndpoint, response);
+            return false;
+        }
+        
+        return true;
+    }
+    
     @StateHandler(ACTIVE_STATE)
     public void handleSearch(String state, FiniteStateMachine fsm, Instant instant, Timer message, Object param) {
         // TODO:

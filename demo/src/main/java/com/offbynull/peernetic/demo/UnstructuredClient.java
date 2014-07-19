@@ -16,7 +16,7 @@ import com.offbynull.peernetic.demo.messages.external.Request;
 import com.offbynull.peernetic.demo.messages.internal.Start;
 import com.offbynull.peernetic.demo.messages.internal.Timer;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
-import com.offbynull.peernetic.fsm.PreStateHandler;
+import com.offbynull.peernetic.fsm.FilterStateHandler;
 import com.offbynull.peernetic.fsm.StateHandler;
 import java.time.Duration;
 import java.time.Instant;
@@ -72,7 +72,7 @@ public final class UnstructuredClient<A> {
         fsm.switchStateAndProcess(ACTIVE_STATE, instant, new Timer(), null);
     }
 
-    @PreStateHandler(ACTIVE_STATE)
+    @FilterStateHandler(ACTIVE_STATE)
     public boolean checkIfHandled(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint) {
         // Check nonce to make sure we haven't already responded to this message. If processed already, return cached response.
         Optional<Object> pastResponse = nonceManager.checkNonce(instant, new ByteArrayNonce(message.getNonce()));

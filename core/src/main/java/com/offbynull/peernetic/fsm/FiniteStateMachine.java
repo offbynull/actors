@@ -14,6 +14,8 @@ public final class FiniteStateMachine<P> {
     private Object object;
     private String currentState;
     private UnmodifiableMap<StateKey, Method> stateHandlerMap;
+    private UnmodifiableMap<StateKey, Method> preStateHandlerMap;
+    private UnmodifiableMap<StateKey, Method> postStateHandlerMap;
     private UnmodifiableMap<TransitionKey, Method> transitionHandlerMap;
     
     public FiniteStateMachine(Object object, String currentState, Class<P> paramType) {
@@ -50,6 +52,8 @@ public final class FiniteStateMachine<P> {
             method.setAccessible(true);
             
             String[] states = stateHandler.value();
+            Validate.isTrue(states.length > 0, "Need atleast 1 state listed for method %s", method.getName());
+            
             for (String state : states) {
                 StateKey key = new StateKey(state, methodParams[3]);
                 Method existingMethod = stateHandlerMap.put(key, method);
@@ -60,6 +64,86 @@ public final class FiniteStateMachine<P> {
         }
         
         this.stateHandlerMap = (UnmodifiableMap<StateKey, Method>) UnmodifiableMap.unmodifiableMap(stateHandlerMap);
+
+        
+        
+        Map<StateKey, Method> preStateHandlerMap = new HashMap<>();
+        for (Method method : methods) {
+            StateHandler[] annotations = method.getDeclaredAnnotationsByType(StateHandler.class);
+            if (annotations.length == 0) {
+                continue;
+            }
+            
+            Validate.isTrue(annotations.length == 1, "Method %s can only have 1 %s annotation",
+                    method.getName(), StateHandler.class.getSimpleName());
+            
+            StateHandler stateHandler = annotations[0];
+            
+            Class<?> methodRet = method.getReturnType();
+            Class<?>[] methodParams = method.getParameterTypes();
+            Validate.isTrue((methodRet == boolean.class || methodRet == Boolean.class || methodRet == Void.class) // rets void or boolean
+                    && methodParams.length == 5
+                    && ClassUtils.isAssignable(methodParams[0], String.class) // state
+                    && ClassUtils.isAssignable(methodParams[1], FiniteStateMachine.class) // this
+                    && ClassUtils.isAssignable(methodParams[2], Instant.class) // time
+                    && ClassUtils.isAssignable(methodParams[3], Object.class) // msg
+                    && ClassUtils.isAssignable(methodParams[4], paramType), // params
+                    "Method %s with %s has incorrect arguments",
+                    method.getName(), StateHandler.class.getSimpleName());
+            method.setAccessible(true);
+            
+            String[] states = stateHandler.value();
+            Validate.isTrue(states.length > 0, "Need atleast 1 state listed for method %s", method.getName());
+            
+            for (String state : states) {
+                StateKey key = new StateKey(state, methodParams[3]);
+                Method existingMethod = preStateHandlerMap.put(key, method);
+                
+                Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
+                        StateHandler.class.getSimpleName(), method.getName());
+            }
+        }
+        
+        this.preStateHandlerMap = (UnmodifiableMap<StateKey, Method>) UnmodifiableMap.unmodifiableMap(preStateHandlerMap);
+        
+        
+        
+        Map<StateKey, Method> postStateHandlerMap = new HashMap<>();
+        for (Method method : methods) {
+            StateHandler[] annotations = method.getDeclaredAnnotationsByType(StateHandler.class);
+            if (annotations.length == 0) {
+                continue;
+            }
+            
+            Validate.isTrue(annotations.length == 1, "Method %s can only have 1 %s annotation",
+                    method.getName(), StateHandler.class.getSimpleName());
+            
+            StateHandler stateHandler = annotations[0];
+            
+            Class<?>[] methodParams = method.getParameterTypes();
+            Validate.isTrue(methodParams.length == 5
+                    && ClassUtils.isAssignable(methodParams[0], String.class) // state
+                    && ClassUtils.isAssignable(methodParams[1], FiniteStateMachine.class) // this
+                    && ClassUtils.isAssignable(methodParams[2], Instant.class) // time
+                    && ClassUtils.isAssignable(methodParams[3], Object.class) // msg
+                    && ClassUtils.isAssignable(methodParams[4], paramType), // params
+                    "Method %s with %s has incorrect arguments",
+                    method.getName(), StateHandler.class.getSimpleName());
+            method.setAccessible(true);
+            
+            String[] states = stateHandler.value();
+            Validate.isTrue(states.length > 0, "Need atleast 1 state listed for method %s", method.getName());
+            
+            for (String state : states) {
+                StateKey key = new StateKey(state, methodParams[3]);
+                Method existingMethod = postStateHandlerMap.put(key, method);
+                
+                Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
+                        StateHandler.class.getSimpleName(), method.getName());
+            }
+        }
+        
+        this.postStateHandlerMap = (UnmodifiableMap<StateKey, Method>) UnmodifiableMap.unmodifiableMap(preStateHandlerMap);
         
         
         
@@ -103,20 +187,43 @@ public final class FiniteStateMachine<P> {
         Validate.notNull(instant);
         Validate.notNull(message);
         
-        Method method = null;
-        for (Class<?> cls : ClassUtils.hierarchy(message.getClass(), ClassUtils.Interfaces.INCLUDE)) {
+        Method handlerMethod = getHandlerMethod(stateHandlerMap, message.getClass());
+        Method preHandlerMethod = getHandlerMethod(preStateHandlerMap, message.getClass());
+        Method postHandlerMethod = getHandlerMethod(postStateHandlerMap, message.getClass());
+        
+        Validate.validState(handlerMethod != null, "No handler for %s during state %s", message.getClass(), currentState);
+        
+        if (preHandlerMethod != null) {
+            Boolean skipProcessing = (Boolean) invokeHandlerMethod(preHandlerMethod, instant, message, params);
+            if (skipProcessing != null && skipProcessing) {
+                return;
+            }
+        }
+        
+        invokeHandlerMethod(handlerMethod, instant, message, params);
+        
+        if (postHandlerMethod != null) {
+            invokeHandlerMethod(postHandlerMethod, instant, message, params);
+        }
+    }
+    
+    private Method getHandlerMethod(Map<StateKey, Method> methodMap, Class<?> msgClass) {
+        Method handlerMethod = null;
+        for (Class<?> cls : ClassUtils.hierarchy(msgClass, ClassUtils.Interfaces.INCLUDE)) {
             StateKey key = new StateKey(currentState, cls);
-            method = stateHandlerMap.get(key);
+            handlerMethod = methodMap.get(key);
             
-            if (method != null) {
+            if (handlerMethod != null) {
                 break;
             }
         }
         
-        Validate.validState(method != null, "No handler for %s during state %s", message.getClass(), currentState);
-        
+        return handlerMethod;
+    }
+    
+    private Object invokeHandlerMethod(Method method, Instant instant, Object message, P params) {
         try {
-            method.invoke(object, currentState, this, instant, message, params);
+            return method.invoke(object, currentState, this, instant, message, params);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             throw new IllegalStateException(ex);
         }

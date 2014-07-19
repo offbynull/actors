@@ -15,6 +15,7 @@
         <module>build-tools</module>
         <module>core</module>
         <module>demo</module>
+        <module>debug</module>
     </modules>
     
     <dependencyManagement>
@@ -23,6 +24,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.3.2</version>
+                <type>jar</type>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.4</version>
                 <type>jar</type>
             </dependency>
             <dependency>
@@ -50,6 +57,11 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>4.0.20.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>org.tinyjee.jgraphx</groupId>
+                <artifactId>jgraphx</artifactId>
+                <version>2.3.0.5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

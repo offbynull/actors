@@ -10,7 +10,7 @@ import org.junit.Test;
 public final class BasicFiniteStateMachineTest {
     
     @Test
-    public void testBasicFiniteStateMachine() {
+    public void basicFiniteStateMachineTest() {
         Simple simple = new Simple();
         FiniteStateMachine stateMachine = new FiniteStateMachine(simple, Simple.INITIAL_STATE, Object.class);
         

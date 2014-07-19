@@ -17,6 +17,7 @@ public final class ByteArrayNonceGenerator implements NonceGenerator<byte[]> {
         } catch (NoSuchAlgorithmException nsae) {
             throw new IllegalStateException(nsae);
         }
+        this.size = size;
     }
     
     public ByteArrayNonceGenerator(Random random, int size) {
@@ -24,6 +25,7 @@ public final class ByteArrayNonceGenerator implements NonceGenerator<byte[]> {
         
         Validate.notNull(random);
         this.random = random;
+        this.size = size;
     }
     
     @Override

@@ -110,7 +110,7 @@ public final class UnstructuredClient<A> {
             addressCacheIt.remove();
             
             // If already have a link to address, skip
-            if (outgoingSessions.containsSession(address) || incomingSessions.containsSession(address)) {
+            if (outgoingSessions.containsSession(instant, address) || incomingSessions.containsSession(instant, address)) {
                 continue;
             }
 
@@ -130,7 +130,7 @@ public final class UnstructuredClient<A> {
     @StateHandler(ACTIVE_STATE)
     public void handleLinkRequest(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint) {
         A address = endpointIdentifier.identify(srcEndpoint);
-        List<A> links = incomingSessions.getSessions();
+        List<A> links = incomingSessions.getSessions(instant);
         
         // If no space available for incoming request
         if (incomingSessions.size() >= MAX_INCOMING_JOINS) {
@@ -153,7 +153,7 @@ public final class UnstructuredClient<A> {
         A address = endpointIdentifier.identify(srcEndpoint);
         
         // If the response is coming back from a address which we're not tracking, ignore it
-        if (!outgoingSessions.containsSession(address)) {
+        if (!outgoingSessions.containsSession(instant, address)) {
             return;
         }
         

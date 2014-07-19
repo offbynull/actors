@@ -22,52 +22,52 @@ public final class NonceManager<T> {
         nonceTimeoutQueue = new PriorityQueue<>(new SlotTimeoutComparator<T>());
     }
     
-    public void addNonce(Instant time, Duration duration, Nonce<T> nonce, Object param) {
-        Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
+    public void addNonce(Instant time, Duration duration, Nonce<T> nonce, Object response) {
+        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.isTrue(!duration.isNegative() && !duration.isZero());
         Validate.notNull(nonce);
 
         Validate.isTrue(nonceLookup.get(nonce) == null, "Nonce already exists");
                 
         prune(time);
+        lastCallTime = time;
         
         Instant pruneTime = time.plus(duration);
-        Slot<T> slot = new Slot<>(pruneTime, nonce, param);
+        Slot<T> slot = new Slot<>(pruneTime, nonce, response);
 
         
         nonceLookup.put(nonce, slot);
         nonceTimeoutQueue.add(slot);
-        
-        lastCallTime = time;
     }
 
     public void removeNonce(Instant time, Nonce<T> nonce) {
-        Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
+        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.notNull(nonce);
 
         prune(time);
+        lastCallTime = time;
         
         Slot<T> slot = nonceLookup.remove(nonce);
         slot.ignore(); // equivalent to nonceTimeoutQueue.remove(nonce);, will be removed when encountered
-        
-        lastCallTime = time;
     }
 
     public Optional<Object> checkNonce(Instant time, Nonce<T> nonce) {
-        Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
+        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.notNull(nonce);
 
         prune(time);
-        
         lastCallTime = time;
                 
         Slot<T> slot = nonceLookup.get(nonce);
-        return slot == null ? Optional.empty() : Optional.ofNullable(slot.getResponse());
+        return slot == null ? null : Optional.ofNullable(slot.getResponse());
     }
 
     public void assignResponse(Instant time, Nonce<T> nonce, Object response) {
-        Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
+        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.notNull(nonce);
+        
+        prune(time);
+        lastCallTime = time;
         
         Slot<T> slot = nonceLookup.get(nonce);
         Validate.isTrue(slot != null, "Nonce does not exist");

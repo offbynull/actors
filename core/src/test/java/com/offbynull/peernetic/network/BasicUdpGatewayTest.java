@@ -13,7 +13,7 @@ import org.junit.Test;
 public final class BasicUdpGatewayTest {
     
     @Test
-    public void testBasicUdpGateway() throws Throwable {
+    public void basicUdpGatewayTest() throws Throwable {
         InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 9000);
         List<Object> incoming1 = new ArrayList<>();
         UdpGateway udpGateway1 = new UdpGateway(

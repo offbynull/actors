@@ -126,7 +126,7 @@ public final class TestHarnessTest {
     }
 
     @Test
-    public void actorSendToNonExisting() throws Throwable {
+    public void actorSendToNonExistingTest() throws Throwable {
         TestHarness<String> harness = new TestHarness<>();
         
         Actor actor1 = Mockito.mock(Actor.class);

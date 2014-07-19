@@ -9,7 +9,7 @@ import org.mockito.Mockito;
 public final class BasicActorTest {
 
     @Test
-    public void testBasicActors() throws Throwable {
+    public void basicActorsTest() throws Throwable {
         Actor actor1 = Mockito.mock(Actor.class);
         Actor actor2 = Mockito.mock(Actor.class);
         ActorRunnable actorRunnable = ActorRunnable.createAndStart(actor1, actor2);

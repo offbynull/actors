@@ -146,6 +146,8 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
             }
         });
         
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        
         splitPane.setDividerLocation(0.2);
     }
 

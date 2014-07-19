@@ -35,6 +35,8 @@ public final class ActorRunnable implements Runnable {
         actorRunnable.lock.lock();
         try {
             Thread actorThread = new Thread(actorRunnable);
+            actorThread.setDaemon(true);
+            actorThread.setName(ActorRunnable.class.getSimpleName() + "-Thread");
             actorThread.start();
 
             actorRunnable.awaitState(State.STARTING);

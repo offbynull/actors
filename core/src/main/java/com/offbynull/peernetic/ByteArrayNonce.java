@@ -1,7 +1,6 @@
 package com.offbynull.peernetic;
 
 import java.util.Arrays;
-import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class ByteArrayNonce implements Nonce<byte[]> {
@@ -21,7 +20,7 @@ public final class ByteArrayNonce implements Nonce<byte[]> {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 19 * hash + Objects.hashCode(this.value);
+        hash = 19 * hash + Arrays.hashCode(this.value);
         return hash;
     }
 

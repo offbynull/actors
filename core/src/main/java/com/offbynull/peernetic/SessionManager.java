@@ -60,8 +60,6 @@ public final class SessionManager<A> {
         
         prune(time);
         lastCallTime = time;
-
-        Validate.isTrue(sessionLookup.get(id) != null, "Session does not exist");
         
         if (containsSession(time, id)) {
             removeSession(time, id);

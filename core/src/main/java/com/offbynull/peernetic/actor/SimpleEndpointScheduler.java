@@ -6,9 +6,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
 public final class SimpleEndpointScheduler implements EndpointScheduler {
-    private ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1);
+    private ScheduledExecutorService scheduler;
+    
+    public SimpleEndpointScheduler() {
+        scheduler = new ScheduledThreadPoolExecutor(1,
+                new BasicThreadFactory.Builder().namingPattern(SimpleEndpointScheduler.class.getSimpleName()).daemon(true).build());
+    }
     
     @Override
     public void scheduleMessage(Duration delay, Endpoint source, Endpoint destination, Object message) {

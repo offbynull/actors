@@ -6,12 +6,12 @@ import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
-public final class StartJoin<A> {
+public final class Start<A> {
 
     private final UnmodifiableSet<A> bootstrapAddresses;
     private final Endpoint selfEndpoint;
 
-    public StartJoin(Set<A> bootstrapAddresses, Endpoint selfEndpoint) {
+    public Start(Set<A> bootstrapAddresses, Endpoint selfEndpoint) {
         Validate.notNull(bootstrapAddresses);
         Validate.notNull(selfEndpoint);
         Validate.isTrue(!bootstrapAddresses.isEmpty(), "Must have atleast 1 bootstrap address");

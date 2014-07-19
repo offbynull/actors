@@ -10,7 +10,7 @@ public final class LinkResponse<A> extends Response {
     private boolean successful;
     private UnmodifiableList<A> links;
 
-    public LinkResponse(boolean successful, List<A> links, String nonce) {
+    public LinkResponse(boolean successful, List<A> links, byte[] nonce) {
         super(nonce);
         this.successful = successful;
         this.links = (UnmodifiableList<A>) UnmodifiableList.unmodifiableList(new ArrayList<A>(links));
@@ -27,7 +27,11 @@ public final class LinkResponse<A> extends Response {
 
     @Override
     protected void innerValidate() {
-        Validate.noNullElements(links);
+        try {
+            Validate.noNullElements(links);
+        } catch (RuntimeException re) {
+            throw new IllegalStateException();
+        }
     }
 
 }

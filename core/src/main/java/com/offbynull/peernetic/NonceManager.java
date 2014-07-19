@@ -11,74 +11,74 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 import org.apache.commons.lang3.Validate;
 
-public final class NonceManager<A> {
-    private final Map<A, Nonce<A>> nonceLookup;
-    private final PriorityQueue<Nonce<A>> nonceTimeoutQueue;
+public final class NonceManager<T> {
+    private final Map<Nonce<T>, Slot<T>> nonceLookup;
+    private final PriorityQueue<Slot<T>> nonceTimeoutQueue;
     
     private Instant lastCallTime;
 
     public NonceManager() {
         nonceLookup = new HashMap<>();
-        nonceTimeoutQueue = new PriorityQueue<>(new NonceTimeoutComparator<A>());
+        nonceTimeoutQueue = new PriorityQueue<>(new SlotTimeoutComparator<T>());
     }
     
-    public void addNonce(Instant time, Duration duration, A source, Object param) {
+    public void addNonce(Instant time, Duration duration, Nonce<T> nonce, Object param) {
         Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
         Validate.isTrue(!duration.isNegative() && !duration.isZero());
-        Validate.notNull(source);
+        Validate.notNull(nonce);
 
-        Validate.isTrue(nonceLookup.get(source) == null, "Nonce already exists");
+        Validate.isTrue(nonceLookup.get(nonce) == null, "Nonce already exists");
                 
         prune(time);
         
         Instant pruneTime = time.plus(duration);
-        Nonce<A> session = new Nonce<>(pruneTime, source, param);
+        Slot<T> slot = new Slot<>(pruneTime, nonce, param);
 
         
-        nonceLookup.put(source, session);
-        nonceTimeoutQueue.add(session);
+        nonceLookup.put(nonce, slot);
+        nonceTimeoutQueue.add(slot);
         
         lastCallTime = time;
     }
 
-    public void removeNonce(Instant time, A source) {
+    public void removeNonce(Instant time, Nonce<T> nonce) {
         Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
-        Validate.notNull(source);
+        Validate.notNull(nonce);
 
         prune(time);
         
-        Nonce<A> session = nonceLookup.remove(source);
-        session.ignore(); // equivalent to sessionTimeoutQueue.remove(session);, will be removed when encountered
+        Slot<T> slot = nonceLookup.remove(nonce);
+        slot.ignore(); // equivalent to nonceTimeoutQueue.remove(nonce);, will be removed when encountered
         
         lastCallTime = time;
     }
 
-    public Optional<Object> checkNonce(Instant time, A source) {
+    public Optional<Object> checkNonce(Instant time, Nonce<T> nonce) {
         Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
-        Validate.notNull(source);
+        Validate.notNull(nonce);
 
         prune(time);
         
         lastCallTime = time;
                 
-        Nonce<A> session = nonceLookup.get(source);
-        return session == null ? Optional.empty() : Optional.ofNullable(session.getResponse());
+        Slot<T> slot = nonceLookup.get(nonce);
+        return slot == null ? Optional.empty() : Optional.ofNullable(slot.getResponse());
     }
 
-    public void assignResponse(Instant time, A source, Object response) {
+    public void assignResponse(Instant time, Nonce<T> nonce, Object response) {
         Validate.isTrue(lastCallTime == null ? true : lastCallTime.isBefore(time));
-        Validate.notNull(source);
+        Validate.notNull(nonce);
         
-        Nonce<A> nonce = nonceLookup.get(source);
-        Validate.isTrue(nonce != null, "Nonce does not exist");
+        Slot<T> slot = nonceLookup.get(nonce);
+        Validate.isTrue(slot != null, "Nonce does not exist");
         
-        nonce.setResponse(response);
+        slot.setResponse(response);
     }
     
     public void prune(Instant time) {
-        Iterator<Nonce<A>> it = nonceTimeoutQueue.iterator();
+        Iterator<Slot<T>> it = nonceTimeoutQueue.iterator();
         while (it.hasNext()) {
-            Nonce<A> next = it.next();
+            Slot<T> next = it.next();
             
             if (next.isIgnore()) {
                 it.remove();
@@ -91,19 +91,19 @@ public final class NonceManager<A> {
             
             it.remove();
             
-            nonceLookup.remove(next.getSource());
+            nonceLookup.remove(next.getNonce());
         }
     }
     
-    private static final class Nonce<A> {
+    private static final class Slot<A> {
         private final Instant pruneTime;
-        private final A source;
+        private final Nonce<A> nonce;
         private Object response;
         private boolean ignore;
 
-        public Nonce(Instant pruneTime, A source, Object response) {
+        public Slot(Instant pruneTime, Nonce<A> nonce, Object response) {
             this.pruneTime = pruneTime;
-            this.source = source;
+            this.nonce = nonce;
             this.response = response;
             this.ignore = false;
         }
@@ -112,8 +112,8 @@ public final class NonceManager<A> {
             return pruneTime;
         }
 
-        public A getSource() {
-            return source;
+        public Nonce<A> getNonce() {
+            return nonce;
         }
 
         public Object getResponse() {
@@ -136,7 +136,7 @@ public final class NonceManager<A> {
         public int hashCode() {
             int hash = 7;
             hash = 67 * hash + Objects.hashCode(this.pruneTime);
-            hash = 67 * hash + Objects.hashCode(this.source);
+            hash = 67 * hash + Objects.hashCode(this.nonce);
             return hash;
         }
 
@@ -148,21 +148,21 @@ public final class NonceManager<A> {
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            final Nonce<?> other = (Nonce<?>) obj;
+            final Slot<?> other = (Slot<?>) obj;
             if (!Objects.equals(this.pruneTime, other.pruneTime)) {
                 return false;
             }
-            if (!Objects.equals(this.source, other.source)) {
+            if (!Objects.equals(this.nonce, other.nonce)) {
                 return false;
             }
             return true;
         }
 
     }
-    private static final class NonceTimeoutComparator<A> implements Comparator<Nonce<A>> {
+    private static final class SlotTimeoutComparator<A> implements Comparator<Slot<A>> {
 
         @Override
-        public int compare(Nonce<A> o1, Nonce<A> o2) {
+        public int compare(Slot<A> o1, Slot<A> o2) {
             return o1.getPruneTime().compareTo(o2.getPruneTime());
         }
         

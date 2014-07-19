@@ -1,21 +1,23 @@
 package com.offbynull.peernetic.demo.messages.external;
 
+import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public abstract class Message {
-    private String nonce;
+    public static final int NONCE_LENGTH = 8;
+    private byte[] nonce;
 
-    public Message(String nonce) {
-        Validate.isTrue(nonce.length() == 8);
-        this.nonce = nonce;
+    public Message(byte[] nonce) {
+        Validate.isTrue(nonce.length == NONCE_LENGTH);
+        this.nonce = Arrays.copyOf(nonce, nonce.length);
     }
 
-    public final String getNonce() {
-        return nonce;
+    public final byte[] getNonce() {
+        return Arrays.copyOf(nonce, nonce.length);
     }
     
     public final void validate() {
-        Validate.isTrue(nonce.length() == 8);
+        Validate.validState(nonce.length == NONCE_LENGTH);
         innerValidate();
     }
     

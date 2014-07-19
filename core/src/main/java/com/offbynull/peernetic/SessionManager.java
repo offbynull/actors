@@ -13,14 +13,14 @@ import java.util.PriorityQueue;
 import org.apache.commons.lang3.Validate;
 
 public final class SessionManager<A> {
-    private final Map<A, Session<A>> sessionLookup;
-    private final PriorityQueue<Session<A>> sessionTimeoutQueue;
+    private final Map<A, Slot<A>> sessionLookup;
+    private final PriorityQueue<Slot<A>> sessionTimeoutQueue;
     
     private Instant lastCallTime;
 
     public SessionManager() {
         sessionLookup = new HashMap<>();
-        sessionTimeoutQueue = new PriorityQueue<>(new SessionTimeoutComparator<A>());
+        sessionTimeoutQueue = new PriorityQueue<>(new SlotTimeoutComparator<A>());
     }
     
     public void addSession(Instant time, Duration duration, A source, Object param) {
@@ -34,7 +34,7 @@ public final class SessionManager<A> {
         prune(time);
         
         Instant pruneTime = time.plus(duration);
-        Session<A> session = new Session<>(pruneTime, source, param);
+        Slot<A> session = new Slot<>(pruneTime, source, param);
 
         
         sessionLookup.put(source, session);
@@ -49,7 +49,7 @@ public final class SessionManager<A> {
 
         prune(time);
         
-        Session<A> session = sessionLookup.remove(source);
+        Slot<A> session = sessionLookup.remove(source);
         Validate.isTrue(session != null);
         session.ignore(); // equivalent to sessionTimeoutQueue.remove(session);, will be removed when encountered
         
@@ -74,7 +74,7 @@ public final class SessionManager<A> {
 
     public Object getSessionParam(A source) {
         Validate.notNull(source);
-        Session<A> session = sessionLookup.get(source);
+        Slot<A> session = sessionLookup.get(source);
         
         Validate.isTrue(session != null);
         
@@ -91,9 +91,9 @@ public final class SessionManager<A> {
     }
     
     public void prune(Instant time) {
-        Iterator<Session<A>> it = sessionTimeoutQueue.iterator();
+        Iterator<Slot<A>> it = sessionTimeoutQueue.iterator();
         while (it.hasNext()) {
-            Session<A> next = it.next();
+            Slot<A> next = it.next();
             
             if (next.isIgnore()) {
                 it.remove();
@@ -106,17 +106,17 @@ public final class SessionManager<A> {
             
             it.remove();
             
-            sessionLookup.remove(next.getSource());
+            sessionLookup.remove(next.getAddress());
         }
     }
     
-    private static final class Session<A> {
+    private static final class Slot<A> {
         private final Instant pruneTime;
         private final A source;
         private final Object param;
         private boolean ignore;
 
-        public Session(Instant pruneTime, A source, Object param) {
+        public Slot(Instant pruneTime, A source, Object param) {
             this.pruneTime = pruneTime;
             this.source = source;
             this.param = param;
@@ -127,7 +127,7 @@ public final class SessionManager<A> {
             return pruneTime;
         }
 
-        public A getSource() {
+        public A getAddress() {
             return source;
         }
 
@@ -159,7 +159,7 @@ public final class SessionManager<A> {
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            final Session<?> other = (Session<?>) obj;
+            final Slot<?> other = (Slot<?>) obj;
             if (!Objects.equals(this.pruneTime, other.pruneTime)) {
                 return false;
             }
@@ -170,10 +170,10 @@ public final class SessionManager<A> {
         }
 
     }
-    private static final class SessionTimeoutComparator<A> implements Comparator<Session<A>> {
+    private static final class SlotTimeoutComparator<A> implements Comparator<Slot<A>> {
 
         @Override
-        public int compare(Session<A> o1, Session<A> o2) {
+        public int compare(Slot<A> o1, Slot<A> o2) {
             return o1.getPruneTime().compareTo(o2.getPruneTime());
         }
         

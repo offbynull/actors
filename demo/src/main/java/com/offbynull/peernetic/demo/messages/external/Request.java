@@ -2,7 +2,7 @@ package com.offbynull.peernetic.demo.messages.external;
 
 public class Request extends Message {
 
-    public Request(String nonce) {
+    public Request(byte[] nonce) {
         super(nonce);
     }
     

@@ -89,13 +89,13 @@ public final class UnstructuredClient<A> {
     public boolean checkIncomingRequest(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint) {
         // Check nonce to make sure it isn't a request from ourselves.
         Nonce<byte[]> nonce = new ByteArrayNonce(message.getNonce());
-        if (outgoingLinkRequestsNonceManager.checkNonce(instant, nonce) != null
-                || outgoingQueryRequestsNonceManager.checkNonce(instant, nonce) != null) {
+        if (outgoingLinkRequestsNonceManager.checkNonce(nonce) != null
+                || outgoingQueryRequestsNonceManager.checkNonce(nonce) != null) {
             return false;
         }
         
         // Check nonce to make sure we haven't already responded to this message. If processed already, return cached response.
-        Optional<Object> pastResponse = incomingRequestsNonceManager.checkNonce(instant, nonce);
+        Optional<Object> pastResponse = incomingRequestsNonceManager.checkNonce(nonce);
         if (pastResponse != null && pastResponse.isPresent()) {
             Object response = pastResponse.get();
             srcEndpoint.send(selfEndpoint, response);
@@ -126,10 +126,10 @@ public final class UnstructuredClient<A> {
             return false;
         }
         
-        if (nonceManager.checkNonce(instant, nonce) == null) {
+        if (nonceManager.checkNonce(nonce) == null) {
             return false;
         }
-        nonceManager.removeNonce(instant, nonce);
+        nonceManager.removeNonce(nonce);
 
         // Make sure message is valid. If not, don't process.
         try {
@@ -143,6 +143,13 @@ public final class UnstructuredClient<A> {
     
     @StateHandler(ACTIVE_STATE)
     public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) {
+        // Prune nonce managers and session managers
+        incomingRequestsNonceManager.prune(instant);
+        outgoingLinkRequestsNonceManager.prune(instant);
+        outgoingQueryRequestsNonceManager.prune(instant);
+        incomingSessions.prune(instant);
+        outgoingSessions.prune(instant);
+        
         // Check to see if you have open outgoing slots. If so, send requests to addresses in cache
         Iterator<A> addressCacheIt = addressCache.iterator();
         while (outgoingSessions.size() < MAX_OUTGOING_JOINS && addressCacheIt.hasNext()) {
@@ -151,7 +158,7 @@ public final class UnstructuredClient<A> {
             addressCacheIt.remove();
             
             // If already have a link to address, skip
-            if (outgoingSessions.containsSession(instant, address) || incomingSessions.containsSession(instant, address)) {
+            if (outgoingSessions.containsSession(address) || incomingSessions.containsSession(address)) {
                 continue;
             }
 
@@ -166,7 +173,7 @@ public final class UnstructuredClient<A> {
         }
         
         // If address cache is empty, ask a neighbour for more nodes
-        List<A> links = generateAllLinks(instant);
+        List<A> links = generateAllLinks();
         if (addressCache.isEmpty() && !links.isEmpty()) {
             // Grab random link
             int pos = RandomUtils.nextInt(0, links.size());
@@ -183,7 +190,7 @@ public final class UnstructuredClient<A> {
         }
         
         // Send a message to all outgoing links telling them we're still alive, otherwise we'll get dropped
-        for (A address : outgoingSessions.getSessions(instant)) {
+        for (A address : outgoingSessions.getSessions()) {
             Nonce<byte[]> nonce = nonceGenerator.generate();
             Endpoint dstEndpoint = endpointDirectory.lookup(address);
             Object dstMessage = new LinkRequest(nonce.getValue());
@@ -198,11 +205,11 @@ public final class UnstructuredClient<A> {
 
     @StateHandler(ACTIVE_STATE)
     public void handleLinkRequest(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint) {
-        List<A> links = generateAllLinks(instant);
+        List<A> links = generateAllLinks();
         
         // If the address isn't already an incoming link and no space available for new incoming links, send rejection
         A address = endpointIdentifier.identify(srcEndpoint);
-        if (!incomingSessions.containsSession(instant, address) && incomingSessions.size() >= MAX_INCOMING_JOINS) {
+        if (!incomingSessions.containsSession(address) && incomingSessions.size() >= MAX_INCOMING_JOINS) {
             srcEndpoint.send(selfEndpoint, new LinkResponse<>(false, links, message.getNonce()));
             return;
         }
@@ -217,16 +224,16 @@ public final class UnstructuredClient<A> {
 
     @StateHandler(ACTIVE_STATE)
     public void handleQueryRequest(String state, FiniteStateMachine fsm, Instant instant, QueryRequest message, Endpoint srcEndpoint) {
-        List<A> links = generateAllLinks(instant);
+        List<A> links = generateAllLinks();
         
         QueryResponse<A> response = new QueryResponse(links, message.getNonce());
         srcEndpoint.send(selfEndpoint, response);
         incomingRequestsNonceManager.addNonce(instant, NONCE_DURATION, new ByteArrayNonce(message.getNonce()), response);
     }
 
-    private List<A> generateAllLinks(Instant instant) {
-        List<A> inLinks = incomingSessions.getSessions(instant);
-        List<A> outLinks = outgoingSessions.getSessions(instant);
+    private List<A> generateAllLinks() {
+        List<A> inLinks = incomingSessions.getSessions();
+        List<A> outLinks = outgoingSessions.getSessions();
         
         List<A> links = new ArrayList<>();
         links.addAll(inLinks);
@@ -238,7 +245,7 @@ public final class UnstructuredClient<A> {
     @StateHandler(ACTIVE_STATE)
     public void handleLinkResponse(String state, FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
         A address = endpointIdentifier.identify(srcEndpoint);
-        boolean alreadyExists = outgoingSessions.containsSession(instant, address);
+        boolean alreadyExists = outgoingSessions.containsSession(address);
         if (message.isSuccessful()) {
             if (!alreadyExists) { // If new connection
                 if (outgoingSessions.size() < MAX_OUTGOING_JOINS) { // If space is available for new connection

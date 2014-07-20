@@ -28,8 +28,7 @@ public final class NonceManager<T> {
         Validate.notNull(nonce);
 
         Validate.isTrue(nonceLookup.get(nonce) == null, "Nonce already exists");
-                
-        prune(time);
+
         lastCallTime = time;
         
         Instant pruneTime = time.plus(duration);
@@ -40,34 +39,24 @@ public final class NonceManager<T> {
         nonceTimeoutQueue.add(slot);
     }
 
-    public void removeNonce(Instant time, Nonce<T> nonce) {
-        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
+    public void removeNonce(Nonce<T> nonce) {
         Validate.notNull(nonce);
-
-        prune(time);
-        lastCallTime = time;
         
         Slot<T> slot = nonceLookup.remove(nonce);
+        Validate.isTrue(nonce != null);
+        
         slot.ignore(); // equivalent to nonceTimeoutQueue.remove(nonce);, will be removed when encountered
     }
 
-    public Optional<Object> checkNonce(Instant time, Nonce<T> nonce) {
-        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
+    public Optional<Object> checkNonce(Nonce<T> nonce) {
         Validate.notNull(nonce);
-
-        prune(time);
-        lastCallTime = time;
                 
         Slot<T> slot = nonceLookup.get(nonce);
         return slot == null ? null : Optional.ofNullable(slot.getResponse());
     }
 
-    public void assignResponse(Instant time, Nonce<T> nonce, Object response) {
-        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
+    public void assignResponse(Nonce<T> nonce, Object response) {
         Validate.notNull(nonce);
-        
-        prune(time);
-        lastCallTime = time;
         
         Slot<T> slot = nonceLookup.get(nonce);
         Validate.isTrue(slot != null, "Nonce does not exist");
@@ -75,7 +64,9 @@ public final class NonceManager<T> {
         slot.setResponse(response);
     }
     
-    public void prune(Instant time) {
+    public Map<Nonce<T>, Object> prune(Instant time) {
+        Map<Nonce<T>, Object> ret = new HashMap<>();
+        
         Iterator<Slot<T>> it = nonceTimeoutQueue.iterator();
         while (it.hasNext()) {
             Slot<T> next = it.next();
@@ -92,7 +83,11 @@ public final class NonceManager<T> {
             it.remove();
             
             nonceLookup.remove(next.getNonce());
+            
+            ret.put(next.getNonce(), next.getResponse());
         }
+        
+        return ret;
     }
     
     private static final class Slot<A> {

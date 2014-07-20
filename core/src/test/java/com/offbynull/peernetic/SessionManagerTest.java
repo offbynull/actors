@@ -17,33 +17,34 @@ public final class SessionManagerTest {
         Instant startTime = Instant.ofEpochMilli(0L);
         Instant nextTime = startTime;
         
-        Assert.assertFalse(sessionManager.containsSession(nextTime, SESSION_1_ID));
-        Assert.assertFalse(sessionManager.containsSession(nextTime, SESSION_2_ID));
+        Assert.assertFalse(sessionManager.containsSession(SESSION_1_ID));
+        Assert.assertFalse(sessionManager.containsSession(SESSION_2_ID));
         
         sessionManager.addSession(nextTime, Duration.ofSeconds(5L), SESSION_1_ID, SESSION_1_PARAMS);
         sessionManager.addSession(nextTime, Duration.ofSeconds(10L), SESSION_2_ID, null);
-        Assert.assertEquals(SESSION_1_PARAMS, sessionManager.getSessionParam(nextTime, SESSION_1_ID));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_1_ID));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_2_ID));
+        Assert.assertEquals(SESSION_1_PARAMS, sessionManager.getSessionParam(SESSION_1_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(1L);
         sessionManager.addOrUpdateSession(nextTime, Duration.ofSeconds(5L), SESSION_1_ID, SESSION_1_PARAMS);
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_1_ID));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_2_ID));
+        sessionManager.prune(nextTime);
+        Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(2L);
         sessionManager.prune(nextTime);
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_1_ID));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_2_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(5L);
-        sessionManager.prune(startTime.plusSeconds(5L));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_1_ID));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_2_ID));
+        sessionManager.prune(nextTime);
+        Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(6L);
-        sessionManager.prune(startTime.plusSeconds(6L));
-        Assert.assertFalse(sessionManager.containsSession(nextTime, SESSION_1_ID));
-        Assert.assertTrue(sessionManager.containsSession(nextTime, SESSION_2_ID));
+        sessionManager.prune(nextTime);
+        Assert.assertFalse(sessionManager.containsSession(SESSION_1_ID));
+        Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
     }
 }

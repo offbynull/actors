@@ -28,8 +28,7 @@ public final class SessionManager<A> {
                 
         Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.notNull(id);
-
-        prune(time);
+        
         lastCallTime = time;
         
         Validate.isTrue(sessionLookup.get(id) == null, "Session already exists");
@@ -42,56 +41,54 @@ public final class SessionManager<A> {
         sessionTimeoutQueue.add(session);
     }
 
-    public void removeSession(Instant time, A id) {
-        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
+    public Object removeSession(A id) {
         Validate.notNull(id);
-
-        prune(time);
-        lastCallTime = time;
         
         Slot<A> session = sessionLookup.remove(id);
         Validate.isTrue(session != null);
         session.ignore(); // equivalent to sessionTimeoutQueue.remove(session);, will be removed when encountered
+        
+        return session.getParam();
     }
 
     public void addOrUpdateSession(Instant time, Duration duration, A id, Object param) {
         Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.notNull(id);
         
-        prune(time);
         lastCallTime = time;
         
-        if (containsSession(time, id)) {
-            removeSession(time, id);
+        if (containsSession(id)) {
+            removeSession(id);
         }
         addSession(time, duration, id, param);
     }
 
-    public List<A> getSessions(Instant time) {
-        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
-        
-        prune(time);
-        lastCallTime = time;
-        
-        return new ArrayList<>(sessionLookup.keySet());
-    }
-
-    public Object getSessionParam(Instant time, A id) {
+    public void refreshSession(Instant time, Duration duration, A id) {
         Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.notNull(id);
         
-        prune(time);
         lastCallTime = time;
         
-        Slot<A> session = sessionLookup.get(id);
+        Object param = sessionLookup.get(id).getParam();
+
+        removeSession(id);
+        addSession(time, duration, id, param);
+    }
+
+    public List<A> getSessions() {
+        return new ArrayList<>(sessionLookup.keySet());
+    }
+
+    public Object getSessionParam(A id) {
+        Validate.notNull(id);
         
+        Slot<A> session = sessionLookup.get(id);
         Validate.isTrue(session != null);
         
         return session.getParam();
     }
     
-    public boolean containsSession(Instant time, A source) {
-        Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
+    public boolean containsSession(A source) {
         Validate.notNull(source);
         return sessionLookup.containsKey(source);
     }
@@ -100,7 +97,9 @@ public final class SessionManager<A> {
         return sessionLookup.size();
     }
     
-    public void prune(Instant time) {
+    public Map<A, Object> prune(Instant time) {
+        Map<A, Object> ret = new HashMap<>();
+        
         Iterator<Slot<A>> it = sessionTimeoutQueue.iterator();
         while (it.hasNext()) {
             Slot<A> next = it.next();
@@ -117,7 +116,11 @@ public final class SessionManager<A> {
             it.remove();
             
             sessionLookup.remove(next.getAddress());
+            
+            ret.put(next.getAddress(), next.getParam());
         }
+        
+        return ret;
     }
     
     private static final class Slot<A> {

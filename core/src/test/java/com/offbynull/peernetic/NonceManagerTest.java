@@ -22,30 +22,31 @@ public class NonceManagerTest {
         Instant startTime = Instant.ofEpochMilli(0L);
         Instant nextTime = startTime;
         
-        Assert.assertNull(nonceManager.checkNonce(nextTime, nonce1));
-        Assert.assertNull(nonceManager.checkNonce(nextTime, nonce2));
+        Assert.assertNull(nonceManager.checkNonce(nonce1));
+        Assert.assertNull(nonceManager.checkNonce(nonce2));
         
         nonceManager.addNonce(nextTime, Duration.ofSeconds(5L), nonce1, NONCE_1_RESPONSE);
         nonceManager.addNonce(nextTime, Duration.ofSeconds(10L), nonce2, null);
-        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nextTime, nonce1).get());
-        Assert.assertEquals(Optional.empty(), nonceManager.checkNonce(nextTime, nonce2));
+        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
+        Assert.assertEquals(Optional.empty(), nonceManager.checkNonce(nonce2));
 
-        nonceManager.assignResponse(nextTime, nonce2, NONCE_2_RESPONSE);
-        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nextTime, nonce1).get());
-        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nextTime, nonce2).get());
+        nonceManager.assignResponse(nonce2, NONCE_2_RESPONSE);
+        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
+        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         
         nextTime = startTime.plusSeconds(1L);
-        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nextTime, nonce1).get());
-        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nextTime, nonce2).get());
+        nonceManager.prune(nextTime);
+        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
+        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         
         nextTime = startTime.plusSeconds(2L);
         nonceManager.prune(nextTime);
-        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nextTime, nonce1).get());
-        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nextTime, nonce2).get());
+        Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
+        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         
         nextTime = startTime.plusSeconds(5L);
         nonceManager.prune(nextTime);
-        Assert.assertNull(NONCE_1_RESPONSE, nonceManager.checkNonce(nextTime, nonce1));
-        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nextTime, nonce2).get());
+        Assert.assertNull(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1));
+        Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
     }
 }

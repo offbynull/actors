@@ -42,7 +42,7 @@ public final class Main {
             }
 
             @Override
-            public void onConnected(Integer from, Integer to) {
+            public void onOutgoingConnected(Integer from, Integer to) {
                 visualizer.step("Connected " + from + " to " + to,
                         new AddEdgeCommand<>(from, to));
             }

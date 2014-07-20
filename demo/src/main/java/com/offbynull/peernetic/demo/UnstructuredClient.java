@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -148,7 +149,14 @@ public final class UnstructuredClient<A> {
         outgoingLinkRequestsNonceManager.prune(instant);
         outgoingQueryRequestsNonceManager.prune(instant);
         incomingSessions.prune(instant);
-        outgoingSessions.prune(instant);
+        Set<A> prunedOutgoingLinks = outgoingSessions.prune(instant).keySet();
+        
+        A selfAddress = endpointIdentifier.identify(selfEndpoint);
+        for (A otherAddress : prunedOutgoingLinks) {
+            listener.onDisconnected(selfAddress, otherAddress);
+        }
+        
+        
         
         // Check to see if you have open outgoing slots. If so, send requests to addresses in cache
         Iterator<A> addressCacheIt = addressCache.iterator();
@@ -250,7 +258,7 @@ public final class UnstructuredClient<A> {
             if (!alreadyExists) { // If new connection
                 if (outgoingSessions.size() < MAX_OUTGOING_JOINS) { // If space is available for new connection
                     outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
-                    listener.onConnected(endpointIdentifier.identify(selfEndpoint), address);
+                    listener.onOutgoingConnected(endpointIdentifier.identify(selfEndpoint), address);
                 }
             } else { // If existing connection
                 outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);

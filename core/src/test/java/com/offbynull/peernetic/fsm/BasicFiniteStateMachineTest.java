@@ -61,12 +61,12 @@ public final class BasicFiniteStateMachineTest {
         
         private List<String> output = new ArrayList<>();
         
-        @FilterStateHandler({ INITIAL_STATE, MANUAL_STATE, MANUAL_TO_AUTO_STATE, AUTO_STATE, MULTI_STATE_1, MULTI_STATE_2 })
+        @FilterHandler({ INITIAL_STATE, MANUAL_STATE, MANUAL_TO_AUTO_STATE, AUTO_STATE, MULTI_STATE_1, MULTI_STATE_2 })
         public void filterHandleAll(String state, FiniteStateMachine fsm, Instant instant, Object message, Object param) {
             output.add(state + "-" + message + "-PRE");
         }
 
-        @FilterStateHandler(FILTERED_STATE)
+        @FilterHandler(FILTERED_STATE)
         public boolean filterHandleFail(String state, FiniteStateMachine fsm, Instant instant, Object message, Object param) {
             output.add(state + "-" + message + "-PREFAIL");
             return false;

@@ -68,15 +68,15 @@ public final class FiniteStateMachine<P> {
         
         Map<StateKey, Method> filterStateHandlerMap = new HashMap<>();
         for (Method method : methods) {
-            FilterStateHandler[] annotations = method.getDeclaredAnnotationsByType(FilterStateHandler.class);
+            FilterHandler[] annotations = method.getDeclaredAnnotationsByType(FilterHandler.class);
             if (annotations.length == 0) {
                 continue;
             }
             
             Validate.isTrue(annotations.length == 1, "Method %s can only have 1 %s annotation",
-                    method.getName(), FilterStateHandler.class.getSimpleName());
+                    method.getName(), FilterHandler.class.getSimpleName());
             
-            FilterStateHandler stateHandler = annotations[0];
+            FilterHandler stateHandler = annotations[0];
             
             Class<?> methodRet = method.getReturnType();
             Class<?>[] methodParams = method.getParameterTypes();
@@ -88,7 +88,7 @@ public final class FiniteStateMachine<P> {
                     && ClassUtils.isAssignable(methodParams[3], Object.class) // msg
                     && ClassUtils.isAssignable(methodParams[4], paramType), // params
                     "Method %s with %s has incorrect arguments",
-                    method.getName(), FilterStateHandler.class.getSimpleName());
+                    method.getName(), FilterHandler.class.getSimpleName());
             method.setAccessible(true);
             
             String[] states = stateHandler.value();
@@ -99,7 +99,7 @@ public final class FiniteStateMachine<P> {
                 Method existingMethod = filterStateHandlerMap.put(key, method);
                 
                 Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
-                        FilterStateHandler.class.getSimpleName(), method.getName());
+                        FilterHandler.class.getSimpleName(), method.getName());
             }
         }
         

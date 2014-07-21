@@ -20,7 +20,7 @@ import com.offbynull.peernetic.demo.messages.external.Response;
 import com.offbynull.peernetic.demo.messages.internal.Start;
 import com.offbynull.peernetic.demo.messages.internal.Timer;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
-import com.offbynull.peernetic.fsm.FilterStateHandler;
+import com.offbynull.peernetic.fsm.FilterHandler;
 import com.offbynull.peernetic.fsm.StateHandler;
 import java.time.Duration;
 import java.time.Instant;
@@ -86,7 +86,7 @@ public final class UnstructuredClient<A> {
         fsm.switchStateAndProcess(ACTIVE_STATE, instant, new Timer(), null);
     }
 
-    @FilterStateHandler(ACTIVE_STATE)
+    @FilterHandler(ACTIVE_STATE)
     public boolean checkIncomingRequest(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint) {
         // Check nonce to make sure it isn't a request from ourselves.
         Nonce<byte[]> nonce = new ByteArrayNonce(message.getNonce());
@@ -113,7 +113,7 @@ public final class UnstructuredClient<A> {
         return true;
     }
 
-    @FilterStateHandler(ACTIVE_STATE)
+    @FilterHandler(ACTIVE_STATE)
     public boolean checkIncomingResponse(String state, FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint) {
         Nonce<byte[]> nonce = new ByteArrayNonce(message.getNonce());
         

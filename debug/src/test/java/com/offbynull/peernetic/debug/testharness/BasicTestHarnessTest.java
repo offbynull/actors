@@ -1,5 +1,11 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.debug.testharness;
 
+
+
+import com.offbynull.peernetic.actor.Actor;
+import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.EndpointDirectory;
+import com.offbynull.peernetic.actor.NullEndpoint;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.After;
@@ -12,9 +18,9 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import org.mockito.Mockito;
 
-public final class TestHarnessTest {
+public final class BasicTestHarnessTest {
     
-    public TestHarnessTest() {
+    public BasicTestHarnessTest() {
     }
     
     @BeforeClass

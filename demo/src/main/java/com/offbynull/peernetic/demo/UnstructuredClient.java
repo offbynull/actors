@@ -25,6 +25,7 @@ import com.offbynull.peernetic.fsm.StateHandler;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -50,6 +51,7 @@ public final class UnstructuredClient<A> {
     private EndpointIdentifier<A> endpointIdentifier;
     private EndpointScheduler endpointScheduler;
     private LinkedHashSet<A> addressCache;
+    private LinkedHashSet<A> originalAddressCache;
     private NonceGenerator<byte[]> nonceGenerator;
     private NonceManager<byte[]> incomingRequestsNonceManager;
     private NonceManager<byte[]> outgoingLinkRequestsNonceManager;
@@ -57,6 +59,7 @@ public final class UnstructuredClient<A> {
     private SessionManager<A> incomingSessions;
     private SessionManager<A> outgoingSessions;
     private Endpoint selfEndpoint;
+    private A selfAddress;
     
     private UnstructuredClientListener<A> listener;
 
@@ -67,12 +70,14 @@ public final class UnstructuredClient<A> {
     
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Start message, Endpoint srcEndpoint) {
+    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Start<A> message, Endpoint srcEndpoint) {
         endpointDirectory = message.getEndpointDirectory();
         endpointIdentifier = message.getEndpointIdentifier();
         endpointScheduler = message.getEndpointScheduler();
         selfEndpoint = message.getSelfEndpoint();
+        selfAddress = message.getSelfAddress();
         addressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
+        originalAddressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
         incomingSessions = new SessionManager<>();
         outgoingSessions = new SessionManager<>();
         nonceGenerator = new ByteArrayNonceGenerator(Message.NONCE_LENGTH);
@@ -80,8 +85,7 @@ public final class UnstructuredClient<A> {
         outgoingLinkRequestsNonceManager = new NonceManager<>();
         outgoingQueryRequestsNonceManager = new NonceManager<>();
         
-        A address = endpointIdentifier.identify(selfEndpoint);
-        listener.onStarted(address);
+        listener.onStarted(selfAddress);
         
         fsm.switchStateAndProcess(ACTIVE_STATE, instant, new Timer(), null);
     }
@@ -151,12 +155,31 @@ public final class UnstructuredClient<A> {
         incomingSessions.prune(instant);
         Set<A> prunedOutgoingLinks = outgoingSessions.prune(instant).keySet();
         
-        A selfAddress = endpointIdentifier.identify(selfEndpoint);
         for (A otherAddress : prunedOutgoingLinks) {
             listener.onDisconnected(selfAddress, otherAddress);
         }
         
         
+        // If address cache is empty, ask a neighbour for more nodes (if neighbours available) or restore original address cache
+        List<A> links = generateAllLinks();
+        if (addressCache.isEmpty()) {
+            if (!links.isEmpty()) {
+                // Grab random link
+                int pos = RandomUtils.nextInt(0, links.size());
+                A address = links.get(pos);
+
+                // Send query message to address
+                Nonce<byte[]> nonce = nonceGenerator.generate();
+                Endpoint dstEndpoint = endpointDirectory.lookup(address);
+                Object dstMessage = new QueryRequest(nonce.getValue());
+                dstEndpoint.send(selfEndpoint, dstMessage);
+
+                // Track
+                outgoingQueryRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
+            } else {
+                addressCache.addAll(originalAddressCache);
+            }
+        }
         
         // Check to see if you have open outgoing slots. If so, send requests to addresses in cache
         Iterator<A> addressCacheIt = addressCache.iterator();
@@ -178,23 +201,6 @@ public final class UnstructuredClient<A> {
             
             // Track
             outgoingLinkRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
-        }
-        
-        // If address cache is empty, ask a neighbour for more nodes
-        List<A> links = generateAllLinks();
-        if (addressCache.isEmpty() && !links.isEmpty()) {
-            // Grab random link
-            int pos = RandomUtils.nextInt(0, links.size());
-            A address = links.get(pos);
-            
-            // Send query message to address
-            Nonce<byte[]> nonce = nonceGenerator.generate();
-            Endpoint dstEndpoint = endpointDirectory.lookup(address);
-            Object dstMessage = new QueryRequest(nonce.getValue());
-            dstEndpoint.send(selfEndpoint, dstMessage);
-            
-            // Track
-            outgoingQueryRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
         }
         
         // Send a message to all outgoing links telling them we're still alive, otherwise we'll get dropped
@@ -252,16 +258,16 @@ public final class UnstructuredClient<A> {
     
     @StateHandler(ACTIVE_STATE)
     public void handleLinkResponse(String state, FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
-        A address = endpointIdentifier.identify(srcEndpoint);
-        boolean alreadyExists = outgoingSessions.containsSession(address);
+        A dstAddress = endpointIdentifier.identify(srcEndpoint);
+        boolean alreadyExists = outgoingSessions.containsSession(dstAddress);
         if (message.isSuccessful()) {
             if (!alreadyExists) { // If new connection
                 if (outgoingSessions.size() < MAX_OUTGOING_JOINS) { // If space is available for new connection
-                    outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
-                    listener.onOutgoingConnected(endpointIdentifier.identify(selfEndpoint), address);
+                    outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, dstAddress, null);
+                    listener.onOutgoingConnected(selfAddress, dstAddress);
                 }
             } else { // If existing connection
-                outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
+                outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, dstAddress, null);
             }
         }
         

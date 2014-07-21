@@ -1,13 +1,18 @@
 package com.offbynull.peernetic.demo;
 
 import com.offbynull.peernetic.FsmActor;
+import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorRunnable;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
-import com.offbynull.peernetic.actor.SimpleEndpointDirectory;
-import com.offbynull.peernetic.actor.SimpleEndpointIdentifier;
 import com.offbynull.peernetic.actor.SimpleEndpointScheduler;
+import com.offbynull.peernetic.debug.testnetwork.Hub;
+import com.offbynull.peernetic.debug.testnetwork.HubEndpointDirectory;
+import com.offbynull.peernetic.debug.testnetwork.HubEndpointIdentifier;
+import com.offbynull.peernetic.debug.testnetwork.SimpleLineFactory;
+import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
+import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
 import com.offbynull.peernetic.debug.visualizer.AddEdgeCommand;
 import com.offbynull.peernetic.debug.visualizer.AddNodeCommand;
 import com.offbynull.peernetic.debug.visualizer.ChangeNodeCommand;
@@ -18,9 +23,8 @@ import com.offbynull.peernetic.debug.visualizer.VisualizerUtils;
 import com.offbynull.peernetic.demo.messages.internal.Start;
 import java.awt.Color;
 import java.awt.Point;
+import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 public final class Main {
 
@@ -55,6 +59,20 @@ public final class Main {
         };
 
         
+        EndpointScheduler endpointScheduler = new SimpleEndpointScheduler();
+        
+        // Create and start fake network hub
+        Hub<Integer> hub = new Hub<>();
+        Actor hubActor = new FsmActor(hub, Hub.INITIAL_STATE);
+        ActorRunnable hubActorRunnable = ActorRunnable.createAndStart(hubActor);
+        Endpoint hubEndpoint = hubActorRunnable.getEndpoint(hubActor);
+        
+        hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(
+                endpointScheduler,
+                new SimpleLineFactory(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9),
+                hubEndpoint));
+        
+        
         // Create actors
         for (int i = 0; i < actors.length; i++) {
             UnstructuredClient<Integer> unstructuredClient = new UnstructuredClient<>(listener);
@@ -65,24 +83,21 @@ public final class Main {
         ActorRunnable actorRunnable = ActorRunnable.createAndStart(actors);
 
         
-        // Get endpoints for actors and create identifier+directory
-        Map<Endpoint, Integer> endpointsToIds = new HashMap<>();
-        Map<Integer, Endpoint> idsToEndpoints = new HashMap<>();
+        // Tell the hub about each actor
         for (int i = 0; i < actors.length; i++) {
             Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);
-            endpointsToIds.put(endpoint, i);
-            idsToEndpoints.put(i, endpoint);
+            hubEndpoint.send(endpoint, new JoinHub<>(i));
         }
 
-        SimpleEndpointDirectory<Integer> endpointDirectory = new SimpleEndpointDirectory<>(idsToEndpoints);
-        SimpleEndpointIdentifier<Integer> endpointIdentifier = new SimpleEndpointIdentifier<>(endpointsToIds);
-
         
-        // Send start signal to nodes
-        EndpointScheduler endpointScheduler = new SimpleEndpointScheduler();
+        // Start actors
         for (int i = 0; i < actors.length; i++) {
             Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);
-            Start<Integer> start = new Start<>(endpointDirectory, endpointIdentifier, endpointScheduler, Collections.singleton(0), endpoint);
+            HubEndpointDirectory<Integer> endpointDirectory = new HubEndpointDirectory<>(i, hubEndpoint);
+            HubEndpointIdentifier<Integer> endpointIdentifier = new HubEndpointIdentifier<>();
+            
+            Start<Integer> start = new Start<>(endpointDirectory, endpointIdentifier, endpointScheduler, Collections.singleton(0),
+                    endpoint, i);
             endpoint.send(NullEndpoint.INSTANCE, start);
         }
     }

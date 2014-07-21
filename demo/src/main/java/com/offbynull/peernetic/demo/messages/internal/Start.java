@@ -16,20 +16,23 @@ public final class Start<A> {
     private EndpointScheduler endpointScheduler;
     private final UnmodifiableSet<A> bootstrapAddresses;
     private final Endpoint selfEndpoint;
+    private final A selfAddress;
 
     public Start(EndpointDirectory<A> endpointDirectory, EndpointIdentifier<A> endpointIdentifier, EndpointScheduler endpointScheduler,
-            Set<A> bootstrapAddresses, Endpoint selfEndpoint) {
+            Set<A> bootstrapAddresses, Endpoint selfEndpoint, A selfAddress) {
         Validate.notNull(endpointDirectory);
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
         Validate.notNull(bootstrapAddresses);
         Validate.notNull(selfEndpoint);
+        Validate.notNull(selfAddress);
         Validate.isTrue(!bootstrapAddresses.isEmpty(), "Must have atleast 1 bootstrap address");
         this.endpointDirectory = endpointDirectory;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
         this.bootstrapAddresses = (UnmodifiableSet<A>) UnmodifiableSet.unmodifiableSet(new LinkedHashSet<A>(bootstrapAddresses));
         this.selfEndpoint = selfEndpoint;
+        this.selfAddress = selfAddress;
     }
 
     public UnmodifiableSet<A> getBootstrapAddresses() {
@@ -38,6 +41,10 @@ public final class Start<A> {
 
     public Endpoint getSelfEndpoint() {
         return selfEndpoint;
+    }
+
+    public A getSelfAddress() {
+        return selfAddress;
     }
 
     public EndpointDirectory<A> getEndpointDirectory() {

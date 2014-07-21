@@ -2,15 +2,15 @@ package com.offbynull.peernetic.debug.testnetwork;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
 import java.nio.ByteBuffer;
 import java.util.Objects;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.Validate;
 
 final class NodeToHubEndpoint<A> implements Endpoint {
+    private XStream xstream = new XStream(new BinaryStreamDriver());
     private Endpoint hubEndpoint;
     private A srcId;
     private A dstId;
@@ -35,18 +35,14 @@ final class NodeToHubEndpoint<A> implements Endpoint {
 
     @Override
     public void send(Endpoint source, Object message) {
-        ObjectOutputStream oos = null;
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            oos = new ObjectOutputStream(baos);
-            oos.writeObject(message);
+            xstream.toXML(message, baos);
             byte[] data = baos.toByteArray();
             ByteBuffer buffer = ByteBuffer.wrap(data);
             hubEndpoint.send(source, new DepartMessage<>(buffer, srcId, dstId));
-        } catch (IOException ex) {
+        } catch (RuntimeException ex) {
             // TODO: Log and do nothing
-        } finally {
-            IOUtils.closeQuietly(oos);
         }
     }
 

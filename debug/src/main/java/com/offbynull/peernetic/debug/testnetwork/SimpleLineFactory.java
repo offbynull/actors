@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.debug.testnetwork;
 
 import java.time.Duration;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 public final class SimpleLineFactory implements LineFactory {

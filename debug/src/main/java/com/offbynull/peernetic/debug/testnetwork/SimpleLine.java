@@ -4,6 +4,7 @@ import com.offbynull.peernetic.debug.testnetwork.messages.ArriveMessage;
 import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
 import com.offbynull.peernetic.debug.testnetwork.messages.TransitMessage;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,7 +42,7 @@ public final class SimpleLine<A> implements Line<A> {
     }
 
     @Override
-    public Collection<TransitMessage<A>> depart(DepartMessage<A> departMessage) {
+    public Collection<TransitMessage<A>> depart(Instant time, BufferMessage<A> departMessage) {
         int size = departMessage.getData().remaining();
         int sizeInKb = size / 1024 + (size % 1024 == 0 ? 0 : 1); // to kb, always round up
 
@@ -53,7 +54,7 @@ public final class SimpleLine<A> implements Line<A> {
 
             Duration delay = calculateNextDuration(sizeInKb);
             TransitMessage<A> transitMsg = new TransitMessage<>(departMessage.getSource(), departMessage.getDestination(),
-                    departMessage.getData(), delay);
+                    departMessage.getData(), time, delay);
             ret.add(transitMsg);
         } while (calculateNextRepeat(sizeInKb));
         
@@ -61,19 +62,16 @@ public final class SimpleLine<A> implements Line<A> {
     }
 
     @Override
-    public Collection<ArriveMessage<A>> arrive(TransitMessage<A> transitMessage) {
-        ArriveMessage<A> arriveMessage = new ArriveMessage<>(transitMessage.getData(), transitMessage.getSource(),
+    public Collection<BufferMessage<A>> arrive(Instant time, TransitMessage<A> transitMessage) {
+        BufferMessage<A> bufferMessage = new BufferMessage<>(transitMessage.getData(), transitMessage.getSource(),
                 transitMessage.getDestination());
-        return Collections.singleton(arriveMessage);
+        return Collections.singleton(bufferMessage);
     }
 
     private Duration calculateNextDuration(int sizeInKb) {
         long maxJitterMillis = jitterPerKb.toMillis();
-        if (maxJitterMillis == 0) {
-            return Duration.ZERO;
-        }
-
-        long jitter = random.nextLong() % (maxJitterMillis * (long) sizeInKb);
+        long jitter = maxJitterMillis == 0 ? 0L : random.nextLong() % (maxJitterMillis * (long) sizeInKb);
+        
         jitter -= maxJitterMillis / 2L; // center jitter on 0, so the duration may be earlier (negative) or later (positive)
         
         Duration nextDuration = delayPerKb.multipliedBy(sizeInKb).plusMillis(jitter);

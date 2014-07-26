@@ -18,6 +18,7 @@ package com.offbynull.peernetic.debug.testnetwork.messages;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -29,6 +30,7 @@ public final class TransitMessage<A> {
     private A source;
     private A destination;
     private ByteBuffer data;
+    private Instant departTime;
     private Duration duration;
 
     /**
@@ -36,14 +38,16 @@ public final class TransitMessage<A> {
      * @param source source
      * @param destination destination
      * @param data contents
+     * @param departTime time packet departed
      * @param duration duration the packet should stay in transit (before arriving)
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code duration} is negative
      */
-    public TransitMessage(A source, A destination, ByteBuffer data, Duration duration) {
+    public TransitMessage(A source, A destination, ByteBuffer data, Instant departTime, Duration duration) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(data);
+        Validate.notNull(departTime);
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
         this.source = source;
@@ -51,6 +55,7 @@ public final class TransitMessage<A> {
         this.data = ByteBuffer.allocate(data.remaining());
         this.data.put(data);
         this.data.flip();
+        this.departTime = departTime;
         this.duration = duration;
     }
 
@@ -76,6 +81,14 @@ public final class TransitMessage<A> {
      */
     public ByteBuffer getData() {
         return data.asReadOnlyBuffer();
+    }
+
+    /**
+     * Get time which transit of this message began.
+     * @return time which transit began
+     */
+    public Instant getDepartTime() {
+        return departTime;
     }
 
     /**

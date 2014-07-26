@@ -1,15 +1,10 @@
 package com.offbynull.peernetic.debug.testnetwork;
 
 import com.offbynull.peernetic.actor.Endpoint;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
-import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 final class HubToNodeEndpoint<A> implements Endpoint {
-    private XStream xstream = new XStream(new BinaryStreamDriver());
     private Endpoint nodeEndpoint;
 
     public HubToNodeEndpoint(Endpoint nodeEndpoint) {
@@ -23,13 +18,7 @@ final class HubToNodeEndpoint<A> implements Endpoint {
 
     @Override
     public void send(Endpoint source, Object message) {
-        try {
-            byte[] data = ByteBufferUtils.copyContentsToArray((ByteBuffer) message);
-            Object obj = xstream.fromXML(new ByteArrayInputStream(data));
-            nodeEndpoint.send(source, obj);
-        } catch (RuntimeException ex) {
-            // TODO: Log and do nothing
-        }
+        nodeEndpoint.send(source, message);
     }
 
     @Override

@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -146,11 +148,24 @@ public final class ActorRunnable implements Runnable {
                 return;
             }
 
-            InternalEnvelope env;
-            while ((env = queue.take()) != null) {
-                runActor(env, active, activeCount);
-                if (activeCount.getValue() == 0) {
-                    return;
+            InternalEnvelope firstEnv;
+            while ((firstEnv = queue.take()) != null) {
+                List<InternalEnvelope> envs = new LinkedList<>();
+                envs.add(firstEnv);
+                queue.drainTo(envs);
+                
+                long start = System.currentTimeMillis();
+                Instant time = Instant.now();
+                for (InternalEnvelope env : envs) {
+                    runActor(time, env, active, activeCount);
+                    if (activeCount.getValue() == 0) {
+                        return;
+                    }
+                }
+                long end = System.currentTimeMillis();
+                
+                if (actors.size() == 1) {
+                    System.out.println("PROCESSING: " + envs.size() + " ACTORCNT: " + actors.size() + " TIME: " + (end - start));
                 }
             }
         } catch (InterruptedException ie) {
@@ -232,7 +247,7 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    private void runActor(InternalEnvelope env, boolean[] active, MutableInt activeCount) throws InterruptedException {
+    private void runActor(Instant time, InternalEnvelope env, boolean[] active, MutableInt activeCount) throws InterruptedException {
         int actorIndex = env.getActorIndex();
 
         if (!active[actorIndex]) {
@@ -241,7 +256,7 @@ public final class ActorRunnable implements Runnable {
 
         Actor actor = actors.get(actorIndex);
         try {
-            actor.onStep(Instant.now(), env.getSource(), env.getMessage());
+            actor.onStep(time, env.getSource(), env.getMessage());
         } catch (InterruptedException e) {
             throw e;
         } catch (Exception e) {

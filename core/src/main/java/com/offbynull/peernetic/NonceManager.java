@@ -64,6 +64,10 @@ public final class NonceManager<T> {
         slot.setResponse(response);
     }
     
+    public int size() {
+        return nonceLookup.size();
+    }
+    
     public Map<Nonce<T>, Object> prune(Instant time) {
         Map<Nonce<T>, Object> ret = new HashMap<>();
         

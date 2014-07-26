@@ -1,8 +1,7 @@
 package com.offbynull.peernetic.actor;
 
-import java.io.Closeable;
 import java.time.Duration;
 
-public interface EndpointScheduler extends Closeable {
+public interface EndpointScheduler extends AutoCloseable {
     void scheduleMessage(Duration delay, Endpoint source, Endpoint destination, Object message);    
 }

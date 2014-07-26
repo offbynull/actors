@@ -57,7 +57,7 @@ public final class Main {
                         new RemoveEdgeCommand<>(from, to));
             }
         };
-
+        
         
         EndpointScheduler endpointScheduler = new SimpleEndpointScheduler();
         
@@ -69,7 +69,8 @@ public final class Main {
         
         hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(
                 endpointScheduler,
-                new SimpleLineFactory(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9),
+                new SimpleLineFactory(0L, Duration.ofMillis(0L), Duration.ofMillis(0L), 0.0, 1.0),
+//                new SimpleLineFactory(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9),
                 hubEndpoint));
         
         
@@ -81,7 +82,7 @@ public final class Main {
 
         // Start actors all within the same thread
         ActorRunnable actorRunnable = ActorRunnable.createAndStart(actors);
-
+        
         
         // Tell the hub about each actor
         for (int i = 0; i < actors.length; i++) {

@@ -10,7 +10,6 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.Validate;
 
 final class NodeToHubEndpoint<A> implements Endpoint {
-    private XStream xstream = new XStream(new BinaryStreamDriver());
     private Endpoint hubEndpoint;
     private A srcId;
     private A dstId;
@@ -36,11 +35,7 @@ final class NodeToHubEndpoint<A> implements Endpoint {
     @Override
     public void send(Endpoint source, Object message) {
         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            xstream.toXML(message, baos);
-            byte[] data = baos.toByteArray();
-            ByteBuffer buffer = ByteBuffer.wrap(data);
-            hubEndpoint.send(source, new DepartMessage<>(buffer, srcId, dstId));
+            hubEndpoint.send(source, new DepartMessage<>(message, srcId, dstId));
         } catch (RuntimeException ex) {
             // TODO: Log and do nothing
         }

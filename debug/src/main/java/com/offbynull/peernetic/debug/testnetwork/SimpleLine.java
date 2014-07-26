@@ -1,7 +1,5 @@
 package com.offbynull.peernetic.debug.testnetwork;
 
-import com.offbynull.peernetic.debug.testnetwork.messages.ArriveMessage;
-import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
 import com.offbynull.peernetic.debug.testnetwork.messages.TransitMessage;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,30 +13,34 @@ import org.apache.commons.lang3.Validate;
 public final class SimpleLine<A> implements Line<A> {
 
     private Random random;
-    private Duration delayPerKb;
-    private Duration jitterPerKb;
+    private Duration minDelayPerKb;
+    private Duration maxJitterPerKb;
     private double dropChancePerKb;
     private double nonRepeatChancePerKb;
+    private int maxRepeat;
 
     public SimpleLine() {
-        this(0L, Duration.ZERO, Duration.ZERO, 0.0, 1.0); // no delay, no jitter, no dropped packets, no repeating packets
+        this(0L, Duration.ZERO, Duration.ZERO, 0.0, 1.0, 0); // no delay, no jitter, no dropped packets, no repeating packets
     }
 
-    public SimpleLine(long randomSeed, Duration delayPerKb, Duration jitterPerKb, double dropChancePerKb, double nonRepeatChancePerKb) {
-        Validate.notNull(delayPerKb);
-        Validate.notNull(jitterPerKb);
-        Validate.notNull(!delayPerKb.isNegative() && !jitterPerKb.isNegative()
+    public SimpleLine(long randomSeed, Duration minDelayPerKb, Duration maxJitterPerKb, double dropChancePerKb, double nonRepeatChancePerKb,
+            int maxRepeat) {
+        Validate.notNull(minDelayPerKb);
+        Validate.notNull(maxJitterPerKb);
+        Validate.isTrue(!minDelayPerKb.isNegative() && !maxJitterPerKb.isNegative()
                 && dropChancePerKb >= 0.0 && nonRepeatChancePerKb >= 0.0
-                && dropChancePerKb <= 1.0 && nonRepeatChancePerKb <= 1.0);
+                && dropChancePerKb <= 1.0 && nonRepeatChancePerKb <= 1.0
+                && maxRepeat >= 0);
         this.random = new Random(randomSeed);
-        this.delayPerKb = delayPerKb;
-        this.jitterPerKb = jitterPerKb;
+        this.minDelayPerKb = minDelayPerKb;
+        this.maxJitterPerKb = maxJitterPerKb;
         this.dropChancePerKb = dropChancePerKb; // chance * kb = how likely it'll drop
         // so 0.1 * 10kb = 1.0 -- when means it'll get dropped 100% of the time
         this.nonRepeatChancePerKb = nonRepeatChancePerKb; // 1 - (chance * kb) = how likely it WON'T repeat
         // so 1 - (0.1 * 10kb) = 1 - 1.0 = 0 -- which means it'll never repeat once size >= 10kb
         // repeat rate = rate/kb = 0.1rate/10kb = 0.01 repeat count = 0
         // repeat rate = rate/kb = 0.1rate/1kb = 1 repeat count = 1
+        this.maxRepeat = maxRepeat;
     }
 
     @Override
@@ -47,6 +49,7 @@ public final class SimpleLine<A> implements Line<A> {
         int sizeInKb = size / 1024 + (size % 1024 == 0 ? 0 : 1); // to kb, always round up
 
         List<TransitMessage<A>> ret = new ArrayList<>();
+        int repeatCount = 0;
         do {
             if (calculateNextDrop(sizeInKb)) {
                 continue;
@@ -56,7 +59,9 @@ public final class SimpleLine<A> implements Line<A> {
             TransitMessage<A> transitMsg = new TransitMessage<>(departMessage.getSource(), departMessage.getDestination(),
                     departMessage.getData(), time, delay);
             ret.add(transitMsg);
-        } while (calculateNextRepeat(sizeInKb));
+            
+            repeatCount++;
+        } while (repeatCount <= maxRepeat && calculateNextRepeat(sizeInKb));
         
         return ret;
     }
@@ -69,17 +74,15 @@ public final class SimpleLine<A> implements Line<A> {
     }
 
     private Duration calculateNextDuration(int sizeInKb) {
-        long maxJitterMillis = jitterPerKb.toMillis();
+        long maxJitterMillis = maxJitterPerKb.toMillis();
         long jitter = maxJitterMillis == 0 ? 0L : random.nextLong() % (maxJitterMillis * (long) sizeInKb);
         
-        jitter -= maxJitterMillis / 2L; // center jitter on 0, so the duration may be earlier (negative) or later (positive)
-        
-        Duration nextDuration = delayPerKb.multipliedBy(sizeInKb).plusMillis(jitter);
+        Duration nextDuration = minDelayPerKb.multipliedBy(sizeInKb).plusMillis(jitter);
         return nextDuration.isNegative() ? Duration.ZERO : nextDuration; // if neg, give back 0
     }
 
     private boolean calculateNextRepeat(int sizeInKb) {
-        return random.nextDouble() <= (1.0 - (nonRepeatChancePerKb * sizeInKb));
+        return random.nextDouble() > (nonRepeatChancePerKb * sizeInKb);
     }
 
     private boolean calculateNextDrop(int sizeInKb) {

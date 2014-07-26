@@ -2,11 +2,7 @@ package com.offbynull.peernetic.debug.testnetwork;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.binary.BinaryStreamDriver;
-import java.nio.ByteBuffer;
 import java.util.Objects;
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.Validate;
 
 final class NodeToHubEndpoint<A> implements Endpoint {

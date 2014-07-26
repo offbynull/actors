@@ -60,13 +60,13 @@ public interface Line<A> {
             Validate.notNull(data);
             Validate.notNull(source);
             Validate.notNull(destination);
-            this.data = data;
+            this.data = ByteBufferUtils.copyContents(data);
             this.source = source;
             this.destination = destination;
         }
 
         public ByteBuffer getData() {
-            return data;
+            return data.asReadOnlyBuffer();
         }
 
         public void setData(ByteBuffer data) {

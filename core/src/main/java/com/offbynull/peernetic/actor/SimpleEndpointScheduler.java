@@ -49,7 +49,7 @@ public final class SimpleEndpointScheduler implements EndpointScheduler {
                 lock.unlock();
             }
         });
-        thread.setName(SimpleEndpointDirectory.class.getSimpleName());
+        thread.setName(SimpleEndpointScheduler.class.getSimpleName());
         thread.setDaemon(true);
         thread.start();
     }

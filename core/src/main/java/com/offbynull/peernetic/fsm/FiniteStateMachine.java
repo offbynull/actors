@@ -180,6 +180,8 @@ public final class FiniteStateMachine<P> {
         try {
             return method.invoke(object, currentState, this, instant, message, params);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            // TODO: Log here
+            ex.printStackTrace();
             throw new IllegalStateException(ex);
         }
     }
@@ -196,6 +198,8 @@ public final class FiniteStateMachine<P> {
             try {
                 method.invoke(object, currentState, state, this);
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                // TODO: Log here
+                ex.printStackTrace();
                 throw new IllegalStateException(ex);
             }
         }

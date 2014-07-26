@@ -29,7 +29,7 @@ import java.util.Collections;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        FsmActor[] actors = new FsmActor[100];
+        FsmActor[] actors = new FsmActor[500];
 
         // Start visualizer
         Visualizer<Integer> visualizer = new JGraphXVisualizer<>();
@@ -69,8 +69,7 @@ public final class Main {
         
         hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(
                 endpointScheduler,
-                new SimpleLineFactory(0L, Duration.ofMillis(0L), Duration.ofMillis(0L), 0.0, 1.0),
-//                new SimpleLineFactory(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9),
+                new SimpleLineFactory(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9, 10),
                 hubEndpoint));
         
         

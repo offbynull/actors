@@ -10,11 +10,14 @@ import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
 import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
+import com.thoughtworks.xstream.XStream;
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Collection;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 
 public final class Hub<A> {
 
@@ -23,7 +26,7 @@ public final class Hub<A> {
 
     private BidiMap<A, Endpoint> joinedNodes;
     private Line<A> line;
-    private Serializer serializer;
+    private XStream serializer;
     private EndpointScheduler endpointScheduler;
     private Endpoint selfEndpoint;
 
@@ -31,7 +34,7 @@ public final class Hub<A> {
     public void handleStart(String state, FiniteStateMachine fsm, Instant instant, StartHub message, Endpoint srcEndpoint) {
         joinedNodes = new DualHashBidiMap<>();
         line = message.getLineFactory().createLine();
-        serializer = message.getSerializerFactory().createSerializer();
+        serializer = new XStream();
         endpointScheduler = message.getEndpointScheduler();
         selfEndpoint = message.getSelfEndpoint();
 
@@ -54,7 +57,9 @@ public final class Hub<A> {
 
     @StateHandler(RUN_STATE)
     public void handleDepart(String state, FiniteStateMachine fsm, Instant instant, DepartMessage<A> message, Endpoint srcEndpoint) {
-        byte[] data = serializer.serialize(message.getData());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        serializer.toXML(message.getData(), baos);
+        byte[] data = baos.toByteArray();
         ByteBuffer dataBuffer = ByteBuffer.wrap(data);
         BufferMessage<A> bufferMessage = new BufferMessage<>(dataBuffer, message.getSource(), message.getDestination());
         
@@ -86,10 +91,11 @@ public final class Hub<A> {
             
             A sourceId = x.getSource();
             
-            Object data = serializer.deserialize(x.getData().array());
+            byte[] data = ByteBufferUtils.copyContentsToArray(x.getData());
+            Object dataObj = serializer.fromXML(new ByteArrayInputStream(data));
             
             Endpoint endpointForResponses = new NodeToHubEndpoint(selfEndpoint, destinationId, sourceId);
-            destinationEndpoint.send(endpointForResponses, data);
+            destinationEndpoint.send(endpointForResponses, dataObj);
         });
     }
 }

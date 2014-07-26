@@ -42,8 +42,8 @@ public final class UnstructuredClient<A> {
     private static final Duration NONCE_DURATION = Duration.ofSeconds(10L);
     private static final Duration TIMER_DURATION = Duration.ofSeconds(2L);
 
-    private static final int MAX_INCOMING_JOINS = 5;
-    private static final int MAX_OUTGOING_JOINS = 5;
+    private static final int MAX_INCOMING_JOINS = 3;
+    private static final int MAX_OUTGOING_JOINS = 3;
 
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
@@ -210,10 +210,6 @@ public final class UnstructuredClient<A> {
             Object dstMessage = new LinkRequest(nonce.getValue());
             dstEndpoint.send(selfEndpoint, dstMessage);
 
-            if (selfAddress.equals(1)) {
-                System.out.println("NREQ: " + selfAddress + " -> " + address);
-            }
-
             // Track
             outgoingLinkRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
         }
@@ -264,10 +260,6 @@ public final class UnstructuredClient<A> {
     @StateHandler(ACTIVE_STATE)
     public void handleLinkResponse(String state, FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
         A dstAddress = endpointIdentifier.identify(srcEndpoint);
-
-        if (selfAddress.equals(1)) {
-            System.out.println("RESP: " + selfAddress + " <- " + dstAddress + " -- " + message.isSuccessful());
-        }
 
         boolean alreadyExists = outgoingSessions.containsSession(dstAddress);
         if (message.isSuccessful()) {

@@ -1,15 +1,21 @@
 package com.offbynull.peernetic.demo;
 
 import com.offbynull.peernetic.FsmActor;
+import com.offbynull.peernetic.GatewayEndpointDirectory;
+import com.offbynull.peernetic.GatewayEndpointIdentifier;
+import com.offbynull.peernetic.GatewayInputAdapter;
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorRunnable;
 import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.actor.EndpointDirectory;
+import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.actor.SimpleEndpointScheduler;
 import com.offbynull.peernetic.debug.testnetwork.Hub;
 import com.offbynull.peernetic.debug.testnetwork.HubEndpointDirectory;
 import com.offbynull.peernetic.debug.testnetwork.HubEndpointIdentifier;
+import com.offbynull.peernetic.debug.testnetwork.LocalGateway;
 import com.offbynull.peernetic.debug.testnetwork.SimpleLine;
 import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
 import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
@@ -21,6 +27,7 @@ import com.offbynull.peernetic.debug.visualizer.RemoveEdgeCommand;
 import com.offbynull.peernetic.debug.visualizer.Visualizer;
 import com.offbynull.peernetic.debug.visualizer.VisualizerUtils;
 import com.offbynull.peernetic.demo.messages.internal.Start;
+import com.offbynull.peernetic.network.GatewayListener;
 import com.offbynull.peernetic.network.XStreamSerializer;
 import java.awt.Color;
 import java.awt.Point;
@@ -85,19 +92,17 @@ public final class Main {
         ActorRunnable actorRunnable = ActorRunnable.createAndStart(actors);
         
         
-        // Tell the hub about each actor
+        // Tell the hub about each actor and start actors
         for (int i = 0; i < actors.length; i++) {
             Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);
-            hubEndpoint.send(endpoint, new JoinHub<>(i));
-        }
-
-        
-        // Start actors
-        for (int i = 0; i < actors.length; i++) {
-            Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);
-            HubEndpointDirectory<Integer> endpointDirectory = new HubEndpointDirectory<>(i, hubEndpoint);
-            HubEndpointIdentifier<Integer> endpointIdentifier = new HubEndpointIdentifier<>();
+            HubEndpointDirectory<Integer> hubEndpointDirectory = new HubEndpointDirectory<>(i, hubEndpoint);
+            HubEndpointIdentifier<Integer> hubEndpointIdentifier = new HubEndpointIdentifier<>();
+            GatewayListener<Integer> gatewayListener = new GatewayInputAdapter<>(endpoint);
+            LocalGateway<Integer> gateway = new LocalGateway<>(i, hubEndpoint, hubEndpointDirectory, hubEndpointIdentifier, gatewayListener);
+//            hubEndpoint.send(endpoint, new JoinHub<>(i)); // already done in constructor of previous
             
+            EndpointDirectory<Integer> endpointDirectory = new GatewayEndpointDirectory<>(gateway);
+            EndpointIdentifier<Integer> endpointIdentifier = new GatewayEndpointIdentifier<>();
             Start<Integer> start = new Start<>(endpointDirectory, endpointIdentifier, endpointScheduler, Collections.singleton(0),
                     endpoint, i);
             endpoint.send(NullEndpoint.INSTANCE, start);

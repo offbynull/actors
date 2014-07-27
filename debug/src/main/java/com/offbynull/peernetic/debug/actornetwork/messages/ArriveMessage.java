@@ -1,23 +1,24 @@
-package com.offbynull.peernetic.debug.testnetwork.messages;
+package com.offbynull.peernetic.debug.actornetwork.messages;
 
+import com.offbynull.peernetic.debug.actornetwork.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Validate;
 
-public final class DepartMessage<A> {
-    private Object data;
+public final class ArriveMessage<A> {
+    private ByteBuffer data;
     private A source;
     private A destination;
 
-    public DepartMessage(Object data, A source, A destination) {
+    public ArriveMessage(ByteBuffer data, A source, A destination) {
         Validate.notNull(data);
         Validate.notNull(source);
         Validate.notNull(destination);
-        this.data = data;
+        this.data = ByteBufferUtils.copyContents(data);
         this.source = source;
         this.destination = destination;
     }
 
-    public Object getData() {
+    public ByteBuffer getData() {
         return data;
     }
 

@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.actornetwork;
 
-import com.offbynull.peernetic.debug.testnetwork.messages.ArriveMessage;
-import com.offbynull.peernetic.debug.testnetwork.messages.TransitMessage;
+import com.offbynull.peernetic.debug.actornetwork.messages.ArriveMessage;
+import com.offbynull.peernetic.debug.actornetwork.messages.TransitMessage;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Collection;

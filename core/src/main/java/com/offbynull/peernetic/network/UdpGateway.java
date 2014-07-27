@@ -7,6 +7,7 @@ import io.netty.channel.DefaultAddressedEnvelope;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
@@ -21,7 +22,7 @@ public final class UdpGateway implements Gateway<InetSocketAddress> {
         this(new InetSocketAddress(port), null, listener, serializer);
     }
 
-    public UdpGateway(InetSocketAddress bindAddress, GatewayListener listener, Serializer serializer) {
+    public UdpGateway(InetSocketAddress bindAddress, GatewayListener<InetSocketAddress> listener, Serializer serializer) {
         this(bindAddress, null, listener, serializer);
     }
     
@@ -39,7 +40,7 @@ public final class UdpGateway implements Gateway<InetSocketAddress> {
             this.eventLoopGroup = eventLoopGroup;
             this.closeEventLoopGroup = false;
         } else {
-            this.eventLoopGroup = new NioEventLoopGroup(1);
+            this.eventLoopGroup = new NioEventLoopGroup(1, new DefaultThreadFactory(NioEventLoopGroup.class, true));
             this.closeEventLoopGroup = true;
         }
 

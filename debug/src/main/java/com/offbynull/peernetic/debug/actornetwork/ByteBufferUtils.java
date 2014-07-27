@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.actornetwork;
 
 import java.nio.ByteBuffer;
 

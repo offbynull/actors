@@ -1,8 +1,8 @@
-package com.offbynull.peernetic.debug.testnetwork.messages;
+package com.offbynull.peernetic.debug.actornetwork.messages;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.debug.testnetwork.Line;
+import com.offbynull.peernetic.debug.actornetwork.Line;
 import com.offbynull.peernetic.network.Serializer;
 import org.apache.commons.lang3.Validate;
 

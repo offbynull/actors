@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.debug.testnetwork.messages;
+package com.offbynull.peernetic.debug.actornetwork.messages;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;

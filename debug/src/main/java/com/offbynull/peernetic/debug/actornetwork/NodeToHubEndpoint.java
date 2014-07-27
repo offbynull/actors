@@ -1,7 +1,7 @@
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.actornetwork;
 
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
+import com.offbynull.peernetic.debug.actornetwork.messages.DepartMessage;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 

@@ -1,11 +1,11 @@
-package com.offbynull.peernetic.debug.testnetwork.messages;
+package com.offbynull.peernetic.debug.actornetwork.messages;
 
 import org.apache.commons.lang3.Validate;
 
-public final class LeaveHub<A> {
+public final class JoinHub<A> {
     private A address;
 
-    public LeaveHub(A address) {
+    public JoinHub(A address) {
         Validate.notNull(address);
         this.address = address;
     }

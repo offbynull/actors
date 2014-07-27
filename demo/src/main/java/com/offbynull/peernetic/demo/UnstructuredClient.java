@@ -184,10 +184,6 @@ public final class UnstructuredClient<A> {
             Object dstMessage = new LinkRequest(nonce.getValue());
             dstEndpoint.send(selfEndpoint, dstMessage);
 
-            if (selfAddress.equals(1)) {
-                System.out.println("UREQ: " + selfAddress + " -> " + address);
-            }
-
             outgoingLinkRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
         }
         

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.actornetwork;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import java.util.Objects;

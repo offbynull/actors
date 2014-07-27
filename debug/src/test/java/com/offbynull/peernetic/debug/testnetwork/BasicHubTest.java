@@ -1,5 +1,8 @@
 package com.offbynull.peernetic.debug.testnetwork;
 
+import com.offbynull.peernetic.debug.actornetwork.Hub;
+import com.offbynull.peernetic.debug.actornetwork.HubEndpointDirectory;
+import com.offbynull.peernetic.debug.actornetwork.SimpleLine;
 import com.offbynull.peernetic.FsmActor;
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorRunnable;
@@ -8,9 +11,9 @@ import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.actor.SimpleEndpointScheduler;
-import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
-import com.offbynull.peernetic.debug.testnetwork.messages.LeaveHub;
-import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.JoinHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.LeaveHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.StartHub;
 import com.offbynull.peernetic.network.XStreamSerializer;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentLinkedQueue;

@@ -1,8 +1,10 @@
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.localgateway;
 
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
-import com.offbynull.peernetic.debug.testnetwork.messages.LeaveHub;
+import com.offbynull.peernetic.debug.actornetwork.HubEndpointDirectory;
+import com.offbynull.peernetic.debug.actornetwork.HubEndpointIdentifier;
+import com.offbynull.peernetic.debug.actornetwork.messages.JoinHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.LeaveHub;
 import com.offbynull.peernetic.network.Gateway;
 import com.offbynull.peernetic.network.GatewayListener;
 import com.offbynull.peernetic.network.Message;
@@ -16,18 +18,15 @@ public final class LocalGateway<A> implements Gateway<A> {
     private final MockEndpoint mockEndpoint;
     private final A localAddress;
 
-    public LocalGateway(A localAddress, Endpoint hubEndpoint, HubEndpointDirectory<A> hubEndpointDirectory,
-            HubEndpointIdentifier<A> hubEndpointIdentifier, GatewayListener gatewayListener) {
+    public LocalGateway(A localAddress, LocalGatewayHub<A> localGatewayHub, GatewayListener gatewayListener) {
         Validate.notNull(localAddress);
-        Validate.notNull(hubEndpoint);
-        Validate.notNull(hubEndpointDirectory);
-        Validate.notNull(hubEndpointIdentifier);
+        Validate.notNull(localGatewayHub);
         Validate.notNull(gatewayListener);
         
         this.localAddress = localAddress;
-        this.hubEndpoint = hubEndpoint;
-        this.hubEndpointDirectory = hubEndpointDirectory;
-        this.hubEndpointIdentifier = hubEndpointIdentifier;
+        this.hubEndpoint = localGatewayHub.getHubEndpoint();
+        this.hubEndpointDirectory = new HubEndpointDirectory<>(localAddress, hubEndpoint);
+        this.hubEndpointIdentifier = new HubEndpointIdentifier<>();
         this.gatewayListener = gatewayListener;
         this.mockEndpoint = new MockEndpoint();
         

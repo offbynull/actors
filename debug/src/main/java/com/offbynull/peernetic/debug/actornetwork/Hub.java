@@ -1,13 +1,13 @@
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.actornetwork;
 
-import com.offbynull.peernetic.debug.testnetwork.messages.TransitMessage;
+import com.offbynull.peernetic.debug.actornetwork.messages.TransitMessage;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.debug.testnetwork.Line.BufferMessage;
-import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
-import com.offbynull.peernetic.debug.testnetwork.messages.LeaveHub;
-import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
-import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
+import com.offbynull.peernetic.debug.actornetwork.Line.BufferMessage;
+import com.offbynull.peernetic.debug.actornetwork.messages.JoinHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.LeaveHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.StartHub;
+import com.offbynull.peernetic.debug.actornetwork.messages.DepartMessage;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
 import com.offbynull.peernetic.network.Serializer;

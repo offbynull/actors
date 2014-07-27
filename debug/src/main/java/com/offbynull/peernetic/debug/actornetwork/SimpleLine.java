@@ -1,6 +1,6 @@
-package com.offbynull.peernetic.debug.testnetwork;
+package com.offbynull.peernetic.debug.actornetwork;
 
-import com.offbynull.peernetic.debug.testnetwork.messages.TransitMessage;
+import com.offbynull.peernetic.debug.actornetwork.messages.TransitMessage;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;

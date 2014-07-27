@@ -46,8 +46,8 @@ public final class BasicTestHarnessTest {
         Actor actor1 = Mockito.mock(Actor.class);
         Actor actor2 = Mockito.mock(Actor.class);
         
-        harness.addActor("actor1", actor1, Instant.ofEpochMilli(0L));
-        harness.addActor("actor2", actor2, Instant.ofEpochMilli(0L));
+        harness.addActor("actor1", actor1, Duration.ZERO, Instant.ofEpochMilli(0L));
+        harness.addActor("actor2", actor2, Duration.ZERO, Instant.ofEpochMilli(0L));
         Assert.assertTrue(harness.hasMore());
         harness.process();
         harness.process();
@@ -99,7 +99,7 @@ public final class BasicTestHarnessTest {
         harness.scheduleFromNull(Duration.ofSeconds(1L), "actor1", 1);
         
         // join at 0
-        harness.addActor("actor1", actor1, Instant.ofEpochMilli(0L));
+        harness.addActor("actor1", actor1, Duration.ZERO, Instant.ofEpochMilli(0L));
         harness.process();
         Mockito.verify(actor1).onStart(any(Instant.class));
         
@@ -118,7 +118,7 @@ public final class BasicTestHarnessTest {
         harness.scheduleFromNull(Duration.ofMillis(2L), "actor1", 1);
         
         // join at 0
-        harness.addActor("actor1", actor1, Instant.ofEpochMilli(0L));
+        harness.addActor("actor1", actor1, Duration.ZERO, Instant.ofEpochMilli(0L));
         harness.process();
         Mockito.verify(actor1).onStart(any(Instant.class));
         
@@ -139,12 +139,12 @@ public final class BasicTestHarnessTest {
         Actor actor2 = new SendActor(harness.getEndpointDirectory(), "actor2", "actor1");
         
         // add mock actor
-        harness.addActor("actor1", actor1, Instant.ofEpochMilli(0L));
+        harness.addActor("actor1", actor1, Duration.ZERO, Instant.ofEpochMilli(0L));
         harness.process();
         Mockito.verify(actor1).onStart(any(Instant.class));
 
         // add send actor
-        harness.addActor("actor2", actor2, Instant.ofEpochMilli(0L));
+        harness.addActor("actor2", actor2, Duration.ZERO, Instant.ofEpochMilli(0L));
         harness.process();
         Mockito.verify(actor1).onStart(any(Instant.class));
         

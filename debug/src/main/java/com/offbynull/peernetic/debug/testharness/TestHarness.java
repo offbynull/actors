@@ -54,13 +54,15 @@ public final class TestHarness<A> {
         this.lastWhen = startTime;
     }
 
-    public void addActor(A id, Actor actor, Instant when) {
+    public void addActor(A id, Actor actor, Duration timeOffset, Instant when) {
         Validate.notNull(id);
         Validate.notNull(actor);
+        Validate.notNull(timeOffset);
         Validate.notNull(when);
         Validate.isTrue(!when.isBefore(lastWhen), "Attempting to add actor event prior to current time");
+        Validate.isTrue(!timeOffset.isNegative(), "Negative time offset not allowed");
 
-        events.add(new JoinEvent(id, actor, when));
+        events.add(new JoinEvent(id, actor, timeOffset, when));
     }
 
     public void removeActor(A id, Instant when) {
@@ -70,7 +72,15 @@ public final class TestHarness<A> {
 
         events.add(new LeaveEvent(id, when));
     }
-    
+
+    public void addCustom(Runnable runnable, Instant when) {
+        Validate.notNull(runnable);
+        Validate.notNull(when);
+        Validate.isTrue(!when.isBefore(lastWhen), "Attempting to add custom event prior to current time");
+
+        events.add(new CustomEvent(runnable, when));
+    }
+
     public boolean hasMore() {
         return !events.isEmpty();
     }
@@ -81,7 +91,12 @@ public final class TestHarness<A> {
 
         lastWhen = event.getWhen();
         
-        if (event instanceof TestHarness.MessageEvent) {
+        if (event instanceof TestHarness.CustomEvent) {
+            CustomEvent customEvent = (CustomEvent) event;
+            
+            Runnable runnable = customEvent.getRunnable();
+            runnable.run();
+        } else if (event instanceof TestHarness.MessageEvent) {
             MessageEvent messageEvent = (MessageEvent) event;
             
             Object message = messageEvent.getMessage();
@@ -94,14 +109,17 @@ public final class TestHarness<A> {
                 Actor actor = dstBundle.getActor();
                 Endpoint source = srcBundle != null ? srcBundle.getEndpoint() : new InternalEndpoint(fromId); // create fake if not exists
                 Endpoint destination = dstBundle.getEndpoint();
+                Duration timeOffset = dstBundle.getTimeOffset();
+                
+                Instant adjustedLastWhen = lastWhen.plus(timeOffset);
                 
                 try {
-                    actor.onStep(lastWhen, source, message);
+                    actor.onStep(adjustedLastWhen, source, message);
                 } catch (Exception e) {
                     LOG.error("Actor encountered an error on run", e);
 
                     try {
-                        actor.onStop(lastWhen);
+                        actor.onStop(adjustedLastWhen);
                     } catch (Exception ex) {
                         LOG.error("Actor encountered an error on stop", ex);
                     }
@@ -121,13 +139,16 @@ public final class TestHarness<A> {
             if (dstBundle != null) {
                 Actor actor = dstBundle.getActor();
                 
+                Duration timeOffset = dstBundle.getTimeOffset();
+                Instant adjustedLastWhen = lastWhen.plus(timeOffset);
+                
                 try {
-                    actor.onStep(lastWhen, source, message);
+                    actor.onStep(adjustedLastWhen, source, message);
                 } catch (Exception e) {
                     LOG.error("Actor encountered an error on run", e);
 
                     try {
-                        actor.onStop(lastWhen);
+                        actor.onStop(adjustedLastWhen);
                     } catch (Exception ex) {
                         LOG.error("Actor encountered an error on stop", ex);
                     }
@@ -142,20 +163,23 @@ public final class TestHarness<A> {
             A id = joinEvent.getId();
             Actor actor = joinEvent.getActor();
             InternalEndpoint endpoint = new InternalEndpoint(id);
+            Duration timeOffset = joinEvent.getTimeOffset();
             
-            ActorBundle bundle = new ActorBundle(id, actor, endpoint);
+            ActorBundle bundle = new ActorBundle(id, actor, endpoint, timeOffset);
 
             ActorBundle prevBundle = actorLookupById.putIfAbsent(id, bundle);
             Validate.isTrue(prevBundle == null, "Actor identifier already in use");
             actorLookupByEndpoint.put(endpoint, bundle);
 
+            Instant adjustedLastWhen = lastWhen.plus(timeOffset);
+            
             try {
-                actor.onStart(lastWhen);
+                actor.onStart(adjustedLastWhen);
             } catch (Exception e) {
                 LOG.error("Actor encountered an error on start", e);
                 
                 try {
-                    actor.onStop(lastWhen);
+                    actor.onStop(adjustedLastWhen);
                 } catch (Exception ex) {
                     LOG.error("Actor encountered an error on stop", ex);
                 }
@@ -171,8 +195,11 @@ public final class TestHarness<A> {
             ActorBundle bundle = actorLookupById.get(id);
             Validate.isTrue(bundle != null, "Actor identifier does not exist");
             
+            Duration timeOffset = bundle.getTimeOffset();
+            Instant adjustedLastWhen = lastWhen.plus(timeOffset);
+            
             try {
-                bundle.getActor().onStop(lastWhen);
+                bundle.getActor().onStop(adjustedLastWhen);
             } catch (Exception ex) {
                 LOG.error("Actor encountered an error on stop", ex);
             }
@@ -259,15 +286,19 @@ public final class TestHarness<A> {
         private final A id;
         private final Actor actor;
         private final Endpoint endpoint;
+        private final Duration timeOffset;
 
-        public ActorBundle(A id, Actor actor, Endpoint endpoint) {
+        public ActorBundle(A id, Actor actor, Endpoint endpoint, Duration timeOffset) {
             Validate.notNull(id);
             Validate.notNull(actor);
             Validate.notNull(endpoint);
+            Validate.notNull(timeOffset);
+            Validate.isTrue(!timeOffset.isNegative());
             
             this.id = id;
             this.actor = actor;
             this.endpoint = endpoint;
+            this.timeOffset = timeOffset;
         }
 
         public A getName() {
@@ -280,6 +311,10 @@ public final class TestHarness<A> {
 
         public Endpoint getEndpoint() {
             return endpoint;
+        }
+
+        public Duration getTimeOffset() {
+            return timeOffset;
         }
         
     }
@@ -329,6 +364,20 @@ public final class TestHarness<A> {
 
     }
 
+    private final class CustomEvent extends Event {
+
+        private final Runnable runnable;
+
+        public CustomEvent(Runnable runnable, Instant when) {
+            super(when);
+            this.runnable = runnable;
+        }
+
+        public Runnable getRunnable() {
+            return runnable;
+        }
+    }
+
     private final class ScheduledMessageEvent extends Event {
 
         private final Endpoint source;
@@ -360,11 +409,13 @@ public final class TestHarness<A> {
 
         private final A id;
         private final Actor actor;
+        private final Duration timeOffset;
 
-        public JoinEvent(A id, Actor actor, Instant when) {
+        public JoinEvent(A id, Actor actor, Duration timeOffset, Instant when) {
             super(when);
             this.id = id;
             this.actor = actor;
+            this.timeOffset = timeOffset;
         }
 
         public A getId() {
@@ -375,6 +426,10 @@ public final class TestHarness<A> {
             return actor;
         }
 
+        public Duration getTimeOffset() {
+            return timeOffset;
+        }
+        
     }
 
     private final class LeaveEvent extends Event {

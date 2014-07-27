@@ -33,7 +33,7 @@ import java.util.Collections;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        FsmActor[] actors = new FsmActor[10];
+        FsmActor[] actors = new FsmActor[200];
 
         // Start visualizer
         Visualizer<Object> visualizer = new JGraphXVisualizer<>();

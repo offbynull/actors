@@ -43,7 +43,7 @@ final class ReadToListenerHandler extends MessageToMessageDecoder<Object> {
     
     protected Object transform(SocketAddress localAddress, SocketAddress remoteAddress, Object obj) {
         try {
-            listener.onReadMessage(new Message((InetSocketAddress) localAddress,
+            listener.onReadMessage(new Message<>((InetSocketAddress) localAddress,
                     (InetSocketAddress) remoteAddress,
                     obj,
                     gateway));

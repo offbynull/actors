@@ -10,7 +10,7 @@ import com.offbynull.peernetic.actor.SimpleEndpointScheduler;
 import com.offbynull.peernetic.debug.testnetwork.Hub;
 import com.offbynull.peernetic.debug.testnetwork.HubEndpointDirectory;
 import com.offbynull.peernetic.debug.testnetwork.HubEndpointIdentifier;
-import com.offbynull.peernetic.debug.testnetwork.SimpleLineFactory;
+import com.offbynull.peernetic.debug.testnetwork.SimpleLine;
 import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
 import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
 import com.offbynull.peernetic.debug.visualizer.AddEdgeCommand;
@@ -21,6 +21,7 @@ import com.offbynull.peernetic.debug.visualizer.RemoveEdgeCommand;
 import com.offbynull.peernetic.debug.visualizer.Visualizer;
 import com.offbynull.peernetic.debug.visualizer.VisualizerUtils;
 import com.offbynull.peernetic.demo.messages.internal.Start;
+import com.offbynull.peernetic.network.XStreamSerializer;
 import java.awt.Color;
 import java.awt.Point;
 import java.time.Duration;
@@ -29,7 +30,7 @@ import java.util.Collections;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        FsmActor[] actors = new FsmActor[500];
+        FsmActor[] actors = new FsmActor[400];
 
         // Start visualizer
         Visualizer<Integer> visualizer = new JGraphXVisualizer<>();
@@ -69,7 +70,8 @@ public final class Main {
         
         hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(
                 endpointScheduler,
-                new SimpleLineFactory(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9, 10),
+                new SimpleLine(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9, 10),
+                new XStreamSerializer(),
                 hubEndpoint));
         
         

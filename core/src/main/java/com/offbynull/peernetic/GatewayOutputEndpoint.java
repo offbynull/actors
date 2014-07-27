@@ -2,16 +2,15 @@ package com.offbynull.peernetic;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.network.Gateway;
-import java.net.InetSocketAddress;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-public final class GatewayOutputEndpoint implements Endpoint {
+public final class GatewayOutputEndpoint<A> implements Endpoint {
 
-    private Gateway<InetSocketAddress> gateway;
-    private InetSocketAddress address;
+    private Gateway<A> gateway;
+    private A address;
 
-    public GatewayOutputEndpoint(Gateway<InetSocketAddress> gateway, InetSocketAddress address) {
+    public GatewayOutputEndpoint(Gateway<A> gateway, A address) {
         Validate.notNull(gateway);
         Validate.notNull(address);
 
@@ -19,7 +18,7 @@ public final class GatewayOutputEndpoint implements Endpoint {
         this.address = address;
     }
 
-    public InetSocketAddress getAddress() {
+    public A getAddress() {
         return address;
     }
 

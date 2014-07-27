@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.debug.testnetwork;
 
 import com.offbynull.peernetic.debug.testnetwork.messages.ArriveMessage;
-import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
 import com.offbynull.peernetic.debug.testnetwork.messages.TransitMessage;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -33,13 +32,27 @@ import org.apache.commons.lang3.Validate;
 public interface Line<A> {
 
     /**
+     * Called when a node joins the network.
+     * 
+     * @param address address of node
+     */
+    void nodeJoin(A address);
+    
+    /**
+     * Called when a node leaves the network.
+     * 
+     * @param address address of node
+     */
+    void nodeLeave(A address);
+    
+    /**
      * Called when a message is put on the network.
      *
      * @param time time of departure
      * @param departMessage outgoing message
      * @return list of {@link TransitMessage} objects generated from {@code departMessage}
      */
-    Collection<TransitMessage<A>> depart(Instant time, BufferMessage<A> departMessage);
+    Collection<TransitMessage<A>> messageDepart(Instant time, BufferMessage<A> departMessage);
 
     /**
      * Called when a message on the network reaches its destination.
@@ -48,7 +61,7 @@ public interface Line<A> {
      * @param transitMessage message that has arrived
      * @return list of {@link ArriveMessage} objects generated from {@code transitMessage}
      */
-    Collection<BufferMessage<A>> arrive(Instant time, TransitMessage<A> transitMessage);
+    Collection<BufferMessage<A>> messageArrive(Instant time, TransitMessage<A> transitMessage);
 
     public static final class BufferMessage<A> {
 

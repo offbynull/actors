@@ -11,6 +11,7 @@ import com.offbynull.peernetic.actor.SimpleEndpointScheduler;
 import com.offbynull.peernetic.debug.testnetwork.messages.JoinHub;
 import com.offbynull.peernetic.debug.testnetwork.messages.LeaveHub;
 import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
+import com.offbynull.peernetic.network.XStreamSerializer;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,7 +46,7 @@ public final class BasicHubTest {
         directoryForRecverRef.set(directoryForRecver);
         
         // Have actors join hubs
-        hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(endpointScheduler, new SimpleLineFactory(), hubEndpoint));
+        hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(endpointScheduler, new SimpleLine(), new XStreamSerializer(), hubEndpoint));
         hubEndpoint.send(senderEndpoint, new JoinHub<>("sender"));
         hubEndpoint.send(recverEndpoint, new JoinHub<>("recver"));
         

@@ -5,7 +5,7 @@ import com.offbynull.peernetic.network.Message;
 import com.offbynull.peernetic.network.GatewayListener;
 import org.apache.commons.lang3.Validate;
 
-public final class GatewayInputAdapter implements GatewayListener {
+public final class GatewayInputAdapter<A> implements GatewayListener<A> {
     private final Endpoint endpoint;
 
     public GatewayInputAdapter(Endpoint endpoint) {
@@ -16,7 +16,7 @@ public final class GatewayInputAdapter implements GatewayListener {
     
 
     @Override
-    public void onReadMessage(Message incomingMessage) {
+    public void onReadMessage(Message<A> incomingMessage) {
         Validate.notNull(incomingMessage);
         
         endpoint.send(

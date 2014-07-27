@@ -1,5 +1,5 @@
 package com.offbynull.peernetic.network;
 
-public interface GatewayListener {
-    void onReadMessage(Message incomingMessage);
+public interface GatewayListener<A> {
+    void onReadMessage(Message<A> incomingMessage);
 }

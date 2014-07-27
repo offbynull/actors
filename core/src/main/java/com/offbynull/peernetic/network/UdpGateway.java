@@ -2,7 +2,6 @@ package com.offbynull.peernetic.network;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.DefaultAddressedEnvelope;
 import io.netty.channel.EventLoopGroup;
@@ -18,19 +17,20 @@ public final class UdpGateway implements Gateway<InetSocketAddress> {
     private final EventLoopGroup eventLoopGroup;
     private final boolean closeEventLoopGroup;
 
-    public UdpGateway(int port, GatewayListener listener, ChannelHandler... handlers) {
-        this(new InetSocketAddress(port), null, listener, handlers);
+    public UdpGateway(int port, GatewayListener listener, Serializer serializer) {
+        this(new InetSocketAddress(port), null, listener, serializer);
     }
 
-    public UdpGateway(InetSocketAddress bindAddress, GatewayListener listener, ChannelHandler... handlers) {
-        this(bindAddress, null, listener, handlers);
+    public UdpGateway(InetSocketAddress bindAddress, GatewayListener listener, Serializer serializer) {
+        this(bindAddress, null, listener, serializer);
     }
     
-    public UdpGateway(InetSocketAddress bindAddress, EventLoopGroup eventLoopGroup, GatewayListener listener, ChannelHandler... handlers) {
+    public UdpGateway(InetSocketAddress bindAddress, EventLoopGroup eventLoopGroup, GatewayListener<InetSocketAddress> listener,
+            Serializer serializer) {
         Validate.notNull(bindAddress);
 //        Validate.notNull(eventLoopGroup); // can be null
         Validate.notNull(listener);
-        Validate.noNullElements(handlers);
+        Validate.notNull(serializer);
         
 
 //        this.bindAddress = bindAddress;
@@ -51,7 +51,10 @@ public final class UdpGateway implements Gateway<InetSocketAddress> {
                     .handler(new ChannelInitializer<NioDatagramChannel>() {
                         @Override
                         public void initChannel(NioDatagramChannel ch) throws Exception {
-                            ch.pipeline().addLast(handlers).addLast(new ReadToListenerHandler(UdpGateway.this, listener));
+                            ch.pipeline()
+                                    .addLast(new SerializerEncodeHandler(serializer))
+                                    .addLast(new SerializerDecodeHandler(serializer))
+                                    .addLast(new ReadToListenerHandler(UdpGateway.this, listener));
                         }
                     });
             channel = cb.bind(bindAddress).sync().channel();

@@ -16,8 +16,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TestHarness<A> {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(TestHarness.class);
 
     private MessageDriver<A> messageDriver;
     private PriorityQueue<Event> events;
@@ -76,7 +80,7 @@ public final class TestHarness<A> {
         Validate.isTrue(event != null, "No events left to process");
 
         lastWhen = event.getWhen();
-
+        
         if (event instanceof TestHarness.MessageEvent) {
             MessageEvent messageEvent = (MessageEvent) event;
             
@@ -94,12 +98,12 @@ public final class TestHarness<A> {
                 try {
                     actor.onStep(lastWhen, source, message);
                 } catch (Exception e) {
-                    // TODO: Log here
+                    LOG.error("Actor encountered an error on run", e);
 
                     try {
                         actor.onStop(lastWhen);
                     } catch (Exception ex) {
-                        // TODO: Log here
+                        LOG.error("Actor encountered an error on stop", ex);
                     }
 
                     actorLookupById.remove(toId);
@@ -120,12 +124,12 @@ public final class TestHarness<A> {
                 try {
                     actor.onStep(lastWhen, source, message);
                 } catch (Exception e) {
-                    // TODO: Log here
+                    LOG.error("Actor encountered an error on run", e);
 
                     try {
                         actor.onStop(lastWhen);
                     } catch (Exception ex) {
-                        // TODO: Log here
+                        LOG.error("Actor encountered an error on stop", ex);
                     }
 
                     actorLookupById.remove(dstBundle.getName());
@@ -148,12 +152,12 @@ public final class TestHarness<A> {
             try {
                 actor.onStart(lastWhen);
             } catch (Exception e) {
-                // TODO: Log here
+                LOG.error("Actor encountered an error on start", e);
                 
                 try {
                     actor.onStop(lastWhen);
                 } catch (Exception ex) {
-                    // TODO: Log here
+                    LOG.error("Actor encountered an error on stop", ex);
                 }
                 
                 actorLookupById.remove(id);
@@ -170,7 +174,7 @@ public final class TestHarness<A> {
             try {
                 bundle.getActor().onStop(lastWhen);
             } catch (Exception ex) {
-                // TODO: Log here
+                LOG.error("Actor encountered an error on stop", ex);
             }
             
             actorLookupById.remove(id);

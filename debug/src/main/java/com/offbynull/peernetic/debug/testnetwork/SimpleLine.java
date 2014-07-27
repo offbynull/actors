@@ -44,7 +44,17 @@ public final class SimpleLine<A> implements Line<A> {
     }
 
     @Override
-    public Collection<TransitMessage<A>> depart(Instant time, BufferMessage<A> departMessage) {
+    public void nodeJoin(A address) {
+        // do nothing
+    }
+
+    @Override
+    public void nodeLeave(A address) {
+        // do nothing
+    }
+
+    @Override
+    public Collection<TransitMessage<A>> messageDepart(Instant time, BufferMessage<A> departMessage) {
         int size = departMessage.getData().remaining();
         int sizeInKb = size / 1024 + (size % 1024 == 0 ? 0 : 1); // to kb, always round up
 
@@ -67,7 +77,7 @@ public final class SimpleLine<A> implements Line<A> {
     }
 
     @Override
-    public Collection<BufferMessage<A>> arrive(Instant time, TransitMessage<A> transitMessage) {
+    public Collection<BufferMessage<A>> messageArrive(Instant time, TransitMessage<A> transitMessage) {
         BufferMessage<A> bufferMessage = new BufferMessage<>(transitMessage.getData(), transitMessage.getSource(),
                 transitMessage.getDestination());
         return Collections.singleton(bufferMessage);

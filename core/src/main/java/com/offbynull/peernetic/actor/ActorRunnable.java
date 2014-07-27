@@ -17,8 +17,12 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ActorRunnable implements Runnable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ActorRunnable.class);
 
     private final UnmodifiableList<Actor> actors;
     private final UnmodifiableMap<Actor, Endpoint> endpoints;
@@ -45,6 +49,8 @@ public final class ActorRunnable implements Runnable {
         } finally {
             actorRunnable.lock.unlock();
         }
+
+        LOG.info("Created and started Actor thread with the following Actors: {}", Arrays.asList(actors));
 
         return actorRunnable;
     }
@@ -142,9 +148,12 @@ public final class ActorRunnable implements Runnable {
 
         try {
             updateState(State.STARTING);
+            LOG.debug("Starting actor");
             startActors(active, activeCount);
             updateState(State.STARTED);
+            LOG.debug("Started actor");
             if (activeCount.getValue() == 0) {
+                LOG.info("No more actors present in thread, shutting down");
                 return;
             }
 
@@ -153,31 +162,31 @@ public final class ActorRunnable implements Runnable {
                 List<InternalEnvelope> envs = new LinkedList<>();
                 envs.add(firstEnv);
                 queue.drainTo(envs);
-                
+
                 long start = System.currentTimeMillis();
                 Instant time = Instant.now();
                 for (InternalEnvelope env : envs) {
                     runActor(time, env, active, activeCount);
                     if (activeCount.getValue() == 0) {
+                        LOG.info("No more actors present in thread, shutting down");
                         return;
                     }
                 }
                 long end = System.currentTimeMillis();
-                
-                if (actors.size() == 1) {
-                    System.out.println("PROCESSING: " + envs.size() + " ACTORCNT: " + actors.size() + " TIME: " + (end - start));
-                }
+
+                LOG.debug("Processing batch of {} messages took {} ms", queue.size(), end - start);
             }
         } catch (InterruptedException ie) {
-            // TODO: Log here
+            LOG.error("Actor thread interrupted");
             Thread.interrupted(); // clear the interrupted flag because we'll be calling stopActors
         } catch (Exception ex) {
-            System.err.println(ex);
-            // TODO: Log here
+            LOG.error("Actor thread encountered an exception", ex);
         } finally {
             updateState(State.STOPPING);
+            LOG.debug("Stopping actor");
             stopActors(active);
             updateState(State.STOPPED);
+            LOG.debug("Stopped actor");
         }
     }
 
@@ -215,7 +224,7 @@ public final class ActorRunnable implements Runnable {
             } catch (InterruptedException e) {
                 throw e;
             } catch (Exception e) {
-                // TODO: Log here
+                LOG.error("Actor encountered an error on start", e);
 
                 active[counter] = false;
                 activeCount.decrement();
@@ -223,8 +232,7 @@ public final class ActorRunnable implements Runnable {
                 try {
                     actor.onStop(Instant.now());
                 } catch (Exception ex) {
-                    System.err.println(ex);
-                    // TODO: Log here
+                    LOG.error("Actor encountered an error on stop", ex);
                 }
             }
             counter++;
@@ -241,8 +249,7 @@ public final class ActorRunnable implements Runnable {
             try {
                 actor.onStop(Instant.now());
             } catch (Exception ex) {
-                System.err.println(ex);
-                // TODO: Log here
+                LOG.error("Actor encountered an error on stop", ex);
             }
         }
     }
@@ -260,7 +267,7 @@ public final class ActorRunnable implements Runnable {
         } catch (InterruptedException e) {
             throw e;
         } catch (Exception e) {
-            // TODO: Log here
+            LOG.error("Actor encountered an error on run", e);
 
             active[actorIndex] = false;
             activeCount.decrement();
@@ -268,8 +275,7 @@ public final class ActorRunnable implements Runnable {
             try {
                 actor.onStop(Instant.now());
             } catch (Exception ex) {
-                System.err.println(ex);
-                // TODO: Log here
+                LOG.error("Actor encountered an error on stop", ex);
             }
         }
     }

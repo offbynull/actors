@@ -1,7 +1,5 @@
 package com.offbynull.peernetic.network;
 
-import com.offbynull.peernetic.network.handlers.XStreamDecodeHandler;
-import com.offbynull.peernetic.network.handlers.XStreamEncodeHandler;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -21,7 +19,7 @@ public final class BasicUdpGatewayTest {
                 (m) -> {
                     incoming1.add(m.getMessage());
                 },
-                new XStreamEncodeHandler(), new XStreamDecodeHandler());
+                new XStreamSerializer());
         InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 9001);
         List<Object> incoming2 = new ArrayList<>();
         UdpGateway udpGateway2 = new UdpGateway(
@@ -29,7 +27,7 @@ public final class BasicUdpGatewayTest {
                 (m) -> {
                     incoming2.add(m.getMessage());
                 },
-                new XStreamEncodeHandler(), new XStreamDecodeHandler());
+                new XStreamSerializer());
         
         Thread.sleep(1000L);
         

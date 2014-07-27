@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.network.handlers;
+package com.offbynull.peernetic.network;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.AddressedEnvelope;
@@ -8,7 +8,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import java.net.SocketAddress;
 import java.util.List;
 
-public abstract class AbstractDecodeHandler extends MessageToMessageDecoder<Object> {
+abstract class AbstractDecodeHandler extends MessageToMessageDecoder<Object> {
 
     @Override
     protected final void decode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {

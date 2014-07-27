@@ -9,8 +9,12 @@ import java.util.Objects;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class FiniteStateMachine<P> {
+    private static final Logger LOG = LoggerFactory.getLogger(FiniteStateMachine.class);
+            
     private Object object;
     private String currentState;
     private UnmodifiableMap<StateKey, Method> stateHandlerMap;
@@ -59,6 +63,8 @@ public final class FiniteStateMachine<P> {
                 
                 Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
                         StateHandler.class.getSimpleName(), method.getName());
+                
+                LOG.debug("Mapped state handler for {} with type {} to method {}", key.getState(), key.getType(), method);
             }
         }
         
@@ -100,6 +106,8 @@ public final class FiniteStateMachine<P> {
                 
                 Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
                         FilterHandler.class.getSimpleName(), method.getName());
+                
+                LOG.debug("Mapped filter handler for {} with type {} to method {}", key.getState(), key.getType(), method);
             }
         }
         
@@ -137,6 +145,8 @@ public final class FiniteStateMachine<P> {
                 
                 Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
                         TransitionHandler.class.getSimpleName(), method.getName());
+                
+                LOG.debug("Mapped transition handler for ({} -> {}) to method {}", key.getFrom(), key.getTo(), method);
             }
         }
         
@@ -180,8 +190,7 @@ public final class FiniteStateMachine<P> {
         try {
             return method.invoke(object, currentState, this, instant, message, params);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-            // TODO: Log here
-            ex.printStackTrace();
+            LOG.error("Error invoking handler/filter {} with {}", method, message);
             throw new IllegalStateException(ex);
         }
     }
@@ -198,8 +207,7 @@ public final class FiniteStateMachine<P> {
             try {
                 method.invoke(object, currentState, state, this);
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                // TODO: Log here
-                ex.printStackTrace();
+                LOG.error("Error invoking transition", method);
                 throw new IllegalStateException(ex);
             }
         }
@@ -218,6 +226,14 @@ public final class FiniteStateMachine<P> {
         public StateKey(String state, Class<?> type) {
             this.state = state;
             this.type = type;
+        }
+
+        public String getState() {
+            return state;
+        }
+
+        public Class<?> getType() {
+            return type;
         }
 
         @Override

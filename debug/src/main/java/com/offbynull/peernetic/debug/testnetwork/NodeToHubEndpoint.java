@@ -30,11 +30,7 @@ final class NodeToHubEndpoint<A> implements Endpoint {
 
     @Override
     public void send(Endpoint source, Object message) {
-        try {
-            hubEndpoint.send(source, new DepartMessage<>(message, srcId, dstId));
-        } catch (RuntimeException ex) {
-            // TODO: Log and do nothing
-        }
+        hubEndpoint.send(source, new DepartMessage<>(message, srcId, dstId));
     }
 
     @Override

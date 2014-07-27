@@ -6,8 +6,7 @@ import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
 import com.offbynull.peernetic.network.UdpGateway;
-import com.offbynull.peernetic.network.handlers.XStreamDecodeHandler;
-import com.offbynull.peernetic.network.handlers.XStreamEncodeHandler;
+import com.offbynull.peernetic.network.XStreamSerializer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.time.Instant;
@@ -30,7 +29,7 @@ public class BasicTest {
         UdpGateway udpGateway1 = new UdpGateway(
                 address1,
                 inputAdapter1,
-                new XStreamEncodeHandler(), new XStreamDecodeHandler());
+                new XStreamSerializer());
 
         Recver recver = new Recver();
         FsmActor fsmActor2 = new FsmActor(recver, Recver.RESPOND_STATE);
@@ -40,7 +39,7 @@ public class BasicTest {
         UdpGateway udpGateway2 = new UdpGateway(
                 address2,
                 inputAdapter2,
-                new XStreamEncodeHandler(), new XStreamDecodeHandler());
+                new XStreamSerializer());
         
         
         GatewayOutputEndpoint from1To2Endpoint = new GatewayOutputEndpoint(udpGateway1, address2);

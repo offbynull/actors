@@ -10,14 +10,12 @@ import com.offbynull.peernetic.debug.testnetwork.messages.StartHub;
 import com.offbynull.peernetic.debug.testnetwork.messages.DepartMessage;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
-import com.thoughtworks.xstream.XStream;
-import java.io.ByteArrayInputStream;
+import com.offbynull.peernetic.network.Serializer;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Collection;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
-import org.apache.commons.io.output.ByteArrayOutputStream;
 
 public final class Hub<A> {
 
@@ -26,15 +24,15 @@ public final class Hub<A> {
 
     private BidiMap<A, Endpoint> joinedNodes;
     private Line<A> line;
-    private XStream serializer;
+    private Serializer serializer;
     private EndpointScheduler endpointScheduler;
     private Endpoint selfEndpoint;
 
     @StateHandler(INITIAL_STATE)
     public void handleStart(String state, FiniteStateMachine fsm, Instant instant, StartHub message, Endpoint srcEndpoint) {
         joinedNodes = new DualHashBidiMap<>();
-        line = message.getLineFactory().createLine();
-        serializer = new XStream();
+        line = message.getLine();
+        serializer = message.getSerializer();
         endpointScheduler = message.getEndpointScheduler();
         selfEndpoint = message.getSelfEndpoint();
 
@@ -45,6 +43,8 @@ public final class Hub<A> {
     public void handleJoin(String state, FiniteStateMachine fsm, Instant instant, JoinHub<A> message, Endpoint srcEndpoint) {
         A address = message.getAddress();
 
+        line.nodeJoin(address);
+        
         joinedNodes.put(address, srcEndpoint);
     }
 
@@ -52,18 +52,18 @@ public final class Hub<A> {
     public void handleLeave(String state, FiniteStateMachine fsm, Instant instant, LeaveHub<A> message, Endpoint srcEndpoint) {
         A address = message.getAddress();
 
+        line.nodeLeave(address);
+        
         joinedNodes.remove(address, srcEndpoint);
     }
 
     @StateHandler(RUN_STATE)
     public void handleDepart(String state, FiniteStateMachine fsm, Instant instant, DepartMessage<A> message, Endpoint srcEndpoint) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.toXML(message.getData(), baos);
-        byte[] data = baos.toByteArray();
+        byte[] data = serializer.serialize(message.getData());
         ByteBuffer dataBuffer = ByteBuffer.wrap(data);
         BufferMessage<A> bufferMessage = new BufferMessage<>(dataBuffer, message.getSource(), message.getDestination());
         
-        Collection<TransitMessage<A>> msgs = line.depart(instant, bufferMessage);
+        Collection<TransitMessage<A>> msgs = line.messageDepart(instant, bufferMessage);
         msgs.forEach(x -> {
             A source = message.getSource();
             Endpoint sourceEndpoint = joinedNodes.get(source);
@@ -81,7 +81,7 @@ public final class Hub<A> {
             return;
         }
         
-        Collection<BufferMessage<A>> msgs = line.arrive(instant, message);
+        Collection<BufferMessage<A>> msgs = line.messageArrive(instant, message);
         msgs.forEach(x -> {
             A destinationId = x.getDestination();
             Endpoint destinationEndpoint = joinedNodes.get(destinationId);
@@ -92,7 +92,7 @@ public final class Hub<A> {
             A sourceId = x.getSource();
             
             byte[] data = ByteBufferUtils.copyContentsToArray(x.getData());
-            Object dataObj = serializer.fromXML(new ByteArrayInputStream(data));
+            Object dataObj = serializer.deserialize(data);
             
             Endpoint endpointForResponses = new NodeToHubEndpoint(selfEndpoint, destinationId, sourceId);
             destinationEndpoint.send(endpointForResponses, dataObj);

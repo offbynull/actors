@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.demo;
 
+import com.offbynull.peernetic.AddressCache;
+import com.offbynull.peernetic.AddressCache.RetentionMode;
 import com.offbynull.peernetic.ByteArrayNonce;
 import com.offbynull.peernetic.ByteArrayNonceGenerator;
 import com.offbynull.peernetic.Nonce;
@@ -25,8 +27,6 @@ import com.offbynull.peernetic.fsm.StateHandler;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -48,8 +48,7 @@ public final class UnstructuredClient<A> {
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
     private EndpointScheduler endpointScheduler;
-    private LinkedHashSet<A> addressCache;
-    private LinkedHashSet<A> originalAddressCache;
+    private AddressCache<A> addressCache;
     private NonceGenerator<byte[]> nonceGenerator;
     private NonceManager<byte[]> incomingRequestsNonceManager;
     private NonceManager<byte[]> outgoingLinkRequestsNonceManager;
@@ -73,8 +72,7 @@ public final class UnstructuredClient<A> {
         endpointScheduler = message.getEndpointScheduler();
         selfEndpoint = message.getSelfEndpoint();
         selfAddress = message.getSelfAddress();
-        addressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
-        originalAddressCache = new LinkedHashSet<>(message.getBootstrapAddresses());
+        addressCache = new AddressCache<>(1, 256, message.getBootstrapAddresses(), RetentionMode.RETAIN_OLDEST);
         incomingSessions = new SessionManager<>();
         outgoingSessions = new SessionManager<>();
         nonceGenerator = new ByteArrayNonceGenerator(Message.NONCE_LENGTH);
@@ -152,36 +150,30 @@ public final class UnstructuredClient<A> {
         incomingSessions.prune(instant);
         Set<A> prunedOutgoingLinks = outgoingSessions.prune(instant).keySet();
 
-        for (A otherAddress : prunedOutgoingLinks) {
-            listener.onDisconnected(selfAddress, otherAddress);
-        }
+        prunedOutgoingLinks.forEach(prunedAddress -> listener.onDisconnected(selfAddress, prunedAddress));
 
-        // If address cache is empty, ask a neighbour for more nodes (if neighbours available) or restore original address cache
-        List<A> links = getAllSessions();
-        if (addressCache.isEmpty()) {
+        // If address cache is at minimum capacity, ask a neighbour for more nodes (if neighbours available)
+        if (addressCache.isMinimumCapacity()) {
+            List<A> links = getAllSessions();
             if (!links.isEmpty()) {
                 // Grab random link
                 int pos = RandomUtils.nextInt(0, links.size());
                 A address = links.get(pos);
 
                 sendQueryRequest(instant, address);
-            } else {
-                addressCache.addAll(originalAddressCache);
             }
         }
 
         // Send a message to all outgoing links telling them we're still alive, otherwise we'll get dropped
-        for (A address : outgoingSessions.getSessions()) {
-            sendLinkRequest(instant, address);
-        }
+        outgoingSessions.getSessions().forEach(address -> sendLinkRequest(instant, address));
 
-        // Check to see if we have room to send out another link request. If we do, and our outgoing links aren't full yet, send out new
-        // link requests
-        Iterator<A> addressCacheIt = addressCache.iterator();
-        while (outgoingLinkRequestsNonceManager.size() < MAX_OUTGOING_JOINS && addressCacheIt.hasNext()) {
+        // Check to see if we have room for more outgoing links. If we do, send out new link requests
+        int openOutgoingSlots = MAX_OUTGOING_JOINS - outgoingSessions.size();
+        int requestCount = Math.min(openOutgoingSlots, addressCache.size());
+        
+        for (int i = 0; i < requestCount; i++) {
             // Get next address from address cache
-            A address = addressCacheIt.next();
-            addressCacheIt.remove();
+            A address = addressCache.next();
 
             // If already have a link to address, skip
             if (outgoingSessions.containsSession(address) || incomingSessions.containsSession(address)) {

@@ -30,11 +30,10 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,10 +183,8 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         Validate.notNull(output);
         Validate.noNullElements(commands);
         
-        Date date = new Date();
-        
         String name = Thread.currentThread().getName();
-        String dateStr = SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(date);
+        String dateStr = ZonedDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         
         textOutputArea.append(dateStr + " / " + name + " - " + output + " \n");
         textOutputArea.setCaretPosition(textOutputArea.getDocument().getLength());

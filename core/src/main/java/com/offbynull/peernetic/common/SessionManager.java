@@ -1,4 +1,4 @@
-package com.offbynull.peernetic;
+package com.offbynull.peernetic.common;
 
 import java.time.Duration;
 import java.time.Instant;

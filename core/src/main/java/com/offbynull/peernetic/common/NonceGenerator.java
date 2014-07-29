@@ -1,4 +1,4 @@
-package com.offbynull.peernetic;
+package com.offbynull.peernetic.common;
 
 public interface NonceGenerator<T> {
     

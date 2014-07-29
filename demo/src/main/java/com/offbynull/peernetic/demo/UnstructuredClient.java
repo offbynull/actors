@@ -1,13 +1,13 @@
 package com.offbynull.peernetic.demo;
 
-import com.offbynull.peernetic.AddressCache;
-import com.offbynull.peernetic.AddressCache.RetentionMode;
-import com.offbynull.peernetic.ByteArrayNonce;
-import com.offbynull.peernetic.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.Nonce;
-import com.offbynull.peernetic.NonceGenerator;
-import com.offbynull.peernetic.NonceManager;
-import com.offbynull.peernetic.SessionManager;
+import com.offbynull.peernetic.common.AddressCache;
+import com.offbynull.peernetic.common.AddressCache.RetentionMode;
+import com.offbynull.peernetic.common.ByteArrayNonce;
+import com.offbynull.peernetic.common.ByteArrayNonceGenerator;
+import com.offbynull.peernetic.common.Nonce;
+import com.offbynull.peernetic.common.NonceGenerator;
+import com.offbynull.peernetic.common.NonceManager;
+import com.offbynull.peernetic.common.SessionManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;

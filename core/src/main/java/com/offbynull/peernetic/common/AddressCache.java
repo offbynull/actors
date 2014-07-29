@@ -1,10 +1,8 @@
-package com.offbynull.peernetic;
+package com.offbynull.peernetic.common;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class AddressCache<A> {

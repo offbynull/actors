@@ -1,4 +1,4 @@
-package com.offbynull.peernetic;
+package com.offbynull.peernetic.common;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;

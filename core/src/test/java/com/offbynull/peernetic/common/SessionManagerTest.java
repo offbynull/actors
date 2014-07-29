@@ -1,5 +1,6 @@
-package com.offbynull.peernetic;
+package com.offbynull.peernetic.common;
 
+import com.offbynull.peernetic.common.SessionManager;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.Assert;

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo.messages.external;
+package com.offbynull.peernetic.demos.unstructured.messages.external;
 
 public class Request extends Message {
 

@@ -330,7 +330,7 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    private enum State {
+    public enum State {
 
         CREATED,
         STARTING,

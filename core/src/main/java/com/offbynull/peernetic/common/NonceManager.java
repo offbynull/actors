@@ -55,7 +55,7 @@ public final class NonceManager<T> {
         return slot == null ? null : Optional.ofNullable(slot.getResponse());
     }
 
-    public void assignResponse(Nonce<T> nonce, Object response) {
+    public void assignValue(Nonce<T> nonce, Object response) {
         Validate.notNull(nonce);
         
         Slot<T> slot = nonceLookup.get(nonce);

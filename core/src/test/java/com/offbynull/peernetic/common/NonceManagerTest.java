@@ -34,7 +34,7 @@ public class NonceManagerTest {
         Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
         Assert.assertEquals(Optional.empty(), nonceManager.checkNonce(nonce2));
 
-        nonceManager.assignResponse(nonce2, NONCE_2_RESPONSE);
+        nonceManager.assignValue(nonce2, NONCE_2_RESPONSE);
         Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
         Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         

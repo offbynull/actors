@@ -20,44 +20,52 @@ import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Default {@link LinearId} generator.
+ * Default {@link Id} generator.
  * @author Kasra Faghihi
  */
-public final class LinearIdGenerator {
+public final class IdGenerator {
 
-    private Random random;
+    private final Random random;
+    private final byte[] limit;
     
     /**
      * Constructs a {@link DefaultIdGenerator} object using a {@link Random} as its underlying source.
      * @param random random number generator (should be a {@link SecureRandom} instance in most cases)
+     * @param limit maximum value the id generated can be
      * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if limit is 0
      */
-    public LinearIdGenerator(Random random) {
+    public IdGenerator(Random random, byte[] limit) {
         Validate.notNull(random);
+        Validate.notNull(limit);
+        Validate.isTrue(limit.length > 0 && !new BigInteger(1, limit).equals(BigInteger.ZERO));
         this.random = random;
+        this.limit = Arrays.copyOf(limit, limit.length);
     }
 
     /**
      * Constructs a {@link DefaultIdGenerator} using {@link SecureRandom} (with SUN / SHA1PRNG implementation).
+     * @param limit maximum value the id generated can be
      * @throws NoSuchAlgorithmException thrown by {@link SecureRandom#getInstance(java.lang.String, java.lang.String) }
      * @throws NoSuchProviderException thrown by {@link SecureRandom#getInstance(java.lang.String, java.lang.String) }
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if limit is 0
      */
-    public LinearIdGenerator() throws NoSuchAlgorithmException, NoSuchProviderException {
-        this(SecureRandom.getInstance("SHA1PRNG", "SUN"));
+    public IdGenerator(byte[] limit) throws NoSuchAlgorithmException, NoSuchProviderException {
+        this(SecureRandom.getInstance("SHA1PRNG", "SUN"), limit);
     }
 
     /**
-     * Generates a {@link LinearId}.
-     * @param limit maximum value the id can be
-     * @return a {@link LinearId} between {@code 0} and {@code limit}
+     * Generates a {@link Id}.
+     * @return a {@link Id} between {@code 0} and {@code limit}
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public LinearId generate(byte[] limit) {
-        Validate.notNull(limit);
+    public Id generate() {
         try {
             int rawLen = limit.length;
             byte[] raw = new byte[rawLen];
@@ -68,7 +76,7 @@ public final class LinearIdGenerator {
             
             rawBd = rawBd.mod(limitBd);
 
-            return new LinearId(rawBd.toByteArray(), limit);
+            return new Id(rawBd.toByteArray(), limit);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

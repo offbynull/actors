@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo;
+package com.offbynull.peernetic.demos.unstructured;
 
 import com.offbynull.peernetic.FsmActor;
 import com.offbynull.peernetic.GatewayEndpointDirectory;
@@ -21,7 +21,7 @@ import com.offbynull.peernetic.debug.visualizer.JGraphXVisualizer;
 import com.offbynull.peernetic.debug.visualizer.RemoveEdgeCommand;
 import com.offbynull.peernetic.debug.visualizer.Visualizer;
 import com.offbynull.peernetic.debug.visualizer.VisualizerUtils;
-import com.offbynull.peernetic.demo.messages.internal.Start;
+import com.offbynull.peernetic.demos.unstructured.messages.internal.Start;
 import com.offbynull.peernetic.network.Gateway;
 import com.offbynull.peernetic.network.GatewayListener;
 import com.offbynull.peernetic.network.XStreamSerializer;

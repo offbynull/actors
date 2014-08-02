@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo.messages.internal;
+package com.offbynull.peernetic.demos.unstructured.messages.internal;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;

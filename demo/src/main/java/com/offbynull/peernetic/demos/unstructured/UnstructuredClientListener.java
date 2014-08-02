@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo;
+package com.offbynull.peernetic.demos.unstructured;
 
 public interface UnstructuredClientListener<A> {
     void onStarted(A id);

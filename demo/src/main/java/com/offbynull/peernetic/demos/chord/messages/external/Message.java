@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.demo.messages.external;
+package com.offbynull.peernetic.demos.chord.messages.external;
 
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;

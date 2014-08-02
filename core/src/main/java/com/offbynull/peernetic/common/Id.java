@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
  * An ID between 0 and some pre-defined limit.
  * @author Kasra Faghihi
  */
-public final class LinearId {
+public final class Id {
 
     private BigInteger data;
     private BigInteger limit;
@@ -36,7 +36,7 @@ public final class LinearId {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code data > limit}, or if either argument is {@code < 0}
      */
-    private LinearId(BigInteger data, BigInteger limit) {
+    private Id(BigInteger data, BigInteger limit) {
         Validate.notNull(data);
         Validate.notNull(limit);
         Validate.isTrue(data.compareTo(limit) <= 0 && data.signum() >= 0 && limit.signum() >= 0);
@@ -53,36 +53,69 @@ public final class LinearId {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code data > limit}
      */
-    public LinearId(byte[] data, byte[] limit) {
+    public Id(byte[] data, byte[] limit) {
         this(new BigInteger(1, data), new BigInteger(1, limit)); 
     }
+
+    /**
+     * Constructs a {@link Id} with the limit set to {@code 2^n-1} (a limit where the bits are all 1).
+     * @param data id value
+     * @param exp number of bits in limit, such that the limit will be {@code 2^n-1}.
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code data > 2^exp-1}, or if {@code exp <= 0}
+     */
+    public Id(byte[] data, int exp) {
+        this(data, generatePowerOfTwoLimit(exp)); 
+    }
     
+    /**
+     * Generates a limit that's {@code 2^n-1}. Another way to think of it is, generates a limit that successively {@code n = (n << 1) | 1}
+     * for {@code n} times -- making sure you have a limit that's value is all 1 bits.
+     * <p/>
+     * Examples:
+     * <ul>
+     * <li>{@code n = 1, limit = 1 (1b)}<li/>
+     * <li>{@code n = 2, limit = 3 (11b)}<li/>
+     * <li>{@code n = 4, limit = 7 (111b)}<li/>
+     * <li>{@code n = 8, limit = 15 (1111b)}<li/>
+     * </ul>
+     * @param exp exponent, such that the returned value is {@code 2^exp-1}
+     * @return {@code 2^exp-1} as a byte array
+     * @throws IllegalArgumentException if {@code exp <= 0}
+     */
+    private static byte[] generatePowerOfTwoLimit(int exp) {
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, exp);
+
+        BigInteger val = BigInteger.ONE.shiftLeft(exp).subtract(BigInteger.ONE); // (1 << exp) - 1
+        
+        return val.toByteArray();
+    }
+
     /**
      * Increments an id.
      * @return this id incremented by 1, wrapped if it exceeds limit
      */
-    public LinearId increment() {
-        return this.add(new LinearId(new byte[] {1}, limit.toByteArray()));
+    public Id increment() {
+        return add(this, new Id(new byte[] {1}, limit.toByteArray()));
     }
 
     /**
      * Decrements an id.
      * @return this id decremented by 1, wrapped if it it goes below {@code 0}
      */
-    public LinearId decrement() {
-        return this.subtract(new LinearId(new byte[] {1}, limit.toByteArray()));
+    public Id decrement() {
+        return subtract(this, new Id(new byte[] {1}, limit.toByteArray()));
     }
     
     /**
-     * Adds two IDs together. {@code this} is the left-hand side. The limit of the IDs must match.
+     * Adds two IDs together. The limit of the IDs must match.
+     * @param lhs right-hand side
      * @param rhs right-hand side
      * @return {@code lhs + rhs}, wrapped if it exceeds the limit
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if the limit from {@code lhs} doesn't match the limit from {@code rhs}
      */
-    public LinearId add(LinearId rhs) {
-        LinearId lhs = this;
-        
+    public static Id add(Id lhs, Id rhs) {
         Validate.notNull(lhs);
         Validate.notNull(rhs);
         Validate.isTrue(lhs.limit.equals(rhs.limit));
@@ -92,21 +125,20 @@ public final class LinearId {
             added = added.subtract(lhs.limit).subtract(BigInteger.ONE);
         }
 
-        LinearId addedId = new LinearId(added, lhs.limit);
+        Id addedId = new Id(added, lhs.limit);
 
         return addedId;
     }
 
     /**
-     * Subtracts two IDs. {@code this} is the left-hand side. The limit of the IDs must match.
+     * Subtracts two IDs. The limit of the IDs must match.
+     * @param lhs left-hand side
      * @param rhs right-hand side
-     * @return {@code lhs + rhs}, wrapped around limit if it goes below {@code 0}
+     * @return {@code lhs - rhs}, wrapped around limit if it goes below {@code 0}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if the limit from {@code lhs} doesn't match the limit from {@code rhs}
      */
-    public LinearId subtract(LinearId rhs) {
-        LinearId lhs = this;
-        
+    public static Id subtract(Id lhs, Id rhs) {
         Validate.notNull(lhs);
         Validate.notNull(rhs);
         Validate.isTrue(lhs.limit.equals(rhs.limit));
@@ -116,14 +148,14 @@ public final class LinearId {
             subtracted = subtracted.add(lhs.limit).add(BigInteger.ONE);
         }
 
-        LinearId subtractedId = new LinearId(subtracted, lhs.limit);
+        Id subtractedId = new Id(subtracted, lhs.limit);
 
         return subtractedId;
     }
 
     /**
-     * Compare the position of two IDs, using a base reference point. {@code this} is the left-hand side. Another way to think of this is
-     * that this method compares two IDs from the view of a certain reference point.
+     * Compare the position of two IDs, using a base reference point. Another way to think of this is that this method compares two IDs from
+     * the view of a certain reference point.
      * <p/>
      * <b>Example 1:</b><br/>
      * The ID limit is 16<br/>
@@ -139,21 +171,20 @@ public final class LinearId {
      * {@code base = 10}<br/>
      * In this case, {@code rhs < lhs}. From {@code base}'s view, {@code lhs} is 15 nodes away, while {@code rhs} is 8 only nodes away.
      * @param base reference point
+     * @param lhs left-hand side
      * @param rhs right-hand side
      * @return -1, 0 or 1 as {@lhs} is less than, equal to, or greater than {@code rhs}.
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if the limit from {@code lhs} or {@code rhs} doesn't match the limit from {@code base}
      */
-    public int comparePosition(LinearId base, LinearId rhs) {
-        LinearId lhs = this;
-        
+    public static int comparePosition(Id base, Id lhs, Id rhs) {
         Validate.notNull(base);
         Validate.notNull(lhs);
         Validate.notNull(rhs);
         Validate.isTrue(base.limit.equals(lhs.limit) && base.limit.equals(rhs.limit));
         
-        LinearId lhsOffsetId = lhs.subtract(base);
-        LinearId rhsOffsetId = rhs.subtract(base);
+        Id lhsOffsetId = subtract(lhs, base);
+        Id rhsOffsetId = subtract(rhs, base);
 
         BigInteger rhsOffsetIdNum = rhsOffsetId.getValueAsBigInteger();
         BigInteger lhsOffsetIdNum = lhsOffsetId.getValueAsBigInteger();
@@ -162,10 +193,7 @@ public final class LinearId {
     }
 
     /**
-     * Checks to see if this ID is between two other IDs. Equivalent to calling
-     * {@link #isWithin(com.offbynull.peernetic.overlay.common.id.Id, com.offbynull.peernetic.overlay.common.id.Id, boolean,
-     * com.offbynull.peernetic.overlay.common.id.Id, boolean) } where the {@code base} argument and the {@code lower} argument are
-     * the same.
+     * Checks to see if this ID is between two other IDs.
      * @param lower lower ID bound
      * @param lowerInclusive {@code true} if lower ID bound is inclusive, {@code false} if exclusive
      * @param upper upper ID bound
@@ -174,19 +202,19 @@ public final class LinearId {
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if ID limits don't match this ID's limit
      */
-    public boolean isWithin(LinearId lower, boolean lowerInclusive, LinearId upper, boolean upperInclusive) {
+    public boolean isWithin(Id lower, boolean lowerInclusive, Id upper, boolean upperInclusive) {
         Validate.notNull(lower);
         Validate.notNull(upper);
         Validate.isTrue(limit.equals(lower.limit) && limit.equals(upper.limit));
         
         if (lowerInclusive && upperInclusive) {
-            return comparePosition(lower, lower) >= 0 && comparePosition(lower, upper) <= 0;
+            return comparePosition(lower, this, lower) >= 0 && comparePosition(lower, this, upper) <= 0;
         } else if (lowerInclusive) {
-            return comparePosition(lower, lower) >= 0 && comparePosition(lower, upper) < 0;
+            return comparePosition(lower, this, lower) >= 0 && comparePosition(lower, this, upper) < 0;
         } else if (upperInclusive) {
-            return comparePosition(lower, lower) > 0 && comparePosition(lower, upper) <= 0;            
+            return comparePosition(lower, this, lower) > 0 && comparePosition(lower, this, upper) <= 0;
         } else {
-            return comparePosition(lower, lower) > 0 && comparePosition(lower, upper) < 0;
+            return comparePosition(lower, this, lower) > 0 && comparePosition(lower, this, upper) < 0;
         }
     }
     
@@ -221,6 +249,22 @@ public final class LinearId {
     public byte[] getLimitAsByteArray() {
         return limit.toByteArray();
     }
+    
+    /**
+     * Validates that limit satisfies {@code 2^n-1}. In other words, ensures that all bits making up the limit are {@code 1}.
+     * @return {@code true} if the limit matches {@code 2^n-1}, {@code false} otherwise.
+     */
+    public boolean isLimitPowerOfTwo() {
+        int bitLength = limit.bitLength();
+        
+        for (int i = 0; i < bitLength; i++) {
+            if (!limit.testBit(i)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
 
     @Override
     public int hashCode() {
@@ -237,7 +281,7 @@ public final class LinearId {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final LinearId other = (LinearId) obj;
+        final Id other = (Id) obj;
         if (!Objects.equals(this.data, other.data)) {
             return false;
         }

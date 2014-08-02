@@ -2,6 +2,7 @@ package com.offbynull.peernetic.actor;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -16,7 +17,7 @@ public final class SimpleEndpointScheduler implements EndpointScheduler {
     private Thread thread;
     
     public SimpleEndpointScheduler() {
-        events = new PriorityQueue<>();
+        events = new PriorityQueue<>(new EventComparator());
         lock = new ReentrantLock();
         condition = lock.newCondition();
         thread = new Thread(() -> {
@@ -83,7 +84,7 @@ public final class SimpleEndpointScheduler implements EndpointScheduler {
         thread.join();
     }
     
-    private static final class Event implements Comparable<Event> {
+    private static final class Event {
         private final Instant time;
         private final Endpoint source;
         private final Endpoint destination;
@@ -95,10 +96,14 @@ public final class SimpleEndpointScheduler implements EndpointScheduler {
             this.destination = destination;
             this.message = message;
         }
+        
+    }
+    
+    private static final class EventComparator implements Comparator<Event> {
 
         @Override
-        public int compareTo(Event o) {
-            return time.compareTo(o.time);
+        public int compare(Event o1, Event o2) {
+            return o1.time.compareTo(o2.time);
         }
         
     }

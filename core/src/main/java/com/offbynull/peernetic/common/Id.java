@@ -250,22 +250,6 @@ public final class Id {
         return limit.toByteArray();
     }
     
-    /**
-     * Validates that limit satisfies {@code 2^n-1}. In other words, ensures that all bits making up the limit are {@code 1}.
-     * @return {@code true} if the limit matches {@code 2^n-1}, {@code false} otherwise.
-     */
-    public boolean isLimitPowerOfTwo() {
-        int bitLength = limit.bitLength();
-        
-        for (int i = 0; i < bitLength; i++) {
-            if (!limit.testBit(i)) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-
     @Override
     public int hashCode() {
         int hash = 5;

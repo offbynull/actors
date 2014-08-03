@@ -5,4 +5,9 @@ public final class QueryRequest extends Request {
     public QueryRequest(byte[] nonce) {
         super(nonce);
     }
+
+    @Override
+    protected void innerValidate() {
+        // Does nothing
+    }
 }

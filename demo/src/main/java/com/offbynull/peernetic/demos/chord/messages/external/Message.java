@@ -21,6 +21,5 @@ public abstract class Message {
         innerValidate();
     }
     
-    protected void innerValidate() {
-    }
+    protected abstract void innerValidate();
 }

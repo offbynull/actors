@@ -16,11 +16,11 @@
  */
 package com.offbynull.peernetic.demos.chord.messages.external;
 
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.Request;
 
-public final class NotifyResponse extends Response {
+public final class GetIdRequest extends Request {
 
-    public NotifyResponse(byte[] nonce) {
+    public GetIdRequest(byte[] nonce) {
         super(nonce);
         validate();
     }

@@ -1,10 +1,10 @@
-package com.offbynull.peernetic.demos.chord.messages.core;
+package com.offbynull.peernetic.demos.chord.core;
 
 import com.offbynull.peernetic.common.Id;
 import java.math.BigInteger;
 import org.apache.commons.lang3.Validate;
 
-final class ChordUtils {
+public final class ChordUtils {
     private ChordUtils() {
         // do nothing
     }

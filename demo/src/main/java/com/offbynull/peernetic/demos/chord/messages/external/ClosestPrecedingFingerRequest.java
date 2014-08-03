@@ -16,17 +16,25 @@
  */
 package com.offbynull.peernetic.demos.chord.messages.external;
 
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.Request;
+import java.util.Arrays;
+import org.apache.commons.lang3.Validate;
 
-public final class NotifyResponse extends Response {
+public final class ClosestPrecedingFingerRequest extends Request {
+    private byte[] destination;
 
-    public NotifyResponse(byte[] nonce) {
+    public ClosestPrecedingFingerRequest(byte[] nonce, byte[] destination) {
         super(nonce);
+        this.destination = Arrays.copyOf(destination, destination.length);
         validate();
+    }
+
+    public byte[] getDestination() {
+        return Arrays.copyOf(destination, destination.length);
     }
 
     @Override
     protected void innerValidate() {
-        // does nothing
+        Validate.isTrue(destination.length > 0);
     }
 }

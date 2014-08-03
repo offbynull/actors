@@ -16,14 +16,17 @@
  */
 package com.offbynull.peernetic.demos.chord.messages.external;
 
-import com.offbynull.peernetic.demos.unstructured.messages.external.Response;
+import com.offbynull.peernetic.common.Response;
+import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class FindResponse<A> extends Response {
+public final class ClosestPrecedingFingerResponse<A> extends Response {
+    private byte[] id;
     private A address;
 
-    public FindResponse(byte[] nonce, A address) {
+    public ClosestPrecedingFingerResponse(byte[] nonce, byte[] id, A address) {
         super(nonce);
+        this.id = Arrays.copyOf(id, id.length);
         this.address = address;
         validate();
     }
@@ -34,6 +37,8 @@ public final class FindResponse<A> extends Response {
     
     @Override
     protected void innerValidate() {
+        Validate.notNull(id);
         Validate.notNull(address);
+        Validate.isTrue(id.length > 0);
     }
 }

@@ -17,16 +17,21 @@
 package com.offbynull.peernetic.demos.chord.messages.external;
 
 import com.offbynull.peernetic.common.Response;
+import java.util.Arrays;
+import org.apache.commons.lang3.Validate;
 
-public final class NotifyResponse extends Response {
+public final class GetIdResponse<A> extends Response {
+    private byte[] id;
 
-    public NotifyResponse(byte[] nonce) {
+    public GetIdResponse(byte[] nonce, byte[] id, A address) {
         super(nonce);
+        this.id = Arrays.copyOf(id, id.length);
         validate();
     }
-
+    
     @Override
     protected void innerValidate() {
-        // does nothing
+        Validate.notNull(id);
+        Validate.isTrue(id.length > 0);
     }
 }

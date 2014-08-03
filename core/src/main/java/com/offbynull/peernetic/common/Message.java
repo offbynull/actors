@@ -1,10 +1,12 @@
-package com.offbynull.peernetic.demos.unstructured.messages.external;
+package com.offbynull.peernetic.common;
 
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public abstract class Message {
     public static final int NONCE_LENGTH = 8;
+    
+    @NonceField
     private byte[] nonce;
 
     public Message(byte[] nonce) {
@@ -16,6 +18,7 @@ public abstract class Message {
         return Arrays.copyOf(nonce, nonce.length);
     }
     
+    @ValidationMethod
     public final void validate() {
         Validate.validState(nonce.length == NONCE_LENGTH);
         innerValidate();

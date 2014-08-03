@@ -1,5 +1,8 @@
-package com.offbynull.peernetic.demos.chord.messages.core;
+package com.offbynull.peernetic.demos.chord.core;
 
+import com.offbynull.peernetic.demos.chord.core.ChordState;
+import com.offbynull.peernetic.demos.chord.core.InternalPointer;
+import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;

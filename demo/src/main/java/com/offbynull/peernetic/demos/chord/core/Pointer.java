@@ -14,26 +14,21 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.demos.chord.messages.external;
 
-import java.util.Arrays;
-import org.apache.commons.lang3.Validate;
+package com.offbynull.peernetic.demos.chord.core;
 
-public final class FindRequest extends Request {
-    private byte[] destination;
+import com.offbynull.peernetic.common.Id;
 
-    public FindRequest(byte[] nonce, byte[] destination) {
-        super(nonce);
-        this.destination = Arrays.copyOf(destination, destination.length);
-        validate();
-    }
+/**
+ * Represents a pointer.
+ * @author Kasra Faghihi
+ */
+public interface Pointer {
 
-    public byte[] getDestination() {
-        return Arrays.copyOf(destination, destination.length);
-    }
-
-    @Override
-    protected void innerValidate() {
-        Validate.isTrue(destination.length > 0);
-    }
+    /**
+     * Get ID.
+     * @return id
+     */
+    Id getId();
+    
 }

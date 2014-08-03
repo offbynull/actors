@@ -14,28 +14,33 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.demos.chord.messages.core;
+package com.offbynull.peernetic.demos.chord.core;
 
 import com.offbynull.peernetic.common.Id;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A {@link Pointer} that represents self node.
+ * A {@link Pointer} that represents and external node. Paired with an address of some kind.
  * @author Kasra Faghihi
+ * @param <A> address type
  */
-public final class InternalPointer implements Pointer {
+public final class ExternalPointer<A> implements Pointer {
     private Id id;
+    private A address;
 
     /**
-     * Constructs a {@link InternalPointer} object.
+     * Constructs a {@link Pointer} object.
      * @param id id
+     * @param address address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public InternalPointer(Id id) {
+    public ExternalPointer(Id id, A address) {
         Validate.notNull(id);
+        Validate.notNull(address);
         
         this.id = id;
+        this.address = address;
     }
 
     /**
@@ -47,10 +52,23 @@ public final class InternalPointer implements Pointer {
         return id;
     }
 
+    /**
+     * Get address.
+     * @return address
+     */
+    public A getAddress() {
+        return address;
+    }
+
+    public InternalPointer toInternalPointer() {
+        return new InternalPointer(id);
+    }
+    
     @Override
     public int hashCode() {
         int hash = 7;
         hash = 37 * hash + Objects.hashCode(this.id);
+        hash = 37 * hash + Objects.hashCode(this.address);
         return hash;
     }
 
@@ -62,8 +80,11 @@ public final class InternalPointer implements Pointer {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final InternalPointer other = (InternalPointer) obj;
+        final ExternalPointer other = (ExternalPointer) obj;
         if (!Objects.equals(this.id, other.id)) {
+            return false;
+        }
+        if (!Objects.equals(this.address, other.address)) {
             return false;
         }
         return true;
@@ -71,6 +92,6 @@ public final class InternalPointer implements Pointer {
 
     @Override
     public String toString() {
-        return "InternalPointer{" + "id=" + id + '}';
+        return "ExternalPointer{" + "id=" + id + ", address=" + address + '}';
     }
 }

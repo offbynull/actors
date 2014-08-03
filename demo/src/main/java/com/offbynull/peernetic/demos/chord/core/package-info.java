@@ -18,4 +18,4 @@
 /**
  * Core chord algorithms.
  */
-package com.offbynull.peernetic.demos.chord.messages.core;
+package com.offbynull.peernetic.demos.chord.core;

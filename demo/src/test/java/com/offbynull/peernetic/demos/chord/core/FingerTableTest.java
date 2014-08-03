@@ -1,5 +1,9 @@
-package com.offbynull.peernetic.demos.chord.messages.core;
+package com.offbynull.peernetic.demos.chord.core;
 
+import com.offbynull.peernetic.demos.chord.core.Pointer;
+import com.offbynull.peernetic.demos.chord.core.FingerTable;
+import com.offbynull.peernetic.demos.chord.core.InternalPointer;
+import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.common.Id;
 import java.net.InetSocketAddress;
 import org.junit.After;

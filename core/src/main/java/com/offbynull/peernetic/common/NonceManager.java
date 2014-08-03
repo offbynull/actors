@@ -22,7 +22,7 @@ public final class NonceManager<T> {
         nonceTimeoutQueue = new PriorityQueue<>(new SlotTimeoutComparator<T>());
     }
     
-    public void addNonce(Instant time, Duration duration, Nonce<T> nonce, Object response) {
+    public void addNonce(Instant time, Duration duration, Nonce<T> nonce, Object value) {
         Validate.isTrue(lastCallTime == null ? true : !lastCallTime.isAfter(time));
         Validate.isTrue(!duration.isNegative() && !duration.isZero());
         Validate.notNull(nonce);
@@ -32,7 +32,7 @@ public final class NonceManager<T> {
         lastCallTime = time;
         
         Instant pruneTime = time.plus(duration);
-        Slot<T> slot = new Slot<>(pruneTime, nonce, response);
+        Slot<T> slot = new Slot<>(pruneTime, nonce, value);
 
         
         nonceLookup.put(nonce, slot);

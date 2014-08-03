@@ -14,21 +14,19 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.peernetic.demos.chord.messages.external;
 
-package com.offbynull.peernetic.demos.chord.messages.core;
+import com.offbynull.peernetic.common.Request;
 
-import com.offbynull.peernetic.common.Id;
+public final class GetSuccessorRequest extends Request {
 
-/**
- * Represents a pointer.
- * @author Kasra Faghihi
- */
-public interface Pointer {
+    public GetSuccessorRequest(byte[] nonce) {
+        super(nonce);
+        validate();
+    }
 
-    /**
-     * Get ID.
-     * @return id
-     */
-    Id getId();
-    
+    @Override
+    protected void innerValidate() {
+        // does nothing
+    }
 }

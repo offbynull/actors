@@ -31,7 +31,7 @@ public final class IncomingRequestManager<A, N> {
         this.requests = new HashMap<>();
     }
 
-    public void sendAndStore(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration)
+    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration)
             throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);
@@ -60,7 +60,7 @@ public final class IncomingRequestManager<A, N> {
         return handleQueue(time);
     }
     
-    public boolean testMessage(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
+    public boolean testRequestMessage(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);

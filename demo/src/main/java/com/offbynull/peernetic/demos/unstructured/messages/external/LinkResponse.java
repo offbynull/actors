@@ -12,7 +12,6 @@ public final class LinkResponse<A> extends Response {
     private UnmodifiableList<A> links;
 
     public LinkResponse(boolean successful, List<A> links) {
-        super(new byte[1]); // fake nonce which will get replaced later
         this.successful = successful;
         this.links = (UnmodifiableList<A>) UnmodifiableList.unmodifiableList(new ArrayList<A>(links));
         innerValidate();

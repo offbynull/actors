@@ -38,7 +38,7 @@ public final class OutgoingRequestManager<A, N> {
         this.requests = new HashMap<>();
     }
 
-    public void sendAndQueue(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
+    public void sendRequestAndTrack(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
             Duration retainDuration) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);
@@ -68,7 +68,7 @@ public final class OutgoingRequestManager<A, N> {
             }
         } while (requests.containsKey(nonce));
 
-        // sendAndQueue and queue resends/discards
+        // sendRequestAndTrack and queue resends/discards
         Endpoint dstEndpoint = endpointDirectory.lookup(dstAddress);
         requests.put(nonce, new Request(dstEndpoint, request));
         for (int i = 0; i < maxResendCount; i++) {
@@ -83,7 +83,7 @@ public final class OutgoingRequestManager<A, N> {
         return handleQueue(time);
     }
     
-    public boolean isTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
+    public boolean isRequestTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);
@@ -99,7 +99,7 @@ public final class OutgoingRequestManager<A, N> {
         return requests.containsKey(nonce);
     }
     
-    public boolean testMessage(Instant time, Object response) throws IllegalAccessException, IllegalArgumentException,
+    public boolean testResponseMessage(Instant time, Object response) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(response);

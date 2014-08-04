@@ -93,20 +93,20 @@ public final class UnstructuredClient<A> {
             throws Exception{
 
         // if message to ourself (or invalid), don't process 
-        if (outgoingRequestManager.isTracked(instant, message)) {
+        if (outgoingRequestManager.isRequestTracked(instant, message)) {
             return false;
         }
 
-        // make sure msg is valid and we haven't responded to it yet. if we have, testMessage() will return false but will fire off the
-        // original response anyway
-        return incomingRequestManager.testMessage(instant, message);
+        // make sure msg is valid and we haven't responded to it yet. if we have, the method being called will return false but will fire
+        // off the original response anyway
+        return incomingRequestManager.testRequestMessage(instant, message);
     }
 
     @FilterHandler(ACTIVE_STATE)
     public boolean checkIncomingResponse(String state, FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint)
             throws Exception {
         // makes sure msg is valid (false if not) and makes sure this is a response to a message we've sent
-        return outgoingRequestManager.testMessage(instant, message);
+        return outgoingRequestManager.testResponseMessage(instant, message);
     }
 
     @StateHandler(ACTIVE_STATE)
@@ -140,7 +140,7 @@ public final class UnstructuredClient<A> {
             sendLinkRequest(instant, address);
         }
 
-        // Check to see if we have room for more outgoing links. If we do, sendAndQueue out new link requests
+        // Check to see if we have room for more outgoing links. If we do, sendRequestAndTrack out new link requests
         int openOutgoingSlots = MAX_OUTGOING_JOINS - outgoingSessions.size();
         int requestCount = Math.min(openOutgoingSlots, addressCache.size());
         
@@ -217,24 +217,24 @@ public final class UnstructuredClient<A> {
     }
     
     private void sendLinkRequest(Instant instant, A address) throws Exception {
-        outgoingRequestManager.sendAndQueue(instant, new LinkRequest(), address,
+        outgoingRequestManager.sendRequestAndTrack(instant, new LinkRequest(), address,
                 REQUEST_RESEND_DURATION, REQUEST_RESEND_COUNT, REQUEST_DISCARD_DURATION);
     }
 
     private void sendQueryRequest(Instant instant, A address) throws Exception {
-        outgoingRequestManager.sendAndQueue(instant, new QueryRequest(), address,
+        outgoingRequestManager.sendRequestAndTrack(instant, new QueryRequest(), address,
                 REQUEST_RESEND_DURATION, REQUEST_RESEND_COUNT, REQUEST_DISCARD_DURATION);
     }
     
     private void sendLinkResponse(Instant instant, Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
         List<A> links = getAllSessions();
         LinkResponse<A> response = new LinkResponse<>(successful, links);
-        incomingRequestManager.sendAndStore(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
+        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
     }
 
     private void sendQueryResponse(Instant instant, Endpoint srcEndpoint, Object request) throws Exception {
         List<A> links = getAllSessions();
         QueryResponse<A> response = new QueryResponse<>(links);
-        incomingRequestManager.sendAndStore(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
+        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
     }
 }

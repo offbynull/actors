@@ -13,6 +13,10 @@ import org.apache.commons.lang3.Validate;
 
 public final class OutgoingRequestManager<A, N> {
 
+    private static final Duration DEFAULT_RESEND_DURATION = Duration.ofSeconds(5L);
+    private static final int DEFAULT_MAXIMUM_RESEND_ATTEMPTS = 3;
+    private static final Duration DEFAULT_RETAIN_DURATION = Duration.ofSeconds(30L);
+    
     private final Endpoint selfEndpoint;
     private final NonceGenerator<N> nonceGenerator;
     private final NonceWrapper<N> nonceWrapper;
@@ -38,6 +42,11 @@ public final class OutgoingRequestManager<A, N> {
         this.requests = new HashMap<>();
     }
 
+    public void sendRequestAndTrack(Instant time, Object request, A dstAddress) throws IllegalArgumentException, IllegalAccessException,
+            InvocationTargetException {
+        sendRequestAndTrack(time, request, dstAddress, DEFAULT_RESEND_DURATION, DEFAULT_MAXIMUM_RESEND_ATTEMPTS, DEFAULT_RETAIN_DURATION);
+    }
+    
     public void sendRequestAndTrack(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
             Duration retainDuration) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         Validate.notNull(time);
@@ -139,15 +148,10 @@ public final class OutgoingRequestManager<A, N> {
                 DiscardEvent discardEvent = (DiscardEvent) event;
                 Nonce<N> nonce = discardEvent.getRequestNonce();
                 requests.remove(nonce);
-                System.out.println(this + " remove " + nonce);
             } else if (event instanceof OutgoingRequestManager.SendEvent) {
                 SendEvent sendEvent = (SendEvent) event;
                 Nonce<N> nonce = sendEvent.getRequestNonce();
                 Request request = requests.get(nonce);
-                
-                if (request == null) {
-                    System.out.println(this + " get " + nonce);
-                }
                 
                 if (!request.isResponseHandled()) { // if no response came in yet, resend the request, otherwise ignore
                     request.getDestination().send(selfEndpoint, request.getRequest()); // request should never be null

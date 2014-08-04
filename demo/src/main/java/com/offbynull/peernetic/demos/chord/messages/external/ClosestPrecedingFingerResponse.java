@@ -24,8 +24,7 @@ public final class ClosestPrecedingFingerResponse<A> extends Response {
     private byte[] id;
     private A address;
 
-    public ClosestPrecedingFingerResponse(byte[] nonce, byte[] id, A address) {
-        super(nonce);
+    public ClosestPrecedingFingerResponse(byte[] id, A address) {
         this.id = Arrays.copyOf(id, id.length);
         this.address = address;
         validate();

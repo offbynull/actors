@@ -23,8 +23,7 @@ import org.apache.commons.lang3.Validate;
 public final class NotifyRequest extends Request {
     private byte[] id;
 
-    public NotifyRequest(byte[] nonce, byte[] id) {
-        super(nonce);
+    public NotifyRequest(byte[] id) {
         this.id = Arrays.copyOf(id, id.length);
         validate();
     }

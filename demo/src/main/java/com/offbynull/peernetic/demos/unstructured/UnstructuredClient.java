@@ -11,7 +11,6 @@ import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.ByteArrayNonceWrapper;
 import com.offbynull.peernetic.common.IncomingRequestManager;
-import com.offbynull.peernetic.common.Message;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Request;
@@ -39,13 +38,9 @@ public final class UnstructuredClient<A> {
     public static final String ACTIVE_STATE = "ACTIVE";
 
     private static final Duration SESSION_DURATION = Duration.ofSeconds(30L);
-    private static final Duration REQUEST_RESEND_DURATION = Duration.ofSeconds(5L);
-    private static final int REQUEST_RESEND_COUNT = 3;
-    private static final Duration REQUEST_DISCARD_DURATION = Duration.ofSeconds(30L);
-    private static final Duration RESPONSE_DISCARD_DURATION = Duration.ofSeconds(30L);
     private static final Duration TIMER_DURATION = Duration.ofSeconds(2L);
 
-    private static final int MAX_INCOMING_JOINS = 3;
+    private static final int MAX_INCOMING_JOINS = 4;
     private static final int MAX_OUTGOING_JOINS = 3;
 
     private EndpointDirectory<A> endpointDirectory;
@@ -217,24 +212,22 @@ public final class UnstructuredClient<A> {
     }
     
     private void sendLinkRequest(Instant instant, A address) throws Exception {
-        outgoingRequestManager.sendRequestAndTrack(instant, new LinkRequest(), address,
-                REQUEST_RESEND_DURATION, REQUEST_RESEND_COUNT, REQUEST_DISCARD_DURATION);
+        outgoingRequestManager.sendRequestAndTrack(instant, new LinkRequest(), address);
     }
 
     private void sendQueryRequest(Instant instant, A address) throws Exception {
-        outgoingRequestManager.sendRequestAndTrack(instant, new QueryRequest(), address,
-                REQUEST_RESEND_DURATION, REQUEST_RESEND_COUNT, REQUEST_DISCARD_DURATION);
+        outgoingRequestManager.sendRequestAndTrack(instant, new QueryRequest(), address);
     }
     
     private void sendLinkResponse(Instant instant, Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
         List<A> links = getAllSessions();
         LinkResponse<A> response = new LinkResponse<>(successful, links);
-        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
+        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint);
     }
 
     private void sendQueryResponse(Instant instant, Endpoint srcEndpoint, Object request) throws Exception {
         List<A> links = getAllSessions();
         QueryResponse<A> response = new QueryResponse<>(links);
-        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
+        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint);
     }
 }

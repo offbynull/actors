@@ -20,8 +20,7 @@ import com.offbynull.peernetic.common.Request;
 
 public final class GetSuccessorRequest extends Request {
 
-    public GetSuccessorRequest(byte[] nonce) {
-        super(nonce);
+    public GetSuccessorRequest() {
         validate();
     }
 

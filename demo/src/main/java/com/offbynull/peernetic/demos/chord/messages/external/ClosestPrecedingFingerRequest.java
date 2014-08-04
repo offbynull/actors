@@ -23,8 +23,7 @@ import org.apache.commons.lang3.Validate;
 public final class ClosestPrecedingFingerRequest extends Request {
     private byte[] destination;
 
-    public ClosestPrecedingFingerRequest(byte[] nonce, byte[] destination) {
-        super(nonce);
+    public ClosestPrecedingFingerRequest(byte[] destination) {
         this.destination = Arrays.copyOf(destination, destination.length);
         validate();
     }

@@ -24,8 +24,7 @@ public final class GetSuccessorResponse<A> extends Response {
     private byte[] id;
     private A address;
 
-    public GetSuccessorResponse(byte[] nonce, byte[] id, A address) {
-        super(nonce);
+    public GetSuccessorResponse(byte[] id, A address) {
         this.id = Arrays.copyOf(id, id.length);
         this.address = address;
         validate();

@@ -23,8 +23,7 @@ import org.apache.commons.lang3.Validate;
 public final class GetIdResponse<A> extends Response {
     private byte[] id;
 
-    public GetIdResponse(byte[] nonce, byte[] id) {
-        super(nonce);
+    public GetIdResponse(byte[] id) {
         this.id = Arrays.copyOf(id, id.length);
         validate();
     }

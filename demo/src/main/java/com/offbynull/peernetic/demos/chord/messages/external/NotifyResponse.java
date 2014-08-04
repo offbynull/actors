@@ -20,8 +20,7 @@ import com.offbynull.peernetic.common.Response;
 
 public final class NotifyResponse extends Response {
 
-    public NotifyResponse(byte[] nonce) {
-        super(nonce);
+    public NotifyResponse() {
         validate();
     }
 

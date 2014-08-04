@@ -13,6 +13,8 @@ import org.apache.commons.lang3.Validate;
 
 public final class IncomingRequestManager<A, N> {
 
+    private static final Duration DEFAULT_RETAIN_DURATION = Duration.ofSeconds(60L);
+    
     private final Endpoint selfEndpoint;
 
     private final PriorityQueue<Event> queue;
@@ -29,6 +31,11 @@ public final class IncomingRequestManager<A, N> {
 
         this.queue = new PriorityQueue<>(new EventTriggerTimeComparator());
         this.requests = new HashMap<>();
+    }
+
+    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint) throws IllegalArgumentException,
+            IllegalAccessException, InvocationTargetException {
+        sendResponseAndTrack(time, request, response, srcEndpoint, DEFAULT_RETAIN_DURATION);
     }
 
     public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration)

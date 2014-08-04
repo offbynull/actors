@@ -20,8 +20,7 @@ import com.offbynull.peernetic.common.Request;
 
 public final class GetIdRequest extends Request {
 
-    public GetIdRequest(byte[] nonce) {
-        super(nonce);
+    public GetIdRequest() {
         validate();
     }
 

@@ -38,5 +38,10 @@ public final class ByteArrayNonce implements Nonce<byte[]> {
         }
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "ByteArrayNonce{" + "value=" + Arrays.toString(value) + '}';
+    }
     
 }

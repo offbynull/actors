@@ -4,13 +4,11 @@ import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public abstract class Message {
-    public static final int NONCE_LENGTH = 8;
-    
     @NonceField
     private byte[] nonce;
 
     public Message(byte[] nonce) {
-        Validate.isTrue(nonce.length == NONCE_LENGTH);
+        Validate.isTrue(nonce.length > 0);
         this.nonce = Arrays.copyOf(nonce, nonce.length);
     }
 
@@ -20,7 +18,7 @@ public abstract class Message {
     
     @ValidationMethod
     public final void validate() {
-        Validate.validState(nonce.length == NONCE_LENGTH);
+        Validate.validState(nonce.length > 0);
         innerValidate();
     }
     

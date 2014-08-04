@@ -10,8 +10,8 @@ public final class QueryResponse<A> extends Response {
 
     private UnmodifiableList<A> links;
 
-    public QueryResponse(List<A> links, byte[] nonce) {
-        super(nonce);
+    public QueryResponse(List<A> links) {
+        super(new byte[1]); // fake nonce that gets replaced later
         this.links = (UnmodifiableList<A>) UnmodifiableList.unmodifiableList(new ArrayList<A>(links));
         innerValidate();
     }

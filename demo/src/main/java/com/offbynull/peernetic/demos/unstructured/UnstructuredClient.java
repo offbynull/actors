@@ -2,17 +2,18 @@ package com.offbynull.peernetic.demos.unstructured;
 
 import com.offbynull.peernetic.common.AddressCache;
 import com.offbynull.peernetic.common.AddressCache.RetentionMode;
-import com.offbynull.peernetic.common.ByteArrayNonce;
 import com.offbynull.peernetic.common.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.common.Nonce;
 import com.offbynull.peernetic.common.NonceGenerator;
-import com.offbynull.peernetic.common.NonceManager;
 import com.offbynull.peernetic.common.SessionManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
+import com.offbynull.peernetic.common.ByteArrayNonceWrapper;
+import com.offbynull.peernetic.common.IncomingRequestManager;
 import com.offbynull.peernetic.common.Message;
+import com.offbynull.peernetic.common.NonceWrapper;
+import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Request;
 import com.offbynull.peernetic.common.Response;
 import com.offbynull.peernetic.demos.unstructured.messages.external.LinkRequest;
@@ -28,7 +29,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.Validate;
@@ -39,7 +39,10 @@ public final class UnstructuredClient<A> {
     public static final String ACTIVE_STATE = "ACTIVE";
 
     private static final Duration SESSION_DURATION = Duration.ofSeconds(30L);
-    private static final Duration NONCE_DURATION = Duration.ofSeconds(10L);
+    private static final Duration REQUEST_RESEND_DURATION = Duration.ofSeconds(5L);
+    private static final int REQUEST_RESEND_COUNT = 3;
+    private static final Duration REQUEST_DISCARD_DURATION = Duration.ofSeconds(30L);
+    private static final Duration RESPONSE_DISCARD_DURATION = Duration.ofSeconds(30L);
     private static final Duration TIMER_DURATION = Duration.ofSeconds(2L);
 
     private static final int MAX_INCOMING_JOINS = 3;
@@ -50,9 +53,9 @@ public final class UnstructuredClient<A> {
     private EndpointScheduler endpointScheduler;
     private AddressCache<A> addressCache;
     private NonceGenerator<byte[]> nonceGenerator;
-    private NonceManager<byte[]> incomingRequestsNonceManager;
-    private NonceManager<byte[]> outgoingLinkRequestsNonceManager;
-    private NonceManager<byte[]> outgoingQueryRequestsNonceManager;
+    private NonceWrapper<byte[]> nonceWrapper;
+    private IncomingRequestManager<A, byte[]> incomingRequestManager;
+    private OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private SessionManager<A> incomingSessions;
     private SessionManager<A> outgoingSessions;
     private Endpoint selfEndpoint;
@@ -75,10 +78,10 @@ public final class UnstructuredClient<A> {
         addressCache = new AddressCache<>(1, 256, message.getBootstrapAddresses(), RetentionMode.RETAIN_OLDEST);
         incomingSessions = new SessionManager<>();
         outgoingSessions = new SessionManager<>();
-        nonceGenerator = new ByteArrayNonceGenerator(Message.NONCE_LENGTH);
-        incomingRequestsNonceManager = new NonceManager<>();
-        outgoingLinkRequestsNonceManager = new NonceManager<>();
-        outgoingQueryRequestsNonceManager = new NonceManager<>();
+        nonceGenerator = new ByteArrayNonceGenerator(8);
+        nonceWrapper = new ByteArrayNonceWrapper();
+        incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceWrapper);
+        outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory);
 
         listener.onStarted(selfAddress);
 
@@ -86,67 +89,31 @@ public final class UnstructuredClient<A> {
     }
 
     @FilterHandler(ACTIVE_STATE)
-    public boolean checkIncomingRequest(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint) {
-        // Check nonce to make sure it isn't a request from ourselves.
-        Nonce<byte[]> nonce = new ByteArrayNonce(message.getNonce());
-        if (outgoingLinkRequestsNonceManager.checkNonce(nonce) != null
-                || outgoingQueryRequestsNonceManager.checkNonce(nonce) != null) {
+    public boolean checkIncomingRequest(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint)
+            throws Exception{
+
+        // if message to ourself (or invalid), don't process 
+        if (outgoingRequestManager.isTracked(instant, message)) {
             return false;
         }
 
-        // Check nonce to make sure we haven't already responded to this message. If processed already, return cached response.
-        Optional<Object> pastResponse = incomingRequestsNonceManager.checkNonce(nonce);
-        if (pastResponse != null && pastResponse.isPresent()) {
-            Object response = pastResponse.get();
-            srcEndpoint.send(selfEndpoint, response);
-            return false;
-        }
-
-        // Make sure message is valid. If not, don't process.
-        try {
-            message.validate();
-        } catch (IllegalStateException ise) {
-            return false;
-        }
-
-        return true;
+        // make sure msg is valid and we haven't responded to it yet. if we have, testMessage() will return false but will fire off the
+        // original response anyway
+        return incomingRequestManager.testMessage(instant, message);
     }
 
     @FilterHandler(ACTIVE_STATE)
-    public boolean checkIncomingResponse(String state, FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint) {
-        Nonce<byte[]> nonce = new ByteArrayNonce(message.getNonce());
-
-        // Check nonce to make sure it this response is for a request we made
-        NonceManager<byte[]> nonceManager;
-        if (message instanceof LinkResponse) {
-            nonceManager = outgoingLinkRequestsNonceManager;
-        } else if (message instanceof QueryResponse) {
-            nonceManager = outgoingQueryRequestsNonceManager;
-        } else {
-            return false;
-        }
-
-        if (nonceManager.checkNonce(nonce) == null) {
-            return false;
-        }
-        nonceManager.removeNonce(nonce);
-
-        // Make sure message is valid. If not, don't process.
-        try {
-            message.validate();
-        } catch (IllegalStateException ise) {
-            return false;
-        }
-
-        return true;
+    public boolean checkIncomingResponse(String state, FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint)
+            throws Exception {
+        // makes sure msg is valid (false if not) and makes sure this is a response to a message we've sent
+        return outgoingRequestManager.testMessage(instant, message);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) {
+    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) throws Exception {
         // Prune nonce managers and session managers
-        incomingRequestsNonceManager.prune(instant);
-        outgoingLinkRequestsNonceManager.prune(instant);
-        outgoingQueryRequestsNonceManager.prune(instant);
+        incomingRequestManager.process(instant);
+        outgoingRequestManager.process(instant);
         incomingSessions.prune(instant);
         Set<A> prunedOutgoingLinks = outgoingSessions.prune(instant).keySet();
 
@@ -156,18 +123,24 @@ public final class UnstructuredClient<A> {
         if (addressCache.isMinimumCapacity()) {
             List<A> links = getAllSessions();
             if (!links.isEmpty()) {
-                // Grab random link
+                // Grab random link from one of our neighbours
                 int pos = RandomUtils.nextInt(0, links.size());
                 A address = links.get(pos);
 
                 sendQueryRequest(instant, address);
+            } else {
+                // If we have no neighbours, grab the next node from the address cache and query it
+                A next = addressCache.next();
+                sendQueryRequest(instant, next);
             }
         }
 
         // Send a message to all outgoing links telling them we're still alive, otherwise we'll get dropped
-        outgoingSessions.getSessions().forEach(address -> sendLinkRequest(instant, address));
+        for (A address : outgoingSessions.getSessions()) {
+            sendLinkRequest(instant, address);
+        }
 
-        // Check to see if we have room for more outgoing links. If we do, send out new link requests
+        // Check to see if we have room for more outgoing links. If we do, sendAndQueue out new link requests
         int openOutgoingSlots = MAX_OUTGOING_JOINS - outgoingSessions.size();
         int requestCount = Math.min(openOutgoingSlots, addressCache.size());
         
@@ -188,25 +161,22 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleLinkRequest(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint) {
-        A address = endpointIdentifier.identify(srcEndpoint); // we can also use srcEndpoint to send responses back directly
+    public void handleLinkRequest(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint)
+            throws Exception {
+        A address = endpointIdentifier.identify(srcEndpoint);
         
-        if (!incomingSessions.containsSession(address) && incomingSessions.size() >= MAX_INCOMING_JOINS) {
-            // If the address isn't already an incoming link and no space available for new incoming links, send rejection
-            sendLinkResponse(instant, address, message.getNonce(), false);
-        } else {
-            // Otherwise, add or update session and send successful response
+        boolean successful = incomingSessions.containsSession(address) || incomingSessions.size() < MAX_INCOMING_JOINS;
+        sendLinkResponse(instant, srcEndpoint, message, successful);
+        
+        if (successful) {
             incomingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
-            sendLinkResponse(instant, address, message.getNonce(), true);
         }
-
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleQueryRequest(String state, FiniteStateMachine fsm, Instant instant, QueryRequest message, Endpoint srcEndpoint) {
-        A address = endpointIdentifier.identify(srcEndpoint); // we can also use srcEndpoint to send responses back directly
-        
-        sendQueryResponse(instant, address, message.getNonce());
+    public void handleQueryRequest(String state, FiniteStateMachine fsm, Instant instant, QueryRequest message, Endpoint srcEndpoint)
+            throws Exception {
+        sendQueryResponse(instant, srcEndpoint, message);
     }
 
     @StateHandler(ACTIVE_STATE)
@@ -231,7 +201,7 @@ public final class UnstructuredClient<A> {
 
     @StateHandler(ACTIVE_STATE)
     public void handleQueryResponse(String state, FiniteStateMachine fsm, Instant instant, QueryResponse message, Endpoint srcEndpoint) {
-        // The filter should have checked to make sure that this is a response to a rquest we sent out
+        // The filter should have checked to make sure that this is a response to a request we sent out
         addressCache.addAll(message.getLinks());
     }
 
@@ -246,49 +216,25 @@ public final class UnstructuredClient<A> {
         return links;
     }
     
-    private void sendLinkRequest(Instant instant, A address) {
-        // Send link message to address
-        Nonce<byte[]> nonce = nonceGenerator.generate();
-        Endpoint dstEndpoint = endpointDirectory.lookup(address);
-        Object dstMessage = new LinkRequest(nonce.getValue());
-        dstEndpoint.send(selfEndpoint, dstMessage);
-
-        // Ensure we ignore the request if we're sending to ourselves
-        outgoingLinkRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
+    private void sendLinkRequest(Instant instant, A address) throws Exception {
+        outgoingRequestManager.sendAndQueue(instant, new LinkRequest(), address,
+                REQUEST_RESEND_DURATION, REQUEST_RESEND_COUNT, REQUEST_DISCARD_DURATION);
     }
 
-    private void sendQueryRequest(Instant instant, A address) {
-        // Send query message to address
-        Nonce<byte[]> nonce = nonceGenerator.generate();
-        Endpoint dstEndpoint = endpointDirectory.lookup(address);
-        Object dstMessage = new QueryRequest(nonce.getValue());
-        dstEndpoint.send(selfEndpoint, dstMessage);
-
-        // Ensure we ignore the request if we're sending to ourselves
-        outgoingQueryRequestsNonceManager.addNonce(instant, NONCE_DURATION, nonce, null);
+    private void sendQueryRequest(Instant instant, A address) throws Exception {
+        outgoingRequestManager.sendAndQueue(instant, new QueryRequest(), address,
+                REQUEST_RESEND_DURATION, REQUEST_RESEND_COUNT, REQUEST_DISCARD_DURATION);
     }
     
-    private void sendLinkResponse(Instant instant, A address, byte[] nonce, boolean successful) {
+    private void sendLinkResponse(Instant instant, Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
         List<A> links = getAllSessions();
-        
-        // Send response to requester
-        Endpoint dstEndpoint = endpointDirectory.lookup(address);
-        LinkResponse<A> response = new LinkResponse(successful, links, nonce);
-        dstEndpoint.send(selfEndpoint, response);
-        
-        // Ensure duplicate requests get same response
-        incomingRequestsNonceManager.addNonce(instant, NONCE_DURATION, new ByteArrayNonce(nonce), response);
+        LinkResponse<A> response = new LinkResponse<>(successful, links);
+        incomingRequestManager.sendAndStore(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
     }
 
-    private void sendQueryResponse(Instant instant, A address, byte[] nonce) {
+    private void sendQueryResponse(Instant instant, Endpoint srcEndpoint, Object request) throws Exception {
         List<A> links = getAllSessions();
-        
-        // Send response to requester
-        Endpoint dstEndpoint = endpointDirectory.lookup(address);
-        QueryResponse<A> response = new QueryResponse(links, nonce);
-        dstEndpoint.send(selfEndpoint, response);
-        
-        // Ensure duplicate requests get same response
-        incomingRequestsNonceManager.addNonce(instant, NONCE_DURATION, new ByteArrayNonce(nonce), response);
+        QueryResponse<A> response = new QueryResponse<>(links);
+        incomingRequestManager.sendAndStore(instant, request, response, srcEndpoint, RESPONSE_DISCARD_DURATION);
     }
 }

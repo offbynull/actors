@@ -27,6 +27,10 @@ public final class GetIdResponse<A> extends Response {
         this.id = Arrays.copyOf(id, id.length);
         validate();
     }
+
+    public byte[] getId() {
+        return Arrays.copyOf(id, id.length);
+    }
     
     @Override
     protected void innerValidate() {

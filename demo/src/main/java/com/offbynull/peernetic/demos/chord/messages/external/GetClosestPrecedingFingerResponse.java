@@ -20,17 +20,21 @@ import com.offbynull.peernetic.common.Response;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class ClosestPrecedingFingerResponse<A> extends Response {
+public final class GetClosestPrecedingFingerResponse<A> extends Response {
     private byte[] id;
     private A address;
 
-    public ClosestPrecedingFingerResponse(byte[] id, A address) {
+    public GetClosestPrecedingFingerResponse(byte[] id, A address) {
         this.id = Arrays.copyOf(id, id.length);
         this.address = address;
         validate();
     }
 
-    public A getDestination() {
+    public byte[] getId() {
+        return Arrays.copyOf(id, id.length);
+    }
+
+    public A getAddress() {
         return address;
     }
     

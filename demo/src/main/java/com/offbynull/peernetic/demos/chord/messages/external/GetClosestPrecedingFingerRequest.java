@@ -20,10 +20,10 @@ import com.offbynull.peernetic.common.Request;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class ClosestPrecedingFingerRequest extends Request {
+public final class GetClosestPrecedingFingerRequest extends Request {
     private byte[] destination;
 
-    public ClosestPrecedingFingerRequest(byte[] destination) {
+    public GetClosestPrecedingFingerRequest(byte[] destination) {
         this.destination = Arrays.copyOf(destination, destination.length);
         validate();
     }

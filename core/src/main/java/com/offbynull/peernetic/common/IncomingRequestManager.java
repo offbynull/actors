@@ -21,21 +21,31 @@ public final class IncomingRequestManager<A, N> {
     private final NonceWrapper<N> nonceWrapper;
     private final Map<Nonce<N>, Request> requests;
 
+    private final Duration defaultRetainDuration;
 
     public IncomingRequestManager(Endpoint selfEndpoint, NonceWrapper<N> nonceWrapper) {
+        this(selfEndpoint, nonceWrapper, DEFAULT_RETAIN_DURATION);
+    }
+    
+    public IncomingRequestManager(Endpoint selfEndpoint, NonceWrapper<N> nonceWrapper, Duration defaultRetainDuration) {
         Validate.notNull(selfEndpoint);
         Validate.notNull(nonceWrapper);
+        Validate.notNull(defaultRetainDuration);
+
+        Validate.isTrue(!defaultRetainDuration.isNegative());
 
         this.selfEndpoint = selfEndpoint;
         this.nonceWrapper = nonceWrapper;
 
         this.queue = new PriorityQueue<>(new EventTriggerTimeComparator());
         this.requests = new HashMap<>();
+        
+        this.defaultRetainDuration = defaultRetainDuration;
     }
 
     public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint) throws IllegalArgumentException,
             IllegalAccessException, InvocationTargetException {
-        sendResponseAndTrack(time, request, response, srcEndpoint, DEFAULT_RETAIN_DURATION);
+        sendResponseAndTrack(time, request, response, srcEndpoint, defaultRetainDuration);
     }
 
     public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration)

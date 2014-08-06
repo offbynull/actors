@@ -24,15 +24,31 @@ public final class OutgoingRequestManager<A, N> {
 
     private final PriorityQueue<Event> queue;
     private final Map<Nonce<N>, Request> requests;
+    
+    private final Duration defaultResendDuration;
+    private final int defaultMaxResendCount;
+    private final Duration defaultRetainDuration;
 
 
     public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceWrapper<N> nonceWrapper,
             EndpointDirectory<A> endpointDirectory) {
+        this(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory, DEFAULT_RESEND_DURATION, DEFAULT_MAXIMUM_RESEND_ATTEMPTS,
+                DEFAULT_RETAIN_DURATION);
+    }
+    
+    public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceWrapper<N> nonceWrapper,
+            EndpointDirectory<A> endpointDirectory, Duration defaultResendDuration, int defaultMaxResendCount,
+            Duration defaultRetainDuration) {
         Validate.notNull(selfEndpoint);
         Validate.notNull(nonceWrapper);
         Validate.notNull(nonceGenerator);
         Validate.notNull(endpointDirectory);
-
+        Validate.notNull(defaultResendDuration);
+        Validate.notNull(defaultRetainDuration);
+        
+        Validate.isTrue(!defaultResendDuration.isNegative() && !defaultRetainDuration.isNegative() && defaultMaxResendCount >= 0);
+        Validate.isTrue(defaultResendDuration.multipliedBy(defaultMaxResendCount).compareTo(defaultRetainDuration) <= 0);
+        
         this.selfEndpoint = selfEndpoint;
         this.nonceWrapper = nonceWrapper;
         this.nonceGenerator = nonceGenerator;
@@ -40,11 +56,15 @@ public final class OutgoingRequestManager<A, N> {
 
         this.queue = new PriorityQueue<>(new EventTriggerTimeComparator());
         this.requests = new HashMap<>();
+        
+        this.defaultResendDuration = defaultResendDuration;
+        this.defaultMaxResendCount = defaultMaxResendCount;
+        this.defaultRetainDuration = defaultRetainDuration;
     }
 
     public void sendRequestAndTrack(Instant time, Object request, A dstAddress) throws IllegalArgumentException, IllegalAccessException,
             InvocationTargetException {
-        sendRequestAndTrack(time, request, dstAddress, DEFAULT_RESEND_DURATION, DEFAULT_MAXIMUM_RESEND_ATTEMPTS, DEFAULT_RETAIN_DURATION);
+        sendRequestAndTrack(time, request, dstAddress, defaultResendDuration, defaultMaxResendCount, defaultRetainDuration);
     }
     
     public void sendRequestAndTrack(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
@@ -53,7 +73,6 @@ public final class OutgoingRequestManager<A, N> {
         Validate.notNull(request);
         Validate.notNull(dstAddress);
         Validate.notNull(resendDuration);
-        Validate.notNull(maxResendCount);
         Validate.notNull(retainDuration);
         //Validate.notNull(responseHandler); // can be null
 

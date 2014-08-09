@@ -10,6 +10,7 @@ import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.ByteArrayNonceWrapper;
+import com.offbynull.peernetic.common.DurationUtils;
 import com.offbynull.peernetic.common.IncomingRequestManager;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
@@ -38,7 +39,7 @@ public final class UnstructuredClient<A> {
     public static final String ACTIVE_STATE = "ACTIVE";
 
     private static final Duration SESSION_DURATION = Duration.ofSeconds(30L);
-    private static final Duration TIMER_DURATION = Duration.ofSeconds(2L);
+    private static final Duration DEFAULT_TIMER_DURATION = Duration.ofSeconds(2L);
 
     private static final int MAX_INCOMING_JOINS = 4;
     private static final int MAX_OUTGOING_JOINS = 3;
@@ -107,8 +108,8 @@ public final class UnstructuredClient<A> {
     @StateHandler(ACTIVE_STATE)
     public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) throws Exception {
         // Prune nonce managers and session managers
-        incomingRequestManager.process(instant);
-        outgoingRequestManager.process(instant);
+        Duration nextIrmDuration = incomingRequestManager.process(instant);
+        Duration nextOrmDuration = outgoingRequestManager.process(instant);
         incomingSessions.prune(instant);
         Set<A> prunedOutgoingLinks = outgoingSessions.prune(instant).keySet();
 
@@ -151,8 +152,9 @@ public final class UnstructuredClient<A> {
             sendLinkRequest(instant, address);
         }
 
-        // Reschedule this state to be triggered again in 5 seconds
-        endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new Timer());
+        // Reschedule this state to be triggered again
+        Duration timerDuration = DurationUtils.scheduleEarliestDuration(DEFAULT_TIMER_DURATION, nextOrmDuration, nextIrmDuration);
+        endpointScheduler.scheduleMessage(timerDuration, selfEndpoint, selfEndpoint, new Timer());
     }
 
     @StateHandler(ACTIVE_STATE)

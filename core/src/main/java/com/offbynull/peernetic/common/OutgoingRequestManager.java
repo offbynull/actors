@@ -5,10 +5,13 @@ import com.offbynull.peernetic.actor.EndpointDirectory;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
+import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class OutgoingRequestManager<A, N> {
@@ -98,16 +101,22 @@ public final class OutgoingRequestManager<A, N> {
 
         // sendRequestAndTrack and queue resends/discards
         Endpoint dstEndpoint = endpointDirectory.lookup(dstAddress);
-        requests.put(nonce, new Request(dstEndpoint, request));
+        OutgoingRequestManager.Event[] newEvents = new OutgoingRequestManager.Event[maxResendCount + 1];
         for (int i = 0; i < maxResendCount; i++) {
-            queue.add(new SendEvent(nonce, time.plus(resendDuration.multipliedBy(i))));
+            SendEvent event = new SendEvent(nonce, time.plus(resendDuration.multipliedBy(i + 1)));
+            queue.add(event);
+            newEvents[i] = event;
         }
-        queue.add(new DiscardEvent(nonce, time.plus(retainDuration)));
+        DiscardEvent discardEvent = new DiscardEvent(nonce, time.plus(retainDuration));
+        queue.add(discardEvent);
+        newEvents[maxResendCount] = discardEvent;
+        
+        requests.put(nonce, new Request(dstEndpoint, request, newEvents));
         
         dstEndpoint.send(selfEndpoint, request);
     }
 
-    public Instant process(Instant time) {
+    public Duration process(Instant time) {
         return handleQueue(time);
     }
     
@@ -141,22 +150,25 @@ public final class OutgoingRequestManager<A, N> {
         N nonceValue = InternalUtils.getNonceValue(response);
         Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
         
+        // check to see if we're expecting a response, if we are remove record + queued events and return true ...
+        //   since the record is being removed, any subsequent response with same nonce will be dropped
         Request request;
-        if ((request = requests.get(nonce)) == null) {
+        if ((request = requests.remove(nonce)) == null) {
             return false; // tell to ignore if nonce not being tracked
         }
-        
-        if (request.isResponseHandled()) {
-            return false; // tell to ignore if response already arrived
-        }
-        
-        request.setResponseHandled(true);
+        request.cancelQueuedEvents();
+
         return true; // tell to handle
     }
     
-    private Instant handleQueue(Instant time) {
+    private Duration handleQueue(Instant time) {
         while (!queue.isEmpty()) {
             Event event = queue.peek();
+
+            if (event.isCancelled()) {
+                queue.poll(); // if cancelled, remove and continue to next item in queue
+                continue;
+            }
 
             Instant hitTime = event.getTriggerTime();
             if (hitTime.isAfter(time)) {
@@ -172,9 +184,7 @@ public final class OutgoingRequestManager<A, N> {
                 Nonce<N> nonce = sendEvent.getRequestNonce();
                 Request request = requests.get(nonce);
                 
-                if (!request.isResponseHandled()) { // if no response came in yet, resend the request, otherwise ignore
-                    request.getDestination().send(selfEndpoint, request.getRequest()); // request should never be null
-                }
+                request.getDestination().send(selfEndpoint, request.getRequest()); // request should never be null
             } else {
                 throw new IllegalStateException();
             }
@@ -182,18 +192,20 @@ public final class OutgoingRequestManager<A, N> {
             queue.poll(); // remove
         }
         
-        return queue.isEmpty() ? null : queue.peek().getTriggerTime();
+        return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
 
     private static final class Request {
 
         private Endpoint destination;
         private Object request;
-        private boolean responseHandled;
+        private UnmodifiableList<OutgoingRequestManager.Event> queuedEvents;
 
-        public Request(Endpoint destination, Object request) {
+        public Request(Endpoint destination, Object request, OutgoingRequestManager.Event ... queuedEvents) {
             this.destination = destination;
             this.request = request;
+            this.queuedEvents = (UnmodifiableList<OutgoingRequestManager.Event>)
+                    UnmodifiableList.unmodifiableList(new ArrayList(Arrays.asList(queuedEvents)));
         }
 
         public Endpoint getDestination() {
@@ -204,18 +216,19 @@ public final class OutgoingRequestManager<A, N> {
             return request;
         }
 
-        public boolean isResponseHandled() {
-            return responseHandled;
+        public UnmodifiableList<OutgoingRequestManager.Event> getQueuedEvents() {
+            return queuedEvents;
         }
 
-        public void setResponseHandled(boolean responseHandled) {
-            this.responseHandled = responseHandled;
+        public void cancelQueuedEvents() {
+            queuedEvents.forEach(x -> x.cancel());
         }
     }
 
     private abstract class Event {
 
         private final Instant triggerTime;
+        private boolean cancel;
 
         public Event(Instant triggerTime) {
             this.triggerTime = triggerTime;
@@ -223,6 +236,14 @@ public final class OutgoingRequestManager<A, N> {
 
         public Instant getTriggerTime() {
             return triggerTime;
+        }
+
+        public boolean isCancelled() {
+            return cancel;
+        }
+
+        public void cancel() {
+            this.cancel = true;
         }
 
     }

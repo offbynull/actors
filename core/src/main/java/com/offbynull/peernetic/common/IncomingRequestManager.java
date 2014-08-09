@@ -43,6 +43,31 @@ public final class IncomingRequestManager<A, N> {
         this.defaultRetainDuration = defaultRetainDuration;
     }
 
+    public void discardAndTrack(Instant time, Object request, Endpoint srcEndpoint) throws IllegalArgumentException,
+            IllegalAccessException, InvocationTargetException {
+        discardAndTrack(time, request, srcEndpoint, defaultRetainDuration);
+    }
+    
+    public void discardAndTrack(Instant time, Object request, Endpoint srcEndpoint, Duration retainDuration)
+            throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+        Validate.notNull(time);
+        Validate.notNull(request);
+        Validate.notNull(srcEndpoint);
+        Validate.notNull(retainDuration);
+
+        Validate.isTrue(!retainDuration.isNegative());
+
+        // generate nonce and validate
+        N nonceValue = InternalUtils.getNonceValue(request);
+        Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
+
+        Validate.isTrue(!requests.containsKey(nonce), "Duplicate stored nonce encountered");
+        
+        // send and queue resends/discards
+        requests.put(nonce, new Request(srcEndpoint, request, null));
+        queue.add(new DiscardEvent(nonceValue, time.plus(retainDuration)));
+    }
+    
     public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint) throws IllegalArgumentException,
             IllegalAccessException, InvocationTargetException {
         sendResponseAndTrack(time, request, response, srcEndpoint, defaultRetainDuration);
@@ -52,7 +77,7 @@ public final class IncomingRequestManager<A, N> {
             throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);
-        // Validate.notNull(response); // can be null
+        Validate.notNull(response);
         Validate.notNull(srcEndpoint);
         Validate.notNull(retainDuration);
 
@@ -73,7 +98,8 @@ public final class IncomingRequestManager<A, N> {
         srcEndpoint.send(selfEndpoint, response);
     }
 
-    public Instant process(Instant time) {
+    public Duration process(Instant time) {
+        Validate.notNull(time);
         return handleQueue(time);
     }
     
@@ -105,7 +131,7 @@ public final class IncomingRequestManager<A, N> {
         return false; // request already received, but hasn't been responded to yet
     }
     
-    private Instant handleQueue(Instant time) {
+    private Duration handleQueue(Instant time) {
         Iterator<Event> queueIt = queue.iterator();
         while (queueIt.hasNext()) {
             Event event = queueIt.next();
@@ -127,7 +153,7 @@ public final class IncomingRequestManager<A, N> {
             queueIt.remove();
         }
         
-        return queue.isEmpty() ? null : queue.peek().getTriggerTime();
+        return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
 
     private static final class Request {

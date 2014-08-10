@@ -195,6 +195,10 @@ public final class OutgoingRequestManager<A, N> {
         return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
 
+    public int getPending() {
+        return requests.size();
+    }
+
     private static final class Request {
 
         private Endpoint destination;

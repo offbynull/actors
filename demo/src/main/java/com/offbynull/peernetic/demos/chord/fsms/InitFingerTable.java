@@ -3,9 +3,10 @@ package com.offbynull.peernetic.demos.chord.fsms;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointScheduler;
+import com.offbynull.peernetic.actor.NullEndpoint;
+import com.offbynull.peernetic.common.DurationUtils;
 import com.offbynull.peernetic.common.Id;
 import com.offbynull.peernetic.common.IncomingRequestManager;
-import com.offbynull.peernetic.common.Message;
 import com.offbynull.peernetic.common.NonceGenerator;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
@@ -26,9 +27,7 @@ import org.apache.commons.lang3.Validate;
 public final class InitFingerTable<A> {
 
     public static final String INITIAL_STATE = "start";
-    public static final String SEND_QUERY_FOR_ID = "ask_for_id";
-    public static final String AWAIT_QUERY_FOR_ID = "wait_for_id_response";
-    public static final String START_ROUTE_TO_FINGER = "route_to_finger";
+    public static final String AWAIT_GET_ID_RESPONSE = "wait_for_id_response";
     public static final String AWAIT_ROUTE_TO_FINGER = "route_to_finger";
     public static final String DONE_STATE = "done";
 
@@ -53,7 +52,6 @@ public final class InitFingerTable<A> {
     private final int maxIdx;
     private int idx;
 
-    ALL OF THIS CLASS IS UNTESTED;
     public InitFingerTable(Id selfId, A initialAddress, EndpointDirectory<A> endpointDirectory, EndpointScheduler endpointScheduler,
             Endpoint selfEndpoint, NonceGenerator<byte[]> nonceGenerator, NonceWrapper<byte[]> nonceWrapper) {
         Validate.notNull(initialAddress);
@@ -77,48 +75,34 @@ public final class InitFingerTable<A> {
         maxIdx = ChordUtils.getBitLength(selfId);
     }
 
-    @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) {
-        endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
-        fsm.switchStateAndProcess(SEND_QUERY_FOR_ID, instant, unused, srcEndpoint);
-    }
-
-    @FilterHandler({SEND_QUERY_FOR_ID, AWAIT_QUERY_FOR_ID})
+    @FilterHandler({AWAIT_GET_ID_RESPONSE, AWAIT_ROUTE_TO_FINGER})
     public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response,
             Endpoint srcEndpoint) throws Exception {
         return outgoingRequestManager.testResponseMessage(instant, response);
     }
-    
-    @StateHandler(SEND_QUERY_FOR_ID)
-    public void handleSendAskForIdRequest(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
-            throws Exception {
+
+    @StateHandler(INITIAL_STATE)
+    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+        endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
         outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), initialAddress);
-        fsm.setState(AWAIT_QUERY_FOR_ID);
+        fsm.setState(AWAIT_GET_ID_RESPONSE);
     }
 
-    @StateHandler(AWAIT_QUERY_FOR_ID)
-    public void handleReceiveAskForIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response,
+    @StateHandler(AWAIT_GET_ID_RESPONSE)
+    public void handleGetIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response,
             Endpoint srcEndpoint) throws Exception {
         initialId = new Id(response.getId(), maxIdx);
-        fsm.switchStateAndProcess(START_ROUTE_TO_FINGER, instant, new Object()/*unused obj*/, srcEndpoint);
-    }
-
-    @StateHandler(START_ROUTE_TO_FINGER)
-    public void handleStartRoute(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
-            throws Exception {
-        ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
-        Id findId = fingerTable.getExpectedId(idx);
-        routeToFinger = new RouteToFinger<>(fromNode, findId, endpointDirectory, endpointScheduler, selfEndpoint, nonceGenerator,
-                nonceWrapper);
+        
+        resetRouteToFinger(instant);
         fsm.setState(AWAIT_ROUTE_TO_FINGER);
     }
 
     @StateHandler(AWAIT_ROUTE_TO_FINGER)
-    public void handleAskForIdRequest(String state, FiniteStateMachine fsm, Instant instant, Message message, Endpoint srcEndpoint)
+    public void handleRouteToFingerResponse(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
             throws Exception {
         routeToFingerFsm.process(instant, message, srcEndpoint);
         
-        if (routeToFinger.isFinishedRunning()) {
+        if (routeToFingerFsm.getState().equals(RouteToFinger.DONE_STATE)) {
             ExternalPointer<A> foundFinger = routeToFinger.getResult();
             fingerTable.replace(foundFinger);
 
@@ -126,19 +110,34 @@ public final class InitFingerTable<A> {
             if (idx == maxIdx) {
                 fsm.setState(DONE_STATE);
             } else {
-                fsm.switchStateAndProcess(START_ROUTE_TO_FINGER, instant, message, srcEndpoint);
+                resetRouteToFinger(instant);
+                fsm.setState(AWAIT_ROUTE_TO_FINGER);
             }
         }
     }
-
-    @StateHandler({SEND_QUERY_FOR_ID, AWAIT_QUERY_FOR_ID})
-    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger response, Endpoint srcEndpoint) {
-        incomingRequestManager.process(instant);
-        outgoingRequestManager.process(instant);
-
-        endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
+    
+    private void resetRouteToFinger(Instant instant) {
+        ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
+        Id findId = fingerTable.getExpectedId(idx);
+        routeToFinger = new RouteToFinger<>(fromNode, findId, endpointDirectory, endpointScheduler, selfEndpoint, nonceGenerator,
+                nonceWrapper);
+        routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
+        routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);
     }
 
+    @StateHandler({AWAIT_GET_ID_RESPONSE/*, AWAIT_ROUTE_TO_FINGER*/})
+    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger response, Endpoint srcEndpoint) {
+        Duration irmDuration = incomingRequestManager.process(instant);
+        Duration ormDuration = outgoingRequestManager.process(instant);
+        
+        Duration nextDuration = DurationUtils.scheduleEarliestDuration(irmDuration, ormDuration, TIMER_DURATION);
+        endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, new TimerTrigger());
+    }
+
+    public FingerTable<A> getFingerTable() {
+        return fingerTable;
+    }
+    
     public static final class TimerTrigger {
 
         private TimerTrigger() {

@@ -20,17 +20,21 @@ import com.offbynull.peernetic.common.Response;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class GetSuccessorResponse<A> extends Response {
+public final class GetPredecessorResponse<A> extends Response {
     private byte[] id;
     private A address;
 
-    public GetSuccessorResponse(byte[] id, A address) {
+    public GetPredecessorResponse(byte[] id, A address) {
         this.id = Arrays.copyOf(id, id.length);
         this.address = address;
         validate();
     }
 
-    public A getDestination() {
+    public byte[] getId() {
+        return Arrays.copyOf(id, id.length);
+    }
+
+    public A getAddress() {
         return address;
     }
     

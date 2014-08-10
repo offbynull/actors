@@ -21,19 +21,20 @@ import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public final class GetClosestPrecedingFingerRequest extends Request {
-    private byte[] destination;
+    private byte[] id;
 
-    public GetClosestPrecedingFingerRequest(byte[] destination) {
-        this.destination = Arrays.copyOf(destination, destination.length);
+    public GetClosestPrecedingFingerRequest(byte[] id) {
+        this.id = Arrays.copyOf(id, id.length);
         validate();
     }
 
-    public byte[] getDestination() {
-        return Arrays.copyOf(destination, destination.length);
+    public byte[] getId() {
+        return Arrays.copyOf(id, id.length);
     }
-
+    
     @Override
     protected void innerValidate() {
-        Validate.isTrue(destination.length > 0);
+        Validate.notNull(id);
+        Validate.isTrue(id.length > 0);
     }
 }

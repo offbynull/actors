@@ -3,16 +3,20 @@ package com.offbynull.peernetic.demos.chord.fsms;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointScheduler;
+import com.offbynull.peernetic.common.DurationUtils;
 import com.offbynull.peernetic.common.Id;
 import com.offbynull.peernetic.common.IncomingRequestManager;
 import com.offbynull.peernetic.common.NonceGenerator;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.demos.chord.core.ChordUtils;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
-import static com.offbynull.peernetic.demos.chord.fsms.InitFingerTable.SEND_QUERY_FOR_ID;
 import com.offbynull.peernetic.demos.chord.messages.external.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.demos.chord.messages.external.GetClosestPrecedingFingerResponse;
+import com.offbynull.peernetic.demos.chord.messages.external.GetIdRequest;
+import com.offbynull.peernetic.demos.chord.messages.external.GetIdResponse;
+import com.offbynull.peernetic.demos.chord.messages.external.GetSuccessorRequest;
 import com.offbynull.peernetic.fsm.FilterHandler;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
@@ -22,16 +26,19 @@ import org.apache.commons.lang3.Validate;
 
 public final class RouteToFinger<A> {
     public static final String INITIAL_STATE = "start";
-    public static final String SEND_STATE = "query";
-    public static final String AWAIT_STATE = "await";
+    public static final String AWAIT_PREDECESSOR_RESPONSE_STATE = "pred_await";
+    public static final String AWAIT_SUCCESSOR_RESPONSE_STATE = "succ_resp";
+    public static final String AWAIT_ID_RESPONSE_STATE = "id_resp";
     public static final String DONE_STATE = "done";
 
     private static final Duration TIMER_DURATION = Duration.ofSeconds(3L);
 
     private final Id findId;
     
+    private Id foundId;
+    private A foundAddress;
+    
     private ExternalPointer<A> currentNode;
-    private TaskState taskState = TaskState.RUNNING;
 
     private final IncomingRequestManager<A, byte[]> incomingRequestManager;
     private final OutgoingRequestManager<A, byte[]> outgoingRequestManager;
@@ -58,27 +65,23 @@ public final class RouteToFinger<A> {
     }
     
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) {
+    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
+            throws Exception {
+        byte[] idData = currentNode.getId().getValueAsByteArray();
+        outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
+        fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
+        
         endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
-        fsm.switchStateAndProcess(SEND_QUERY_FOR_ID, instant, unused, srcEndpoint);
     }
 
-    @FilterHandler({SEND_STATE, AWAIT_STATE})
+    @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
     public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
             throws Exception {
         return outgoingRequestManager.testResponseMessage(instant, response);
     }
-    
-    @StateHandler(SEND_STATE)
-    public void handleSendAskForIdRequest(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
-            throws Exception {
-        byte[] idData = currentNode.getId().getValueAsByteArray();
-        outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
-        fsm.setState(AWAIT_STATE);
-    }
 
-    @StateHandler(AWAIT_STATE)
-    public void handleReceiveAskForIdResponse(String state, FiniteStateMachine fsm, Instant instant,
+    @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
+    public void handleFindPredecessorResponse(String state, FiniteStateMachine fsm, Instant instant,
             GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
         A address = response.getAddress();
         byte[] idData = response.getId();
@@ -86,56 +89,61 @@ public final class RouteToFinger<A> {
         Id id = new Id(idData, currentNode.getId().getLimitAsByteArray());
         if (id.equals(currentNode.getId()) && address == null) {
             // node that's returned is currentNode...  we can't go anywhere else so return currentNode as the routed node
-            taskState = TaskState.FOUND_EXTERNAL;
-            fsm.switchStateAndProcess(DONE_STATE, instant, new Object()/*unused obj*/, srcEndpoint);
+            fsm.setState(DONE_STATE);
         } else if (!id.equals(currentNode.getId()) && address != null) {
             ExternalPointer<A> nextNode = new ExternalPointer<>(id, address);
             currentNode = nextNode;
             if (findId.isWithin(currentNode.getId(), false, nextNode.getId(), true)) {
                 // node found, stop here
-                taskState = TaskState.FOUND_EXTERNAL;
-                fsm.switchStateAndProcess(DONE_STATE, instant, new Object()/*unused obj*/, srcEndpoint);
+                outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
+                fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
             } else {
-                fsm.switchStateAndProcess(SEND_STATE, instant, new Object()/*unused obj*/, srcEndpoint);
+                outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
+                fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
             }
         } else {
             // we have a node id but no address, node gave us bad response so we want to stop here and report an error
-            taskState = TaskState.BAD_RESPONSE;
-            fsm.switchStateAndProcess(DONE_STATE, instant, new Object()/*unused obj*/, srcEndpoint);
+            fsm.setState(DONE_STATE);
         }
     }
-    
-    @StateHandler({AWAIT_STATE})
-    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, InitFingerTable.TimerTrigger response, Endpoint srcEndpoint) {
-        incomingRequestManager.process(instant);
-        outgoingRequestManager.process(instant);
 
-        endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
+    @StateHandler(AWAIT_SUCCESSOR_RESPONSE_STATE)
+    public void handleSuccessorResponse(String state, FiniteStateMachine fsm, Instant instant,
+            GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
+        A address = response.getAddress();
+        outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), address);
+        fsm.setState(AWAIT_ID_RESPONSE_STATE);
     }
 
-    REMOVE THE FOLLOWING METHODS. IN THERE PLACE, MAKE IT SO THE FSM PARAM (currentl srcEndpoint) CAN AHVE A FIELD THAT IS SET TO INDICATE FINISHED/GIVEBACK RESULT;
-    THIS IS UNTESTED;
-    public boolean isFinishedRunning() {
-        return taskState != TaskState.RUNNING;
+    @StateHandler(AWAIT_ID_RESPONSE_STATE)
+    public void handleAskForIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response,
+            Endpoint srcEndpoint) throws Exception {
+        int bitSize = ChordUtils.getBitLength(findId);
+        foundId = new Id(response.getId(), bitSize);
+        fsm.setState(DONE_STATE);
     }
-    
+
+    @StateHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE})
+    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, InitFingerTable.TimerTrigger response,
+            Endpoint srcEndpoint) {
+        Duration irmDuration = incomingRequestManager.process(instant);
+        Duration ormDuration = outgoingRequestManager.process(instant);
+        
+        if (outgoingRequestManager.getPending() == 0) {
+            fsm.setState(DONE_STATE);
+            return;
+        }
+        
+        Duration nextDuration = DurationUtils.scheduleEarliestDuration(irmDuration, ormDuration, TIMER_DURATION);
+        endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, new TimerTrigger());
+    }
+
     public ExternalPointer<A> getResult() {
-        if (taskState == TaskState.RUNNING) {
-            throw new IllegalStateException("Still running");
+        if (foundId == null || foundAddress == null) {
+            return null;
         }
-
-        if (taskState == TaskState.BAD_RESPONSE) {
-            throw new IllegalStateException("Node responded incorrectly");
-        }
-
-        return currentNode;
-    }
-    
-    private enum TaskState {
-        RUNNING,
-        FOUND_EXTERNAL,
-        FOUND_SELF,
-        BAD_RESPONSE
+        
+        return new ExternalPointer<>(foundId, foundAddress);
     }
 
     public static final class TimerTrigger {

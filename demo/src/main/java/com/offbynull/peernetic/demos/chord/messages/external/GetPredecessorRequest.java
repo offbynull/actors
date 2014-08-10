@@ -16,11 +16,11 @@
  */
 package com.offbynull.peernetic.demos.chord.messages.external;
 
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.Request;
 
-public final class NotifyResponse extends Response {
+public final class GetPredecessorRequest extends Request {
 
-    public NotifyResponse() {
+    public GetPredecessorRequest() {
         validate();
     }
 

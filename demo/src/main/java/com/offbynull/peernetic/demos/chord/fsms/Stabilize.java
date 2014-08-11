@@ -3,23 +3,15 @@ package com.offbynull.peernetic.demos.chord.fsms;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.DurationUtils;
 import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.IncomingRequestManager;
 import com.offbynull.peernetic.common.NonceGenerator;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
-import com.offbynull.peernetic.demos.chord.core.ChordUtils;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.demos.chord.core.Pointer;
-import com.offbynull.peernetic.demos.chord.messages.external.GetClosestPrecedingFingerRequest;
-import com.offbynull.peernetic.demos.chord.messages.external.GetClosestPrecedingFingerResponse;
-import com.offbynull.peernetic.demos.chord.messages.external.GetIdRequest;
-import com.offbynull.peernetic.demos.chord.messages.external.GetIdResponse;
 import com.offbynull.peernetic.demos.chord.messages.external.GetPredecessorRequest;
 import com.offbynull.peernetic.demos.chord.messages.external.GetPredecessorResponse;
-import com.offbynull.peernetic.demos.chord.messages.external.GetSuccessorRequest;
 import com.offbynull.peernetic.demos.chord.messages.external.NotifyRequest;
 import com.offbynull.peernetic.fsm.FilterHandler;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
@@ -85,30 +77,57 @@ public final class Stabilize<A> {
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
     public void handleGetPredecessorResponse(String state, FiniteStateMachine fsm, Instant instant,
             GetPredecessorResponse<A> response, Endpoint srcEndpoint) throws Exception {
-        A address = response.getAddress();
-        byte[] idData = response.getId();
-        
-        Id potentiallyNewSuccessorId = new Id(idData, selfId.getLimitAsByteArray());
-        Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
-        
-        if (potentiallyNewSuccessorId.isWithin(selfId, false, existingSuccessorId, false)) {
-            // set as new successor and fire-and-forget a notify msg to it
-            newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
-            outgoingRequestManager.sendRequestAndTrack(instant, new NotifyRequest(selfId.getValueAsByteArray()), address);
+        if (response.getId() != null) {
+            A address = response.getAddress();
+            byte[] idData = response.getId();
+
+            Id potentiallyNewSuccessorId = new Id(idData, selfId.getLimitAsByteArray());
+            Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
+
+            if (potentiallyNewSuccessorId.isWithin(selfId, false, existingSuccessorId, false)) {
+                // set as new successor and fire-and-forget a notify msg to it
+                newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
+            } else {
+                newSuccessor = existingSuccessor;
+            }
         } else {
             newSuccessor = existingSuccessor;
+        }
+        
+        if (newSuccessor != null && newSuccessor instanceof ExternalPointer) {
+            outgoingRequestManager.sendRequestAndTrack(instant, new NotifyRequest(selfId.getValueAsByteArray()),
+                    ((ExternalPointer<A>)newSuccessor).getAddress());
         }
         
         fsm.setState(DONE_STATE);
     }
 
-    public Pointer getResult() {
+    @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
+    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint)
+            throws Exception {
+        if (!message.checkParent(this)) {
+            return;
+        }
+        
+        Duration duration = outgoingRequestManager.process(instant);
+        if (outgoingRequestManager.getPending() == 0) {
+            fsm.setState(DONE_STATE);
+            return;
+        }
+        endpointScheduler.scheduleMessage(duration, srcEndpoint, srcEndpoint, message);
+    }
+    
+    public Pointer getNewSuccessor() {
         return newSuccessor;
     }
 
-    public static final class TimerTrigger {
+    public final class TimerTrigger {
         private TimerTrigger() {
             // does nothing, prevents outside instantiation
+        }
+        
+        public boolean checkParent(Object obj) {
+            return Stabilize.this == obj;
         }
     }
 }

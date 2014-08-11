@@ -2,6 +2,7 @@ package com.offbynull.peernetic.demos.chord.fsms;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
+import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.common.DurationUtils;
@@ -37,6 +38,7 @@ public final class InitFingerTable<A> {
 
     private final IncomingRequestManager<A, byte[]> incomingRequestManager;
     private final OutgoingRequestManager<A, byte[]> outgoingRequestManager;
+    private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointDirectory<A> endpointDirectory;
     private final EndpointScheduler endpointScheduler;
     private final Endpoint selfEndpoint;
@@ -52,10 +54,12 @@ public final class InitFingerTable<A> {
     private final int maxIdx;
     private int idx;
 
-    public InitFingerTable(Id selfId, A initialAddress, EndpointDirectory<A> endpointDirectory, EndpointScheduler endpointScheduler,
-            Endpoint selfEndpoint, NonceGenerator<byte[]> nonceGenerator, NonceWrapper<byte[]> nonceWrapper) {
+    public InitFingerTable(Id selfId, A initialAddress, EndpointDirectory<A> endpointDirectory, EndpointIdentifier<A> endpointIdentifier,
+            EndpointScheduler endpointScheduler, Endpoint selfEndpoint, NonceGenerator<byte[]> nonceGenerator,
+            NonceWrapper<byte[]> nonceWrapper) {
         Validate.notNull(initialAddress);
         Validate.notNull(selfId);
+        Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointDirectory);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
@@ -63,6 +67,7 @@ public final class InitFingerTable<A> {
         Validate.notNull(nonceWrapper);
 
         this.initialAddress = initialAddress;
+        this.endpointIdentifier = endpointIdentifier;
         this.endpointDirectory = endpointDirectory;
         this.endpointScheduler = endpointScheduler;
         this.fingerTable = new FingerTable<>(new InternalPointer(selfId));
@@ -75,7 +80,7 @@ public final class InitFingerTable<A> {
         maxIdx = ChordUtils.getBitLength(selfId);
     }
 
-    @FilterHandler({AWAIT_GET_ID_RESPONSE, AWAIT_ROUTE_TO_FINGER})
+    @FilterHandler(AWAIT_GET_ID_RESPONSE)
     public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response,
             Endpoint srcEndpoint) throws Exception {
         return outgoingRequestManager.testResponseMessage(instant, response);
@@ -119,14 +124,18 @@ public final class InitFingerTable<A> {
     private void resetRouteToFinger(Instant instant) {
         ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
         Id findId = fingerTable.getExpectedId(idx);
-        routeToFinger = new RouteToFinger<>(fromNode, findId, endpointDirectory, endpointScheduler, selfEndpoint, nonceGenerator,
-                nonceWrapper);
+        routeToFinger = new RouteToFinger<>(fromNode, findId, endpointDirectory, endpointIdentifier, endpointScheduler, selfEndpoint,
+                nonceGenerator, nonceWrapper);
         routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
         routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);
     }
 
-    @StateHandler({AWAIT_GET_ID_RESPONSE/*, AWAIT_ROUTE_TO_FINGER*/})
-    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger response, Endpoint srcEndpoint) {
+    @StateHandler(AWAIT_GET_ID_RESPONSE)
+    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint) {
+        if (!message.checkParent(this)) {
+            return;
+        }
+
         Duration irmDuration = incomingRequestManager.process(instant);
         Duration ormDuration = outgoingRequestManager.process(instant);
         
@@ -138,10 +147,13 @@ public final class InitFingerTable<A> {
         return fingerTable;
     }
     
-    public static final class TimerTrigger {
-
+    public final class TimerTrigger {
         private TimerTrigger() {
             // does nothing, prevents outside instantiation
+        }
+        
+        public boolean checkParent(Object obj) {
+            return InitFingerTable.this == obj;
         }
     }
 }

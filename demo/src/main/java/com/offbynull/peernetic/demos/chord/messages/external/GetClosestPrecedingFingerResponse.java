@@ -41,7 +41,6 @@ public final class GetClosestPrecedingFingerResponse<A> extends Response {
     @Override
     protected void innerValidate() {
         Validate.notNull(id);
-        Validate.notNull(address);
         Validate.isTrue(id.length > 0);
     }
 }

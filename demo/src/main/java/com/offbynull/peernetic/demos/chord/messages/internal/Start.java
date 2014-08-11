@@ -5,8 +5,6 @@ import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.NonceGenerator;
-import com.offbynull.peernetic.common.NonceWrapper;
 import org.apache.commons.lang3.Validate;
 
 public final class Start<A> {
@@ -15,30 +13,22 @@ public final class Start<A> {
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
     private final Endpoint selfEndpoint;
-    private final NonceGenerator<byte[]> nonceGenerator;
-    private final NonceWrapper<byte[]> nonceWrapper;
-
     private final Id selfId;
     private final A bootstrapAddress;
 
     public Start(EndpointDirectory<A> endpointDirectory, EndpointIdentifier<A> endpointIdentifier, EndpointScheduler endpointScheduler,
-            Endpoint selfEndpoint, NonceGenerator<byte[]> nonceGenerator, NonceWrapper<byte[]> nonceWrapper, Id selfId,
-            A bootstrapAddress) {
+            Endpoint selfEndpoint, Id selfId, A bootstrapAddress) {
         Validate.notNull(endpointDirectory);
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceGenerator);
-        Validate.notNull(nonceWrapper);
         Validate.notNull(selfId);
-        Validate.notNull(bootstrapAddress);
+//        Validate.notNull(bootstrapAddress); // may be null
         
         this.endpointDirectory = endpointDirectory;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
         this.selfEndpoint = selfEndpoint;
-        this.nonceGenerator = nonceGenerator;
-        this.nonceWrapper = nonceWrapper;
         this.selfId = selfId;
         this.bootstrapAddress = bootstrapAddress;
     }
@@ -57,14 +47,6 @@ public final class Start<A> {
 
     public Endpoint getSelfEndpoint() {
         return selfEndpoint;
-    }
-
-    public NonceGenerator<byte[]> getNonceGenerator() {
-        return nonceGenerator;
-    }
-
-    public NonceWrapper<byte[]> getNonceWrapper() {
-        return nonceWrapper;
     }
 
     public Id getSelfId() {

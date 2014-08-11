@@ -25,13 +25,13 @@ public final class GetPredecessorResponse<A> extends Response {
     private A address;
 
     public GetPredecessorResponse(byte[] id, A address) {
-        this.id = Arrays.copyOf(id, id.length);
+        this.id = id != null ? Arrays.copyOf(id, id.length) : null;
         this.address = address;
         validate();
     }
 
     public byte[] getId() {
-        return Arrays.copyOf(id, id.length);
+        return id != null ? Arrays.copyOf(id, id.length) : null;
     }
 
     public A getAddress() {
@@ -40,7 +40,8 @@ public final class GetPredecessorResponse<A> extends Response {
     
     @Override
     protected void innerValidate() {
-        Validate.notNull(id);
-        Validate.isTrue(id.length > 0);
+        if (id != null) {
+            Validate.isTrue(id.length > 0);
+        }
     }
 }

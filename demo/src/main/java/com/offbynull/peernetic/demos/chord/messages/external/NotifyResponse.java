@@ -20,21 +20,28 @@ import com.offbynull.peernetic.common.Response;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class GetIdResponse extends Response {
+public final class NotifyResponse<A> extends Response {
     private byte[] id;
+    private A address;
 
-    public GetIdResponse(byte[] id) {
+    public NotifyResponse(byte[] id, A address) {
         this.id = Arrays.copyOf(id, id.length);
+        this.address = address;
         validate();
     }
 
     public byte[] getId() {
-        return Arrays.copyOf(id, id.length);
+        return id != null ? Arrays.copyOf(id, id.length) : null;
+    }
+
+    public A getAddress() {
+        return address;
     }
     
     @Override
     protected void innerValidate() {
-        Validate.notNull(id);
-        Validate.isTrue(id.length > 0);
+        if (id != null) {
+            Validate.isTrue(id.length > 0);
+        }
     }
 }

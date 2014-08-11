@@ -522,7 +522,17 @@ public final class ChordState<A> {
         // sure this propogates to the successor table.
         adjustSuccessorTableToMatchFingerTable();
     }
-    
+
+    /**
+     * Get a copy of the finger table.
+     * @return finger table copy
+     */
+    public FingerTable<A> getFingerTable() {
+        FingerTable<A> ret = new FingerTable<>(basePtr); 
+        fingerTable.dump().stream().filter(x -> x instanceof ExternalPointer).forEach(x -> ret.replace((ExternalPointer<A>) x));
+        return ret;
+    }
+
     /**
      * Dump the finger table.
      * @return list of fingers in the finger table

@@ -1,11 +1,8 @@
 package com.offbynull.peernetic.demos.chord.fsms;
 
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.NonceGenerator;
-import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
@@ -36,19 +33,17 @@ public final class Stabilize<A> {
     
     private Pointer newSuccessor;
 
-    public Stabilize(Id selfId, Pointer successor, EndpointDirectory<A> endpointDirectory, EndpointScheduler endpointScheduler,
-            Endpoint selfEndpoint, NonceGenerator<byte[]> nonceGenerator, NonceWrapper<byte[]> nonceWrapper) {
+    public Stabilize(Id selfId, Pointer successor, EndpointScheduler endpointScheduler, Endpoint selfEndpoint,
+            OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(selfId);
         Validate.notNull(successor);
-        Validate.notNull(endpointDirectory);
+        Validate.notNull(outgoingRequestManager);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceGenerator);
-        Validate.notNull(nonceWrapper);
         
         this.selfId = selfId;
         this.existingSuccessor = successor;
-        this.outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory);
+        this.outgoingRequestManager = outgoingRequestManager;
         this.endpointScheduler = endpointScheduler;
         this.selfEndpoint = selfEndpoint;
     }
@@ -71,7 +66,7 @@ public final class Stabilize<A> {
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE})
     public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
             throws Exception {
-        return outgoingRequestManager.testResponseMessage(instant, response);
+        return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)

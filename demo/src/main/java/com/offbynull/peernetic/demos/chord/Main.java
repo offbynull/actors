@@ -47,11 +47,15 @@ public final class Main {
         };
 
         ChordLinkListener<Id> linkListener = (id, dstId) -> {
-            visualizer.step("Connected " + id + " to " + dstId, new AddEdgeCommand<>(id, dstId));
+            String msg = "Connected " + id + " to " + dstId;
+            System.out.println(msg);
+            visualizer.step(msg, new AddEdgeCommand<>(id, dstId));
         };
 
         ChordUnlinkListener<Id> unlinkListener = (id, dstId) -> {
-            visualizer.step("Disconnected " + id + " to " + dstId, new RemoveEdgeCommand<>(id, dstId));
+            String msg = "Disconnected " + id + " to " + dstId;
+            System.out.println(msg);
+            visualizer.step(msg, new RemoveEdgeCommand<>(id, dstId));
         };
 
         // Create actors
@@ -109,7 +113,7 @@ public final class Main {
     }
     
     private static <T> void showNode(Visualizer<Id> visualizer, Id id, Mode mode) {
-        Point position = VisualizerUtils.pointOnCircle(100.0,
+        Point position = VisualizerUtils.pointOnCircle(1000.0,
                 new BigDecimal(new BigInteger(id.getValueAsByteArray()))
                 .divide(new BigDecimal(new BigInteger(id.getLimitAsByteArray()).add(BigInteger.ONE)))
                 .doubleValue());

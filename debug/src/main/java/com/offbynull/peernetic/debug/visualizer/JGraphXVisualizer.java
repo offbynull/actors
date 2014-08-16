@@ -158,15 +158,11 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
         }
         
         try {
-            SwingUtilities.invokeAndWait(new Runnable() {
-                
-                @Override
-                public void run() {
-                    textOutputArea.append(JGraphXVisualizer.class.getSimpleName() + " started.\n\n");
-                    JGraphXVisualizer.this.listener.set(listener);
-                    JGraphXVisualizer.this.recorder.set(recorder);
-                    frame.setVisible(true);
-                }
+            SwingUtilities.invokeAndWait(() -> {
+                textOutputArea.append(JGraphXVisualizer.class.getSimpleName() + " started.\n\n");
+                JGraphXVisualizer.this.listener.set(listener);
+                JGraphXVisualizer.this.recorder.set(recorder);
+                frame.setVisible(true);
             });
         } catch (InterruptedException | InvocationTargetException ex) {
             throw new RuntimeException("Visualize failed", ex);
@@ -198,7 +194,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     }
     
     private void queueCommands(List<Command<A>> commands) {
-        for (Command<A> command : commands) {
+        commands.stream().forEach((command) -> {
             if (command instanceof AddNodeCommand) {
                 addNode((AddNodeCommand<A>) command);
             } else if (command instanceof RemoveNodeCommand) {
@@ -214,7 +210,7 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
             } else {
                 textOutputArea.append("  UNKNOWN COMMAND RECIEVED, SKIPPING -- " + command.getClass().getName());
             }
-        }
+        });
     }
 
     private void triggerOnLingeringNode(final TriggerOnLingeringNodeCommand<A> command) {
@@ -237,43 +233,39 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     private void changeNode(final ChangeNodeCommand<A> command) {
         Validate.notNull(command);
 
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                A address = command.getNode();
-                
-                Object vertex = nodeLookupMap.get(address);
-                Validate.isTrue(vertex != null);
-
-                Point center = command.getLocation();
-                if (center != null) {
-                    mxRectangle rect = graph.getView().getBoundingBox(new Object[]{vertex});
-                    graph.moveCells(new Object[]{vertex}, center.getX() - rect.getCenterX(), center.getY() - rect.getCenterY());
-                }
-                
-                Double scale = command.getScale();
-                if (scale != null) {
-                    mxGraphView view = graph.getView();
-                    mxRectangle rect = graph.getBoundingBox(vertex);
-
-                    rect.setWidth(rect.getWidth() / view.getScale() * scale);
-                    rect.setHeight(rect.getHeight() / view.getScale() * scale);
-                    rect.setX(rect.getX() / view.getScale());
-                    rect.setY(rect.getY() / view.getScale());
-                    graph.resizeCell(vertex, rect);
-                }
-                
-                Color color = command.getColor();
-                if (color != null) {
-                    graph.setCellStyle(mxConstants.STYLE_FILLCOLOR + "=" + "#" + String.format("%06x", color.getRGB() & 0x00FFFFFF),
-                            new Object[]{vertex});
-                    nodeLookupMap.put(address, vertex);
-                }
-                
-
-                zoomFit();
+        SwingUtilities.invokeLater(() -> {
+            A address = command.getNode();
+            
+            Object vertex = nodeLookupMap.get(address);
+            Validate.isTrue(vertex != null);
+            
+            Point center = command.getLocation();
+            if (center != null) {
+                mxRectangle rect = graph.getView().getBoundingBox(new Object[]{vertex});
+                graph.moveCells(new Object[]{vertex}, center.getX() - rect.getCenterX(), center.getY() - rect.getCenterY());
             }
+            
+            Double scale = command.getScale();
+            if (scale != null) {
+                mxGraphView view = graph.getView();
+                mxRectangle rect = graph.getBoundingBox(vertex);
+                
+                rect.setWidth(rect.getWidth() / view.getScale() * scale);
+                rect.setHeight(rect.getHeight() / view.getScale() * scale);
+                rect.setX(rect.getX() / view.getScale());
+                rect.setY(rect.getY() / view.getScale());
+                graph.resizeCell(vertex, rect);
+            }
+            
+            Color color = command.getColor();
+            if (color != null) {
+                graph.setCellStyle(mxConstants.STYLE_FILLCOLOR + "=" + "#" + String.format("%06x", color.getRGB() & 0x00FFFFFF),
+                        new Object[]{vertex});
+                nodeLookupMap.put(address, vertex);
+            }
+            
+            
+            zoomFit();
         });
     }
 
@@ -305,112 +297,97 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
 
     private void addNode(final AddNodeCommand<A> command) {
         Validate.notNull(command);
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                Validate.isTrue(!nodeLookupMap.containsKey(command.getNode()));
-
-                Object parent = graph.getDefaultParent();
-
-                Object vertex = graph.insertVertex(parent, null, command.getNode(), 0, 0, 1, 1);
-                graph.updateCellSize(vertex);
-                graph.moveCells(new Object[]{vertex}, 0, 0);
-
-                mxGraphView view = graph.getView();
-                view.validate();
-
-                nodeLookupMap.put(command.getNode(), vertex);
-
-                zoomFit();
-            }
+        SwingUtilities.invokeLater(() -> {
+            Validate.isTrue(!nodeLookupMap.containsKey(command.getNode()));
+            
+            Object parent = graph.getDefaultParent();
+            
+            Object vertex = graph.insertVertex(parent, null, command.getNode(), 0, 0, 1, 1);
+            graph.updateCellSize(vertex);
+            graph.moveCells(new Object[]{vertex}, 0, 0);
+            
+            mxGraphView view = graph.getView();
+            view.validate();
+            
+            nodeLookupMap.put(command.getNode(), vertex);
+            
+            zoomFit();
         });
     }
 
     private void removeNode(final RemoveNodeCommand<A> command) {
         Validate.notNull(command);
 
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                Validate.isTrue(nodeLookupMap.containsKey(command.getNode()));
-
-                Object vertex = nodeLookupMap.remove(command.getNode());
-                Object[] edges = graph.getEdges(vertex);
-
-                for (Object edge : edges) {
-                    ImmutablePair<A, A> conn = edgeToConnLookupMap.get(edge);
-                    connToEdgeLookupMap.removeMapping(conn, edge);
-                }
-                
-                graph.getModel().remove(vertex);
-                
-                triggerIfNoEdges(command.getNode(), vertex);
-
-                zoomFit();
+        SwingUtilities.invokeLater(() -> {
+            Validate.isTrue(nodeLookupMap.containsKey(command.getNode()));
+            
+            Object vertex = nodeLookupMap.remove(command.getNode());
+            Object[] edges = graph.getEdges(vertex);
+            
+            for (Object edge : edges) {
+                ImmutablePair<A, A> conn = edgeToConnLookupMap.get(edge);
+                connToEdgeLookupMap.removeMapping(conn, edge);
             }
+            
+            graph.getModel().remove(vertex);
+            
+            triggerIfNoEdges(command.getNode(), vertex);
+            
+            zoomFit();
         });
     }
 
     private void addConnection(final AddEdgeCommand<A> command) {
         Validate.notNull(command);
 
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                Object parent = graph.getDefaultParent();
-
-                Object fromVertex = nodeLookupMap.get(command.getFrom());
-                Object toVertex = nodeLookupMap.get(command.getTo());
-                ImmutablePair<A, A> conn = new ImmutablePair<>(command.getFrom(), command.getTo());
-                Validate.isTrue(nodeLookupMap.containsKey(command.getFrom()), "Connection source doesn't exist");
-                Validate.isTrue(nodeLookupMap.containsKey(command.getTo()), "Connection destination doesn't exist");
-
-                if (!connToEdgeLookupMap.containsKey(conn)) {
-                    Object edge = graph.insertEdge(parent, null, null, fromVertex, toVertex);
-                    connToEdgeLookupMap.put(conn, edge);
-                    edgeToConnLookupMap.put(edge, conn);
-                }
-
-                zoomFit();
+        SwingUtilities.invokeLater(() -> {
+            Object parent = graph.getDefaultParent();
+            
+            Object fromVertex = nodeLookupMap.get(command.getFrom());
+            Object toVertex = nodeLookupMap.get(command.getTo());
+            ImmutablePair<A, A> conn = new ImmutablePair<>(command.getFrom(), command.getTo());
+            Validate.isTrue(nodeLookupMap.containsKey(command.getFrom()), "Connection %s source doesn't exist", conn);
+            Validate.isTrue(nodeLookupMap.containsKey(command.getTo()), "Connection %s destination doesn't exist", conn);
+            Validate.isTrue(!connToEdgeLookupMap.containsKey(conn), "Connection %s already exists", conn);
+            
+            if (!connToEdgeLookupMap.containsKey(conn)) {
+                Object edge = graph.insertEdge(parent, null, null, fromVertex, toVertex);
+                connToEdgeLookupMap.put(conn, edge);
+                edgeToConnLookupMap.put(edge, conn);
             }
+            
+            zoomFit();
         });
     }
 
     private void removeConnection(final RemoveEdgeCommand<A> command) {
         Validate.notNull(command);
 
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                Object fromVertex = nodeLookupMap.get(command.getFrom());
-                Object toVertex = nodeLookupMap.get(command.getTo());
-                ImmutablePair<A, A> conn = new ImmutablePair<>(command.getFrom(), command.getTo());
-                Validate.isTrue(nodeLookupMap.containsKey(command.getFrom()), "Connection source doesn't exist");
-                Validate.isTrue(nodeLookupMap.containsKey(command.getTo()), "Connection destination doesn't exist");
-                Validate.isTrue(connToEdgeLookupMap.containsKey(conn), "Connection doesn't exists");
-
-                if (fromVertex == null || toVertex == null) {
-                    return;
-                }
-                
-                Collection<Object> edges = (Collection<Object>) connToEdgeLookupMap.get(conn);
-                Object edge = edges.iterator().next();
-                
-
-                connToEdgeLookupMap.removeMapping(conn, edge);
-                edgeToConnLookupMap.remove(edge);
-
-                graph.getModel().remove(edge);
-                
-                triggerIfNoEdges(command.getFrom(), fromVertex);
-                triggerIfNoEdges(command.getTo(), toVertex);
-
-                zoomFit();
+        SwingUtilities.invokeLater(() -> {
+            Object fromVertex = nodeLookupMap.get(command.getFrom());
+            Object toVertex = nodeLookupMap.get(command.getTo());
+            ImmutablePair<A, A> conn = new ImmutablePair<>(command.getFrom(), command.getTo());
+            Validate.isTrue(nodeLookupMap.containsKey(command.getFrom()), "Connection %s source doesn't exist", conn);
+            Validate.isTrue(nodeLookupMap.containsKey(command.getTo()), "Connection %s destination doesn't exist", conn);
+            Validate.isTrue(connToEdgeLookupMap.containsKey(conn), "Connection %s doesn't exists", conn);
+            
+            if (fromVertex == null || toVertex == null) {
+                return;
             }
+            
+            Collection<Object> edges = (Collection<Object>) connToEdgeLookupMap.get(conn);
+            Object edge = edges.iterator().next();
+            
+            
+            connToEdgeLookupMap.removeMapping(conn, edge);
+            edgeToConnLookupMap.remove(edge);
+            
+            graph.getModel().remove(edge);
+            
+            triggerIfNoEdges(command.getFrom(), fromVertex);
+            triggerIfNoEdges(command.getTo(), toVertex);
+            
+            zoomFit();
         });
     }
 
@@ -426,34 +403,30 @@ public final class JGraphXVisualizer<A> implements Visualizer<A> {
     }
     
     private void zoomFit() {
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                double compWidth = component.getWidth();
-                double compHeight = component.getHeight();
-                double compLen = Math.min(compWidth, compHeight);
-
-                mxGraphView view = graph.getView();
-                double oldScale = view.getScale();
-                mxPoint oldTranslate = view.getTranslate();
-
-                mxRectangle graphBounds = view.getGraphBounds();
-                double graphX = (graphBounds.getX()) / oldScale - oldTranslate.getX();
-                double graphY = (graphBounds.getY()) / oldScale - oldTranslate.getY();
-                double graphWidth = (graphBounds.getWidth()) / oldScale;
-                double graphHeight = (graphBounds.getHeight()) / oldScale;
-                double graphEndX = graphX + graphWidth;
-                double graphEndY = graphY + graphHeight;
-
-                double viewLen = Math.max(graphEndX, graphEndY);
-
-                if (Double.isInfinite(viewLen) || Double.isNaN(viewLen) || viewLen <= 0.0) {
-                    view.setScale(1.0);
-                } else {
-                    double newScale = compLen / viewLen;
-                    view.setScale(newScale);
-                }
+        SwingUtilities.invokeLater(() -> {
+            double compWidth = component.getWidth();
+            double compHeight = component.getHeight();
+            double compLen = Math.min(compWidth, compHeight);
+            
+            mxGraphView view = graph.getView();
+            double oldScale = view.getScale();
+            mxPoint oldTranslate = view.getTranslate();
+            
+            mxRectangle graphBounds = view.getGraphBounds();
+            double graphX = (graphBounds.getX()) / oldScale - oldTranslate.getX();
+            double graphY = (graphBounds.getY()) / oldScale - oldTranslate.getY();
+            double graphWidth = (graphBounds.getWidth()) / oldScale;
+            double graphHeight = (graphBounds.getHeight()) / oldScale;
+            double graphEndX = graphX + graphWidth;
+            double graphEndY = graphY + graphHeight;
+            
+            double viewLen = Math.max(graphEndX, graphEndY);
+            
+            if (Double.isInfinite(viewLen) || Double.isNaN(viewLen) || viewLen <= 0.0) {
+                view.setScale(1.0);
+            } else {
+                double newScale = compLen / viewLen;
+                view.setScale(newScale);
             }
         });
     }

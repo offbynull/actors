@@ -1,11 +1,8 @@
 package com.offbynull.peernetic.demos.chord.fsms;
 
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.NonceGenerator;
-import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
@@ -29,34 +26,31 @@ public final class CheckPredecessor<A> {
     private final Endpoint selfEndpoint;
     private final Id selfId;
     
-    private final ExternalPointer<A> predecessor;
-    private Id reportedPredecessorId;
+    private final ExternalPointer<A> existingPredecessor;
+    private Id newPredecessorId;
 
-    public CheckPredecessor(Id selfId, ExternalPointer<A> predecessor, EndpointDirectory<A> endpointDirectory,
-            EndpointScheduler endpointScheduler, Endpoint selfEndpoint, NonceGenerator<byte[]> nonceGenerator,
-            NonceWrapper<byte[]> nonceWrapper) {
-        Validate.notNull(endpointDirectory);
+    public CheckPredecessor(Id selfId, ExternalPointer<A> predecessor,  EndpointScheduler endpointScheduler, Endpoint selfEndpoint,
+            OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
         Validate.notNull(selfId);
-        Validate.notNull(nonceGenerator);
-        Validate.notNull(nonceWrapper);
+        Validate.notNull(outgoingRequestManager);
         
-        this.predecessor = predecessor;
+        this.existingPredecessor = predecessor;
         this.endpointScheduler = endpointScheduler;
         this.selfEndpoint = selfEndpoint;
         this.selfId = selfId;
-        this.outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory);
+        this.outgoingRequestManager = outgoingRequestManager;
     }
 
     @StateHandler(INITIAL_STATE)
     public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
-        if (predecessor == null) {
+        if (existingPredecessor == null) {
             fsm.setState(DONE_STATE);
             return;
         }
         
-        outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), predecessor.getAddress());
+        outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), existingPredecessor.getAddress());
         Duration duration = outgoingRequestManager.process(instant);
         endpointScheduler.scheduleMessage(duration, selfEndpoint, selfEndpoint, new TimerTrigger());
         fsm.setState(AWAIT_GET_ID);
@@ -65,13 +59,14 @@ public final class CheckPredecessor<A> {
     @FilterHandler(AWAIT_GET_ID)
     public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response,
             Endpoint srcEndpoint) throws Exception {
-        return outgoingRequestManager.testResponseMessage(instant, response);
+        return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(AWAIT_GET_ID)
     public void handleGetIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response, Endpoint srcEndpoint)
             throws Exception {
-        reportedPredecessorId = new Id(response.getId(), selfId.getLimitAsByteArray());
+        System.out.println("hi");
+        newPredecessorId = new Id(response.getId(), selfId.getLimitAsByteArray());
         fsm.setState(DONE_STATE);
     }
 
@@ -90,8 +85,12 @@ public final class CheckPredecessor<A> {
         endpointScheduler.scheduleMessage(duration, srcEndpoint, srcEndpoint, message);
     }
 
+    public ExternalPointer<A> getExistingPredecessor() {
+        return existingPredecessor;
+    }
+    
     public boolean isPredecessorUnresponsive() {
-        return predecessor == null || reportedPredecessorId == null || !reportedPredecessorId.equals(predecessor.getId());
+        return existingPredecessor == null || newPredecessorId == null || !newPredecessorId.equals(existingPredecessor.getId());
     }
 
     public final class TimerTrigger {

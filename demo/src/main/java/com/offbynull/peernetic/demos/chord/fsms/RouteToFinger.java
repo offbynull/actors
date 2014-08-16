@@ -1,13 +1,10 @@
 package com.offbynull.peernetic.demos.chord.fsms;
 
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.DurationUtils;
 import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.IncomingRequestManager;
-import com.offbynull.peernetic.common.NonceGenerator;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
@@ -41,28 +38,25 @@ public final class RouteToFinger<A> {
     
     private ExternalPointer<A> currentNode;
 
-    private final IncomingRequestManager<A, byte[]> incomingRequestManager;
     private final OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
     private final Endpoint selfEndpoint;
 
-    public RouteToFinger(ExternalPointer<A> initialNode, Id findId, EndpointDirectory<A> endpointDirectory,
-            EndpointIdentifier<A> endpointIdentifier, EndpointScheduler endpointScheduler, Endpoint selfEndpoint,
-            NonceGenerator<byte[]> nonceGenerator, NonceWrapper<byte[]> nonceWrapper) {
+    public RouteToFinger(ExternalPointer<A> initialNode, Id findId, EndpointIdentifier<A> endpointIdentifier,
+            EndpointScheduler endpointScheduler, Endpoint selfEndpoint, NonceWrapper<byte[]> nonceWrapper,
+            OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(initialNode);
         Validate.notNull(findId);
         Validate.notNull(endpointIdentifier);
-        Validate.notNull(endpointDirectory);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceGenerator);
         Validate.notNull(nonceWrapper);
+        Validate.notNull(outgoingRequestManager);
         
         this.findId = findId;
         this.currentNode = initialNode;
-        this.incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceWrapper);
-        this.outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory);
+        this.outgoingRequestManager = outgoingRequestManager;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
         this.selfEndpoint = selfEndpoint;
@@ -81,7 +75,7 @@ public final class RouteToFinger<A> {
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
     public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
             throws Exception {
-        return outgoingRequestManager.testResponseMessage(instant, response);
+        return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
@@ -108,8 +102,9 @@ public final class RouteToFinger<A> {
                 fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
             }
         } else {
-            // we have a node id that isn't current node and no address, node gave us bad response so stop
-            throw new IllegalStateException();
+            // we have a node id that isn't current node and no address, node gave us bad response so stop so try again
+            outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
+            fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
         }
     }
 
@@ -117,6 +112,10 @@ public final class RouteToFinger<A> {
     public void handleSuccessorResponse(String state, FiniteStateMachine fsm, Instant instant,
             GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
         A address = response.getAddress();
+        if (address == null) {
+            address = endpointIdentifier.identify(srcEndpoint);
+        }
+        
         outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), address);
         fsm.setState(AWAIT_ID_RESPONSE_STATE);
     }
@@ -136,7 +135,6 @@ public final class RouteToFinger<A> {
             return;
         }
         
-        Duration irmDuration = incomingRequestManager.process(instant);
         Duration ormDuration = outgoingRequestManager.process(instant);
         
         if (outgoingRequestManager.getPending() == 0) {
@@ -144,7 +142,7 @@ public final class RouteToFinger<A> {
             return;
         }
         
-        Duration nextDuration = DurationUtils.scheduleEarliestDuration(irmDuration, ormDuration, TIMER_DURATION);
+        Duration nextDuration = DurationUtils.scheduleEarliestDuration(ormDuration, TIMER_DURATION);
         endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, new TimerTrigger());
     }
 

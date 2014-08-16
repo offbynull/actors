@@ -92,12 +92,10 @@ public final class OutgoingRequestManager<A, N> {
             // generate and set a nonce
             N nonceValue = InternalUtils.generateAndSetNonce(nonceGenerator, request);
             nonce = nonceWrapper.wrap(nonceValue);
-
-            // validate before adding to queue and sending
-            if (InternalUtils.validateMessage(request)) {
-                break;
-            }
         } while (requests.containsKey(nonce));
+
+        // validate before adding to queue and sending
+        Validate.isTrue(InternalUtils.validateMessage(request));
 
         // sendRequestAndTrack and queue resends/discards
         Endpoint dstEndpoint = endpointDirectory.lookup(dstAddress);
@@ -120,7 +118,8 @@ public final class OutgoingRequestManager<A, N> {
         return handleQueue(time);
     }
     
-    public boolean isRequestTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
+    // check to see if the nonce in the message is currently being tracked by this manager, can be request or response
+    public boolean isMessageTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);

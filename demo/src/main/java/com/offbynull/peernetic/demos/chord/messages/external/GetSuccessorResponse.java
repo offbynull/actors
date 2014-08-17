@@ -30,7 +30,7 @@ public final class GetSuccessorResponse<A> extends Response {
         validate();
     }
 
-    public A getDestination() {
+    public A getAddress() {
         return address;
     }
     

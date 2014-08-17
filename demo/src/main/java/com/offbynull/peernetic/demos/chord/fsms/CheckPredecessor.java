@@ -2,7 +2,10 @@ package com.offbynull.peernetic.demos.chord.fsms;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
+import com.offbynull.peernetic.common.ByteArrayNonce;
 import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.Nonce;
+import com.offbynull.peernetic.common.NonceManager;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
@@ -43,6 +46,7 @@ public final class CheckPredecessor<A> {
         this.outgoingRequestManager = outgoingRequestManager;
     }
 
+    private NonceManager<byte[]> nonceManager = new NonceManager<>();
     @StateHandler(INITIAL_STATE)
     public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
         if (existingPredecessor == null) {
@@ -50,7 +54,8 @@ public final class CheckPredecessor<A> {
             return;
         }
         
-        outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), existingPredecessor.getAddress());
+        Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), existingPredecessor.getAddress());
+        nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
         Duration duration = outgoingRequestManager.process(instant);
         endpointScheduler.scheduleMessage(duration, selfEndpoint, selfEndpoint, new TimerTrigger());
         fsm.setState(AWAIT_GET_ID);
@@ -65,7 +70,11 @@ public final class CheckPredecessor<A> {
     @StateHandler(AWAIT_GET_ID)
     public void handleGetIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response, Endpoint srcEndpoint)
             throws Exception {
-        System.out.println("hi");
+        ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
+        if (nonceManager.checkNonce(nonce) == null) {
+            return;
+        }
+
         newPredecessorId = new Id(response.getId(), selfId.getLimitAsByteArray());
         fsm.setState(DONE_STATE);
     }

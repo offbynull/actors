@@ -33,6 +33,7 @@ public final class InitFingerTable<A> {
 
     private final FingerTable<A> fingerTable;
 
+    private final Id selfId;
     private final OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
@@ -59,6 +60,7 @@ public final class InitFingerTable<A> {
         Validate.notNull(outgoingRequestManager);
 
         this.initialAddress = initialAddress;
+        this.selfId = selfId;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
         this.fingerTable = new FingerTable<>(new InternalPointer(selfId));
@@ -113,7 +115,7 @@ public final class InitFingerTable<A> {
     private void resetRouteToFinger(Instant instant) {
         ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
         Id findId = fingerTable.getExpectedId(idx);
-        routeToFinger = new RouteToFinger<>(fromNode, findId, endpointIdentifier, endpointScheduler, selfEndpoint, nonceWrapper,
+        routeToFinger = new RouteToFinger<>(fromNode, selfId, findId, endpointIdentifier, endpointScheduler, selfEndpoint, nonceWrapper,
                 outgoingRequestManager);
         routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
         routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);

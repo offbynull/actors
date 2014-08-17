@@ -28,6 +28,7 @@ public final class FixFinger<A> {
 
     private final FingerTable<A> fingerTable;
 
+    private final Id selfId;
     private final OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
@@ -54,6 +55,7 @@ public final class FixFinger<A> {
         int maxIdx = ChordUtils.getBitLength(selfId);
         this.idx = new Random().nextInt(maxIdx);
         
+        this.selfId = selfId;
         this.fingerTable = fingerTable;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
@@ -73,7 +75,7 @@ public final class FixFinger<A> {
         } else if (pointer instanceof ExternalPointer) {
             ExternalPointer<A> fromNode = (ExternalPointer<A>) pointer;
 
-            routeToFinger = new RouteToFinger<>(fromNode, expectedId, endpointIdentifier, endpointScheduler,
+            routeToFinger = new RouteToFinger<>(fromNode, selfId, expectedId, endpointIdentifier, endpointScheduler,
                     selfEndpoint, nonceWrapper, outgoingRequestManager);
             routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
             routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);

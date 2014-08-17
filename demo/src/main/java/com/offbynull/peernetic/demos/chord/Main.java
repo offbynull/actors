@@ -35,7 +35,7 @@ import java.math.BigInteger;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        FsmActor[] actors = new FsmActor[4];
+        FsmActor[] actors = new FsmActor[8];
 
         // Start visualizer
         Visualizer<Id> visualizer = new JGraphXVisualizer<>();
@@ -48,13 +48,11 @@ public final class Main {
 
         ChordLinkListener<Id> linkListener = (id, dstId) -> {
             String msg = "Connected " + id + " to " + dstId;
-            System.out.println(msg);
             visualizer.step(msg, new AddEdgeCommand<>(id, dstId));
         };
 
         ChordUnlinkListener<Id> unlinkListener = (id, dstId) -> {
             String msg = "Disconnected " + id + " to " + dstId;
-            System.out.println(msg);
             visualizer.step(msg, new RemoveEdgeCommand<>(id, dstId));
         };
 
@@ -113,7 +111,7 @@ public final class Main {
     }
     
     private static <T> void showNode(Visualizer<Id> visualizer, Id id, Mode mode) {
-        Point position = VisualizerUtils.pointOnCircle(1000.0,
+        Point position = VisualizerUtils.pointOnCircle(800.0,
                 new BigDecimal(new BigInteger(id.getValueAsByteArray()))
                 .divide(new BigDecimal(new BigInteger(id.getLimitAsByteArray()).add(BigInteger.ONE)))
                 .doubleValue());

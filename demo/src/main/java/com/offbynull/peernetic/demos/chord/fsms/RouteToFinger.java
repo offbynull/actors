@@ -3,8 +3,11 @@ package com.offbynull.peernetic.demos.chord.fsms;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
+import com.offbynull.peernetic.common.ByteArrayNonce;
 import com.offbynull.peernetic.common.DurationUtils;
 import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.Nonce;
+import com.offbynull.peernetic.common.NonceManager;
 import com.offbynull.peernetic.common.NonceWrapper;
 import com.offbynull.peernetic.common.OutgoingRequestManager;
 import com.offbynull.peernetic.common.Response;
@@ -15,9 +18,11 @@ import com.offbynull.peernetic.demos.chord.messages.external.GetClosestPreceding
 import com.offbynull.peernetic.demos.chord.messages.external.GetIdRequest;
 import com.offbynull.peernetic.demos.chord.messages.external.GetIdResponse;
 import com.offbynull.peernetic.demos.chord.messages.external.GetSuccessorRequest;
+import com.offbynull.peernetic.demos.chord.messages.external.GetSuccessorResponse;
 import com.offbynull.peernetic.fsm.FilterHandler;
 import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
@@ -31,6 +36,7 @@ public final class RouteToFinger<A> {
 
     private static final Duration TIMER_DURATION = Duration.ofSeconds(3L);
 
+    private final Id selfId;
     private final Id findId;
     
     private Id foundId;
@@ -43,10 +49,11 @@ public final class RouteToFinger<A> {
     private final EndpointScheduler endpointScheduler;
     private final Endpoint selfEndpoint;
 
-    public RouteToFinger(ExternalPointer<A> initialNode, Id findId, EndpointIdentifier<A> endpointIdentifier,
+    public RouteToFinger(ExternalPointer<A> initialNode, Id selfId, Id findId, EndpointIdentifier<A> endpointIdentifier,
             EndpointScheduler endpointScheduler, Endpoint selfEndpoint, NonceWrapper<byte[]> nonceWrapper,
             OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(initialNode);
+        Validate.notNull(selfId);
         Validate.notNull(findId);
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
@@ -54,6 +61,7 @@ public final class RouteToFinger<A> {
         Validate.notNull(nonceWrapper);
         Validate.notNull(outgoingRequestManager);
         
+        this.selfId = selfId;
         this.findId = findId;
         this.currentNode = initialNode;
         this.outgoingRequestManager = outgoingRequestManager;
@@ -69,6 +77,10 @@ public final class RouteToFinger<A> {
         outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
         fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         
+        if (selfId.getValueAsBigInteger().equals(BigInteger.ONE)) {
+            System.out.println("Starting find of " + findId);
+        }
+        
         endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
     }
 
@@ -78,6 +90,7 @@ public final class RouteToFinger<A> {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
+    private NonceManager<byte[]> nonceManager = new NonceManager<>();
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
     public void handleFindPredecessorResponse(String state, FiniteStateMachine fsm, Instant instant,
             GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
@@ -85,47 +98,82 @@ public final class RouteToFinger<A> {
         byte[] idData = response.getId();
         
         Id id = new Id(idData, currentNode.getId().getLimitAsByteArray());
+        
+        if (selfId.getValueAsBigInteger().equals(BigInteger.ONE)) {
+            System.out.println("Closest pred to " + findId + " returned by " + currentNode.getId() + " is " + id);
+        }
+        
         if (id.equals(currentNode.getId()) && address == null) {
-            // node that's returned is currentNode...  we can't go anywhere else so return currentNode as the routed node
-            foundId = currentNode.getId();
-            foundAddress = currentNode.getAddress();
-            fsm.setState(DONE_STATE);
+            // node found, stop here
+            Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
+            nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
+            fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
         } else if (!id.equals(currentNode.getId()) && address != null) {
             ExternalPointer<A> nextNode = new ExternalPointer<>(id, address);
             currentNode = nextNode;
             if (findId.isWithin(currentNode.getId(), false, nextNode.getId(), true)) {
                 // node found, stop here
-                outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
+                Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(),
+                        currentNode.getAddress());
+                nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
                 fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
             } else {
                 outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
                 fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
             }
         } else {
-            // we have a node id that isn't current node and no address, node gave us bad response so stop so try again
-            outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
-            fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
+            // we have a node id that isn't current node and no address, node gave us bad response so try again
+            outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
+            fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         }
     }
 
     @StateHandler(AWAIT_SUCCESSOR_RESPONSE_STATE)
     public void handleSuccessorResponse(String state, FiniteStateMachine fsm, Instant instant,
-            GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
-        A address = response.getAddress();
-        if (address == null) {
-            address = endpointIdentifier.identify(srcEndpoint);
+            GetSuccessorResponse<A> response, Endpoint srcEndpoint) throws Exception {
+        ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
+        if (nonceManager.checkNonce(nonce) == null) {
+            return;
         }
         
-        outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), address);
+        A senderAddress = endpointIdentifier.identify(srcEndpoint);
+
+        A address = response.getAddress();
+        if (address == null) {
+            if (selfId.getValueAsBigInteger().equals(BigInteger.ONE)) {
+                System.out.println("Successor returned by " + currentNode.getId() + " is itself " + currentNode.getId());
+            }
+
+            address = senderAddress;
+        }
+        
+        if (selfId.getValueAsBigInteger().equals(BigInteger.ONE)) {
+            System.out.println("Successor returned by " + currentNode.getId() + " is at address " + address);
+        }
+        
+
+        Nonce<byte[]> newNonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), address);
+        nonceManager.addNonce(instant, Duration.ofSeconds(30L), newNonce, null);
+        nonceManager.removeNonce(nonce);
         fsm.setState(AWAIT_ID_RESPONSE_STATE);
     }
 
     @StateHandler(AWAIT_ID_RESPONSE_STATE)
     public void handleAskForIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response,
             Endpoint srcEndpoint) throws Exception {
+        ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
+        if (nonceManager.checkNonce(nonce) == null) {
+            return;
+        }
+        
         int bitSize = ChordUtils.getBitLength(findId);
         foundId = new Id(response.getId(), bitSize);
         foundAddress = endpointIdentifier.identify(srcEndpoint);
+        
+        if (selfId.getValueAsBigInteger().equals(BigInteger.ONE)) {
+            System.out.println("Found " + findId + " at " + foundId);
+        }
+
         fsm.setState(DONE_STATE);
     }
 

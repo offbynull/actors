@@ -65,12 +65,12 @@ public final class OutgoingRequestManager<A, N> {
         this.defaultRetainDuration = defaultRetainDuration;
     }
 
-    public void sendRequestAndTrack(Instant time, Object request, A dstAddress) throws IllegalArgumentException, IllegalAccessException,
+    public Nonce<N> sendRequestAndTrack(Instant time, Object request, A dstAddress) throws IllegalArgumentException, IllegalAccessException,
             InvocationTargetException {
-        sendRequestAndTrack(time, request, dstAddress, defaultResendDuration, defaultMaxResendCount, defaultRetainDuration);
+        return sendRequestAndTrack(time, request, dstAddress, defaultResendDuration, defaultMaxResendCount, defaultRetainDuration);
     }
     
-    public void sendRequestAndTrack(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
+    public Nonce<N> sendRequestAndTrack(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
             Duration retainDuration) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);
@@ -112,6 +112,8 @@ public final class OutgoingRequestManager<A, N> {
         requests.put(nonce, new Request(dstEndpoint, request, newEvents));
         
         dstEndpoint.send(selfEndpoint, request);
+        
+        return nonce;
     }
 
     public Duration process(Instant time) {

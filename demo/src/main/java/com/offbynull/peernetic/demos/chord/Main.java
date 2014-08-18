@@ -31,11 +31,12 @@ import java.awt.Color;
 import java.awt.Point;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Duration;
 
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        FsmActor[] actors = new FsmActor[8];
+        FsmActor[] actors = new FsmActor[64];
 
         // Start visualizer
         Visualizer<Id> visualizer = new JGraphXVisualizer<>();
@@ -52,7 +53,7 @@ public final class Main {
         };
 
         ChordUnlinkListener<Id> unlinkListener = (id, dstId) -> {
-            String msg = "Disconnected " + id + " to " + dstId;
+            String msg = "Disconnected " + id + " from " + dstId;
             visualizer.step(msg, new RemoveEdgeCommand<>(id, dstId));
         };
 
@@ -67,7 +68,7 @@ public final class Main {
 
         EndpointScheduler endpointScheduler = new SimpleEndpointScheduler();
         LocalGatewayHub<Integer> gatewayHub = new LocalGatewayHub<>(
-                new SimpleLine<>(),//(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9, 10),
+                new SimpleLine<>(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9, 10),
                 new XStreamSerializer());
         for (int i = 0; i < actors.length; i++) {
             Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);

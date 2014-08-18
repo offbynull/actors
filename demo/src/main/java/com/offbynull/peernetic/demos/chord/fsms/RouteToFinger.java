@@ -71,7 +71,7 @@ public final class RouteToFinger<A> {
     @StateHandler(INITIAL_STATE)
     public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
             throws Exception {
-        byte[] idData = currentNode.getId().getValueAsByteArray();
+        byte[] idData = findId.getValueAsByteArray();
         outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
         fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         
@@ -102,7 +102,7 @@ public final class RouteToFinger<A> {
         }
         
         if (id.equals(currentNode.getId()) && address == null) {
-            // node found, stop here
+            // findId's predecessor is the queried node
             Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
             nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
             fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
@@ -116,12 +116,14 @@ public final class RouteToFinger<A> {
                 nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
                 fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
             } else {
-                outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
+                outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(findId.getValueAsByteArray()),
+                        currentNode.getAddress());
                 fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
             }
         } else {
             // we have a node id that isn't current node and no address, node gave us bad response so try again
-            outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
+            outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(findId.getValueAsByteArray()),
+                    currentNode.getAddress());
             fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         }
     }

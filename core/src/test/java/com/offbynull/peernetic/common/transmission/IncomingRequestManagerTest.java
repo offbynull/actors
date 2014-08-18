@@ -1,6 +1,15 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.transmission;
 
+import com.offbynull.peernetic.common.transmission.IncomingRequestManager;
+import com.offbynull.peernetic.common.message.Request;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
+import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.Request;
+import com.offbynull.peernetic.common.message.Response;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.Assert;
@@ -13,8 +22,8 @@ public final class IncomingRequestManagerTest {
     public void basicTest() throws Exception {
         Endpoint srcEndpoint = Mockito.mock(Endpoint.class);
         Endpoint dstEndpoint = Mockito.mock(Endpoint.class);
-        NonceWrapper<byte[]> nonceWrapper = new ByteArrayNonceWrapper();
-        IncomingRequestManager<String, byte[]> incomingRequestManager = new IncomingRequestManager<>(srcEndpoint, nonceWrapper);
+        NonceAccessor<byte[]> nonceAccessor = new ByteArrayNonceAccessor();
+        IncomingRequestManager<String, byte[]> incomingRequestManager = new IncomingRequestManager<>(srcEndpoint, nonceAccessor);
         
         Request request = new FakeRequest(new byte[] { 1, 2, 3 });
         Response response = new FakeResponse();

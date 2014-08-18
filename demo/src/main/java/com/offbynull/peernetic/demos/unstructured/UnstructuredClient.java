@@ -2,20 +2,20 @@ package com.offbynull.peernetic.demos.unstructured;
 
 import com.offbynull.peernetic.common.AddressCache;
 import com.offbynull.peernetic.common.AddressCache.RetentionMode;
-import com.offbynull.peernetic.common.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.common.NonceGenerator;
 import com.offbynull.peernetic.common.SessionManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.ByteArrayNonceWrapper;
-import com.offbynull.peernetic.common.DurationUtils;
-import com.offbynull.peernetic.common.IncomingRequestManager;
-import com.offbynull.peernetic.common.NonceWrapper;
-import com.offbynull.peernetic.common.OutgoingRequestManager;
-import com.offbynull.peernetic.common.Request;
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.ProcessableUtils;
+import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
+import com.offbynull.peernetic.common.transmission.IncomingRequestManager;
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.NonceGenerator;
+import com.offbynull.peernetic.common.message.Request;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.demos.unstructured.messages.external.LinkRequest;
 import com.offbynull.peernetic.demos.unstructured.messages.external.LinkResponse;
 import com.offbynull.peernetic.demos.unstructured.messages.external.QueryRequest;
@@ -49,7 +49,7 @@ public final class UnstructuredClient<A> {
     private EndpointScheduler endpointScheduler;
     private AddressCache<A> addressCache;
     private NonceGenerator<byte[]> nonceGenerator;
-    private NonceWrapper<byte[]> nonceWrapper;
+    private NonceAccessor<byte[]> nonceAccessor;
     private IncomingRequestManager<A, byte[]> incomingRequestManager;
     private OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private SessionManager<A> incomingSessions;
@@ -75,9 +75,9 @@ public final class UnstructuredClient<A> {
         incomingSessions = new SessionManager<>();
         outgoingSessions = new SessionManager<>();
         nonceGenerator = new ByteArrayNonceGenerator(8);
-        nonceWrapper = new ByteArrayNonceWrapper();
-        incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceWrapper);
-        outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory);
+        nonceAccessor = new ByteArrayNonceAccessor();
+        incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceAccessor);
+        outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceAccessor, endpointDirectory);
 
         listener.onStarted(selfAddress);
 
@@ -110,8 +110,9 @@ public final class UnstructuredClient<A> {
         // Prune nonce managers and session managers
         Duration nextIrmDuration = incomingRequestManager.process(instant);
         Duration nextOrmDuration = outgoingRequestManager.process(instant);
-        incomingSessions.prune(instant);
-        Set<A> prunedOutgoingLinks = outgoingSessions.prune(instant).keySet();
+        incomingSessions.process(instant);
+        outgoingSessions.process(instant);
+        Set<A> prunedOutgoingLinks = outgoingSessions.getRemovedIds();
 
         prunedOutgoingLinks.forEach(prunedAddress -> listener.onDisconnected(selfAddress, prunedAddress));
 
@@ -153,7 +154,7 @@ public final class UnstructuredClient<A> {
         }
 
         // Reschedule this state to be triggered again
-        Duration timerDuration = DurationUtils.scheduleEarliestDuration(DEFAULT_TIMER_DURATION, nextOrmDuration, nextIrmDuration);
+        Duration timerDuration = ProcessableUtils.scheduleEarliestDuration(DEFAULT_TIMER_DURATION, nextOrmDuration, nextIrmDuration);
         endpointScheduler.scheduleMessage(timerDuration, selfEndpoint, selfEndpoint, new Timer());
     }
 
@@ -203,8 +204,8 @@ public final class UnstructuredClient<A> {
     }
 
     private List<A> getAllSessions() {
-        List<A> inLinks = incomingSessions.getSessions();
-        List<A> outLinks = outgoingSessions.getSessions();
+        Set<A> inLinks = incomingSessions.getSessions();
+        Set<A> outLinks = outgoingSessions.getSessions();
 
         List<A> links = new ArrayList<>();
         links.addAll(inLinks);

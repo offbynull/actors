@@ -1,7 +1,20 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.transmission;
 
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.Request;
+import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
+import com.offbynull.peernetic.common.message.NonceGenerator;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
+import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
+import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
+import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.NonceGenerator;
+import com.offbynull.peernetic.common.message.Request;
+import com.offbynull.peernetic.common.message.Response;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.Assert;
@@ -17,7 +30,7 @@ public final class OutgoingRequestManagerTest {
         Endpoint srcEndpoint = Mockito.mock(Endpoint.class);
         Endpoint dstEndpoint = Mockito.mock(Endpoint.class);
         NonceGenerator<byte[]> nonceGenerator = new ByteArrayNonceGenerator(8);
-        NonceWrapper<byte[]> nonceWrapper = new ByteArrayNonceWrapper();
+        NonceAccessor<byte[]> nonceAccessor = new ByteArrayNonceAccessor();
         EndpointDirectory<String> endpointDirectory = Mockito.mock(EndpointDirectory.class);
         
         Mockito.when(endpointDirectory.lookup(DST_ADDRESS)).thenReturn(dstEndpoint);
@@ -26,7 +39,7 @@ public final class OutgoingRequestManagerTest {
         
         // initial send at 0L
         OutgoingRequestManager<String, byte[]> outgoingRequestManager = new OutgoingRequestManager(srcEndpoint, nonceGenerator,
-                nonceWrapper, endpointDirectory);
+                nonceAccessor, endpointDirectory);
         outgoingRequestManager.sendRequestAndTrack(Instant.ofEpochSecond(0L), request, DST_ADDRESS);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, request); // verify initial send
         
@@ -82,7 +95,7 @@ public final class OutgoingRequestManagerTest {
         Endpoint srcEndpoint = Mockito.mock(Endpoint.class);
         Endpoint dstEndpoint = Mockito.mock(Endpoint.class);
         NonceGenerator<byte[]> nonceGenerator = new ByteArrayNonceGenerator(8);
-        NonceWrapper<byte[]> nonceWrapper = new ByteArrayNonceWrapper();
+        NonceAccessor<byte[]> nonceAccessor = new ByteArrayNonceAccessor();
         EndpointDirectory<String> endpointDirectory = Mockito.mock(EndpointDirectory.class);
         
         Mockito.when(endpointDirectory.lookup(DST_ADDRESS)).thenReturn(dstEndpoint);
@@ -91,7 +104,7 @@ public final class OutgoingRequestManagerTest {
         
         // initial send at 0L
         OutgoingRequestManager<String, byte[]> outgoingRequestManager = new OutgoingRequestManager(srcEndpoint, nonceGenerator,
-                nonceWrapper, endpointDirectory);
+                nonceAccessor, endpointDirectory);
         outgoingRequestManager.sendRequestAndTrack(Instant.ofEpochSecond(0L), request, DST_ADDRESS);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, request); // verify initial send
         
@@ -140,7 +153,7 @@ public final class OutgoingRequestManagerTest {
         Endpoint srcEndpoint = Mockito.mock(Endpoint.class);
         Endpoint dstEndpoint = Mockito.mock(Endpoint.class);
         NonceGenerator<byte[]> nonceGenerator = new ByteArrayNonceGenerator(8);
-        NonceWrapper<byte[]> nonceWrapper = new ByteArrayNonceWrapper();
+        NonceAccessor<byte[]> nonceAccessor = new ByteArrayNonceAccessor();
         EndpointDirectory<String> endpointDirectory = Mockito.mock(EndpointDirectory.class);
         
         Mockito.when(endpointDirectory.lookup(DST_ADDRESS)).thenReturn(dstEndpoint);
@@ -149,7 +162,7 @@ public final class OutgoingRequestManagerTest {
         
         // initial send at 0L
         OutgoingRequestManager<String, byte[]> outgoingRequestManager = new OutgoingRequestManager(srcEndpoint, nonceGenerator,
-                nonceWrapper, endpointDirectory);
+                nonceAccessor, endpointDirectory);
         outgoingRequestManager.sendRequestAndTrack(Instant.ofEpochSecond(0L), request, DST_ADDRESS);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, request); // verify initial send
         

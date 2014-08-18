@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.demos.unstructured.messages.external;
 
-import com.offbynull.peernetic.common.Request;
+import com.offbynull.peernetic.common.message.Request;
 
 public final class QueryRequest extends Request {
 

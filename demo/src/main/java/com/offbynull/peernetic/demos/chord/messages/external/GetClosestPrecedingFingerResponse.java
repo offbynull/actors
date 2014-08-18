@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.demos.chord.messages.external;
 
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.message.Response;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 

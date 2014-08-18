@@ -4,11 +4,10 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
-import com.offbynull.peernetic.common.DurationUtils;
-import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.NonceWrapper;
-import com.offbynull.peernetic.common.OutgoingRequestManager;
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.ProcessableUtils;
+import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.demos.chord.core.ChordUtils;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.demos.chord.core.FingerTable;
@@ -38,7 +37,6 @@ public final class InitFingerTable<A> {
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
     private final Endpoint selfEndpoint;
-    private final NonceWrapper<byte[]> nonceWrapper;
 
     private A initialAddress;
     private Id initialId;
@@ -50,13 +48,12 @@ public final class InitFingerTable<A> {
     private int idx;
 
     public InitFingerTable(Id selfId, A initialAddress, EndpointIdentifier<A> endpointIdentifier, EndpointScheduler endpointScheduler,
-            Endpoint selfEndpoint, NonceWrapper<byte[]> nonceWrapper, OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
+            Endpoint selfEndpoint, OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(initialAddress);
         Validate.notNull(selfId);
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceWrapper);
         Validate.notNull(outgoingRequestManager);
 
         this.initialAddress = initialAddress;
@@ -65,7 +62,6 @@ public final class InitFingerTable<A> {
         this.endpointScheduler = endpointScheduler;
         this.fingerTable = new FingerTable<>(new InternalPointer(selfId));
         this.selfEndpoint = selfEndpoint;
-        this.nonceWrapper = nonceWrapper;
         this.outgoingRequestManager = outgoingRequestManager;
 
         maxIdx = ChordUtils.getBitLength(selfId);
@@ -115,7 +111,7 @@ public final class InitFingerTable<A> {
     private void resetRouteToFinger(Instant instant) {
         ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
         Id findId = fingerTable.getExpectedId(idx);
-        routeToFinger = new RouteToFinger<>(fromNode, selfId, findId, endpointIdentifier, endpointScheduler, selfEndpoint, nonceWrapper,
+        routeToFinger = new RouteToFinger<>(fromNode, selfId, findId, endpointIdentifier, endpointScheduler, selfEndpoint,
                 outgoingRequestManager);
         routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
         routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);
@@ -129,7 +125,7 @@ public final class InitFingerTable<A> {
 
         Duration ormDuration = outgoingRequestManager.process(instant);
         
-        Duration nextDuration = DurationUtils.scheduleEarliestDuration(ormDuration, TIMER_DURATION);
+        Duration nextDuration = ProcessableUtils.scheduleEarliestDuration(ormDuration, TIMER_DURATION);
         endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, new TimerTrigger());
     }
 

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.message;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -13,35 +13,34 @@ final class InternalUtils {
         // do nothing
     }
 
-    public static <N> N generateAndSetNonce(NonceGenerator<N> nonceGenerator, Object message) throws IllegalArgumentException,
-            IllegalAccessException {
-        Field nonceField = findNonceField(message.getClass());
-        Nonce<N> nonce = nonceGenerator.generate();
-        N nonceValue = nonce.getValue();
-        nonceField.setAccessible(true);
-        nonceField.set(message, nonceValue);
-
-        return nonceValue;
+    public static <N> N getNonceValue(Object message) {
+        try {
+            Field nonceField = findNonceField(message.getClass());
+            nonceField.setAccessible(true);
+            return (N) nonceField.get(message);
+        } catch (IllegalArgumentException |IllegalAccessException ex) {
+            throw new IllegalArgumentException(ex);
+        }
     }
 
-    public static <N> N getNonceValue(Object message) throws IllegalArgumentException, IllegalAccessException {
-        Field nonceField = findNonceField(message.getClass());
-        nonceField.setAccessible(true);
-        return (N) nonceField.get(message);
+    public static <N> void setNonceValue(Object message, N nonce) {
+        try {
+            Field nonceField = findNonceField(message.getClass());
+            nonceField.setAccessible(true);
+            nonceField.set(message, nonce);
+        } catch (IllegalArgumentException |IllegalAccessException ex) {
+            throw new IllegalArgumentException(ex);
+        }
     }
 
-    public static <N> void setNonceValue(Object message, N nonce) throws IllegalArgumentException, IllegalAccessException {
-        Field nonceField = findNonceField(message.getClass());
-        nonceField.setAccessible(true);
-        nonceField.set(message, nonce);
-    }
-
-    public static boolean validateMessage(Object message) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    public static boolean validateMessage(Object message) {
         Method validationMethod = findValidationMethod(message.getClass());
         validationMethod.setAccessible(true);
         try {
             validationMethod.invoke(message);
             return true;
+        } catch (IllegalArgumentException |IllegalAccessException ex) {
+            throw new IllegalArgumentException(ex);
         } catch (InvocationTargetException ite) {
             return false;
         }

@@ -1,7 +1,12 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.transmission;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
+import com.offbynull.peernetic.common.Processable;
+import com.offbynull.peernetic.common.message.Nonce;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.NonceGenerator;
+import com.offbynull.peernetic.common.message.Validator;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.time.Instant;
@@ -9,12 +14,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
-public final class OutgoingRequestManager<A, N> {
+public final class OutgoingRequestManager<A, N> implements Processable {
 
     private static final Duration DEFAULT_RESEND_DURATION = Duration.ofSeconds(5L);
     private static final int DEFAULT_MAXIMUM_RESEND_ATTEMPTS = 3;
@@ -22,7 +29,7 @@ public final class OutgoingRequestManager<A, N> {
     
     private final Endpoint selfEndpoint;
     private final NonceGenerator<N> nonceGenerator;
-    private final NonceWrapper<N> nonceWrapper;
+    private final NonceAccessor<N> nonceAccessor;
     private final EndpointDirectory<A> endpointDirectory;
 
     private final PriorityQueue<Event> queue;
@@ -31,19 +38,21 @@ public final class OutgoingRequestManager<A, N> {
     private final Duration defaultResendDuration;
     private final int defaultMaxResendCount;
     private final Duration defaultRetainDuration;
+    
+    private final Set<Nonce<N>> removedNonces;
 
 
-    public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceWrapper<N> nonceWrapper,
+    public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceAccessor<N> nonceAccessor,
             EndpointDirectory<A> endpointDirectory) {
-        this(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory, DEFAULT_RESEND_DURATION, DEFAULT_MAXIMUM_RESEND_ATTEMPTS,
+        this(selfEndpoint, nonceGenerator, nonceAccessor, endpointDirectory, DEFAULT_RESEND_DURATION, DEFAULT_MAXIMUM_RESEND_ATTEMPTS,
                 DEFAULT_RETAIN_DURATION);
     }
     
-    public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceWrapper<N> nonceWrapper,
+    public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceAccessor<N> nonceAccessor,
             EndpointDirectory<A> endpointDirectory, Duration defaultResendDuration, int defaultMaxResendCount,
             Duration defaultRetainDuration) {
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceWrapper);
+        Validate.notNull(nonceAccessor);
         Validate.notNull(nonceGenerator);
         Validate.notNull(endpointDirectory);
         Validate.notNull(defaultResendDuration);
@@ -53,7 +62,7 @@ public final class OutgoingRequestManager<A, N> {
         Validate.isTrue(defaultResendDuration.multipliedBy(defaultMaxResendCount).compareTo(defaultRetainDuration) <= 0);
         
         this.selfEndpoint = selfEndpoint;
-        this.nonceWrapper = nonceWrapper;
+        this.nonceAccessor = nonceAccessor;
         this.nonceGenerator = nonceGenerator;
         this.endpointDirectory = endpointDirectory;
 
@@ -63,15 +72,16 @@ public final class OutgoingRequestManager<A, N> {
         this.defaultResendDuration = defaultResendDuration;
         this.defaultMaxResendCount = defaultMaxResendCount;
         this.defaultRetainDuration = defaultRetainDuration;
+        
+        this.removedNonces = new HashSet<>();
     }
 
-    public Nonce<N> sendRequestAndTrack(Instant time, Object request, A dstAddress) throws IllegalArgumentException, IllegalAccessException,
-            InvocationTargetException {
+    public Nonce<N> sendRequestAndTrack(Instant time, Object request, A dstAddress) {
         return sendRequestAndTrack(time, request, dstAddress, defaultResendDuration, defaultMaxResendCount, defaultRetainDuration);
     }
     
     public Nonce<N> sendRequestAndTrack(Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
-            Duration retainDuration) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+            Duration retainDuration) {
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(dstAddress);
@@ -90,12 +100,12 @@ public final class OutgoingRequestManager<A, N> {
             attempt++;
 
             // generate and set a nonce
-            N nonceValue = InternalUtils.generateAndSetNonce(nonceGenerator, request);
-            nonce = nonceWrapper.wrap(nonceValue);
+            nonce = nonceGenerator.generate();
+            nonceAccessor.set(request, nonce);
         } while (requests.containsKey(nonce));
 
         // validate before adding to queue and sending
-        Validate.isTrue(InternalUtils.validateMessage(request));
+        Validate.isTrue(Validator.validate(request));
 
         // sendRequestAndTrack and queue resends/discards
         Endpoint dstEndpoint = endpointDirectory.lookup(dstAddress);
@@ -116,53 +126,12 @@ public final class OutgoingRequestManager<A, N> {
         return nonce;
     }
 
+    @Override
     public Duration process(Instant time) {
-        return handleQueue(time);
-    }
-    
-    // check to see if the nonce in the message is currently being tracked by this manager, can be request or response
-    public boolean isMessageTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
-            InvocationTargetException {
         Validate.notNull(time);
-        Validate.notNull(request);
-
-        // validate response
-        if (!InternalUtils.validateMessage(request)) {
-            return false; // message failed to validate, treat it as if it isn't tracked
-        }
         
-        // get nonce from response
-        N nonceValue = InternalUtils.getNonceValue(request);
-        Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
-        return requests.containsKey(nonce);
-    }
-    
-    public boolean testResponseMessage(Instant time, Object response) throws IllegalAccessException, IllegalArgumentException,
-            InvocationTargetException {
-        Validate.notNull(time);
-        Validate.notNull(response);
-
-        // validate response
-        if (!InternalUtils.validateMessage(response)) {
-            return false; // message failed to validate
-        }
+        removedNonces.clear();
         
-        // get nonce from response
-        N nonceValue = InternalUtils.getNonceValue(response);
-        Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
-        
-        // check to see if we're expecting a response, if we are remove record + queued events and return true ...
-        //   since the record is being removed, any subsequent response with same nonce will be dropped
-        Request request;
-        if ((request = requests.remove(nonce)) == null) {
-            return false; // tell to ignore if nonce not being tracked
-        }
-        request.cancelQueuedEvents();
-
-        return true; // tell to handle
-    }
-    
-    private Duration handleQueue(Instant time) {
         while (!queue.isEmpty()) {
             Event event = queue.peek();
 
@@ -180,6 +149,7 @@ public final class OutgoingRequestManager<A, N> {
                 DiscardEvent discardEvent = (DiscardEvent) event;
                 Nonce<N> nonce = discardEvent.getRequestNonce();
                 requests.remove(nonce);
+                removedNonces.add(nonce);
             } else if (event instanceof OutgoingRequestManager.SendEvent) {
                 SendEvent sendEvent = (SendEvent) event;
                 Nonce<N> nonce = sendEvent.getRequestNonce();
@@ -195,9 +165,61 @@ public final class OutgoingRequestManager<A, N> {
         
         return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
+    
+    // check to see if the nonce in the message is currently being tracked by this manager, can be request or response
+    public boolean isMessageTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
+            InvocationTargetException {
+        Validate.notNull(time);
+        Validate.notNull(request);
+
+        // validate response
+        if (!Validator.validate(request)) {
+            return false; // message failed to validate, treat it as if it isn't tracked
+        }
+        
+        // get nonce from response
+        Nonce<N> nonce = nonceAccessor.get(request);
+        return requests.containsKey(nonce);
+    }
+    
+    public boolean testResponseMessage(Instant time, Object response) throws IllegalAccessException, IllegalArgumentException,
+            InvocationTargetException {
+        Validate.notNull(time);
+        Validate.notNull(response);
+
+        // validate response
+        if (!Validator.validate(response)) {
+            return false; // message failed to validate
+        }
+        
+        // get nonce from response
+        Nonce<N> nonce = nonceAccessor.get(response);
+        
+        // check to see if we're expecting a response, if we are remove record + queued events and return true ...
+        //   since the record is being removed, any subsequent response with same nonce will be dropped
+        Request request;
+        if ((request = requests.remove(nonce)) == null) {
+            return false; // tell to ignore if nonce not being tracked
+        }
+        request.cancelQueuedEvents();
+
+        return true; // tell to handle
+    }
 
     public int getPending() {
         return requests.size();
+    }
+
+    public Duration getDefaultResendDuration() {
+        return defaultResendDuration;
+    }
+
+    public int getDefaultMaxResendCount() {
+        return defaultMaxResendCount;
+    }
+
+    public Duration getDefaultRetainDuration() {
+        return defaultRetainDuration;
     }
 
     private static final class Request {

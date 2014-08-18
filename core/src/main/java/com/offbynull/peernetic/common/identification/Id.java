@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.identification;
 
 import java.math.BigInteger;
 import java.util.Objects;

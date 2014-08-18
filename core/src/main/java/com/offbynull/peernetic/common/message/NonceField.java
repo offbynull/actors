@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.message;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 
 @Documented
 @Retention(value = RetentionPolicy.RUNTIME)
-@Target(value = ElementType.METHOD)
-public @interface ValidationMethod {
+@Target(value = ElementType.FIELD)
+public @interface NonceField {
     
 }

@@ -4,7 +4,7 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.identification.Id;
 import org.apache.commons.lang3.Validate;
 
 public final class Start<A> {

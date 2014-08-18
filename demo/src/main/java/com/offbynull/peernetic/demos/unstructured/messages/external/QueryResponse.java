@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.demos.unstructured.messages.external;
 
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.message.Response;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;

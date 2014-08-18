@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.demos.chord.messages.external;
 
-import com.offbynull.peernetic.common.Request;
+import com.offbynull.peernetic.common.message.Request;
 
 public final class GetPredecessorRequest extends Request {
 

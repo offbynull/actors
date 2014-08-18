@@ -1,9 +1,5 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.message;
 
-import com.offbynull.peernetic.common.Nonce;
-import com.offbynull.peernetic.common.NonceManager;
-import com.offbynull.peernetic.common.NonceGenerator;
-import com.offbynull.peernetic.common.ByteArrayNonceGenerator;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -39,17 +35,17 @@ public class NonceManagerTest {
         Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         
         nextTime = startTime.plusSeconds(1L);
-        nonceManager.prune(nextTime);
+        nonceManager.process(nextTime);
         Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
         Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         
         nextTime = startTime.plusSeconds(2L);
-        nonceManager.prune(nextTime);
+        nonceManager.process(nextTime);
         Assert.assertEquals(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1).get());
         Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
         
         nextTime = startTime.plusSeconds(5L);
-        nonceManager.prune(nextTime);
+        nonceManager.process(nextTime);
         Assert.assertNull(NONCE_1_RESPONSE, nonceManager.checkNonce(nonce1));
         Assert.assertEquals(NONCE_2_RESPONSE, nonceManager.checkNonce(nonce2).get());
     }

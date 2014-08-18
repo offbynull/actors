@@ -17,7 +17,7 @@
 
 package com.offbynull.peernetic.demos.chord.core;
 
-import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.identification.Id;
 
 /**
  * Represents a pointer.

@@ -3,7 +3,7 @@ package com.offbynull.peernetic.demos.chord.core;
 import com.offbynull.peernetic.demos.chord.core.FingerTable;
 import com.offbynull.peernetic.demos.chord.core.InternalPointer;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
-import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.identification.Id;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;

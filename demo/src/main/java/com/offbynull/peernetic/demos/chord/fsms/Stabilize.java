@@ -2,9 +2,9 @@ package com.offbynull.peernetic.demos.chord.fsms;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.OutgoingRequestManager;
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.demos.chord.core.Pointer;
 import com.offbynull.peernetic.demos.chord.messages.external.GetPredecessorRequest;

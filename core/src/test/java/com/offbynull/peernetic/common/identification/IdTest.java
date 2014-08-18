@@ -1,5 +1,6 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.identification;
 
+import com.offbynull.peernetic.common.identification.Id;
 import java.math.BigInteger;
 import static org.junit.Assert.*;
 import org.junit.Test;

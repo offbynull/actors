@@ -4,10 +4,9 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
-import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.NonceWrapper;
-import com.offbynull.peernetic.common.OutgoingRequestManager;
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.demos.chord.core.ChordUtils;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.demos.chord.core.FingerTable;
@@ -33,7 +32,6 @@ public final class FixFinger<A> {
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
     private final Endpoint selfEndpoint;
-    private final NonceWrapper<byte[]> nonceWrapper;
             
     private RouteToFinger<A> routeToFinger;
     private FiniteStateMachine routeToFingerFsm;
@@ -43,13 +41,12 @@ public final class FixFinger<A> {
     private Pointer newFinger;
 
     public FixFinger(Id selfId, FingerTable<A> fingerTable, EndpointIdentifier<A> endpointIdentifier, EndpointScheduler endpointScheduler,
-            Endpoint selfEndpoint, NonceWrapper<byte[]> nonceWrapper, OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
+            Endpoint selfEndpoint, OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(fingerTable);
         Validate.notNull(selfId);
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceWrapper);
         Validate.notNull(outgoingRequestManager);
 
         int maxIdx = ChordUtils.getBitLength(selfId);
@@ -60,7 +57,6 @@ public final class FixFinger<A> {
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
         this.selfEndpoint = selfEndpoint;
-        this.nonceWrapper = nonceWrapper;
         this.outgoingRequestManager = outgoingRequestManager;
     }
 
@@ -76,7 +72,7 @@ public final class FixFinger<A> {
             ExternalPointer<A> fromNode = (ExternalPointer<A>) pointer;
 
             routeToFinger = new RouteToFinger<>(fromNode, selfId, expectedId, endpointIdentifier, endpointScheduler,
-                    selfEndpoint, nonceWrapper, outgoingRequestManager);
+                    selfEndpoint, outgoingRequestManager);
             routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
             routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);
             

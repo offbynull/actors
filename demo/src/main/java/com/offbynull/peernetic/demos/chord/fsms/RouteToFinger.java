@@ -3,14 +3,13 @@ package com.offbynull.peernetic.demos.chord.fsms;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.ByteArrayNonce;
-import com.offbynull.peernetic.common.DurationUtils;
-import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.Nonce;
-import com.offbynull.peernetic.common.NonceManager;
-import com.offbynull.peernetic.common.NonceWrapper;
-import com.offbynull.peernetic.common.OutgoingRequestManager;
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.message.ByteArrayNonce;
+import com.offbynull.peernetic.common.ProcessableUtils;
+import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.message.Nonce;
+import com.offbynull.peernetic.common.message.NonceManager;
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.demos.chord.core.ChordUtils;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.demos.chord.messages.external.GetClosestPrecedingFingerRequest;
@@ -50,7 +49,7 @@ public final class RouteToFinger<A> {
     private final Endpoint selfEndpoint;
 
     public RouteToFinger(ExternalPointer<A> initialNode, Id selfId, Id findId, EndpointIdentifier<A> endpointIdentifier,
-            EndpointScheduler endpointScheduler, Endpoint selfEndpoint, NonceWrapper<byte[]> nonceWrapper,
+            EndpointScheduler endpointScheduler, Endpoint selfEndpoint,
             OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
         Validate.notNull(initialNode);
         Validate.notNull(selfId);
@@ -58,7 +57,6 @@ public final class RouteToFinger<A> {
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceWrapper);
         Validate.notNull(outgoingRequestManager);
         
         this.selfId = selfId;
@@ -190,7 +188,7 @@ public final class RouteToFinger<A> {
             return;
         }
         
-        Duration nextDuration = DurationUtils.scheduleEarliestDuration(ormDuration, TIMER_DURATION);
+        Duration nextDuration = ProcessableUtils.scheduleEarliestDuration(ormDuration, TIMER_DURATION);
         endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, new TimerTrigger());
     }
 

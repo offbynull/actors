@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.demos.chord.core;
 
-import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.identification.Id;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 

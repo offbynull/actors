@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.common;
 
-import com.offbynull.peernetic.common.SessionManager;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.Assert;
@@ -29,22 +28,22 @@ public final class SessionManagerTest {
         
         nextTime = startTime.plusSeconds(1L);
         sessionManager.addOrUpdateSession(nextTime, Duration.ofSeconds(5L), SESSION_1_ID, SESSION_1_PARAMS);
-        sessionManager.prune(nextTime);
+        sessionManager.process(nextTime);
         Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
         Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(2L);
-        sessionManager.prune(nextTime);
+        sessionManager.process(nextTime);
         Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
         Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(5L);
-        sessionManager.prune(nextTime);
+        sessionManager.process(nextTime);
         Assert.assertTrue(sessionManager.containsSession(SESSION_1_ID));
         Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
         
         nextTime = startTime.plusSeconds(6L);
-        sessionManager.prune(nextTime);
+        sessionManager.process(nextTime);
         Assert.assertFalse(sessionManager.containsSession(SESSION_1_ID));
         Assert.assertTrue(sessionManager.containsSession(SESSION_2_ID));
     }

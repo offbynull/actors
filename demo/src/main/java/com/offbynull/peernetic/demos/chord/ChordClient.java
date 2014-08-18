@@ -4,16 +4,16 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.common.ByteArrayNonceWrapper;
-import com.offbynull.peernetic.common.Id;
-import com.offbynull.peernetic.common.IncomingRequestManager;
-import com.offbynull.peernetic.common.Message;
-import com.offbynull.peernetic.common.NonceGenerator;
-import com.offbynull.peernetic.common.NonceWrapper;
-import com.offbynull.peernetic.common.OutgoingRequestManager;
-import com.offbynull.peernetic.common.Request;
-import com.offbynull.peernetic.common.Response;
+import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
+import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
+import com.offbynull.peernetic.common.transmission.IncomingRequestManager;
+import com.offbynull.peernetic.common.message.Message;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.NonceGenerator;
+import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
+import com.offbynull.peernetic.common.message.Request;
+import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.demos.chord.ChordActiveListener.Mode;
 import com.offbynull.peernetic.demos.chord.core.ChordState;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
@@ -66,7 +66,7 @@ public final class ChordClient<A> {
     private EndpointIdentifier<A> endpointIdentifier;
     private EndpointScheduler endpointScheduler;
     private NonceGenerator<byte[]> nonceGenerator;
-    private NonceWrapper<byte[]> nonceWrapper;
+    private NonceAccessor<byte[]> nonceAccessor;
     private IncomingRequestManager<A, byte[]> incomingRequestManager;
     private OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private Endpoint selfEndpoint;
@@ -106,15 +106,15 @@ public final class ChordClient<A> {
         selfId = message.getSelfId();
         bootstrapAddress = message.getBootstrapAddress();
         nonceGenerator = new ByteArrayNonceGenerator(8);
-        nonceWrapper = new ByteArrayNonceWrapper();
-        incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceWrapper);
-        outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceWrapper, endpointDirectory);
+        nonceAccessor = new ByteArrayNonceAccessor();
+        incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceAccessor);
+        outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceAccessor, endpointDirectory);
 
         chordState = new ChordState<>(new InternalPointer(selfId));
 
         if (bootstrapAddress != null) {
             initFingerTable = new InitFingerTable<>(selfId, bootstrapAddress, endpointIdentifier, endpointScheduler,
-                    selfEndpoint, nonceWrapper, outgoingRequestManager);
+                    selfEndpoint, outgoingRequestManager);
             initFingerTableFsm = new FiniteStateMachine(initFingerTable, InitFingerTable.INITIAL_STATE, Endpoint.class);
             initFingerTableFsm.process(instant, new Object(), srcEndpoint);
 
@@ -325,7 +325,7 @@ public final class ChordClient<A> {
             }
 
             fixFinger = new FixFinger<>(selfId, chordState.getFingerTable(), endpointIdentifier, endpointScheduler, selfEndpoint,
-                    nonceWrapper, outgoingRequestManager);
+                     outgoingRequestManager);
             fixFingerFsm = new FiniteStateMachine<>(fixFinger, FixFinger.INITIAL_STATE, Endpoint.class);
             fixFingerFsm.process(instant, new Object(), srcEndpoint);
         }

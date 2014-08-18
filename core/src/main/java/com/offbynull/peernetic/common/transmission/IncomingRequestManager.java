@@ -1,46 +1,55 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.transmission;
 
+import com.offbynull.peernetic.common.message.Nonce;
 import com.offbynull.peernetic.actor.Endpoint;
+import com.offbynull.peernetic.common.Processable;
+import com.offbynull.peernetic.common.message.NonceAccessor;
+import com.offbynull.peernetic.common.message.Validator;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-public final class IncomingRequestManager<A, N> {
+public final class IncomingRequestManager<A, N> implements Processable {
 
     private static final Duration DEFAULT_RETAIN_DURATION = Duration.ofSeconds(60L);
     
     private final Endpoint selfEndpoint;
 
     private final PriorityQueue<Event> queue;
-    private final NonceWrapper<N> nonceWrapper;
+    private final NonceAccessor<N> nonceAccessor;
     private final Map<Nonce<N>, Request> requests;
 
     private final Duration defaultRetainDuration;
+    
+    private final Set<Nonce<N>> removedNonces;
 
-    public IncomingRequestManager(Endpoint selfEndpoint, NonceWrapper<N> nonceWrapper) {
-        this(selfEndpoint, nonceWrapper, DEFAULT_RETAIN_DURATION);
+    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceExtractor) {
+        this(selfEndpoint, nonceExtractor, DEFAULT_RETAIN_DURATION);
     }
     
-    public IncomingRequestManager(Endpoint selfEndpoint, NonceWrapper<N> nonceWrapper, Duration defaultRetainDuration) {
+    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceAccessor, Duration defaultRetainDuration) {
         Validate.notNull(selfEndpoint);
-        Validate.notNull(nonceWrapper);
         Validate.notNull(defaultRetainDuration);
 
         Validate.isTrue(!defaultRetainDuration.isNegative());
 
         this.selfEndpoint = selfEndpoint;
-        this.nonceWrapper = nonceWrapper;
+        this.nonceAccessor = nonceAccessor;
 
         this.queue = new PriorityQueue<>(new EventTriggerTimeComparator());
         this.requests = new HashMap<>();
         
         this.defaultRetainDuration = defaultRetainDuration;
+        
+        this.removedNonces = new HashSet<>();
     }
 
     public void discardAndTrack(Instant time, Object request, Endpoint srcEndpoint) throws IllegalArgumentException,
@@ -58,23 +67,20 @@ public final class IncomingRequestManager<A, N> {
         Validate.isTrue(!retainDuration.isNegative());
 
         // generate nonce and validate
-        N nonceValue = InternalUtils.getNonceValue(request);
-        Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
+        Nonce<N> nonce = nonceAccessor.get(request);
 
         Validate.isTrue(!requests.containsKey(nonce), "Duplicate stored nonce encountered");
         
         // send and queue resends/discards
         requests.put(nonce, new Request(srcEndpoint, request, null));
-        queue.add(new DiscardEvent(nonceValue, time.plus(retainDuration)));
+        queue.add(new DiscardEvent(nonce, time.plus(retainDuration)));
     }
     
-    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint) throws IllegalArgumentException,
-            IllegalAccessException, InvocationTargetException {
+    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint) {
         sendResponseAndTrack(time, request, response, srcEndpoint, defaultRetainDuration);
     }
 
-    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration)
-            throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration) {
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(response);
@@ -84,38 +90,62 @@ public final class IncomingRequestManager<A, N> {
         Validate.isTrue(!retainDuration.isNegative());
 
         // generate nonce and validate
-        N nonceValue = InternalUtils.getNonceValue(request);
-        Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
-
+        Nonce<N> nonce = nonceAccessor.get(request);
         Validate.isTrue(!requests.containsKey(nonce), "Duplicate stored nonce encountered");
-        
-        InternalUtils.setNonceValue(response, nonceValue);
+        nonceAccessor.set(response, nonce);
         
         // send and queue resends/discards
         requests.put(nonce, new Request(srcEndpoint, request, response));
-        queue.add(new DiscardEvent(nonceValue, time.plus(retainDuration)));
+        queue.add(new DiscardEvent(nonce, time.plus(retainDuration)));
         
         srcEndpoint.send(selfEndpoint, response);
     }
 
+    @Override
     public Duration process(Instant time) {
         Validate.notNull(time);
-        return handleQueue(time);
+
+        removedNonces.clear();
+        
+        Iterator<Event> queueIt = queue.iterator();
+        while (queueIt.hasNext()) {
+            Event event = queueIt.next();
+
+            Instant hitTime = event.getTriggerTime();
+            if (hitTime.isAfter(time)) {
+                break;
+            }
+
+            if (event instanceof IncomingRequestManager.DiscardEvent) {
+                DiscardEvent discardEvent = (DiscardEvent) event;
+                Nonce<N> nonce = discardEvent.getRequestNonce();
+                requests.remove(nonce);
+                removedNonces.add(nonce);
+            } else {
+                throw new IllegalStateException();
+            }
+
+            queueIt.remove();
+        }
+        
+        return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
     
-    public boolean testRequestMessage(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
-            InvocationTargetException {
+    public Set<Nonce<N>> getRemovedNonces() {
+        return new HashSet<>(removedNonces);
+    }
+    
+    public boolean testRequestMessage(Instant time, Object request) {
         Validate.notNull(time);
         Validate.notNull(request);
 
         // validate response
-        if (!InternalUtils.validateMessage(request)) {
+        if (!Validator.validate(request)) {
             return false; // message failed to validate
         }
         
         // get nonce from response
-        N nonceValue = InternalUtils.getNonceValue(request);
-        Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
+        Nonce<N> nonce = nonceAccessor.get(request);
         
         Request requestObj = requests.get(nonce);
         
@@ -129,31 +159,6 @@ public final class IncomingRequestManager<A, N> {
         }
         
         return false; // request already received, but hasn't been responded to yet
-    }
-    
-    private Duration handleQueue(Instant time) {
-        Iterator<Event> queueIt = queue.iterator();
-        while (queueIt.hasNext()) {
-            Event event = queueIt.next();
-
-            Instant hitTime = event.getTriggerTime();
-            if (hitTime.isAfter(time)) {
-                break;
-            }
-
-            if (event instanceof IncomingRequestManager.DiscardEvent) {
-                DiscardEvent discardEvent = (DiscardEvent) event;
-                N nonceValue = discardEvent.getRequestNonce();
-                Nonce<N> nonce = nonceWrapper.wrap(nonceValue);
-                requests.remove(nonce);
-            } else {
-                throw new IllegalStateException();
-            }
-
-            queueIt.remove();
-        }
-        
-        return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
 
     private static final class Request {
@@ -207,14 +212,14 @@ public final class IncomingRequestManager<A, N> {
 
     private final class DiscardEvent extends Event {
 
-        private final N requestNonce;
+        private final Nonce<N> requestNonce;
 
-        public DiscardEvent(N requestNonce, Instant triggerTime) {
+        public DiscardEvent(Nonce<N> requestNonce, Instant triggerTime) {
             super(triggerTime);
             this.requestNonce = requestNonce;
         }
 
-        public N getRequestNonce() {
+        public Nonce<N> getRequestNonce() {
             return requestNonce;
         }
     }

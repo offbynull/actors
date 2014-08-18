@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.common.message;
 
 public abstract class Response extends Message {
 

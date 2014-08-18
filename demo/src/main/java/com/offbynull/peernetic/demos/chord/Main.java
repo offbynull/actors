@@ -11,7 +11,7 @@ import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.actor.SimpleEndpointScheduler;
-import com.offbynull.peernetic.common.Id;
+import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.debug.localgateway.LocalGateway;
 import com.offbynull.peernetic.debug.localgateway.LocalGatewayHub;
 import com.offbynull.peernetic.debug.actornetwork.SimpleLine;

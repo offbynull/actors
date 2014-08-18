@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.common;
 
-import com.offbynull.peernetic.common.AddressCache;
 import com.offbynull.peernetic.common.AddressCache.RetentionMode;
 import java.util.Collections;
 import org.junit.Assert;

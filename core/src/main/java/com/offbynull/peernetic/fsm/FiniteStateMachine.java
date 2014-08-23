@@ -160,13 +160,16 @@ public final class FiniteStateMachine<P> {
         Method handlerMethod = getHandlerMethod(stateHandlerMap, message.getClass());
         Method preHandlerMethod = getHandlerMethod(filterStateHandlerMap, message.getClass());
         
-        Validate.validState(handlerMethod != null, "No handler for %s during state %s", message.getClass(), currentState);
-        
         if (preHandlerMethod != null) {
             Boolean continueProcessing = (Boolean) invokeHandlerMethod(preHandlerMethod, instant, message, params);
             if (continueProcessing != null && !continueProcessing) {
                 return;
             }
+        }
+        
+        if (handlerMethod == null) {
+            LOG.warn("No handler for {} during state {}", message.getClass(), currentState);
+            return;
         }
         
         invokeHandlerMethod(handlerMethod, instant, message, params);

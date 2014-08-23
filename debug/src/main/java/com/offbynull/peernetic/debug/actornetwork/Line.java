@@ -63,7 +63,7 @@ public interface Line<A> {
      */
     Collection<BufferMessage<A>> messageArrive(Instant time, TransitMessage<A> transitMessage);
 
-    public static final class BufferMessage<A> {
+    final class BufferMessage<A> {
 
         private ByteBuffer data;
         private A source;

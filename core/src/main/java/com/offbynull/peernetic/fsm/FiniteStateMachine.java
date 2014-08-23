@@ -150,15 +150,15 @@ public final class FiniteStateMachine<P> {
         this.transitionHandlerMap = (UnmodifiableMap<TransitionKey, Method>) UnmodifiableMap.unmodifiableMap(transitionHandlerMap);
     }
     
-    public void process(Instant instant, Object message, P params) {
-        Validate.notNull(instant);
+    public void process(Instant time, Object message, P params) {
+        Validate.notNull(time);
         Validate.notNull(message);
         
         Method handlerMethod = getHandlerMethod(stateHandlerMap, message.getClass());
         Method preHandlerMethod = getHandlerMethod(filterStateHandlerMap, message.getClass());
         
         if (preHandlerMethod != null) {
-            Boolean continueProcessing = (Boolean) invokeHandlerMethod(preHandlerMethod, instant, message, params);
+            Boolean continueProcessing = (Boolean) invokeHandlerMethod(preHandlerMethod, time, message, params);
             if (continueProcessing != null && !continueProcessing) {
                 return;
             }
@@ -169,7 +169,7 @@ public final class FiniteStateMachine<P> {
             return;
         }
         
-        invokeHandlerMethod(handlerMethod, instant, message, params);
+        invokeHandlerMethod(handlerMethod, time, message, params);
     }
     
     private Method getHandlerMethod(Map<StateKey, Method> methodMap, Class<?> msgClass) {
@@ -186,18 +186,18 @@ public final class FiniteStateMachine<P> {
         return handlerMethod;
     }
     
-    private Object invokeHandlerMethod(Method method, Instant instant, Object message, P params) {
+    private Object invokeHandlerMethod(Method method, Instant time, Object message, P params) {
         try {
-            return method.invoke(object, this, instant, message, params);
+            return method.invoke(object, this, time, message, params);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             LOG.error("Error invoking handler/filter {} with {}", method, message);
             throw new IllegalStateException(ex);
         }
     }
     
-    public void switchStateAndProcess(String state, Instant instant, Object message, P params) {
+    public void switchStateAndProcess(String state, Instant time, Object message, P params) {
         setState(state);
-        process(instant, message, params);
+        process(time, message, params);
     }
     
     public void setState(String state) {

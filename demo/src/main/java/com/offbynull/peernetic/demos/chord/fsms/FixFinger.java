@@ -61,7 +61,7 @@ public final class FixFinger<A> {
     }
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant time, Object unused, Endpoint srcEndpoint) throws Exception {
         Id expectedId = fingerTable.getExpectedId(idx);
         Pointer pointer = fingerTable.findClosestPreceding(expectedId);
         
@@ -74,7 +74,7 @@ public final class FixFinger<A> {
             routeToFinger = new RouteToFinger<>(fromNode, selfId, expectedId, endpointIdentifier, endpointScheduler,
                     selfEndpoint, outgoingRequestManager);
             routeToFingerFsm = new FiniteStateMachine(routeToFinger, RouteToFinger.INITIAL_STATE, Endpoint.class);
-            routeToFingerFsm.process(instant, new Object(), NullEndpoint.INSTANCE);
+            routeToFingerFsm.process(time, new Object(), NullEndpoint.INSTANCE);
             
             fsm.setState(AWAIT_ROUTE_TO_FINGER);
         } else {
@@ -83,15 +83,15 @@ public final class FixFinger<A> {
     }
 
     @FilterHandler({AWAIT_ROUTE_TO_FINGER})
-    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response,
+    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response,
             Endpoint srcEndpoint) throws Exception {
-        return outgoingRequestManager.isMessageTracked(instant, response);
+        return outgoingRequestManager.isMessageTracked(time, response);
     }
 
     @StateHandler(AWAIT_ROUTE_TO_FINGER)
-    public void handleRouteToFingerResponse(FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
+    public void handleRouteToFingerResponse(FiniteStateMachine fsm, Instant time, Object message, Endpoint srcEndpoint)
             throws Exception {
-        routeToFingerFsm.process(instant, message, srcEndpoint);
+        routeToFingerFsm.process(time, message, srcEndpoint);
         
         if (routeToFingerFsm.getState().equals(RouteToFinger.DONE_STATE)) {
             ExternalPointer<A> foundFinger = routeToFinger.getResult();

@@ -69,10 +69,10 @@ public final class RouteToFinger<A> {
     }
     
     @StateHandler(INITIAL_STATE)
-    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
+    public void handleStart(FiniteStateMachine fsm, Instant time, Object unused, Endpoint srcEndpoint)
             throws Exception {
         byte[] idData = findId.getValueAsByteArray();
-        outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
+        outgoingRequestManager.sendRequestAndTrack(time, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
         fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         
         if (selfId.getValueAsBigInteger().equals(BigInteger.ONE)) {
@@ -83,14 +83,14 @@ public final class RouteToFinger<A> {
     }
 
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
-    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
+    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, Endpoint srcEndpoint)
             throws Exception {
-        return outgoingRequestManager.isMessageTracked(instant, response);
+        return outgoingRequestManager.isMessageTracked(time, response);
     }
 
     private NonceManager<byte[]> nonceManager = new NonceManager<>();
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
-    public void handleFindPredecessorResponse(FiniteStateMachine fsm, Instant instant,
+    public void handleFindPredecessorResponse(FiniteStateMachine fsm, Instant time,
             GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
         A address = response.getAddress();
         byte[] idData = response.getId();
@@ -103,33 +103,33 @@ public final class RouteToFinger<A> {
         
         if (id.equals(currentNode.getId()) && address == null) {
             // findId's predecessor is the queried node
-            Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(), currentNode.getAddress());
-            nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
+            Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(time, new GetSuccessorRequest(), currentNode.getAddress());
+            nonceManager.addNonce(time, Duration.ofSeconds(30L), nonce, null);
             fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
         } else if (!id.equals(currentNode.getId()) && address != null) {
             ExternalPointer<A> nextNode = new ExternalPointer<>(id, address);
             currentNode = nextNode;
             if (findId.isWithin(currentNode.getId(), false, nextNode.getId(), true)) {
                 // node found, stop here
-                Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetSuccessorRequest(),
+                Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(time, new GetSuccessorRequest(),
                         currentNode.getAddress());
-                nonceManager.addNonce(instant, Duration.ofSeconds(30L), nonce, null);
+                nonceManager.addNonce(time, Duration.ofSeconds(30L), nonce, null);
                 fsm.setState(AWAIT_SUCCESSOR_RESPONSE_STATE);
             } else {
-                outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(findId.getValueAsByteArray()),
+                outgoingRequestManager.sendRequestAndTrack(time, new GetClosestPrecedingFingerRequest(findId.getValueAsByteArray()),
                         currentNode.getAddress());
                 fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
             }
         } else {
             // we have a node id that isn't current node and no address, node gave us bad response so try again
-            outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(findId.getValueAsByteArray()),
+            outgoingRequestManager.sendRequestAndTrack(time, new GetClosestPrecedingFingerRequest(findId.getValueAsByteArray()),
                     currentNode.getAddress());
             fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         }
     }
 
     @StateHandler(AWAIT_SUCCESSOR_RESPONSE_STATE)
-    public void handleSuccessorResponse(FiniteStateMachine fsm, Instant instant,
+    public void handleSuccessorResponse(FiniteStateMachine fsm, Instant time,
             GetSuccessorResponse<A> response, Endpoint srcEndpoint) throws Exception {
         ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
         if (!nonceManager.isNoncePresent(nonce)) {
@@ -152,14 +152,14 @@ public final class RouteToFinger<A> {
         }
         
 
-        Nonce<byte[]> newNonce = outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), address);
-        nonceManager.addNonce(instant, Duration.ofSeconds(30L), newNonce, null);
+        Nonce<byte[]> newNonce = outgoingRequestManager.sendRequestAndTrack(time, new GetIdRequest(), address);
+        nonceManager.addNonce(time, Duration.ofSeconds(30L), newNonce, null);
         nonceManager.removeNonce(nonce);
         fsm.setState(AWAIT_ID_RESPONSE_STATE);
     }
 
     @StateHandler(AWAIT_ID_RESPONSE_STATE)
-    public void handleAskForIdResponse(FiniteStateMachine fsm, Instant instant, GetIdResponse response,
+    public void handleAskForIdResponse(FiniteStateMachine fsm, Instant time, GetIdResponse response,
             Endpoint srcEndpoint) throws Exception {
         ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
         if (!nonceManager.isNoncePresent(nonce)) {
@@ -178,12 +178,12 @@ public final class RouteToFinger<A> {
     }
 
     @StateHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
-    public void handleTimerTrigger(FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint) {
+    public void handleTimerTrigger(FiniteStateMachine fsm, Instant time, TimerTrigger message, Endpoint srcEndpoint) {
         if (!message.checkParent(this)) {
             return;
         }
         
-        Duration ormDuration = outgoingRequestManager.process(instant);
+        Duration ormDuration = outgoingRequestManager.process(time);
         
         if (outgoingRequestManager.getPending() == 0) {
             fsm.setState(DONE_STATE);

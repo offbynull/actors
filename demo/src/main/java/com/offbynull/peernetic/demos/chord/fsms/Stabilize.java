@@ -49,7 +49,7 @@ public final class Stabilize<A> {
     }
     
     @StateHandler(INITIAL_STATE)
-    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant time, Object unused, Endpoint srcEndpoint) throws Exception {
         if (existingSuccessor.getId().equals(selfId)) {
             newSuccessor = existingSuccessor;
             fsm.setState(DONE_STATE);
@@ -57,20 +57,20 @@ public final class Stabilize<A> {
         }
         
         A successorAddress = ((ExternalPointer<A>) existingSuccessor).getAddress();
-        outgoingRequestManager.sendRequestAndTrack(instant, new GetPredecessorRequest(), successorAddress);
+        outgoingRequestManager.sendRequestAndTrack(time, new GetPredecessorRequest(), successorAddress);
         fsm.setState(AWAIT_PREDECESSOR_RESPONSE_STATE);
         
         endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
     }
 
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE})
-    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
+    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, Endpoint srcEndpoint)
             throws Exception {
-        return outgoingRequestManager.isMessageTracked(instant, response);
+        return outgoingRequestManager.isMessageTracked(time, response);
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
-    public void handleGetPredecessorResponse(FiniteStateMachine fsm, Instant instant,
+    public void handleGetPredecessorResponse(FiniteStateMachine fsm, Instant time,
             GetPredecessorResponse<A> response, Endpoint srcEndpoint) throws Exception {
         if (response.getId() != null) {
             A address = response.getAddress();
@@ -90,7 +90,7 @@ public final class Stabilize<A> {
         }
         
         if (newSuccessor != null && newSuccessor instanceof ExternalPointer) {
-            outgoingRequestManager.sendRequestAndTrack(instant, new NotifyRequest(selfId.getValueAsByteArray()),
+            outgoingRequestManager.sendRequestAndTrack(time, new NotifyRequest(selfId.getValueAsByteArray()),
                     ((ExternalPointer<A>)newSuccessor).getAddress());
         }
         
@@ -98,13 +98,13 @@ public final class Stabilize<A> {
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
-    public void handleTimer(FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint)
+    public void handleTimer(FiniteStateMachine fsm, Instant time, TimerTrigger message, Endpoint srcEndpoint)
             throws Exception {
         if (!message.checkParent(this)) {
             return;
         }
         
-        Duration duration = outgoingRequestManager.process(instant);
+        Duration duration = outgoingRequestManager.process(time);
         if (outgoingRequestManager.getPending() == 0) {
             fsm.setState(DONE_STATE);
             return;

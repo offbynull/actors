@@ -62,44 +62,44 @@ public final class BasicFiniteStateMachineTest {
         private List<String> output = new ArrayList<>();
         
         @FilterHandler({ INITIAL_STATE, MANUAL_STATE, MANUAL_TO_AUTO_STATE, AUTO_STATE, MULTI_STATE_1, MULTI_STATE_2 })
-        public void filterHandleAll(FiniteStateMachine fsm, Instant instant, Object message, Object param) {
+        public void filterHandleAll(FiniteStateMachine fsm, Instant time, Object message, Object param) {
             output.add(fsm.getState() + "-" + message + "-PRE");
         }
 
         @FilterHandler(FILTERED_STATE)
-        public boolean filterHandleFail(FiniteStateMachine fsm, Instant instant, Object message, Object param) {
+        public boolean filterHandleFail(FiniteStateMachine fsm, Instant time, Object message, Object param) {
             output.add(fsm.getState() + "-" + message + "-PREFAIL");
             return false;
         }
         
         @StateHandler(INITIAL_STATE)
-        public void handleInitial(FiniteStateMachine fsm, Instant instant, String message, Object param) {
+        public void handleInitial(FiniteStateMachine fsm, Instant time, String message, Object param) {
             output.add(fsm.getState() + "-" + message);
         }
 
         @StateHandler(MANUAL_STATE)
-        public void handleManual(FiniteStateMachine fsm, Instant instant, Integer message, Object param) {
+        public void handleManual(FiniteStateMachine fsm, Instant time, Integer message, Object param) {
             output.add(fsm.getState() + "-" + message);
         }
 
         @StateHandler(MANUAL_TO_AUTO_STATE)
-        public void handleManualToAuto(FiniteStateMachine fsm, Instant instant, Integer message, Object param) {
+        public void handleManualToAuto(FiniteStateMachine fsm, Instant time, Integer message, Object param) {
             output.add(fsm.getState() + "-" + message);
-            fsm.switchStateAndProcess(AUTO_STATE, instant, message, null);
+            fsm.switchStateAndProcess(AUTO_STATE, time, message, null);
         }
 
         @StateHandler(AUTO_STATE)
-        public void handleAuto(FiniteStateMachine fsm, Instant instant, Integer message, Object param) {
+        public void handleAuto(FiniteStateMachine fsm, Instant time, Integer message, Object param) {
             output.add(fsm.getState() + "-" + message);
         }
 
         @StateHandler({ MULTI_STATE_1, MULTI_STATE_2 })
-        public void handleMulti(FiniteStateMachine fsm, Instant instant, Object message, Object param) {
+        public void handleMulti(FiniteStateMachine fsm, Instant time, Object message, Object param) {
             output.add(fsm.getState() + "-" + message);
         }
 
         @StateHandler(FILTERED_STATE)
-        public void handleFail(FiniteStateMachine fsm, Instant instant, Object message, Object param) {
+        public void handleFail(FiniteStateMachine fsm, Instant time, Object message, Object param) {
             throw new IllegalStateException("Should never come in here");
         }
         

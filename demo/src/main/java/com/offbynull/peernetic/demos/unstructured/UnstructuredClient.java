@@ -65,7 +65,7 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(FiniteStateMachine fsm, Instant instant, Start<A> message, Endpoint srcEndpoint) {
+    public void handleStart(FiniteStateMachine fsm, Instant time, Start<A> message, Endpoint srcEndpoint) {
         endpointDirectory = message.getEndpointDirectory();
         endpointIdentifier = message.getEndpointIdentifier();
         endpointScheduler = message.getEndpointScheduler();
@@ -81,37 +81,37 @@ public final class UnstructuredClient<A> {
 
         listener.onStarted(selfAddress);
 
-        fsm.switchStateAndProcess(ACTIVE_STATE, instant, new Timer(), null);
+        fsm.switchStateAndProcess(ACTIVE_STATE, time, new Timer(), null);
     }
 
     @FilterHandler(ACTIVE_STATE)
-    public boolean checkIncomingRequest(FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint)
+    public boolean checkIncomingRequest(FiniteStateMachine fsm, Instant time, Request message, Endpoint srcEndpoint)
             throws Exception{
 
         // if message to ourself (or invalid), don't process 
-        if (outgoingRequestManager.isMessageTracked(instant, message)) {
+        if (outgoingRequestManager.isMessageTracked(time, message)) {
             return false;
         }
 
         // make sure msg is valid and we haven't responded to it yet. if we have, the method being called will return false but will fire
         // off the original response anyway
-        return incomingRequestManager.testRequestMessage(instant, message);
+        return incomingRequestManager.testRequestMessage(time, message);
     }
 
     @FilterHandler(ACTIVE_STATE)
-    public boolean checkIncomingResponse(FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint)
+    public boolean checkIncomingResponse(FiniteStateMachine fsm, Instant time, Response message, Endpoint srcEndpoint)
             throws Exception {
         // makes sure msg is valid (false if not) and makes sure this is a response to a message we've sent
-        return outgoingRequestManager.testResponseMessage(instant, message);
+        return outgoingRequestManager.testResponseMessage(time, message);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleTimer(FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) throws Exception {
+    public void handleTimer(FiniteStateMachine fsm, Instant time, Timer message, Endpoint srcEndpoint) throws Exception {
         // Prune nonce managers and session managers
-        Duration nextIrmDuration = incomingRequestManager.process(instant);
-        Duration nextOrmDuration = outgoingRequestManager.process(instant);
-        incomingSessions.process(instant);
-        outgoingSessions.process(instant);
+        Duration nextIrmDuration = incomingRequestManager.process(time);
+        Duration nextOrmDuration = outgoingRequestManager.process(time);
+        incomingSessions.process(time);
+        outgoingSessions.process(time);
         Set<A> prunedOutgoingLinks = outgoingSessions.getRemovedIds();
 
         prunedOutgoingLinks.forEach(prunedAddress -> listener.onDisconnected(selfAddress, prunedAddress));
@@ -124,17 +124,17 @@ public final class UnstructuredClient<A> {
                 int pos = RandomUtils.nextInt(0, links.size());
                 A address = links.get(pos);
 
-                sendQueryRequest(instant, address);
+                sendQueryRequest(time, address);
             } else {
                 // If we have no neighbours, grab the next node from the address cache and query it
                 A next = addressCache.next();
-                sendQueryRequest(instant, next);
+                sendQueryRequest(time, next);
             }
         }
 
         // Send a message to all outgoing links telling them we're still alive, otherwise we'll get dropped
         for (A address : outgoingSessions.getSessions()) {
-            sendLinkRequest(instant, address);
+            sendLinkRequest(time, address);
         }
 
         // Check to see if we have room for more outgoing links. If we do, sendRequestAndTrack out new link requests
@@ -150,7 +150,7 @@ public final class UnstructuredClient<A> {
                 continue;
             }
 
-            sendLinkRequest(instant, address);
+            sendLinkRequest(time, address);
         }
 
         // Reschedule this state to be triggered again
@@ -159,26 +159,26 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleLinkRequest(FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint)
+    public void handleLinkRequest(FiniteStateMachine fsm, Instant time, LinkRequest message, Endpoint srcEndpoint)
             throws Exception {
         A address = endpointIdentifier.identify(srcEndpoint);
         
         boolean successful = incomingSessions.containsSession(address) || incomingSessions.size() < MAX_INCOMING_JOINS;
-        sendLinkResponse(instant, srcEndpoint, message, successful);
+        sendLinkResponse(time, srcEndpoint, message, successful);
         
         if (successful) {
-            incomingSessions.addOrUpdateSession(instant, SESSION_DURATION, address, null);
+            incomingSessions.addOrUpdateSession(time, SESSION_DURATION, address, null);
         }
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleQueryRequest(FiniteStateMachine fsm, Instant instant, QueryRequest message, Endpoint srcEndpoint)
+    public void handleQueryRequest(FiniteStateMachine fsm, Instant time, QueryRequest message, Endpoint srcEndpoint)
             throws Exception {
-        sendQueryResponse(instant, srcEndpoint, message);
+        sendQueryResponse(time, srcEndpoint, message);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleLinkResponse(FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
+    public void handleLinkResponse(FiniteStateMachine fsm, Instant time, LinkResponse message, Endpoint srcEndpoint) {
         // The filter should have checked to make sure that this is a response to a rquest we sent out
         A dstAddress = endpointIdentifier.identify(srcEndpoint);
 
@@ -186,11 +186,11 @@ public final class UnstructuredClient<A> {
         if (message.isSuccessful()) {
             if (!alreadyExists) { // If new connection
                 if (outgoingSessions.size() < MAX_OUTGOING_JOINS) { // If space is available for new connection
-                    outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, dstAddress, null);
+                    outgoingSessions.addOrUpdateSession(time, SESSION_DURATION, dstAddress, null);
                     listener.onOutgoingConnected(selfAddress, dstAddress);
                 }
             } else { // If existing connection
-                outgoingSessions.addOrUpdateSession(instant, SESSION_DURATION, dstAddress, null);
+                outgoingSessions.addOrUpdateSession(time, SESSION_DURATION, dstAddress, null);
             }
         }
 
@@ -198,7 +198,7 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleQueryResponse(FiniteStateMachine fsm, Instant instant, QueryResponse message, Endpoint srcEndpoint) {
+    public void handleQueryResponse(FiniteStateMachine fsm, Instant time, QueryResponse message, Endpoint srcEndpoint) {
         // The filter should have checked to make sure that this is a response to a request we sent out
         addressCache.addAll(message.getLinks());
     }
@@ -214,23 +214,23 @@ public final class UnstructuredClient<A> {
         return links;
     }
     
-    private void sendLinkRequest(Instant instant, A address) throws Exception {
-        outgoingRequestManager.sendRequestAndTrack(instant, new LinkRequest(), address);
+    private void sendLinkRequest(Instant time, A address) throws Exception {
+        outgoingRequestManager.sendRequestAndTrack(time, new LinkRequest(), address);
     }
 
-    private void sendQueryRequest(Instant instant, A address) throws Exception {
-        outgoingRequestManager.sendRequestAndTrack(instant, new QueryRequest(), address);
+    private void sendQueryRequest(Instant time, A address) throws Exception {
+        outgoingRequestManager.sendRequestAndTrack(time, new QueryRequest(), address);
     }
     
-    private void sendLinkResponse(Instant instant, Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
+    private void sendLinkResponse(Instant time, Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
         List<A> links = getAllSessions();
         LinkResponse<A> response = new LinkResponse<>(successful, links);
-        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint);
+        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint);
     }
 
-    private void sendQueryResponse(Instant instant, Endpoint srcEndpoint, Object request) throws Exception {
+    private void sendQueryResponse(Instant time, Endpoint srcEndpoint, Object request) throws Exception {
         List<A> links = getAllSessions();
         QueryResponse<A> response = new QueryResponse<>(links);
-        incomingRequestManager.sendResponseAndTrack(instant, request, response, srcEndpoint);
+        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint);
     }
 }

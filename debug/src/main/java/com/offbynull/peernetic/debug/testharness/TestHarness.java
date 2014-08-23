@@ -333,7 +333,7 @@ public final class TestHarness<A> {
 
         @Override
         public int compareTo(Event o) {
-            return when.compareTo(o.when); // smallest instant to largest instant
+            return when.compareTo(o.when); // smallest time to largest time
         }
     }
 

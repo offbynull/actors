@@ -29,7 +29,7 @@ public final class Hub<A> {
     private Endpoint selfEndpoint;
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, StartHub message, Endpoint srcEndpoint) {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, StartHub message, Endpoint srcEndpoint) {
         joinedNodes = new DualHashBidiMap<>();
         line = message.getLine();
         serializer = message.getSerializer();
@@ -40,7 +40,7 @@ public final class Hub<A> {
     }
 
     @StateHandler(RUN_STATE)
-    public void handleJoin(String state, FiniteStateMachine fsm, Instant instant, JoinHub<A> message, Endpoint srcEndpoint) {
+    public void handleJoin(FiniteStateMachine fsm, Instant instant, JoinHub<A> message, Endpoint srcEndpoint) {
         A address = message.getAddress();
 
         line.nodeJoin(address);
@@ -49,7 +49,7 @@ public final class Hub<A> {
     }
 
     @StateHandler(RUN_STATE)
-    public void handleLeave(String state, FiniteStateMachine fsm, Instant instant, LeaveHub<A> message, Endpoint srcEndpoint) {
+    public void handleLeave(FiniteStateMachine fsm, Instant instant, LeaveHub<A> message, Endpoint srcEndpoint) {
         A address = message.getAddress();
 
         line.nodeLeave(address);
@@ -58,7 +58,7 @@ public final class Hub<A> {
     }
 
     @StateHandler(RUN_STATE)
-    public void handleDepart(String state, FiniteStateMachine fsm, Instant instant, DepartMessage<A> message, Endpoint srcEndpoint) {
+    public void handleDepart(FiniteStateMachine fsm, Instant instant, DepartMessage<A> message, Endpoint srcEndpoint) {
         byte[] data = serializer.serialize(message.getData());
         ByteBuffer dataBuffer = ByteBuffer.wrap(data);
         BufferMessage<A> bufferMessage = new BufferMessage<>(dataBuffer, message.getSource(), message.getDestination());
@@ -76,7 +76,7 @@ public final class Hub<A> {
     }
 
     @StateHandler(RUN_STATE)
-    public void handleTransit(String state, FiniteStateMachine fsm, Instant instant, TransitMessage<A> message, Endpoint srcEndpoint) {
+    public void handleTransit(FiniteStateMachine fsm, Instant instant, TransitMessage<A> message, Endpoint srcEndpoint) {
         if (srcEndpoint != selfEndpoint) { // Sanity check
             return;
         }

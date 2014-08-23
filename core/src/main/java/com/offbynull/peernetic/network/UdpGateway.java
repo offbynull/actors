@@ -64,9 +64,10 @@ public final class UdpGateway implements Gateway<InetSocketAddress> {
             if (closeEventLoopGroup) {
                 this.eventLoopGroup.shutdownGracefully();
             }
-            if (channel != null) {
-                channel.close();
-            }
+            // This is not required, if cb.bind.sync.channel fails channel will never be set for it to be closed
+//            if (channel != null) {
+//                channel.close();
+//            }
             throw new IllegalStateException("Failed to build Channel", e);
         }
         

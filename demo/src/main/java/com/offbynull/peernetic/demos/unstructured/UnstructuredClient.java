@@ -65,7 +65,7 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Start<A> message, Endpoint srcEndpoint) {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Start<A> message, Endpoint srcEndpoint) {
         endpointDirectory = message.getEndpointDirectory();
         endpointIdentifier = message.getEndpointIdentifier();
         endpointScheduler = message.getEndpointScheduler();
@@ -85,7 +85,7 @@ public final class UnstructuredClient<A> {
     }
 
     @FilterHandler(ACTIVE_STATE)
-    public boolean checkIncomingRequest(String state, FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint)
+    public boolean checkIncomingRequest(FiniteStateMachine fsm, Instant instant, Request message, Endpoint srcEndpoint)
             throws Exception{
 
         // if message to ourself (or invalid), don't process 
@@ -99,14 +99,14 @@ public final class UnstructuredClient<A> {
     }
 
     @FilterHandler(ACTIVE_STATE)
-    public boolean checkIncomingResponse(String state, FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint)
+    public boolean checkIncomingResponse(FiniteStateMachine fsm, Instant instant, Response message, Endpoint srcEndpoint)
             throws Exception {
         // makes sure msg is valid (false if not) and makes sure this is a response to a message we've sent
         return outgoingRequestManager.testResponseMessage(instant, message);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) throws Exception {
+    public void handleTimer(FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) throws Exception {
         // Prune nonce managers and session managers
         Duration nextIrmDuration = incomingRequestManager.process(instant);
         Duration nextOrmDuration = outgoingRequestManager.process(instant);
@@ -159,7 +159,7 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleLinkRequest(String state, FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint)
+    public void handleLinkRequest(FiniteStateMachine fsm, Instant instant, LinkRequest message, Endpoint srcEndpoint)
             throws Exception {
         A address = endpointIdentifier.identify(srcEndpoint);
         
@@ -172,13 +172,13 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleQueryRequest(String state, FiniteStateMachine fsm, Instant instant, QueryRequest message, Endpoint srcEndpoint)
+    public void handleQueryRequest(FiniteStateMachine fsm, Instant instant, QueryRequest message, Endpoint srcEndpoint)
             throws Exception {
         sendQueryResponse(instant, srcEndpoint, message);
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleLinkResponse(String state, FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
+    public void handleLinkResponse(FiniteStateMachine fsm, Instant instant, LinkResponse message, Endpoint srcEndpoint) {
         // The filter should have checked to make sure that this is a response to a rquest we sent out
         A dstAddress = endpointIdentifier.identify(srcEndpoint);
 
@@ -198,7 +198,7 @@ public final class UnstructuredClient<A> {
     }
 
     @StateHandler(ACTIVE_STATE)
-    public void handleQueryResponse(String state, FiniteStateMachine fsm, Instant instant, QueryResponse message, Endpoint srcEndpoint) {
+    public void handleQueryResponse(FiniteStateMachine fsm, Instant instant, QueryResponse message, Endpoint srcEndpoint) {
         // The filter should have checked to make sure that this is a response to a request we sent out
         addressCache.addAll(message.getLinks());
     }

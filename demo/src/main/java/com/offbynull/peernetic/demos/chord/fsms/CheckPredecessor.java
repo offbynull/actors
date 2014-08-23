@@ -48,7 +48,7 @@ public final class CheckPredecessor<A> {
 
     private NonceManager<byte[]> nonceManager = new NonceManager<>();
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
         if (existingPredecessor == null) {
             fsm.setState(DONE_STATE);
             return;
@@ -62,16 +62,16 @@ public final class CheckPredecessor<A> {
     }
 
     @FilterHandler(AWAIT_GET_ID)
-    public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response,
+    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response,
             Endpoint srcEndpoint) throws Exception {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(AWAIT_GET_ID)
-    public void handleGetIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response, Endpoint srcEndpoint)
+    public void handleGetIdResponse(FiniteStateMachine fsm, Instant instant, GetIdResponse response, Endpoint srcEndpoint)
             throws Exception {
         ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
-        if (nonceManager.checkNonce(nonce) == null) {
+        if (!nonceManager.isNoncePresent(nonce)) {
             return;
         }
 
@@ -80,7 +80,7 @@ public final class CheckPredecessor<A> {
     }
 
     @StateHandler(AWAIT_GET_ID)
-    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint)
+    public void handleTimer(FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint)
             throws Exception {
         if (!message.checkParent(this)) {
             return;

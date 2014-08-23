@@ -69,7 +69,7 @@ public final class RouteToFinger<A> {
     }
     
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint)
             throws Exception {
         byte[] idData = findId.getValueAsByteArray();
         outgoingRequestManager.sendRequestAndTrack(instant, new GetClosestPrecedingFingerRequest(idData), currentNode.getAddress());
@@ -83,14 +83,14 @@ public final class RouteToFinger<A> {
     }
 
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
-    public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
+    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
             throws Exception {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     private NonceManager<byte[]> nonceManager = new NonceManager<>();
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
-    public void handleFindPredecessorResponse(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleFindPredecessorResponse(FiniteStateMachine fsm, Instant instant,
             GetClosestPrecedingFingerResponse<A> response, Endpoint srcEndpoint) throws Exception {
         A address = response.getAddress();
         byte[] idData = response.getId();
@@ -129,10 +129,10 @@ public final class RouteToFinger<A> {
     }
 
     @StateHandler(AWAIT_SUCCESSOR_RESPONSE_STATE)
-    public void handleSuccessorResponse(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleSuccessorResponse(FiniteStateMachine fsm, Instant instant,
             GetSuccessorResponse<A> response, Endpoint srcEndpoint) throws Exception {
         ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
-        if (nonceManager.checkNonce(nonce) == null) {
+        if (!nonceManager.isNoncePresent(nonce)) {
             return;
         }
         
@@ -159,10 +159,10 @@ public final class RouteToFinger<A> {
     }
 
     @StateHandler(AWAIT_ID_RESPONSE_STATE)
-    public void handleAskForIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response,
+    public void handleAskForIdResponse(FiniteStateMachine fsm, Instant instant, GetIdResponse response,
             Endpoint srcEndpoint) throws Exception {
         ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
-        if (nonceManager.checkNonce(nonce) == null) {
+        if (!nonceManager.isNoncePresent(nonce)) {
             return;
         }
         
@@ -178,7 +178,7 @@ public final class RouteToFinger<A> {
     }
 
     @StateHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
-    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint) {
+    public void handleTimerTrigger(FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint) {
         if (!message.checkParent(this)) {
             return;
         }

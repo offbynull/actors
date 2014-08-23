@@ -49,7 +49,7 @@ public final class Stabilize<A> {
     }
     
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
         if (existingSuccessor.getId().equals(selfId)) {
             newSuccessor = existingSuccessor;
             fsm.setState(DONE_STATE);
@@ -64,13 +64,13 @@ public final class Stabilize<A> {
     }
 
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE})
-    public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
+    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
             throws Exception {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
-    public void handleGetPredecessorResponse(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleGetPredecessorResponse(FiniteStateMachine fsm, Instant instant,
             GetPredecessorResponse<A> response, Endpoint srcEndpoint) throws Exception {
         if (response.getId() != null) {
             A address = response.getAddress();
@@ -98,7 +98,7 @@ public final class Stabilize<A> {
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)
-    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint)
+    public void handleTimer(FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint)
             throws Exception {
         if (!message.checkParent(this)) {
             return;

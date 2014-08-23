@@ -63,14 +63,14 @@ public class BasicTest {
         private CountDownLatch counter = new CountDownLatch(30);
 
         @StateHandler(START_STATE)
-        public void handleInitial(String state, FiniteStateMachine fsm, Instant instant, Init message, Endpoint source) {
+        public void handleInitial( FiniteStateMachine fsm, Instant instant, Init message, Endpoint source) {
             destination = message.destination;
 
             fsm.switchStateAndProcess(SEND_STATE, instant, message, source);
         }
 
         @StateHandler(SEND_STATE)
-        public void handleSend(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint source) {
+        public void handleSend(FiniteStateMachine fsm, Instant instant, Object message, Endpoint source) {
             if (counter.getCount() > 0) {
                 counter.countDown();
                 destination.send(source, counter.getCount());
@@ -80,7 +80,7 @@ public class BasicTest {
         }
 
         @StateHandler(WAIT_STATE)
-        public void handleWait(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint source) {
+        public void handleWait(FiniteStateMachine fsm, Instant instant, Object message, Endpoint source) {
             Assert.assertEquals(1000L + counter.getCount(), message);
             fsm.switchStateAndProcess(SEND_STATE, instant, message, source);
         }
@@ -95,7 +95,7 @@ public class BasicTest {
         public static final String RESPOND_STATE = "RESPOND";
 
         @StateHandler(RESPOND_STATE)
-        public void handleRespond(String state, FiniteStateMachine fsm, Instant instant, Long message, Endpoint source) {
+        public void handleRespond(FiniteStateMachine fsm, Instant instant, Long message, Endpoint source) {
             source.send(NullEndpoint.INSTANCE, 1000L + message);
         }
     }

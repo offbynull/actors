@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.actor;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
@@ -99,8 +100,10 @@ public final class SimpleEndpointScheduler implements EndpointScheduler {
         
     }
     
-    private static final class EventComparator implements Comparator<Event> {
-
+    private static final class EventComparator implements Comparator<Event>, Serializable {
+        
+        private static final long serialVersionUID = 0L;
+        
         @Override
         public int compare(Event o1, Event o2) {
             return o1.time.compareTo(o2.time);

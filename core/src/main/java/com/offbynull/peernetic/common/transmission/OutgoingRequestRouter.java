@@ -12,7 +12,6 @@ import com.offbynull.peernetic.common.message.NonceGenerator;
 import com.offbynull.peernetic.common.message.NonceManager;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 
 public final class OutgoingRequestRouter<A, N> implements Processable {
@@ -47,10 +46,8 @@ public final class OutgoingRequestRouter<A, N> implements Processable {
         }
         
         Nonce<N> nonce = nonceAccessor.get(response);
-        Optional<Object> actorOptional = nonceManager.checkNonce(nonce);
-        
-        if (actorOptional != null && actorOptional.isPresent()) {
-            ((Actor) actorOptional.get()).onStep(time, source, response);
+        if (nonceManager.isNoncePresent(nonce)) {
+            ((Actor) nonceManager.getNonceValue(nonce)).onStep(time, source, response);
         }
         nonceManager.removeNonce(nonce);
     }

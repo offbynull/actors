@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.common;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
@@ -148,8 +149,10 @@ public final class StepTimer<K> implements Processable {
         }
 
     }
-    private static final class SlotTimeoutComparator<A> implements Comparator<Slot<A>> {
+    private static final class SlotTimeoutComparator<A> implements Comparator<Slot<A>>, Serializable {
 
+        private static final long serialVersionUID = 0L;
+        
         @Override
         public int compare(Slot<A> o1, Slot<A> o2) {
             return o1.getPruneTime().compareTo(o2.getPruneTime());

@@ -61,7 +61,7 @@ public final class FixFinger<A> {
     }
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
         Id expectedId = fingerTable.getExpectedId(idx);
         Pointer pointer = fingerTable.findClosestPreceding(expectedId);
         
@@ -83,13 +83,13 @@ public final class FixFinger<A> {
     }
 
     @FilterHandler({AWAIT_ROUTE_TO_FINGER})
-    public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response,
+    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response,
             Endpoint srcEndpoint) throws Exception {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(AWAIT_ROUTE_TO_FINGER)
-    public void handleRouteToFingerResponse(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
+    public void handleRouteToFingerResponse(FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
             throws Exception {
         routeToFingerFsm.process(instant, message, srcEndpoint);
         

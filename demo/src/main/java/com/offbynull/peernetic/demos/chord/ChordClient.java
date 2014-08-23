@@ -98,7 +98,7 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Start<A> message, Endpoint srcEndpoint) {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Start<A> message, Endpoint srcEndpoint) {
         endpointDirectory = message.getEndpointDirectory();
         endpointIdentifier = message.getEndpointIdentifier();
         endpointScheduler = message.getEndpointScheduler();
@@ -128,7 +128,7 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(INITIAL_POPULATE_FINGERS_STATE)
-    public void handleInitialize(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint) {
+    public void handleInitialize(FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint) {
         initFingerTableFsm.process(instant, message, srcEndpoint);
 
         if (initFingerTableFsm.getState().equals(InitFingerTable.DONE_STATE)) {
@@ -155,7 +155,7 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(INITIAL_STABILIZE_STATE)
-    public void handleStabilizing(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint) {
+    public void handleStabilizing(FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint) {
         stabilizeFsm.process(instant, message, srcEndpoint);
 
         if (stabilizeFsm.getState().equals(Stabilize.DONE_STATE)) {
@@ -177,25 +177,25 @@ public final class ChordClient<A> {
     }
 
     @FilterHandler(JOINED_STATE)
-    public boolean filterRequests(String state, FiniteStateMachine fsm, Instant instant, Request request, Endpoint srcEndpoint)
+    public boolean filterRequests(FiniteStateMachine fsm, Instant instant, Request request, Endpoint srcEndpoint)
             throws Exception {
         return !outgoingRequestManager.isMessageTracked(instant, request) && incomingRequestManager.testRequestMessage(instant, request);
     }
 
     @FilterHandler(JOINED_STATE)
-    public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
+    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response, Endpoint srcEndpoint)
             throws Exception {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleGetIdRequest(String state, FiniteStateMachine fsm, Instant instant, GetIdRequest request, Endpoint srcEndpoint)
+    public void handleGetIdRequest(FiniteStateMachine fsm, Instant instant, GetIdRequest request, Endpoint srcEndpoint)
             throws Exception {
         incomingRequestManager.sendResponseAndTrack(instant, request, new GetIdResponse(selfId.getValueAsByteArray()), srcEndpoint);
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleGetClosestPrecedingFingerRequest(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleGetClosestPrecedingFingerRequest(FiniteStateMachine fsm, Instant instant,
             GetClosestPrecedingFingerRequest request, Endpoint srcEndpoint) throws Exception {
         Id id = new Id(request.getId(), selfId.getLimitAsByteArray());
         Pointer pointer = chordState.getClosestPreceding(id);
@@ -205,7 +205,7 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleGetPredecessorRequest(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleGetPredecessorRequest(FiniteStateMachine fsm, Instant instant,
             GetPredecessorRequest request, Endpoint srcEndpoint) throws Exception {
         Pointer pointer = chordState.getPredecessor();
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
@@ -214,7 +214,7 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleGetSuccessorRequest(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleGetSuccessorRequest(FiniteStateMachine fsm, Instant instant,
             GetSuccessorRequest request, Endpoint srcEndpoint) throws Exception {
         Pointer pointer = chordState.getSuccessor();
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
@@ -223,7 +223,7 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleNotifyRequest(String state, FiniteStateMachine fsm, Instant instant,
+    public void handleNotifyRequest(FiniteStateMachine fsm, Instant instant,
             NotifyRequest request, Endpoint srcEndpoint) throws Exception {
         byte[] idBytes = request.getId();
         Id id = new Id(idBytes, selfId.getLimitAsByteArray());
@@ -258,13 +258,13 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleTimer(String state, FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) {
+    public void handleTimer(FiniteStateMachine fsm, Instant instant, Timer message, Endpoint srcEndpoint) {
         startOrCheckMaintenance(instant, message, srcEndpoint);
         endpointScheduler.scheduleMessage(TIMER_DURATION, srcEndpoint, srcEndpoint, message);
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleJoinedFallthrough(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
+    public void handleJoinedFallthrough(FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
             throws Exception {
         startOrCheckMaintenance(instant, message, srcEndpoint);
         

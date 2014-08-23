@@ -6,7 +6,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
@@ -36,10 +35,17 @@ public final class NonceManager<T> implements Processable {
         values.remove(nonce);
     }
 
-    public Optional<Object> checkNonce(Nonce<T> nonce) {
+    public boolean isNoncePresent(Nonce<T> nonce) {
         Validate.notNull(nonce);
                 
-        return timer.contains(nonce) ? Optional.ofNullable(values.get(nonce)) : null;
+        return values.containsKey(nonce);
+    }
+    
+    public Object getNonceValue(Nonce<T> nonce) {
+        Validate.notNull(nonce);
+        Validate.isTrue(timer.contains(nonce), "Nonce does not exist");
+                
+        return values.get(nonce);
     }
 
     public void assignValue(Nonce<T> nonce, Object value) {

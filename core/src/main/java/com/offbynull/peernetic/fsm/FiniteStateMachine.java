@@ -44,12 +44,11 @@ public final class FiniteStateMachine<P> {
             StateHandler stateHandler = annotations[0];
             
             Class<?>[] methodParams = method.getParameterTypes();
-            Validate.isTrue(methodParams.length == 5
-                    && ClassUtils.isAssignable(methodParams[0], String.class) // state
-                    && ClassUtils.isAssignable(methodParams[1], FiniteStateMachine.class) // this
-                    && ClassUtils.isAssignable(methodParams[2], Instant.class) // time
-                    && ClassUtils.isAssignable(methodParams[3], Object.class) // msg
-                    && ClassUtils.isAssignable(methodParams[4], paramType), // params
+            Validate.isTrue(methodParams.length == 4
+                    && ClassUtils.isAssignable(methodParams[0], FiniteStateMachine.class) // this
+                    && ClassUtils.isAssignable(methodParams[1], Instant.class) // time
+                    && ClassUtils.isAssignable(methodParams[2], Object.class) // msg
+                    && ClassUtils.isAssignable(methodParams[3], paramType), // params
                     "Method %s with %s has incorrect arguments",
                     method.getName(), StateHandler.class.getSimpleName());
             method.setAccessible(true);
@@ -58,7 +57,7 @@ public final class FiniteStateMachine<P> {
             Validate.isTrue(states.length > 0, "Need atleast 1 state listed for method %s", method.getName());
             
             for (String state : states) {
-                StateKey key = new StateKey(state, methodParams[3]);
+                StateKey key = new StateKey(state, methodParams[2]);
                 Method existingMethod = stateHandlerMap.put(key, method);
                 
                 Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
@@ -87,12 +86,11 @@ public final class FiniteStateMachine<P> {
             Class<?> methodRet = method.getReturnType();
             Class<?>[] methodParams = method.getParameterTypes();
             Validate.isTrue((methodRet == boolean.class || methodRet == Boolean.class || methodRet == Void.TYPE) // rets void or boolean
-                    && methodParams.length == 5
-                    && ClassUtils.isAssignable(methodParams[0], String.class) // state
-                    && ClassUtils.isAssignable(methodParams[1], FiniteStateMachine.class) // this
-                    && ClassUtils.isAssignable(methodParams[2], Instant.class) // time
-                    && ClassUtils.isAssignable(methodParams[3], Object.class) // msg
-                    && ClassUtils.isAssignable(methodParams[4], paramType), // params
+                    && methodParams.length == 4
+                    && ClassUtils.isAssignable(methodParams[0], FiniteStateMachine.class) // this
+                    && ClassUtils.isAssignable(methodParams[1], Instant.class) // time
+                    && ClassUtils.isAssignable(methodParams[2], Object.class) // msg
+                    && ClassUtils.isAssignable(methodParams[3], paramType), // params
                     "Method %s with %s has incorrect arguments",
                     method.getName(), FilterHandler.class.getSimpleName());
             method.setAccessible(true);
@@ -101,7 +99,7 @@ public final class FiniteStateMachine<P> {
             Validate.isTrue(states.length > 0, "Need atleast 1 state listed for method %s", method.getName());
             
             for (String state : states) {
-                StateKey key = new StateKey(state, methodParams[3]);
+                StateKey key = new StateKey(state, methodParams[2]);
                 Method existingMethod = filterStateHandlerMap.put(key, method);
                 
                 Validate.isTrue(existingMethod == null, "Duplicate %s found: %s",
@@ -128,10 +126,9 @@ public final class FiniteStateMachine<P> {
             TransitionHandler transitionHandler = annotations[0];
             
             Class<?>[] methodParams = method.getParameterTypes();
-            Validate.isTrue(methodParams.length == 3
-                    && ClassUtils.isAssignable(methodParams[0], String.class)
-                    && ClassUtils.isAssignable(methodParams[1], String.class)
-                    && ClassUtils.isAssignable(methodParams[2], FiniteStateMachine.class),
+            Validate.isTrue(methodParams.length == 2
+                    && ClassUtils.isAssignable(methodParams[0], FiniteStateMachine.class)
+                    && ClassUtils.isAssignable(methodParams[1], String.class),
                     "Method %s with %s has incorrect arguments",
                     method.getName(), TransitionHandler.class.getSimpleName());
             method.setAccessible(true);
@@ -191,7 +188,7 @@ public final class FiniteStateMachine<P> {
     
     private Object invokeHandlerMethod(Method method, Instant instant, Object message, P params) {
         try {
-            return method.invoke(object, currentState, this, instant, message, params);
+            return method.invoke(object, this, instant, message, params);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             LOG.error("Error invoking handler/filter {} with {}", method, message);
             throw new IllegalStateException(ex);
@@ -208,7 +205,7 @@ public final class FiniteStateMachine<P> {
         Method method = transitionHandlerMap.get(key);
         if (method != null) {
             try {
-                method.invoke(object, currentState, state, this);
+                method.invoke(object, this, state);
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
                 LOG.error("Error invoking transition", method);
                 throw new IllegalStateException(ex);

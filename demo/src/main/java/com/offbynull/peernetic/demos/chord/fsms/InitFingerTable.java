@@ -68,20 +68,20 @@ public final class InitFingerTable<A> {
     }
 
     @FilterHandler(AWAIT_GET_ID_RESPONSE)
-    public boolean filterResponses(String state, FiniteStateMachine fsm, Instant instant, Response response,
+    public boolean filterResponses(FiniteStateMachine fsm, Instant instant, Response response,
             Endpoint srcEndpoint) throws Exception {
         return outgoingRequestManager.isMessageTracked(instant, response);
     }
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(String state, FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant instant, Object unused, Endpoint srcEndpoint) throws Exception {
         endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
         outgoingRequestManager.sendRequestAndTrack(instant, new GetIdRequest(), initialAddress);
         fsm.setState(AWAIT_GET_ID_RESPONSE);
     }
 
     @StateHandler(AWAIT_GET_ID_RESPONSE)
-    public void handleGetIdResponse(String state, FiniteStateMachine fsm, Instant instant, GetIdResponse response,
+    public void handleGetIdResponse(FiniteStateMachine fsm, Instant instant, GetIdResponse response,
             Endpoint srcEndpoint) throws Exception {
         initialId = new Id(response.getId(), maxIdx);
         
@@ -90,7 +90,7 @@ public final class InitFingerTable<A> {
     }
 
     @StateHandler(AWAIT_ROUTE_TO_FINGER)
-    public void handleRouteToFingerResponse(String state, FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
+    public void handleRouteToFingerResponse(FiniteStateMachine fsm, Instant instant, Object message, Endpoint srcEndpoint)
             throws Exception {
         routeToFingerFsm.process(instant, message, srcEndpoint);
         
@@ -118,7 +118,7 @@ public final class InitFingerTable<A> {
     }
 
     @StateHandler(AWAIT_GET_ID_RESPONSE)
-    public void handleTimerTrigger(String state, FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint) {
+    public void handleTimerTrigger(FiniteStateMachine fsm, Instant instant, TimerTrigger message, Endpoint srcEndpoint) {
         if (!message.checkParent(this)) {
             return;
         }

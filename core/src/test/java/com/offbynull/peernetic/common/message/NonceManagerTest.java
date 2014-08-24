@@ -2,7 +2,6 @@ package com.offbynull.peernetic.common.message;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -1,16 +1,10 @@
 package com.offbynull.peernetic.common.transmission;
 
 import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
-import com.offbynull.peernetic.common.message.Request;
-import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.common.message.NonceGenerator;
-import com.offbynull.peernetic.common.message.Response;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
-import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceGenerator;
 import com.offbynull.peernetic.common.message.Request;

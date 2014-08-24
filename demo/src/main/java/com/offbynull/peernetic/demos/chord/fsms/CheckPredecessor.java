@@ -1,13 +1,11 @@
 package com.offbynull.peernetic.demos.chord.fsms;
 
-import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.message.ByteArrayNonce;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.message.Nonce;
 import com.offbynull.peernetic.common.message.NonceManager;
-import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
 import com.offbynull.peernetic.common.message.Response;
+import com.offbynull.peernetic.demos.chord.ChordContext;
 import com.offbynull.peernetic.demos.chord.core.ExternalPointer;
 import com.offbynull.peernetic.demos.chord.messages.external.GetIdRequest;
 import com.offbynull.peernetic.demos.chord.messages.external.GetIdResponse;
@@ -16,7 +14,6 @@ import com.offbynull.peernetic.fsm.FiniteStateMachine;
 import com.offbynull.peernetic.fsm.StateHandler;
 import java.time.Duration;
 import java.time.Instant;
-import org.apache.commons.lang3.Validate;
 
 public final class CheckPredecessor<A> {
 
@@ -24,74 +21,56 @@ public final class CheckPredecessor<A> {
     public static final String AWAIT_GET_ID = "get_id";
     public static final String DONE_STATE = "done";
 
-    private final OutgoingRequestManager<A, byte[]> outgoingRequestManager;
-    private final EndpointScheduler endpointScheduler;
-    private final Endpoint selfEndpoint;
-    private final Id selfId;
-    
-    private final ExternalPointer<A> existingPredecessor;
+    private ExternalPointer<A> existingPredecessor;
     private Id newPredecessorId;
-
-    public CheckPredecessor(Id selfId, ExternalPointer<A> predecessor,  EndpointScheduler endpointScheduler, Endpoint selfEndpoint,
-            OutgoingRequestManager<A, byte[]> outgoingRequestManager) {
-        Validate.notNull(endpointScheduler);
-        Validate.notNull(selfEndpoint);
-        Validate.notNull(selfId);
-        Validate.notNull(outgoingRequestManager);
-        
-        this.existingPredecessor = predecessor;
-        this.endpointScheduler = endpointScheduler;
-        this.selfEndpoint = selfEndpoint;
-        this.selfId = selfId;
-        this.outgoingRequestManager = outgoingRequestManager;
-    }
 
     private NonceManager<byte[]> nonceManager = new NonceManager<>();
     @StateHandler(INITIAL_STATE)
-    public void handleStart(FiniteStateMachine fsm, Instant time, Object unused, Endpoint srcEndpoint) throws Exception {
+    public void handleStart(FiniteStateMachine fsm, Instant time, Object unused, ChordContext<A> context) throws Exception {
+        existingPredecessor = (ExternalPointer<A>) context.getChordState().getPredecessor();
+        
         if (existingPredecessor == null) {
             fsm.setState(DONE_STATE);
             return;
         }
         
-        Nonce<byte[]> nonce = outgoingRequestManager.sendRequestAndTrack(time, new GetIdRequest(), existingPredecessor.getAddress());
+        Nonce<byte[]> nonce = context.getOutgoingRequestManager().sendRequestAndTrack(
+                time, new GetIdRequest(), existingPredecessor.getAddress());
         nonceManager.addNonce(time, Duration.ofSeconds(30L), nonce, null);
-        Duration duration = outgoingRequestManager.process(time);
-        endpointScheduler.scheduleMessage(duration, selfEndpoint, selfEndpoint, new TimerTrigger());
+        Duration duration = context.getOutgoingRequestManager().process(time);
+        context.getEndpointScheduler().scheduleMessage(duration, context.getSelfEndpoint(), context.getSelfEndpoint(), new TimerTrigger());
         fsm.setState(AWAIT_GET_ID);
     }
 
     @FilterHandler(AWAIT_GET_ID)
-    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response,
-            Endpoint srcEndpoint) throws Exception {
-        return outgoingRequestManager.isMessageTracked(time, response);
+    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, ChordContext<A> context) throws Exception {
+        return context.getOutgoingRequestManager().isMessageTracked(time, response);
     }
 
     @StateHandler(AWAIT_GET_ID)
-    public void handleGetIdResponse(FiniteStateMachine fsm, Instant time, GetIdResponse response, Endpoint srcEndpoint)
+    public void handleGetIdResponse(FiniteStateMachine fsm, Instant time, GetIdResponse response, ChordContext<A> context)
             throws Exception {
         ByteArrayNonce nonce = new ByteArrayNonce(response.getNonce());
         if (!nonceManager.isNoncePresent(nonce)) {
             return;
         }
 
-        newPredecessorId = new Id(response.getId(), selfId.getLimitAsByteArray());
+        newPredecessorId = new Id(response.getId(), context.getSelfId().getLimitAsByteArray());
         fsm.setState(DONE_STATE);
     }
 
     @StateHandler(AWAIT_GET_ID)
-    public void handleTimer(FiniteStateMachine fsm, Instant time, TimerTrigger message, Endpoint srcEndpoint)
-            throws Exception {
+    public void handleTimer(FiniteStateMachine fsm, Instant time, TimerTrigger message, ChordContext<A> context) throws Exception {
         if (!message.checkParent(this)) {
             return;
         }
         
-        Duration duration = outgoingRequestManager.process(time);
-        if (outgoingRequestManager.getPending() == 0) {
+        Duration duration = context.getOutgoingRequestManager().process(time);
+        if (context.getOutgoingRequestManager().getPending() == 0) {
             fsm.setState(DONE_STATE);
             return;
         }
-        endpointScheduler.scheduleMessage(duration, srcEndpoint, srcEndpoint, message);
+        context.getEndpointScheduler().scheduleMessage(duration, context.getSelfEndpoint(), context.getSelfEndpoint(), message);
     }
 
     public ExternalPointer<A> getExistingPredecessor() {

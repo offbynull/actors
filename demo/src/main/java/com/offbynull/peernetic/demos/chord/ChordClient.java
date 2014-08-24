@@ -1,16 +1,10 @@
 package com.offbynull.peernetic.demos.chord;
 
-import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.EndpointDirectory;
-import com.offbynull.peernetic.actor.EndpointIdentifier;
-import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.transmission.IncomingRequestManager;
 import com.offbynull.peernetic.common.message.Message;
-import com.offbynull.peernetic.common.message.NonceAccessor;
-import com.offbynull.peernetic.common.message.NonceGenerator;
 import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
 import com.offbynull.peernetic.common.message.Request;
 import com.offbynull.peernetic.common.message.Response;
@@ -46,7 +40,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class ChordClient<A> {
@@ -58,78 +51,53 @@ public final class ChordClient<A> {
     
     private static final Duration TIMER_DURATION = Duration.ofSeconds(2L);
 
-    private final ChordActiveListener<Id> activeListener;
-    private final ChordLinkListener<Id> linkListener;
-    private final ChordUnlinkListener<Id> unlinkListener;
-
-    private EndpointDirectory<A> endpointDirectory;
-    private EndpointIdentifier<A> endpointIdentifier;
-    private EndpointScheduler endpointScheduler;
-    private NonceGenerator<byte[]> nonceGenerator;
-    private NonceAccessor<byte[]> nonceAccessor;
-    private IncomingRequestManager<A, byte[]> incomingRequestManager;
-    private OutgoingRequestManager<A, byte[]> outgoingRequestManager;
-    private Endpoint selfEndpoint;
-
-    private Id selfId;
-    private A bootstrapAddress;
-
-    private ChordState<A> chordState;
-
     private InitFingerTable<A> initFingerTable;
-    private FiniteStateMachine<Endpoint> initFingerTableFsm;
+    private FiniteStateMachine<ChordContext<A>> initFingerTableFsm;
 
     private Stabilize<A> stabilize;
-    private FiniteStateMachine<Endpoint> stabilizeFsm;
+    private FiniteStateMachine<ChordContext<A>> stabilizeFsm;
 
     private FixFinger<A> fixFinger;
-    private FiniteStateMachine<Endpoint> fixFingerFsm;
+    private FiniteStateMachine<ChordContext<A>> fixFingerFsm;
 
     private CheckPredecessor<A> checkPredecessor;
-    private FiniteStateMachine<Endpoint> checkPredecessorFsm;
-
-    public ChordClient(ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener) {
-        Validate.notNull(activeListener);
-        Validate.notNull(linkListener);
-        Validate.notNull(unlinkListener);
-        this.activeListener = activeListener;
-        this.linkListener = linkListener;
-        this.unlinkListener = unlinkListener;
-    }
+    private FiniteStateMachine<ChordContext<A>> checkPredecessorFsm;
 
     @StateHandler(INITIAL_STATE)
-    public void handleStart(FiniteStateMachine fsm, Instant time, Start<A> message, Endpoint srcEndpoint) {
-        endpointDirectory = message.getEndpointDirectory();
-        endpointIdentifier = message.getEndpointIdentifier();
-        endpointScheduler = message.getEndpointScheduler();
-        selfEndpoint = message.getSelfEndpoint();
-        selfId = message.getSelfId();
-        bootstrapAddress = message.getBootstrapAddress();
-        nonceGenerator = new ByteArrayNonceGenerator(8);
-        nonceAccessor = new ByteArrayNonceAccessor();
-        incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceAccessor);
-        outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceAccessor, endpointDirectory);
+    public void handleStart(FiniteStateMachine fsm, Instant time, Start<A> message, ChordContext<A> context) {
+        context.setEndpointDirectory(message.getEndpointDirectory());
+        context.setEndpointIdentifier(message.getEndpointIdentifier());
+        context.setEndpointScheduler(message.getEndpointScheduler());
+        context.setSelfEndpoint(message.getSelfEndpoint());
+        context.setSelfId(message.getSelfId());
+        context.setBootstrapAddress(message.getBootstrapAddress());
+        context.setNonceGenerator(new ByteArrayNonceGenerator(8));
+        context.setNonceAccessor(new ByteArrayNonceAccessor());
+        
+        context.setIncomingRequestManager(new IncomingRequestManager<>(context.getSelfEndpoint(), context.getNonceAccessor()));
+        context.setOutgoingRequestManager(new OutgoingRequestManager<>(context.getSelfEndpoint(), context.getNonceGenerator(),
+                context.getNonceAccessor(), context.getEndpointDirectory()));
 
-        chordState = new ChordState<>(new InternalPointer(selfId));
+        context.setChordState(new ChordState<>(new InternalPointer(context.getSelfId())));
 
-        if (bootstrapAddress != null) {
-            initFingerTable = new InitFingerTable<>(selfId, bootstrapAddress, endpointIdentifier, endpointScheduler,
-                    selfEndpoint, outgoingRequestManager);
-            initFingerTableFsm = new FiniteStateMachine(initFingerTable, InitFingerTable.INITIAL_STATE, Endpoint.class);
-            initFingerTableFsm.process(time, new Object(), srcEndpoint);
+        if (context.getBootstrapAddress() != null) {
+            initFingerTable = new InitFingerTable<>();
+            initFingerTableFsm = new FiniteStateMachine(initFingerTable, InitFingerTable.INITIAL_STATE, ChordContext.class);
+            initFingerTableFsm.process(time, new Object(), context);
 
             fsm.setState(INITIAL_POPULATE_FINGERS_STATE);
         } else {
-            activeListener.active(selfId, Mode.SEED);
-            startOrCheckMaintenance(time, message, selfEndpoint);
-            endpointScheduler.scheduleMessage(TIMER_DURATION, srcEndpoint, srcEndpoint, new Timer());
+            context.getActiveListener().active(context.getSelfId(), Mode.SEED);
+            startOrCheckMaintenance(time, message, context);
+            context.getEndpointScheduler().scheduleMessage(TIMER_DURATION, context.getSelfEndpoint(), context.getSelfEndpoint(),
+                    new Timer());
             fsm.setState(JOINED_STATE);
         }
     }
 
     @StateHandler(INITIAL_POPULATE_FINGERS_STATE)
-    public void handleInitialize(FiniteStateMachine fsm, Instant time, Object message, Endpoint srcEndpoint) {
-        initFingerTableFsm.process(time, message, srcEndpoint);
+    public void handleInitialize(FiniteStateMachine fsm, Instant time, Object message, ChordContext<A> context) {
+        initFingerTableFsm.process(time, message, context);
 
         if (initFingerTableFsm.getState().equals(InitFingerTable.DONE_STATE)) {
             FingerTable<A> fingerTable = initFingerTable.getFingerTable();
@@ -143,102 +111,106 @@ public final class ChordClient<A> {
             fingerTable.dump().stream()
                     .filter(x -> x instanceof ExternalPointer)
                     .forEach(x -> {
-                        chordState.putFinger((ExternalPointer<A>) x);
-                        notifyStateChange();
+                        context.getChordState().putFinger((ExternalPointer<A>) x);
+                        notifyStateChange(context);
                     });
 
-            stabilize = new Stabilize<>(selfId, (ExternalPointer<A>) successor, endpointScheduler, selfEndpoint, outgoingRequestManager);
-            stabilizeFsm = new FiniteStateMachine<>(stabilize, Stabilize.INITIAL_STATE, Endpoint.class);
-            stabilizeFsm.process(time, new Object(), srcEndpoint);
+            stabilize = new Stabilize();
+            stabilizeFsm = new FiniteStateMachine(stabilize, Stabilize.INITIAL_STATE, ChordContext.class);
+            stabilizeFsm.process(time, new Object(), context);
             fsm.setState(INITIAL_STABILIZE_STATE);
         }
     }
 
     @StateHandler(INITIAL_STABILIZE_STATE)
-    public void handleStabilizing(FiniteStateMachine fsm, Instant time, Object message, Endpoint srcEndpoint) {
-        stabilizeFsm.process(time, message, srcEndpoint);
+    public void handleStabilizing(FiniteStateMachine fsm, Instant time, Object message, ChordContext<A> context) {
+        stabilizeFsm.process(time, message, context);
 
         if (stabilizeFsm.getState().equals(Stabilize.DONE_STATE)) {
-            activeListener.active(selfId, Mode.JOIN);
+            context.getActiveListener().active(context.getSelfId(), Mode.JOIN);
             
             Pointer successor = stabilize.getNewSuccessor();
 
             if (successor instanceof ExternalPointer) {
-                chordState.setSuccessor((ExternalPointer<A>) successor, Collections.EMPTY_LIST);
-                notifyStateChange();
+                context.getChordState().setSuccessor((ExternalPointer<A>) successor, Collections.EMPTY_LIST);
+                notifyStateChange(context);
             }
 
             stabilizeFsm = null; // dont' want to call process again in call below
-            startOrCheckMaintenance(time, message, srcEndpoint);
+            startOrCheckMaintenance(time, message, context);
 
-            endpointScheduler.scheduleMessage(TIMER_DURATION, srcEndpoint, srcEndpoint, new Timer());
+            context.getEndpointScheduler().scheduleMessage(TIMER_DURATION, context.getSelfEndpoint(), context.getSelfEndpoint(),
+                    new Timer());
             fsm.setState(JOINED_STATE);
         }
     }
 
     @FilterHandler(JOINED_STATE)
-    public boolean filterRequests(FiniteStateMachine fsm, Instant time, Request request, Endpoint srcEndpoint)
+    public boolean filterRequests(FiniteStateMachine fsm, Instant time, Request request, ChordContext<A> context)
             throws Exception {
-        return !outgoingRequestManager.isMessageTracked(time, request) && incomingRequestManager.testRequestMessage(time, request);
+        return !context.getOutgoingRequestManager().isMessageTracked(time, request)
+                && context.getIncomingRequestManager().testRequestMessage(time, request);
     }
 
     @FilterHandler(JOINED_STATE)
-    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, Endpoint srcEndpoint)
+    public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, ChordContext<A> context)
             throws Exception {
-        return outgoingRequestManager.isMessageTracked(time, response);
+        return context.getOutgoingRequestManager().isMessageTracked(time, response);
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleGetIdRequest(FiniteStateMachine fsm, Instant time, GetIdRequest request, Endpoint srcEndpoint)
+    public void handleGetIdRequest(FiniteStateMachine fsm, Instant time, GetIdRequest request, ChordContext<A> context)
             throws Exception {
-        incomingRequestManager.sendResponseAndTrack(time, request, new GetIdResponse(selfId.getValueAsByteArray()), srcEndpoint);
+        context.getIncomingRequestManager().sendResponseAndTrack(time, request,
+                new GetIdResponse(context.getSelfId().getValueAsByteArray()), context.getSourceEndpoint());
     }
 
     @StateHandler(JOINED_STATE)
     public void handleGetClosestPrecedingFingerRequest(FiniteStateMachine fsm, Instant time,
-            GetClosestPrecedingFingerRequest request, Endpoint srcEndpoint) throws Exception {
-        Id id = new Id(request.getId(), selfId.getLimitAsByteArray());
-        Pointer pointer = chordState.getClosestPreceding(id);
+            GetClosestPrecedingFingerRequest request, ChordContext<A> context) throws Exception {
+        Id id = new Id(request.getId(), context.getSelfId().getLimitAsByteArray());
+        Pointer pointer = context.getChordState().getClosestPreceding(id);
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-        incomingRequestManager.sendResponseAndTrack(time, request,
-                new GetClosestPrecedingFingerResponse<>(msgValues.getLeft(), msgValues.getRight()), srcEndpoint);
+        context.getIncomingRequestManager().sendResponseAndTrack(time, request,
+                new GetClosestPrecedingFingerResponse<>(msgValues.getLeft(), msgValues.getRight()), context.getSourceEndpoint());
     }
 
     @StateHandler(JOINED_STATE)
     public void handleGetPredecessorRequest(FiniteStateMachine fsm, Instant time,
-            GetPredecessorRequest request, Endpoint srcEndpoint) throws Exception {
-        Pointer pointer = chordState.getPredecessor();
+            GetPredecessorRequest request, ChordContext<A> context) throws Exception {
+        Pointer pointer = context.getChordState().getPredecessor();
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-        incomingRequestManager.sendResponseAndTrack(time, request,
-                new GetPredecessorResponse<>(msgValues.getLeft(), msgValues.getRight()), srcEndpoint);
+        context.getIncomingRequestManager().sendResponseAndTrack(time, request,
+                new GetPredecessorResponse<>(msgValues.getLeft(), msgValues.getRight()), context.getSourceEndpoint());
     }
 
     @StateHandler(JOINED_STATE)
     public void handleGetSuccessorRequest(FiniteStateMachine fsm, Instant time,
-            GetSuccessorRequest request, Endpoint srcEndpoint) throws Exception {
-        Pointer pointer = chordState.getSuccessor();
+            GetSuccessorRequest request, ChordContext<A> context) throws Exception {
+        Pointer pointer = context.getChordState().getSuccessor();
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-        incomingRequestManager.sendResponseAndTrack(time, request,
-                new GetSuccessorResponse<>(msgValues.getLeft(), msgValues.getRight()), srcEndpoint);
+        context.getIncomingRequestManager().sendResponseAndTrack(time, request,
+                new GetSuccessorResponse<>(msgValues.getLeft(), msgValues.getRight()), context.getSourceEndpoint());
     }
 
     @StateHandler(JOINED_STATE)
     public void handleNotifyRequest(FiniteStateMachine fsm, Instant time,
-            NotifyRequest request, Endpoint srcEndpoint) throws Exception {
+            NotifyRequest request, ChordContext<A> context) throws Exception {
         byte[] idBytes = request.getId();
-        Id id = new Id(idBytes, selfId.getLimitAsByteArray());
+        Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
 
-        ExternalPointer<A> newPredecessor = new ExternalPointer<>(id, endpointIdentifier.identify(srcEndpoint));
-        ExternalPointer<A> existingPredecessor = (ExternalPointer<A>) chordState.getPredecessor();
-        if (chordState.getPredecessor() == null || id.isWithin(existingPredecessor.getId(), true, selfId, false)) {
-            chordState.setPredecessor(newPredecessor);
-            notifyStateChange();
+        ExternalPointer<A> newPredecessor =
+                new ExternalPointer<>(id, context.getEndpointIdentifier().identify(context.getSourceEndpoint()));
+        ExternalPointer<A> existingPredecessor = (ExternalPointer<A>) context.getChordState().getPredecessor();
+        if (context.getChordState().getPredecessor() == null || id.isWithin(existingPredecessor.getId(), true, context.getSelfId(), false)) {
+            context.getChordState().setPredecessor(newPredecessor);
+            notifyStateChange(context);
         }
         
-        Pointer pointer = chordState.getPredecessor();
+        Pointer pointer = context.getChordState().getPredecessor();
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-        incomingRequestManager.sendResponseAndTrack(time, request,
-                new NotifyResponse<>(msgValues.getLeft(), msgValues.getRight()), srcEndpoint);
+        context.getIncomingRequestManager().sendResponseAndTrack(time, request,
+                new NotifyResponse<>(msgValues.getLeft(), msgValues.getRight()), context.getSourceEndpoint());
     }
 
     private ImmutablePair<byte[], A> convertPointerToMessageDetails(Pointer pointer) {
@@ -258,50 +230,49 @@ public final class ChordClient<A> {
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleTimer(FiniteStateMachine fsm, Instant time, Timer message, Endpoint srcEndpoint) {
-        startOrCheckMaintenance(time, message, srcEndpoint);
-        endpointScheduler.scheduleMessage(TIMER_DURATION, srcEndpoint, srcEndpoint, message);
+    public void handleTimer(FiniteStateMachine fsm, Instant time, Timer message, ChordContext<A> context) {
+        startOrCheckMaintenance(time, message, context);
+        context.getEndpointScheduler().scheduleMessage(TIMER_DURATION, context.getSelfEndpoint(), context.getSelfEndpoint(), message);
     }
 
     @StateHandler(JOINED_STATE)
-    public void handleJoinedFallthrough(FiniteStateMachine fsm, Instant time, Object message, Endpoint srcEndpoint)
+    public void handleJoinedFallthrough(FiniteStateMachine fsm, Instant time, Object message, ChordContext<A> context)
             throws Exception {
-        startOrCheckMaintenance(time, message, srcEndpoint);
+        startOrCheckMaintenance(time, message, context);
         
         if (message instanceof Message) {
-            outgoingRequestManager.testResponseMessage(time, message);
+            context.getOutgoingRequestManager().testResponseMessage(time, message);
         }
     }
 
-    private void startOrCheckMaintenance(Instant time, Object message, Endpoint srcEndpoint) {
+    private void startOrCheckMaintenance(Instant time, Object message, ChordContext<A> context) {
         if (stabilizeFsm != null) {
-            stabilizeFsm.process(time, message, srcEndpoint);
+            stabilizeFsm.process(time, message, context);
         }
         if (stabilizeFsm == null || stabilizeFsm.getState().equals(Stabilize.DONE_STATE)) {
             Pointer successor;
             if (stabilizeFsm != null) {
                 successor = stabilize.getNewSuccessor();
                 if (successor instanceof ExternalPointer) {
-                    chordState.setSuccessor((ExternalPointer<A>) successor, Collections.EMPTY_LIST);
-                    notifyStateChange();
+                    context.getChordState().setSuccessor((ExternalPointer<A>) successor, Collections.EMPTY_LIST);
+                    notifyStateChange(context);
                 } else {
-                    chordState.setSuccessor(new InternalPointer(selfId), Collections.EMPTY_LIST);
-                    notifyStateChange();
+                    context.getChordState().setSuccessor(new InternalPointer(context.getSelfId()), Collections.EMPTY_LIST);
+                    notifyStateChange(context);
                 }
             } else {
-                successor = chordState.getSuccessor();
+                successor = context.getChordState().getSuccessor();
             }
 
             if (successor instanceof ExternalPointer) {
-                stabilize = new Stabilize<>(selfId, (ExternalPointer<A>) successor, endpointScheduler, selfEndpoint,
-                        outgoingRequestManager);
-                stabilizeFsm = new FiniteStateMachine<>(stabilize, Stabilize.INITIAL_STATE, Endpoint.class);
-                stabilizeFsm.process(time, new Object(), srcEndpoint);
+                stabilize = new Stabilize();
+                stabilizeFsm = new FiniteStateMachine(stabilize, Stabilize.INITIAL_STATE, ChordContext.class);
+                stabilizeFsm.process(time, new Object(), context);
             }
         }
 
         if (fixFingerFsm != null) {
-            fixFingerFsm.process(time, message, srcEndpoint);
+            fixFingerFsm.process(time, message, context);
         }
         if (fixFingerFsm == null || fixFingerFsm.getState().equals(FixFinger.DONE_STATE)) {
             if (fixFinger != null) {
@@ -310,58 +281,56 @@ public final class ChordClient<A> {
 
                 if (pointer != null) {
                     if (pointer instanceof InternalPointer) {
-                        Pointer existingFinger = chordState.getFinger(idx);
+                        Pointer existingFinger = context.getChordState().getFinger(idx);
                         if (existingFinger instanceof ExternalPointer) {
-                            chordState.removeFinger((ExternalPointer<A>) existingFinger);
-                            notifyStateChange();
+                            context.getChordState().removeFinger((ExternalPointer<A>) existingFinger);
+                            notifyStateChange(context);
                         }
                     } else if (pointer instanceof ExternalPointer) {
-                        chordState.putFinger((ExternalPointer<A>) pointer);
-                        notifyStateChange();
+                        context.getChordState().putFinger((ExternalPointer<A>) pointer);
+                        notifyStateChange(context);
                     } else {
                         throw new IllegalStateException();
                     }
                 }
             }
 
-            fixFinger = new FixFinger<>(selfId, chordState.getFingerTable(), endpointIdentifier, endpointScheduler, selfEndpoint,
-                     outgoingRequestManager);
-            fixFingerFsm = new FiniteStateMachine<>(fixFinger, FixFinger.INITIAL_STATE, Endpoint.class);
-            fixFingerFsm.process(time, new Object(), srcEndpoint);
+            fixFinger = new FixFinger<>();
+            fixFingerFsm = new FiniteStateMachine(fixFinger, FixFinger.INITIAL_STATE, ChordContext.class);
+            fixFingerFsm.process(time, new Object(), context);
         }
 
         if (checkPredecessorFsm != null) {
-            checkPredecessorFsm.process(time, message, srcEndpoint);
+            checkPredecessorFsm.process(time, message, context);
         }
         if (checkPredecessorFsm == null || checkPredecessorFsm.getState().equals(CheckPredecessor.DONE_STATE)) {
             if (checkPredecessor != null) {
                 // if predecessor is unresponsive, and the predecessor hasn't changed from when we started the check predecessor task
                 if (checkPredecessor.isPredecessorUnresponsive()
-                        && Objects.equals(checkPredecessor.getExistingPredecessor(), chordState.getPredecessor())) {
-                    chordState.removePredecessor();
-                    notifyStateChange();
+                        && Objects.equals(checkPredecessor.getExistingPredecessor(), context.getChordState().getPredecessor())) {
+                    context.getChordState().removePredecessor();
+                    notifyStateChange(context);
                 }
             }
 
-            checkPredecessor = new CheckPredecessor<>(selfId, (ExternalPointer<A>) chordState.getPredecessor(), endpointScheduler,
-                    selfEndpoint, outgoingRequestManager);
-            checkPredecessorFsm = new FiniteStateMachine<>(checkPredecessor, CheckPredecessor.INITIAL_STATE, Endpoint.class);
-            checkPredecessorFsm.process(time, new Object(), srcEndpoint);
+            checkPredecessor = new CheckPredecessor<>();
+            checkPredecessorFsm = new FiniteStateMachine(checkPredecessor, CheckPredecessor.INITIAL_STATE, ChordContext.class);
+            checkPredecessorFsm.process(time, new Object(), context);
         }
     }
     
     private Set<Pointer> lastNotifiedPointers = new HashSet<>();
-    private void notifyStateChange() {
+    private void notifyStateChange(ChordContext<A> context) {
         Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
-                chordState.dumpFingerTable().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
+                context.getChordState().dumpFingerTable().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
         
         Set<Pointer> addedPointers = new HashSet<>(newPointers);
         addedPointers.removeAll(lastNotifiedPointers);
-        addedPointers.forEach(x -> linkListener.linked(selfId, x.getId()));
+        addedPointers.forEach(x -> context.getLinkListener().linked(context.getSelfId(), x.getId()));
 
         Set<Pointer> removedPointers = new HashSet<>(lastNotifiedPointers);
         removedPointers.removeAll(newPointers);
-        removedPointers.forEach(x -> unlinkListener.unlinked(selfId, x.getId()));
+        removedPointers.forEach(x -> context.getUnlinkListener().unlinked(context.getSelfId(), x.getId()));
         
         lastNotifiedPointers = newPointers;
     }

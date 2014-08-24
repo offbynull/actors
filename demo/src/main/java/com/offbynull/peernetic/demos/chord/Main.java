@@ -60,7 +60,7 @@ public final class Main {
         // Create actors
         for (int i = 0; i < actors.length; i++) {
             ChordClient<? extends Object> chordClient = new ChordClient<>(activeListener, linkListener, unlinkListener);
-            actors[i] = new FsmActor(chordClient, ChordClient.INITIAL_STATE);
+            actors[i] = FsmActor.create(chordClient, ChordClient.INITIAL_STATE);
         }
 
         // Start actors all within the same thread

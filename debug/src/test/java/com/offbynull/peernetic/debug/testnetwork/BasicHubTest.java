@@ -29,7 +29,7 @@ public final class BasicHubTest {
         
         // Create hub
         Hub<String> hub = new Hub<>();
-        FsmActor hubFsmActor = new FsmActor(hub, Hub.INITIAL_STATE);
+        FsmActor hubFsmActor = FsmActor.create(hub, Hub.INITIAL_STATE);
         ActorRunnable hubActorRunnable = ActorRunnable.createAndStart(hubFsmActor);
         Endpoint hubEndpoint = hubActorRunnable.getEndpoint(hubFsmActor);
         

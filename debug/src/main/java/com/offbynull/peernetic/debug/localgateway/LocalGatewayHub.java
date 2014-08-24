@@ -26,7 +26,7 @@ public final class LocalGatewayHub<A> {
         Validate.notNull(serializer);
         
         hub = new Hub<>();
-        hubActor = new FsmActor(hub, Hub.INITIAL_STATE);
+        hubActor = FsmActor.create(hub, Hub.INITIAL_STATE);
         hubActorRunnable = ActorRunnable.createAndStart(hubActor);
         hubEndpoint = hubActorRunnable.getEndpoint(hubActor);
         endpointScheduler = new SimpleEndpointScheduler();

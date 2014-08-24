@@ -22,7 +22,7 @@ public class BasicTest {
     @Test
     public void testBasic() throws Throwable {
         Sender sender = new Sender();
-        FsmActor fsmActor1 = new FsmActor(sender, Sender.START_STATE);
+        FsmActor fsmActor1 = FsmActor.create(sender, Sender.START_STATE);
         ActorRunnable runnable1 = ActorRunnable.createAndStart(fsmActor1);
         GatewayInputAdapter inputAdapter1 = new GatewayInputAdapter(runnable1.getEndpoint(fsmActor1));
         InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 9000);
@@ -32,7 +32,7 @@ public class BasicTest {
                 new XStreamSerializer());
 
         Recver recver = new Recver();
-        FsmActor fsmActor2 = new FsmActor(recver, Recver.RESPOND_STATE);
+        FsmActor fsmActor2 = FsmActor.create(recver, Recver.RESPOND_STATE);
         ActorRunnable runnable2 = ActorRunnable.createAndStart(fsmActor2);
         GatewayInputAdapter inputAdapter2 = new GatewayInputAdapter(runnable2.getEndpoint(fsmActor2));
         InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 9001);

@@ -65,7 +65,7 @@ public final class Main {
         // Create actors
         for (int i = 0; i < actors.length; i++) {
             UnstructuredClient<? extends Object> unstructuredClient = new UnstructuredClient<>(listener);
-            actors[i] = new FsmActor(unstructuredClient, UnstructuredClient.INITIAL_STATE);
+            actors[i] = FsmActor.create(unstructuredClient, UnstructuredClient.INITIAL_STATE);
         }
 
         // Start actors all within the same thread

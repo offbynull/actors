@@ -11,12 +11,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
+import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class StepTimer<K> implements Processable {
     private final Map<K, Slot<K>> lookup;
     private final PriorityQueue<Slot<K>> timeoutQueue;
-    private final Set<K> removedKeys; // keys removed from last process call
+    private Set<K> removedKeys; // keys removed from last process call
     
     private Instant lastCallTime;
 
@@ -63,7 +64,7 @@ public final class StepTimer<K> implements Processable {
     
     @Override
     public Duration process(Instant time) {
-        removedKeys.clear();
+        removedKeys = new HashSet<>();
 
         Iterator<Slot<K>> it = timeoutQueue.iterator();
         while (it.hasNext()) {
@@ -91,8 +92,8 @@ public final class StepTimer<K> implements Processable {
         return new HashSet<>(lookup.keySet());
     }
     
-    public Set<K> getRemovedKeys() {
-        return new HashSet<>(removedKeys);
+    public UnmodifiableSet<K> getRemovedKeys() {
+        return (UnmodifiableSet<K>) UnmodifiableSet.unmodifiableSet(removedKeys);
     }
     
     private static final class Slot<K> {

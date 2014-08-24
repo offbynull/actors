@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class NonceManager<T> implements Processable {
@@ -66,7 +66,7 @@ public final class NonceManager<T> implements Processable {
         return ret;
     }
 
-    public Set<Nonce<T>> getRemovedNonces() {
+    public UnmodifiableSet<Nonce<T>> getRemovedNonces() {
         return timer.getRemovedKeys();
     }
 }

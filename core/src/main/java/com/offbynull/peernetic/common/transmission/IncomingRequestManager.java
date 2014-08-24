@@ -31,8 +31,8 @@ public final class IncomingRequestManager<A, N> implements Processable {
     
     private final Set<Nonce<N>> removedNonces;
 
-    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceExtractor) {
-        this(selfEndpoint, nonceExtractor, DEFAULT_RETAIN_DURATION);
+    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceAccessor) {
+        this(selfEndpoint, nonceAccessor, DEFAULT_RETAIN_DURATION);
     }
     
     public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceAccessor, Duration defaultRetainDuration) {
@@ -159,6 +159,23 @@ public final class IncomingRequestManager<A, N> implements Processable {
         }
         
         return false; // request already received, but hasn't been responded to yet
+    }
+
+    public boolean isHandledRequest(Instant time, Object message) throws IllegalAccessException, IllegalArgumentException,
+            InvocationTargetException {
+        Validate.notNull(time);
+        Validate.notNull(message);
+
+        // validate response
+        if (!Validator.validate(message)) {
+            return false; // message failed to validate, treat it as if it isn't tracked
+        }
+        
+        // get nonce from response
+        Nonce<N> nonce = nonceAccessor.get(message);
+        Request requestObj = requests.get(nonce);
+        
+        return requestObj == null ? false : message.equals(requestObj.getRequest());
     }
 
     private static final class Request {

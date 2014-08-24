@@ -46,7 +46,7 @@ public final class Stabilize<A> {
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE})
     public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, ChordContext<A> context)
             throws Exception {
-        return context.getOutgoingRequestManager().isMessageTracked(time, response);
+        return context.getOutgoingRequestManager().isExpectedResponse(time, response);
     }
 
     @StateHandler(AWAIT_PREDECESSOR_RESPONSE_STATE)

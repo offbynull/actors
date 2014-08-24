@@ -38,7 +38,7 @@ public final class InitFingerTable<A> {
 
     @FilterHandler(AWAIT_GET_ID_RESPONSE)
     public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, ChordContext<A> context) throws Exception {
-        return context.getOutgoingRequestManager().isMessageTracked(time, response);
+        return context.getOutgoingRequestManager().isExpectedResponse(time, response);
     }
 
     @StateHandler(INITIAL_STATE)

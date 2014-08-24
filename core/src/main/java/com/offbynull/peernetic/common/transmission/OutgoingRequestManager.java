@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import org.apache.commons.collections4.list.UnmodifiableList;
+import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class OutgoingRequestManager<A, N> implements Processable {
@@ -39,7 +40,7 @@ public final class OutgoingRequestManager<A, N> implements Processable {
     private final int defaultMaxResendCount;
     private final Duration defaultRetainDuration;
     
-    private final Set<Nonce<N>> removedNonces;
+    private Set<Nonce<N>> removedNonces;
 
 
     public OutgoingRequestManager(Endpoint selfEndpoint, NonceGenerator<N> nonceGenerator, NonceAccessor<N> nonceAccessor,
@@ -130,7 +131,7 @@ public final class OutgoingRequestManager<A, N> implements Processable {
     public Duration process(Instant time) {
         Validate.notNull(time);
         
-        removedNonces.clear();
+        removedNonces = new HashSet<>();
         
         while (!queue.isEmpty()) {
             Event event = queue.peek();
@@ -165,9 +166,13 @@ public final class OutgoingRequestManager<A, N> implements Processable {
         
         return queue.isEmpty() ? null : Duration.between(time, queue.peek().getTriggerTime());
     }
+
+    public UnmodifiableSet<Nonce<N>> getRemovedNonces() {
+        return (UnmodifiableSet) UnmodifiableSet.unmodifiableSet(removedNonces);
+    }
     
-    // check to see if the nonce in the message is currently being tracked by this manager, can be request or response
-    public boolean isMessageTracked(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
+    // check to see if the nonce in the message is currently being tracked and if the message itself = original request
+    public boolean isTrackedRequest(Instant time, Object request) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
         Validate.notNull(time);
         Validate.notNull(request);
@@ -179,7 +184,27 @@ public final class OutgoingRequestManager<A, N> implements Processable {
         
         // get nonce from response
         Nonce<N> nonce = nonceAccessor.get(request);
-        return requests.containsKey(nonce);
+        Request requestObj = requests.get(nonce);
+        
+        return requestObj == null ? false : request.equals(requestObj.getRequest());
+    }
+
+    // check to see if the nonce in the message is currently being tracked and that the message itself != original request
+    public boolean isExpectedResponse(Instant time, Object response) throws IllegalAccessException, IllegalArgumentException,
+            InvocationTargetException {
+        Validate.notNull(time);
+        Validate.notNull(response);
+
+        // validate response
+        if (!Validator.validate(response)) {
+            return false; // message failed to validate, treat it as if it isn't tracked
+        }
+        
+        // get nonce from response
+        Nonce<N> nonce = nonceAccessor.get(response);
+        Request requestObj = requests.get(nonce);
+        
+        return requestObj == null ? false : !response.equals(requestObj.getRequest());
     }
     
     public boolean testResponseMessage(Instant time, Object response) throws IllegalAccessException, IllegalArgumentException,

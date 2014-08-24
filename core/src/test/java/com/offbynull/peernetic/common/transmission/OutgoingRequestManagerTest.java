@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.common.transmission;
 
-import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
@@ -42,35 +41,35 @@ public final class OutgoingRequestManagerTest {
         Duration duration;
         
         // no send at 0L -- haven't hit resend time at 5L yet
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, request);
         Assert.assertEquals(Instant.ofEpochSecond(5L), nextInstant);
         
         // yes send at 5L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(10L), nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(2)).send(srcEndpoint, request);
         
         // yes send at 10L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(15L), nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(3)).send(srcEndpoint, request);
 
         // no send at 15L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(30L), nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(4)).send(srcEndpoint, request);
         
         // no send at 30L -- should be discarded
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request)); // should still be true - process() not called yet
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request)); // should still be true - process() not called yet
                                                                                           // with 30L
         duration = outgoingRequestManager.process(nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(4)).send(srcEndpoint, request);
@@ -78,7 +77,7 @@ public final class OutgoingRequestManagerTest {
         
         // no send at 12345L -- should be discarded
         nextInstant = Instant.ofEpochSecond(12345L);
-        Assert.assertFalse(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertFalse(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(4)).send(srcEndpoint, request);
         Assert.assertNull(duration);
@@ -109,14 +108,14 @@ public final class OutgoingRequestManagerTest {
         Duration duration;
         
         // no send at 0L -- haven't hit resend time at 5L yet
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, request);
         Assert.assertEquals(Instant.ofEpochSecond(5L), nextInstant);
         
         // yes send at 5L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(10L), nextInstant);
@@ -124,19 +123,21 @@ public final class OutgoingRequestManagerTest {
         
         // push in response at 5L
         nextInstant = Instant.ofEpochSecond(5L);
+        Assert.assertTrue(outgoingRequestManager.isExpectedResponse(nextInstant, response));
         Assert.assertTrue(outgoingRequestManager.testResponseMessage(nextInstant, response));
         Assert.assertFalse(outgoingRequestManager.testResponseMessage(nextInstant, response)); // should be false if done again
+        Assert.assertFalse(outgoingRequestManager.isExpectedResponse(nextInstant, response));
         
         
         // try again at 5L, should be no send and no next process time because of response
-        Assert.assertFalse(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertFalse(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         Assert.assertNull(duration);
         Mockito.verify(dstEndpoint, Mockito.times(2)).send(srcEndpoint, request);
 
         // no send at 12345L -- should be discarded
         nextInstant = Instant.ofEpochSecond(12345L);
-        Assert.assertFalse(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertFalse(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(2)).send(srcEndpoint, request);
         Assert.assertNull(duration);
@@ -166,14 +167,14 @@ public final class OutgoingRequestManagerTest {
         Duration duration;
         
         // no send at 0L -- haven't hit resend time at 5L yet
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, request);
         Assert.assertEquals(Instant.ofEpochSecond(5L), nextInstant);
         
         // yes send at 5L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(10L), nextInstant);
@@ -184,28 +185,28 @@ public final class OutgoingRequestManagerTest {
         Assert.assertFalse(outgoingRequestManager.testResponseMessage(nextInstant, response));
         
         // try again at 5L and make sure that its still good
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(10L), nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(2)).send(srcEndpoint, request);
         
         // yes send at 10L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(15L), nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(3)).send(srcEndpoint, request);
 
         // no send at 15L
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         nextInstant = nextInstant.plus(duration);
         Assert.assertEquals(Instant.ofEpochSecond(30L), nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(4)).send(srcEndpoint, request);
         
         // no send at 30L -- should be discarded
-        Assert.assertTrue(outgoingRequestManager.isMessageTracked(nextInstant, request)); // should still be true - process() not called yet
+        Assert.assertTrue(outgoingRequestManager.isTrackedRequest(nextInstant, request)); // should still be true - process() not called yet
                                                                                           // with 30L
         duration = outgoingRequestManager.process(nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(4)).send(srcEndpoint, request);
@@ -213,7 +214,7 @@ public final class OutgoingRequestManagerTest {
         
         // no send at 12345L -- should be discarded
         nextInstant = Instant.ofEpochSecond(12345L);
-        Assert.assertFalse(outgoingRequestManager.isMessageTracked(nextInstant, request));
+        Assert.assertFalse(outgoingRequestManager.isTrackedRequest(nextInstant, request));
         duration = outgoingRequestManager.process(nextInstant);
         Mockito.verify(dstEndpoint, Mockito.times(4)).send(srcEndpoint, request);
         Assert.assertNull(duration);

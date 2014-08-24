@@ -23,4 +23,14 @@ public interface NonceAccessor<T> {
         Validate.notNull(nonceValue);
         InternalUtils.setNonceValue(object, nonceValue);
     }
+    
+    default boolean containsNonceField(Object object) {
+        Validate.notNull(object);
+        try {
+            InternalUtils.findNonceField(object.getClass());
+            return true;
+        } catch (IllegalArgumentException iae) {
+            return false;
+        }
+    }
 }

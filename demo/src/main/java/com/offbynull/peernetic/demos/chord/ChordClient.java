@@ -148,14 +148,14 @@ public final class ChordClient<A> {
     @FilterHandler(JOINED_STATE)
     public boolean filterRequests(FiniteStateMachine fsm, Instant time, Request request, ChordContext<A> context)
             throws Exception {
-        return !context.getOutgoingRequestManager().isMessageTracked(time, request)
+        return !context.getOutgoingRequestManager().isTrackedRequest(time, request)
                 && context.getIncomingRequestManager().testRequestMessage(time, request);
     }
 
     @FilterHandler(JOINED_STATE)
     public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, ChordContext<A> context)
             throws Exception {
-        return context.getOutgoingRequestManager().isMessageTracked(time, response);
+        return context.getOutgoingRequestManager().isExpectedResponse(time, response);
     }
 
     @StateHandler(JOINED_STATE)

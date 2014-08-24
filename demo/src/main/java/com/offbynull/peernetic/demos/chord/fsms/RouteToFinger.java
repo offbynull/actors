@@ -67,7 +67,7 @@ public final class RouteToFinger<A> {
     @FilterHandler({AWAIT_PREDECESSOR_RESPONSE_STATE, AWAIT_SUCCESSOR_RESPONSE_STATE, AWAIT_ID_RESPONSE_STATE})
     public boolean filterResponses(FiniteStateMachine fsm, Instant time, Response response, ChordContext<A> context)
             throws Exception {
-        return context.getOutgoingRequestManager().isMessageTracked(time, response);
+        return context.getOutgoingRequestManager().isExpectedResponse(time, response);
     }
 
     private NonceManager<byte[]> nonceManager = new NonceManager<>();

@@ -89,7 +89,7 @@ public final class UnstructuredClient<A> {
             throws Exception{
 
         // if message to ourself (or invalid), don't process 
-        if (outgoingRequestManager.isMessageTracked(time, message)) {
+        if (!outgoingRequestManager.isTrackedRequest(time, message)) {
             return false;
         }
 

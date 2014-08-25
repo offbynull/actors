@@ -16,6 +16,7 @@
         <module>core</module>
         <module>demo</module>
         <module>debug</module>
+        <module>playground</module>
     </modules>
     
     <dependencyManagement>

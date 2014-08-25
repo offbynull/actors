@@ -29,4 +29,28 @@ public abstract class Message {
     }
     
     protected abstract void innerValidate();
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 53 * hash + Arrays.hashCode(this.nonce);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Message other = (Message) obj;
+        if (!Arrays.equals(this.nonce, other.nonce)) {
+            return false;
+        }
+        return true;
+    }
+    
+    
 }

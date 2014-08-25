@@ -10,9 +10,9 @@ public final class ContinuationActor<A> implements Actor {
     private UnstructuredClient<A> runnable;
     private Continuation continuation;
 
-    public ContinuationActor(UnstructuredClientListener<A> listener) {
-        Validate.notNull(listener);
-        runnable = new UnstructuredClient<>(listener);
+    public ContinuationActor(UnstructuredClient<A> client) {
+        Validate.notNull(client);
+        runnable = client;
         continuation = Continuation.startSuspendedWith(runnable);
     }
 

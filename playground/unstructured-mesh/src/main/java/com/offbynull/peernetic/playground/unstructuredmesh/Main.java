@@ -64,7 +64,8 @@ public final class Main {
 
         // Create actors
         for (int i = 0; i < actors.length; i++) {
-            actors[i] = new ContinuationActor(listener);
+            UnstructuredClient<? extends Object> client = new UnstructuredClient<>(listener);
+            actors[i] = new ContinuationActor(client);
         }
 
         // Start actors all within the same thread

@@ -10,6 +10,7 @@ import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceGenerator;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -98,6 +99,10 @@ public final class Router<A, N> implements Processable {
         responseNonceHandlers.put(nonce, actor);
     }
 
+    public int getPendingResponseCount(Actor actor) {
+        return (int) responseNonceHandlers.values().stream().filter(x -> x == actor).count();
+    }
+    
     public void sendResponse(Instant time, Object request, Object response, Endpoint srcEndpoint) {
         Validate.notNull(time);
         Validate.notNull(request);
@@ -115,8 +120,11 @@ public final class Router<A, N> implements Processable {
         Collection<Actor> actors = (Collection<Actor>) typeHandlers.get(message.getClass());
         actors = CollectionUtils.emptyIfNull(actors);
         
-        for (Actor actor : actors) {
-            actor.onStep(time, srcEndpoint, message);
+        if (!actors.isEmpty()
+                && (!nonceAccessor.containsNonceField(message) || incomingRequestManager.testRequestMessage(time, message))) {
+            for (Actor actor : new ArrayList<>(actors)) { // wrap in new list to avoid concurrent modification exception
+                actor.onStep(time, srcEndpoint, message);
+            }
         }
         
         
@@ -130,11 +138,11 @@ public final class Router<A, N> implements Processable {
         if (actor == null
                 || outgoingRequestManager.isTrackedRequest(time, message)
                 || !outgoingRequestManager.testResponseMessage(time, message)
-                || incomingRequestManager.testRequestMessage(time, message)) {
+                || incomingRequestManager.isHandledRequest(time, message)) {
             // if not expecting a response for this nonce value
             //   or if message being tested is a request that we originally sent out
             //   or if message being tested is NOT a response to a message we originally sent out
-            //   or if message being tested is a request that we've responded to already (if it is call sends out a copy of orig response)
+            //   or if message being tested is a request that we've already taken care of above
             return;
         }
         

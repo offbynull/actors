@@ -31,7 +31,7 @@ import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class UnstructuredClient<A> implements Runnable {
+public final class UnstructuredClient<A> implements ContinuableActor {
 
     public static final String INITIAL_STATE = "INITIAL";
     public static final String ACTIVE_STATE = "ACTIVE";
@@ -42,9 +42,9 @@ public final class UnstructuredClient<A> implements Runnable {
     private static final int MAX_INCOMING_JOINS = 4;
     private static final int MAX_OUTGOING_JOINS = 3;
 
-    private Instant time;
-    private Endpoint source;
-    private Object message;
+    Instant time;
+    Endpoint source;
+    Object message;
     
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
@@ -59,22 +59,25 @@ public final class UnstructuredClient<A> implements Runnable {
     private Endpoint selfEndpoint;
     private A selfAddress;
 
-    private UnstructuredClientListener<A> listener;
+    UnstructuredClientListener<A> listener;
 
     public UnstructuredClient(UnstructuredClientListener<A> listener) {
         Validate.notNull(listener);
         this.listener = listener;
     }
 
-    void setTime(Instant time) {
+    @Override
+    public void setTime(Instant time) {
         this.time = time;
     }
 
-    void setSource(Endpoint source) {
+    @Override
+    public void setSource(Endpoint source) {
         this.source = source;
     }
 
-    void setMessage(Object message) {
+    @Override
+    public void setMessage(Object message) {
         this.message = message;
     }
 

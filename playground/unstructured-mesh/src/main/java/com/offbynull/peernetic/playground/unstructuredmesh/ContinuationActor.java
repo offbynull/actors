@@ -6,11 +6,11 @@ import java.time.Instant;
 import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.Validate;
 
-public final class ContinuationActor<A> implements Actor {
-    private UnstructuredClient<A> runnable;
+public final class ContinuationActor implements Actor {
+    private ContinuableActor runnable;
     private Continuation continuation;
 
-    public ContinuationActor(UnstructuredClient<A> client) {
+    public ContinuationActor(ContinuableActor client) {
         Validate.notNull(client);
         runnable = client;
         continuation = Continuation.startSuspendedWith(runnable);
@@ -25,5 +25,6 @@ public final class ContinuationActor<A> implements Actor {
         continuation = Continuation.continueWith(continuation);
     }
 
+    
     
 }

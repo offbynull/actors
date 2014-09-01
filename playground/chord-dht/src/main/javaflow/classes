@@ -3,7 +3,9 @@ com/offbynull/peernetic/playground/chorddht/BaseContinuableTask.class
 com/offbynull/peernetic/playground/chorddht/ChordClient.class
 com/offbynull/peernetic/playground/chorddht/tasks/CheckPredecessorTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/FixFingerTableTask.class
-com/offbynull/peernetic/playground/chorddht/tasks/GenerateFingerTableTask.class
+com/offbynull/peernetic/playground/chorddht/tasks/JoinTask.class
+com/offbynull/peernetic/playground/chorddht/tasks/UpdateOthersTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/ResponderTask.class
-com/offbynull/peernetic/playground/chorddht/tasks/RouteToFingerTask.class
+com/offbynull/peernetic/playground/chorddht/tasks/RouteToSuccessorTask.class
+com/offbynull/peernetic/playground/chorddht/tasks/RouteToPredecessorTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/StabilizeTask.class

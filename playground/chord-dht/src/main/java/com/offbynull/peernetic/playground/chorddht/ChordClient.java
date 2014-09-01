@@ -9,9 +9,10 @@ import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import com.offbynull.peernetic.playground.chorddht.tasks.CheckPredecessorTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.FixFingerTableTask;
-import com.offbynull.peernetic.playground.chorddht.tasks.GenerateFingerTableTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.JoinTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.ResponderTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.StabilizeTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.UpdateOthersTask;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -46,13 +47,14 @@ public final class ChordClient<A> implements ContinuableTask {
                     context.getNonceAccessor(),
                     context.getEndpointDirectory()));
             
-            GenerateFingerTableTask<A> gftt = GenerateFingerTableTask.createAndAssignToRouter(time, context);
+            JoinTask<A> gftt = JoinTask.createAndAssignToRouter(time, context);
             
             while(!gftt.getEncapsulatingActor().isFinished()) {
                 Continuation.suspend();
                 context.getRouter().routeMessage(time, message, source);
             }
 
+            UpdateOthersTask<A> uot = UpdateOthersTask.createAndAssignToRouter(time, context);
             FixFingerTableTask<A> fftt = FixFingerTableTask.createAndAssignToRouter(time, context);
             StabilizeTask<A> st = StabilizeTask.createAndAssignToRouter(time, context);
             CheckPredecessorTask<A> cpt = CheckPredecessorTask.createAndAssignToRouter(time, context);
@@ -73,6 +75,9 @@ public final class ChordClient<A> implements ContinuableTask {
     private void notifyStateChange(ChordContext<A> context) {
         Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
                 context.getFingerTable().dump().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
+        if (context.getPredecessor() != null) {
+            newPointers.add(context.getPredecessor());
+        }
         
         Set<Pointer> addedPointers = new HashSet<>(newPointers);
         addedPointers.removeAll(lastNotifiedPointers);

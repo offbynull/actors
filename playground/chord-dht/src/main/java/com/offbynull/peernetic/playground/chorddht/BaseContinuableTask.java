@@ -225,6 +225,13 @@ public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
         }
     }
 
+    protected void sendAndIgnore(Object request, A address) {
+        Validate.notNull(request);
+        Validate.isTrue(nonceAccessor.containsNonceField(request));
+
+        router.sendRequest(actor, time, request, address);
+    }
+
     protected void scheduleTimer() {
         router.addTypeHandler(actor, TimerTrigger.class);
         endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
@@ -236,12 +243,6 @@ public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
         if (!timerTrigger.checkParent(this)) {
             // this timertrigger is from some other routetofingertask (probably a prior one), ignore it
             return false;
-        }
-
-        if (router.getPendingResponseCount(actor) == 0) {
-            // we have no more messages pending, so stop
-            Continuation.exit();
-            return false; // never makes it to this point, here jsut in case
         }
 
         Duration nextDuration = ProcessableUtils.invokeProcessablesAndScheduleEarliestDuration(time);

@@ -14,12 +14,13 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccesso
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyResponse;
+import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableRequest;
+import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Instant;
 import java.util.List;
-import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
@@ -38,6 +39,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
         context.getRouter().addTypeHandler(encapsulatingActor, GetPredecessorRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, GetSuccessorRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, NotifyRequest.class);
+        context.getRouter().addTypeHandler(encapsulatingActor, UpdateFingerTableRequest.class);
         
         return task;
     }
@@ -93,6 +95,24 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
                     ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
                     context.getRouter().sendResponse(getTime(), message,
                             new NotifyResponse<>(msgValues.getLeft(), msgValues.getRight()), getSource()); 
+                } else if (message instanceof UpdateFingerTableRequest) {
+                    UpdateFingerTableRequest request = (UpdateFingerTableRequest) message;
+                    byte[] idBytes = request.getId();
+                    Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
+                    
+                    ExternalPointer<A> newFinger =
+                            new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
+                    
+                    int idx = request.getFingerIndex();
+                    
+                    if (id.isWithin(context.getSelfId(), true, context.getFingerTable().getExpectedId(idx), false)) {
+                        context.getFingerTable().put(newFinger);
+                        if (context.getPredecessor() != null) {
+                            sendAndIgnore(new UpdateFingerTableRequest(idBytes, 0), context.getPredecessor().getAddress());
+                        }
+                    }
+                    
+                    context.getRouter().sendResponse(getTime(), message, new UpdateFingerTableResponse(), getSource()); 
                 }
             }
         } finally {

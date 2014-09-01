@@ -47,7 +47,7 @@ public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> 
             scheduleTimer();
             
             while (true) {
-                for (int i = 1; i <= maxIdx; i++) {
+                for (int i = 1; i < maxIdx; i++) {
                     Id findId = context.getFingerTable().getExpectedId(i);
                     Pointer fromNode = context.getFingerTable().get(0);
                     
@@ -55,7 +55,7 @@ public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> 
                         break;
                     }
 
-                    RouteToFingerTask<A> routeToFingerTask = RouteToFingerTask.createAndAssignToRouter(getTime(), context,
+                    RouteToSuccessorTask<A> routeToFingerTask = RouteToSuccessorTask.createAndAssignToRouter(getTime(), context,
                             ((ExternalPointer<A>) fromNode), findId);
                     waitUntilFinished(routeToFingerTask.getEncapsulatingActor());
 

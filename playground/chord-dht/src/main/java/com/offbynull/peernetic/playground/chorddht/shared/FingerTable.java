@@ -389,6 +389,25 @@ public final class FingerTable<A> {
     }
 
     /**
+     * Get the id of other nodes that should have this node in its finger table. For example, for a 16 node ring with base id 8, router
+     * position 0 expects 7, router position 1 expects 6, router position 2 expects 4, and router position 3 expects 0. For more
+     * information, see Chord research paper.
+     * @param idx router position to get expected id for
+     * @return expected id for a specific router position
+     * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()} (size of table = bit size of base pointer's limit)
+     */
+    public Id getRouterId(int idx) {
+        Validate.inclusiveBetween(0, table.size() - 1, idx);
+
+        BigInteger data = BigInteger.ONE.shiftLeft(idx);
+        byte[] offsetIdRaw = data.toByteArray();
+        Id offsetId = new Id(offsetIdRaw, basePtr.getId().getLimitAsByteArray());
+        Id routerId = Id.subtract(getBaseId(), offsetId);
+        
+        return routerId;
+    }
+
+    /**
      * Removes a pointer in to the finger table. If the pointer doesn't exist in the finger table, does nothing. See the
      * constraints/guarantees mentioned in the class Javadoc: {@link FingerTable}.
      * @param ptr pointer to put in as finger

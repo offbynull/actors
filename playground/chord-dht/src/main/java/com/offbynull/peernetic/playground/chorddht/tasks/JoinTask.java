@@ -12,16 +12,17 @@ import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
+import java.math.BigInteger;
 import java.time.Instant;
 import org.apache.commons.javaflow.Continuation;
 
-public final class GenerateFingerTableTask<A> extends BaseContinuableTask<A, byte[]> {
+public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
 
     private final ChordContext<A> context;
 
-    public static <A> GenerateFingerTableTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context) throws Exception {
+    public static <A> JoinTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context) throws Exception {
         // create
-        GenerateFingerTableTask<A> task = new GenerateFingerTableTask<>(context);
+        JoinTask<A> task = new JoinTask<>(context);
         ContinuationActor encapsulatingActor = new ContinuationActor(task);
         task.setEncapsulatingActor(encapsulatingActor);
 
@@ -33,11 +34,11 @@ public final class GenerateFingerTableTask<A> extends BaseContinuableTask<A, byt
         return task;
     }
 
-    public static <A> void unassignFromRouter(ChordContext<A> context, GenerateFingerTableTask<A> task) {
+    public static <A> void unassignFromRouter(ChordContext<A> context, JoinTask<A> task) {
         context.getRouter().removeActor(task.getEncapsulatingActor());
     }
 
-    private GenerateFingerTableTask(ChordContext<A> context) {
+    private JoinTask(ChordContext<A> context) {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         this.context = context;
     }
@@ -51,6 +52,7 @@ public final class GenerateFingerTableTask<A> extends BaseContinuableTask<A, byt
             SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
             int maxIdx = ChordUtils.getBitLength(context.getSelfId());
             
+            
             // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
             if (initialAddress == null) {
                 context.setFingerTable(fingerTable);
@@ -58,24 +60,34 @@ public final class GenerateFingerTableTask<A> extends BaseContinuableTask<A, byt
                 return;
             }
 
+            
             // start timer
             scheduleTimer();
 
+            
             // ask for bootstrap node's id
             GetIdResponse gir = sendAndWaitUntilResponse(new GetIdRequest(), initialAddress, GetIdResponse.class);
+            
+            if (context.getSelfId().getValueAsBigInteger().equals(BigInteger.ONE)) {
+                System.out.println("hit");
+            }
+            
             Id initialId = new Id(gir.getId(), maxIdx);
             ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
 
+            
             // fill up finger table
-            for (int i = 0; i <= maxIdx; i++) {
+            for (int i = 0; i < maxIdx; i++) {
                 Id findId = fingerTable.getExpectedId(i);
 
-                RouteToFingerTask<A> routeToFingerTask = RouteToFingerTask.createAndAssignToRouter(getTime(), context, fromNode, findId);
+                RouteToSuccessorTask<A> routeToFingerTask = RouteToSuccessorTask.createAndAssignToRouter(getTime(), context, fromNode, findId);
                 waitUntilFinished(routeToFingerTask.getEncapsulatingActor());
 
                 ExternalPointer<A> foundFinger = routeToFingerTask.getResult();
                 fingerTable.put(foundFinger);
             }
+            
+            successorTable.updateTrim(fingerTable.get(0));
             
             context.setFingerTable(fingerTable);
             context.setSuccessorTable(successorTable);

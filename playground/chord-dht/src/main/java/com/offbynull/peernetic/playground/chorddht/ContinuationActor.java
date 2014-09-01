@@ -2,7 +2,7 @@ package com.offbynull.peernetic.playground.chorddht;
 
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.playground.chorddht.tasks.GenerateFingerTableTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.JoinTask;
 import java.time.Instant;
 import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.Validate;
@@ -26,7 +26,7 @@ public final class ContinuationActor implements Actor {
             runnable.setTime(time);
         
             continuation = Continuation.continueWith(continuation);
-            if (runnable.getClass() == GenerateFingerTableTask.class && continuation == null) {
+            if (runnable.getClass() == JoinTask.class && continuation == null) {
                 System.out.println("hi");
             }
         }

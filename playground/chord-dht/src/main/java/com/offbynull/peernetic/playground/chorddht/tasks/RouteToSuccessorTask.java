@@ -19,7 +19,7 @@ import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RouteToFingerTask<A> extends BaseContinuableTask<A, byte[]> {
+public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]> {
     private final ChordContext<A> context;
     private final Id findId;
     private ExternalPointer<A> currentNode;
@@ -28,10 +28,10 @@ public final class RouteToFingerTask<A> extends BaseContinuableTask<A, byte[]> {
     private A foundAddress;
     
     
-    public static <A> RouteToFingerTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, ExternalPointer<A> initialNode,
+    public static <A> RouteToSuccessorTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, ExternalPointer<A> initialNode,
             Id findId) throws Exception {
         // create
-        RouteToFingerTask<A> task = new RouteToFingerTask<>(context, initialNode, findId);
+        RouteToSuccessorTask<A> task = new RouteToSuccessorTask<>(context, initialNode, findId);
         ContinuationActor encapsulatingActor = new ContinuationActor(task);
         task.setEncapsulatingActor(encapsulatingActor);
         
@@ -43,11 +43,11 @@ public final class RouteToFingerTask<A> extends BaseContinuableTask<A, byte[]> {
         return task;
     }
     
-    public static <A> void unassignFromRouter(ChordContext<A> context, RouteToFingerTask<A> task) {
+    public static <A> void unassignFromRouter(ChordContext<A> context, RouteToSuccessorTask<A> task) {
         context.getRouter().removeActor(task.getEncapsulatingActor());
     }
     
-    private RouteToFingerTask(ChordContext<A> context, ExternalPointer<A> initialNode, Id findId) {
+    private RouteToSuccessorTask(ChordContext<A> context, ExternalPointer<A> initialNode, Id findId) {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);

@@ -31,8 +31,6 @@ public class ChordContext<A> {
     
     private Id selfId;
     private A bootstrapAddress;
-    
-    private Endpoint sourceEndpoint;
 
     public ChordContext(ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener) {
         this.activeListener = activeListener;
@@ -122,14 +120,6 @@ public class ChordContext<A> {
 
     public void setBootstrapAddress(A bootstrapAddress) {
         this.bootstrapAddress = bootstrapAddress;
-    }
-
-    public Endpoint getSourceEndpoint() {
-        return sourceEndpoint;
-    }
-
-    public void setSourceEndpoint(Endpoint sourceEndpoint) {
-        this.sourceEndpoint = sourceEndpoint;
     }
 
     public FingerTable<A> getFingerTable() {

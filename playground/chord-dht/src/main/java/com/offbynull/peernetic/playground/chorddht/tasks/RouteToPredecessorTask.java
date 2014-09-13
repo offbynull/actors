@@ -9,13 +9,10 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestP
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.SuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -28,10 +25,9 @@ public final class RouteToPredecessorTask<A> extends BaseContinuableTask<A, byte
     private A foundAddress;
     
     
-    public static <A> RouteToPredecessorTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, ExternalPointer<A> initialNode,
-            Id findId) throws Exception {
+    public static <A> RouteToPredecessorTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, Id findId) throws Exception {
         // create
-        RouteToPredecessorTask<A> task = new RouteToPredecessorTask<>(context, initialNode, findId);
+        RouteToPredecessorTask<A> task = new RouteToPredecessorTask<>(context, findId);
         ContinuationActor encapsulatingActor = new ContinuationActor(task);
         task.setEncapsulatingActor(encapsulatingActor);
         
@@ -47,16 +43,14 @@ public final class RouteToPredecessorTask<A> extends BaseContinuableTask<A, byte
         context.getRouter().removeActor(task.getEncapsulatingActor());
     }
     
-    private RouteToPredecessorTask(ChordContext<A> context, ExternalPointer<A> initialNode, Id findId) {
+    private RouteToPredecessorTask(ChordContext<A> context, Id findId) {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
-        Validate.notNull(initialNode);
         Validate.notNull(findId);
 
         this.context = context;
         this.findId = findId;
-        this.currentNode = initialNode;
     }
     
     @Override
@@ -64,8 +58,24 @@ public final class RouteToPredecessorTask<A> extends BaseContinuableTask<A, byte
         try {
             scheduleTimer();
             
+            if (findId.isWithin(context.getSelfId(), false, context.getSuccessorTable().getSuccessor().getId(), true)) {
+                foundId = context.getSelfId();
+                foundAddress = null;
+                return;
+            }
+            
+            Pointer initialPointer = context.getFingerTable().findClosestPreceding(findId);
+            if (initialPointer instanceof InternalPointer) { // if the closest predecessor is yourself -- which means the ft is empty
+                foundId = context.getSelfId();
+                foundAddress = null;
+                return;
+            } else if (initialPointer instanceof ExternalPointer) {
+                currentNode = (ExternalPointer<A>) initialPointer;
+            } else {
+                throw new IllegalStateException();
+            }
+            
             byte[] findIdData = findId.getValueAsByteArray();
-
             
             // move forward until you can't move forward anymore
             while (true) {
@@ -98,7 +108,7 @@ public final class RouteToPredecessorTask<A> extends BaseContinuableTask<A, byte
             
             
             // ask for forward-most's successor, wait for response here
-            GetIdResponse gir = sendAndWaitUntilResponse(new GetSuccessorRequest(), currentNode.getAddress(),
+            GetIdResponse gir = sendAndWaitUntilResponse(new GetIdRequest(), currentNode.getAddress(),
                     GetIdResponse.class);
 
             int bitSize = ChordUtils.getBitLength(findId);
@@ -109,9 +119,13 @@ public final class RouteToPredecessorTask<A> extends BaseContinuableTask<A, byte
         }
     }
 
-    public ExternalPointer<A> getResult() {
-        if (foundId == null || foundAddress == null) {
+    public Pointer getResult() {
+        if (foundId == null) {
             return null;
+        }
+        
+        if (foundId.equals(context.getSelfId())) {
+            return new InternalPointer(foundId);
         }
         
         return new ExternalPointer<>(foundId, foundAddress);

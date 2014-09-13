@@ -9,7 +9,6 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdReques
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import java.time.Instant;
-import org.apache.commons.javaflow.Continuation;
 
 public final class CheckPredecessorTask<A> extends BaseContinuableTask<A, byte[]> {
 

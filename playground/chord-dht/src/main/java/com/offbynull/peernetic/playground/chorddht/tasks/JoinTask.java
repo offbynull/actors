@@ -14,7 +14,6 @@ import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
 import java.math.BigInteger;
 import java.time.Instant;
-import org.apache.commons.javaflow.Continuation;
 
 public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
 

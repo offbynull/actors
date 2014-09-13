@@ -141,7 +141,7 @@ public final class FingerTable<A> {
     }
 
     /**
-     * Searches the finger table for the closest to the id being searched for (closest in terms of being {@code <=} to).
+     * Searches the finger table for the closest to the id being searched for (closest in terms of being {@code <}).
      *
      * @param id id being searched for
      * @return closest preceding pointer

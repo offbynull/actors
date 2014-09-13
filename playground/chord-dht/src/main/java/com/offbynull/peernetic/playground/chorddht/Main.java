@@ -31,7 +31,6 @@ import java.awt.Color;
 import java.awt.Point;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Duration;
 
 public final class Main {
 
@@ -114,7 +113,7 @@ public final class Main {
     }
     
     private static <T> void showNode(Visualizer<Id> visualizer, Id id, Mode mode) {
-        Point position = VisualizerUtils.pointOnCircle(800.0,
+        Point position = VisualizerUtils.pointOnCircle(300.0,
                 new BigDecimal(new BigInteger(id.getValueAsByteArray()))
                 .divide(new BigDecimal(new BigInteger(id.getLimitAsByteArray()).add(BigInteger.ONE)))
                 .doubleValue());

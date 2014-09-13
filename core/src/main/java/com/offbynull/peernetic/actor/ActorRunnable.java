@@ -166,6 +166,12 @@ public final class ActorRunnable implements Runnable {
                 long start = System.currentTimeMillis();
                 Instant time = Instant.now();
                 for (InternalEnvelope env : envs) {
+                    if (LOG.isTraceEnabled()) {
+                        Actor actor = actors.get(env.getActorIndex());
+                        Endpoint selfEndpoint = endpoints.get(actor);
+                        LOG.trace("Processing message from {} to {}: {}", env.getSource(), selfEndpoint, env.getMessage());
+                    }
+                    
                     runActor(time, env, active, activeCount);
                     if (activeCount.getValue() == 0) {
                         LOG.info("No more actors present in thread, shutting down");

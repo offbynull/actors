@@ -9,7 +9,6 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFinge
 import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Instant;
 
@@ -42,25 +41,23 @@ public final class UpdateOthersTask<A> extends BaseContinuableTask<A, byte[]> {
     @Override
     public void run() {
         try {
+            // start timer
+            scheduleTimer();
+            
             int maxIdx = ChordUtils.getBitLength(context.getSelfId());
             for (int i = 0; i < maxIdx; i++) {
+                // get id of node that should have us in its finger table at index i
                 Id routerId = context.getFingerTable().getRouterId(i);
-                
-                Pointer pointer = context.getFingerTable().findClosestPreceding(routerId);
-                if (pointer instanceof InternalPointer) {
-                    continue;
-                }
-                
-                ExternalPointer<A> externalPointer = (ExternalPointer<A>) pointer;
 
-                RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.createAndAssignToRouter(getTime(), context,
-                        externalPointer, routerId);
+                // route to that id or the closest predecessor of that id
+                RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.createAndAssignToRouter(getTime(), context, routerId);
                 waitUntilFinished(routeToPredTask.getEncapsulatingActor());
-
-                ExternalPointer<A> foundRouter = routeToPredTask.getResult();
-                if (foundRouter != null) {
-                    sendAndWaitUntilResponse(new UpdateFingerTableRequest(routerId.getValueAsByteArray(), i), foundRouter.getAddress(),
-                            UpdateFingerTableResponse.class);
+                Pointer foundRouter = routeToPredTask.getResult();
+                
+                // if found, let it know that we think it might need to have use in its finger table
+                if (foundRouter != null && foundRouter instanceof ExternalPointer) {
+                    sendAndWaitUntilResponse(new UpdateFingerTableRequest(context.getSelfId().getValueAsByteArray(), i),
+                            ((ExternalPointer<A>) foundRouter).getAddress(), UpdateFingerTableResponse.class);
                 }
             }
         } catch (Exception e) {

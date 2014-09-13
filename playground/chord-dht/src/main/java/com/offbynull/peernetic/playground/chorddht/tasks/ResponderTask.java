@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
+import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
@@ -27,7 +28,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
 
     private final ChordContext<A> context;
 
-    public static <A> ResponderTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context) {
+    public static <A> ResponderTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context) throws Exception {
         // create
         ResponderTask<A> task = new ResponderTask<>(context);
         ContinuationActor encapsulatingActor = new ContinuationActor(task);
@@ -40,6 +41,9 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
         context.getRouter().addTypeHandler(encapsulatingActor, GetSuccessorRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, NotifyRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, UpdateFingerTableRequest.class);
+        
+        // prime
+        encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
         
         return task;
     }
@@ -58,7 +62,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
         try {
             while (true) {
                 Object message = waitUntilType(GetIdRequest.class, GetClosestPrecedingFingerRequest.class, GetPredecessorRequest.class,
-                        GetSuccessorRequest.class, NotifyRequest.class);
+                        GetSuccessorRequest.class, NotifyRequest.class, UpdateFingerTableRequest.class);
                 
                 if (message instanceof GetIdRequest) {
                     context.getRouter().sendResponse(getTime(), message, new GetIdResponse(context.getSelfId().getValueAsByteArray()),
@@ -105,7 +109,9 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
                     
                     int idx = request.getFingerIndex();
                     
-                    if (id.isWithin(context.getSelfId(), true, context.getFingerTable().getExpectedId(idx), false)) {
+                    Pointer currentFinger = context.getFingerTable().get(idx);
+                    if (context.getSelfId().equals(currentFinger.getId()) ||
+                            id.isWithin(context.getSelfId(), true, context.getFingerTable().get(idx).getId(), false)) {
                         context.getFingerTable().put(newFinger);
                         if (context.getPredecessor() != null) {
                             sendAndIgnore(new UpdateFingerTableRequest(idBytes, 0), context.getPredecessor().getAddress());
@@ -134,5 +140,9 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
         } else {
             throw new IllegalStateException();
         }
+    }
+    
+    private static final class InternalStart {
+        
     }
 }

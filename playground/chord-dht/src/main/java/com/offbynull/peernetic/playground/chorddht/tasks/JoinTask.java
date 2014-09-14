@@ -66,30 +66,20 @@ public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
             
             // ask for bootstrap node's id
             GetIdResponse gir = sendAndWaitUntilResponse(new GetIdRequest(), initialAddress, GetIdResponse.class);
-            
             if (context.getSelfId().getValueAsBigInteger().equals(BigInteger.ONE)) {
                 System.out.println("hit");
             }
-            
             Id initialId = new Id(gir.getId(), maxIdx);
-            ExternalPointer<A> fromNode = new ExternalPointer<>(initialId, initialAddress);
-
             
-            // fill up finger table
-            for (int i = 0; i < maxIdx; i++) {
-                Id findId = fingerTable.getExpectedId(i);
 
-                RouteToSuccessorTask<A> routeToFingerTask = RouteToSuccessorTask.createAndAssignToRouter(getTime(), context, fromNode, findId);
-                waitUntilFinished(routeToFingerTask.getEncapsulatingActor());
-
-                ExternalPointer<A> foundFinger = routeToFingerTask.getResult();
-                fingerTable.put(foundFinger);
-            }
+            // init finger table, successor table, etc...
+            InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.createAndAssignToRouter(getTime(), context,
+                    new ExternalPointer<>(initialId, initialAddress));
+            waitUntilFinished(initFingerTableTask.getEncapsulatingActor());
             
-            successorTable.updateTrim(fingerTable.get(0));
-            
-            context.setFingerTable(fingerTable);
-            context.setSuccessorTable(successorTable);
+            // notify our fingers that we're here
+            UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.createAndAssignToRouter(getTime(), context);
+            waitUntilFinished(updateOthersTask.getEncapsulatingActor());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         } finally {

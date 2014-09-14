@@ -1,10 +1,12 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
+import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
+import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
@@ -19,17 +21,17 @@ import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]> {
+public final class RemoteRouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]> {
     private final ChordContext<A> context;
     private final Id findId;
+    private final Object originalRequest;
+    private final Endpoint originalSource;
     
-    private Id foundId;
-    private A foundAddress;
     
-    
-    public static <A> RouteToSuccessorTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, Id findId) throws Exception {
+    public static <A> RemoteRouteToSuccessorTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, Id findId,
+            Object originalRequest, Endpoint originalSource) throws Exception {
         // create
-        RouteToSuccessorTask<A> task = new RouteToSuccessorTask<>(context, findId);
+        RemoteRouteToSuccessorTask<A> task = new RemoteRouteToSuccessorTask<>(context, findId, originalRequest, originalSource);
         ContinuationActor encapsulatingActor = new ContinuationActor(task);
         task.setEncapsulatingActor(encapsulatingActor);
         
@@ -41,18 +43,22 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
         return task;
     }
     
-    public static <A> void unassignFromRouter(ChordContext<A> context, RouteToSuccessorTask<A> task) {
+    public static <A> void unassignFromRouter(ChordContext<A> context, RemoteRouteToSuccessorTask<A> task) {
         context.getRouter().removeActor(task.getEncapsulatingActor());
     }
     
-    private RouteToSuccessorTask(ChordContext<A> context, Id findId) {
+    private RemoteRouteToSuccessorTask(ChordContext<A> context, Id findId, Object originalRequest, Endpoint originalSource) {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
         Validate.notNull(findId);
+        Validate.notNull(originalRequest);
+        Validate.notNull(originalSource);
 
         this.context = context;
         this.findId = findId;
+        this.originalRequest = originalRequest;
+        this.originalSource = originalSource;
     }
     
     @Override
@@ -61,15 +67,17 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
             scheduleTimer();
             
             // find predecessor
-            RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.createAndAssignToRouter(getTime(), context, findId);
+            RouteToSuccessorTask<A> routeToPredTask = RouteToSuccessorTask.createAndAssignToRouter(getTime(), context, findId);
             waitUntilFinished(routeToPredTask.getEncapsulatingActor());
-            Pointer foundPred = routeToPredTask.getResult();
+            Pointer foundSucc = routeToPredTask.getResult();
             
-            if (foundPred == null) {
-                return;
+            if (foundSucc == null) {
+                throw new IllegalArgumentException();
             }
             
-            if (foundPred instanceof InternalPointer) {
+            Id foundId;
+            A foundAddress = null;
+            if (foundSucc instanceof InternalPointer) {
                 Pointer successor = context.getFingerTable().get(0);
                 
                 if (successor instanceof InternalPointer) {
@@ -79,12 +87,10 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
                     foundId = externalSuccessor.getId();
                     foundAddress = externalSuccessor.getAddress();
                 } else {
-                    throw new IllegalStateException();
+                    throw new IllegalArgumentException();
                 }
-                
-                return;
-            } else if (foundPred instanceof ExternalPointer) {
-                ExternalPointer<A> externalPred = (ExternalPointer<A>) foundPred;
+            } else if (foundSucc instanceof ExternalPointer) {
+                ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
                 
                 GetSuccessorResponse<A> gsr = sendAndWaitUntilResponse(new GetSuccessorRequest(), externalPred.getAddress(),
                     GetSuccessorResponse.class);
@@ -98,7 +104,7 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
                 } else if (successorEntry instanceof ExternalSuccessorEntry) {
                     address = ((ExternalSuccessorEntry<A>) successorEntry).getAddress();
                 } else {
-                    throw new IllegalStateException();
+                    throw new IllegalArgumentException();
                 }
 
                 // ask for that successor's id, wait for response here
@@ -108,25 +114,16 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
                 foundId = new Id(gir.getId(), bitSize);
                 foundAddress = context.getEndpointIdentifier().identify(getSource());
             } else {
-                throw new IllegalStateException();
+                throw new IllegalArgumentException();
             }
+            
+            FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
+            context.getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         } finally {
             unassignFromRouter(context, this);
         }
-    }
-
-    public Pointer getResult() {
-        if (foundId == null) {
-            return null;
-        }
-        
-        if (foundId.equals(context.getSelfId())) {
-            return new InternalPointer(foundId);
-        }
-        
-        return new ExternalPointer<>(foundId, foundAddress);
     }
     
     private static final class InternalStart {

@@ -5,6 +5,7 @@ import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
+import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
@@ -41,6 +42,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
         context.getRouter().addTypeHandler(encapsulatingActor, GetSuccessorRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, NotifyRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, UpdateFingerTableRequest.class);
+        context.getRouter().addTypeHandler(encapsulatingActor, FindSuccessorRequest.class);
         
         // prime
         encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
@@ -62,7 +64,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
         try {
             while (true) {
                 Object message = waitUntilType(GetIdRequest.class, GetClosestPrecedingFingerRequest.class, GetPredecessorRequest.class,
-                        GetSuccessorRequest.class, NotifyRequest.class, UpdateFingerTableRequest.class);
+                        GetSuccessorRequest.class, NotifyRequest.class, UpdateFingerTableRequest.class, FindSuccessorRequest.class);
                 
                 if (message instanceof GetIdRequest) {
                     context.getRouter().sendResponse(getTime(), message, new GetIdResponse(context.getSelfId().getValueAsByteArray()),
@@ -119,6 +121,17 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
                     }
                     
                     context.getRouter().sendResponse(getTime(), message, new UpdateFingerTableResponse(), getSource()); 
+                } else if (message instanceof FindSuccessorRequest) {
+                    FindSuccessorRequest request = (FindSuccessorRequest) message;
+                    byte[] idBytes = request.getId();
+                    Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
+                    
+                    try {
+                        // we don't want to block this task by waiting for remoteroutetosuccessor to complete
+                        RemoteRouteToSuccessorTask.createAndAssignToRouter(getTime(), context, id, request, getSource());
+                    } catch (Exception e) {
+                        // should never happen
+                    }
                 }
             }
         } finally {

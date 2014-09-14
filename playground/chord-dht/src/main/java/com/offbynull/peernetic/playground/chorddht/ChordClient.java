@@ -54,7 +54,6 @@ public final class ChordClient<A> implements ContinuableTask {
                 context.getRouter().routeMessage(time, message, source);
             }
 
-            UpdateOthersTask<A> uot = UpdateOthersTask.createAndAssignToRouter(time, context);
             FixFingerTableTask<A> fftt = FixFingerTableTask.createAndAssignToRouter(time, context);
             StabilizeTask<A> st = StabilizeTask.createAndAssignToRouter(time, context);
             CheckPredecessorTask<A> cpt = CheckPredecessorTask.createAndAssignToRouter(time, context);

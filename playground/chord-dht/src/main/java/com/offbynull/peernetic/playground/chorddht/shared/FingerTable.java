@@ -19,6 +19,7 @@ package com.offbynull.peernetic.playground.chorddht.shared;
 import com.offbynull.peernetic.common.identification.Id;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import org.apache.commons.lang3.Validate;
@@ -162,6 +163,74 @@ public final class FingerTable<A> {
             // then return it
             Id fingerId = ie.pointer.getId();
             if (fingerId.isWithin(selfId, false, id, false)) {
+                foundEntry = ie;
+                break;
+            }
+        }
+
+        return foundEntry == null ? basePtr : foundEntry.pointer;
+    }
+
+    /**
+     * Searches the finger table for the closest id to the id being searched for (closest in terms of being {@code <=} to).
+     *
+     * @param id id being searched for
+     * @return closest pointer (closest in terms of being {@code <=} to)
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id}'s has a different limit bit size than base pointer's id
+     */
+    public Pointer findClosest(Id id) {
+        Validate.notNull(id);
+        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+
+        Id selfId = basePtr.getId();
+
+        InternalEntry foundEntry = null;
+        ListIterator<InternalEntry> lit = table.listIterator(table.size());
+        while (lit.hasPrevious()) {
+            InternalEntry ie = lit.previous();
+            // if finger[i] exists between n (exclusive) and id (exclusive)
+            // then return it
+            Id fingerId = ie.pointer.getId();
+            if (fingerId.isWithin(selfId, false, id, true)) {
+                foundEntry = ie;
+                break;
+            }
+        }
+
+        return foundEntry == null ? basePtr : foundEntry.pointer;
+    }
+
+    /**
+     * Searches the finger table for the closest id to the id being searched for (closest in terms of being {@code <=} to), but skips
+     * certain ids.
+     *
+     * @param id id being searched for
+     * @param skipIds ids being skipped
+     * @return closest pointer (closest in terms of being {@code <=} to)
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id}'s has a different limit bit size than base pointer's id
+     */
+    public Pointer findClosest(Id id, Id ... skipIds) {
+        Validate.notNull(id);
+        Validate.noNullElements(skipIds);
+        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+
+        List<Id> skipIdList = Arrays.asList(skipIds);
+        Id selfId = basePtr.getId();
+
+        InternalEntry foundEntry = null;
+        ListIterator<InternalEntry> lit = table.listIterator(table.size());
+        while (lit.hasPrevious()) {
+            InternalEntry ie = lit.previous();
+            Id fingerId = ie.pointer.getId();
+            // if finger should be skipped, ignore it
+            if (skipIdList.contains(fingerId)) {
+                continue;
+            }
+            // if finger[i] exists between n (exclusive) and id (exclusive)
+            // then return it
+            if (fingerId.isWithin(selfId, false, id, true)) {
                 foundEntry = ie;
                 break;
             }
@@ -499,6 +568,38 @@ public final class FingerTable<A> {
     }
 
     /**
+     * Gets finger before {@code id}.
+     *
+     * @param id id to search for
+     * @return finger before (@code id}, or {@code null} if not found
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id} has a different limit bit size than base pointer's id, or if {@code id} is equivalent
+     * to base pointer's id
+     */
+    public Pointer getBefore(Id id) {
+        Validate.notNull(id);
+        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+
+        Id baseId = basePtr.getId();
+
+        if (id.equals(baseId)) {
+            throw new IllegalArgumentException();
+        }
+
+        ListIterator<InternalEntry> lit = table.listIterator(table.size());
+        while (lit.hasPrevious()) {
+            InternalEntry ie = lit.previous();
+            Id testId = ie.pointer.getId();
+
+            if (Id.comparePosition(baseId, id, testId) > 0) {
+                return lit.hasPrevious() ? lit.previous().pointer : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Removes all fingers before {@code id} (does not remove {@code id} itself).
      *
      * @param id id of which all fingers before it will be removed
@@ -508,7 +609,7 @@ public final class FingerTable<A> {
      * to base pointer's id
      */
     public int clearBefore(Id id) {
-       Validate.notNull(id);
+        Validate.notNull(id);
         Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
 
         Id baseId = basePtr.getId();

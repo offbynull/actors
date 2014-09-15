@@ -6,6 +6,8 @@ import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;
+import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerRequest;
+import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
@@ -37,6 +39,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
 
         // register types here
         context.getRouter().addTypeHandler(encapsulatingActor, GetIdRequest.class);
+        context.getRouter().addTypeHandler(encapsulatingActor, GetClosestFingerRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, GetClosestPrecedingFingerRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, GetPredecessorRequest.class);
         context.getRouter().addTypeHandler(encapsulatingActor, GetSuccessorRequest.class);
@@ -63,12 +66,21 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
     public void run() {
         try {
             while (true) {
-                Object message = waitUntilType(GetIdRequest.class, GetClosestPrecedingFingerRequest.class, GetPredecessorRequest.class,
-                        GetSuccessorRequest.class, NotifyRequest.class, UpdateFingerTableRequest.class, FindSuccessorRequest.class);
+                Object message = waitUntilType(GetIdRequest.class, GetClosestPrecedingFingerRequest.class, GetClosestFingerRequest.class,
+                        GetPredecessorRequest.class, GetSuccessorRequest.class, NotifyRequest.class, UpdateFingerTableRequest.class,
+                        FindSuccessorRequest.class);
                 
                 if (message instanceof GetIdRequest) {
                     context.getRouter().sendResponse(getTime(), message, new GetIdResponse(context.getSelfId().getValueAsByteArray()),
                             getSource());
+                } else if (message instanceof GetClosestFingerRequest) {
+                    GetClosestFingerRequest request = (GetClosestFingerRequest) message;
+                    Id id = new Id(request.getId(), context.getSelfId().getLimitAsByteArray());
+                    Id skipId = new Id(request.getSkipId(), context.getSelfId().getLimitAsByteArray());
+                    Pointer pointer = context.getFingerTable().findClosest(id, skipId);
+                    ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
+                    context.getRouter().sendResponse(getTime(), message,
+                            new GetClosestFingerResponse<>(msgValues.getLeft(), msgValues.getRight()), getSource());             
                 } else if (message instanceof GetClosestPrecedingFingerRequest) {
                     GetClosestPrecedingFingerRequest request = (GetClosestPrecedingFingerRequest) message;
                     Id id = new Id(request.getId(), context.getSelfId().getLimitAsByteArray());

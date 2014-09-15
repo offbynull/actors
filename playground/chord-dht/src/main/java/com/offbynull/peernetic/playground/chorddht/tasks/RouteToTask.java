@@ -5,16 +5,8 @@ import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerRequest;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.SuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
+import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerRequest;
+import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
@@ -63,9 +55,7 @@ public final class RouteToTask<A> extends BaseContinuableTask<A, byte[]> {
         try {
             scheduleTimer();
             
-            Id idAfterFindId = findId.increment();
-            
-            Pointer initialPointer = context.getFingerTable().findClosestPreceding(idAfterFindId);
+            Pointer initialPointer = context.getFingerTable().findClosest(findId);
             if (initialPointer instanceof InternalPointer) {
                 // our finger table may be corrupt/incomplete, try with maximum non-base finger
                 initialPointer = context.getFingerTable().getMaximumNonBase();
@@ -77,14 +67,15 @@ public final class RouteToTask<A> extends BaseContinuableTask<A, byte[]> {
             }
             
             currentNode = (ExternalPointer<A>) initialPointer;
-            byte[] findIdData = idAfterFindId.getValueAsByteArray();
+            byte[] findIdData = findId.getValueAsByteArray();
+            byte[] skipIdData = context.getSelfId().getValueAsByteArray();
             
             // move forward until you can't move forward anymore
             while (true) {
                 Id oldCurrentNodeId = currentNode.getId();
                 
-                GetClosestPrecedingFingerResponse<A> gcpfr = sendAndWaitUntilResponse(new GetClosestPrecedingFingerRequest(findIdData),
-                        currentNode.getAddress(), GetClosestPrecedingFingerResponse.class);
+                GetClosestFingerResponse<A> gcpfr = sendAndWaitUntilResponse(new GetClosestFingerRequest(findIdData, skipIdData),
+                        currentNode.getAddress(), GetClosestFingerResponse.class);
 
                 A address = gcpfr.getAddress();
                 byte[] respIdData = gcpfr.getId();

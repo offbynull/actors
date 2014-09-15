@@ -77,9 +77,9 @@ public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
                     new ExternalPointer<>(initialId, initialAddress));
             waitUntilFinished(initFingerTableTask.getEncapsulatingActor());
             
-            // notify our fingers that we're here
+            // notify our fingers that we're here, we don't need to wait until finished
             UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.createAndAssignToRouter(getTime(), context);
-            waitUntilFinished(updateOthersTask.getEncapsulatingActor());
+            //waitUntilFinished(updateOthersTask.getEncapsulatingActor());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         } finally {

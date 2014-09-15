@@ -23,26 +23,19 @@ import org.apache.commons.lang3.Validate;
 public final class UpdateFingerTableRequest extends Request {
 
     private byte[] id;
-    private int fingerIndex;
 
-    public UpdateFingerTableRequest(byte[] id, int fingerIndex) {
+    public UpdateFingerTableRequest(byte[] id) {
         this.id = Arrays.copyOf(id, id.length);
-        this.fingerIndex = fingerIndex;
         validate();
     }
 
     public byte[] getId() {
         return Arrays.copyOf(id, id.length);
     }
-
-    public int getFingerIndex() {
-        return fingerIndex;
-    }
     
     @Override
     protected void innerValidate() {
         Validate.notNull(id);
         Validate.isTrue(id.length > 0);
-        Validate.isTrue(fingerIndex >= 0);
     }
 }

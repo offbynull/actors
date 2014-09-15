@@ -252,12 +252,13 @@ public final class FingerTable<A> {
      * Index 2 = id:5 (base)
      * </pre>
      *
+     * @return {@code true} if one or more entries were replaced, {@code false} otherwise
      * @param ptr pointer to add in as finger
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code ptr}'s id has a different limit bit size than the base pointer's id, or if {@code ptr} has
      * an id that matches the base pointer's id
      */
-    public void replace(ExternalPointer<A> ptr) {
+    public boolean replace(ExternalPointer<A> ptr) {
         Validate.notNull(ptr);
         Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
 
@@ -282,7 +283,7 @@ public final class FingerTable<A> {
         }
 
         if (replacePos == -1) {
-            return;
+            return false;
         }
 
 
@@ -307,6 +308,8 @@ public final class FingerTable<A> {
                 }
             }
         }
+        
+        return true;
     }
 
     /**
@@ -445,7 +448,7 @@ public final class FingerTable<A> {
             }
         }
     }
-
+    
     /**
      * Removes the pointer at index {@code idx} of the finger table. See the constraints / guarantees mentioned in the class Javadoc:
      * {@link FingerTable}.
@@ -610,6 +613,92 @@ public final class FingerTable<A> {
             InternalEntry priorEntry = table.get(i);
             priorEntry.pointer = basePtr;
         }
+    }
+    
+    /**
+     * Searches the finger table for the right-most occurrence of {@code ptr}.
+     * @param ptr pointer to search for
+     * @return index of occurrence, or -1 if not found
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different limit bit size than the base pointer's id
+     */
+    public int getMaximumIndex(Pointer ptr) {
+        Validate.notNull(ptr);
+        Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
+
+        Id id = ptr.getId();
+        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+
+        ListIterator<InternalEntry> lit = table.listIterator(table.size());
+        while (lit.hasPrevious()) {
+            InternalEntry ie = lit.previous();
+            
+            if (ie.pointer.equals(ptr)) {
+                return lit.previousIndex() + 1;
+            }
+        }
+        
+        return -1;
+    }
+
+    /**
+     * Searches the finger table for the left-most occurrence of {@code ptr}.
+     * @param ptr pointer to search for
+     * @return index of occurrence, or -1 if not found
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different limit bit size than the base pointer's id
+     */
+    public int getMinimumIndex(Pointer ptr) {
+        Validate.notNull(ptr);
+        Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
+
+        Id id = ptr.getId();
+        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+
+        ListIterator<InternalEntry> lit = table.listIterator();
+        while (lit.hasNext()) {
+            InternalEntry ie = lit.next();
+            
+            if (ie.pointer.equals(ptr)) {
+                return lit.nextIndex() - 1;
+            }
+        }
+        
+        return -1;
+    }
+
+    /**
+     * Searches the finger table for {@code ptr}.
+     * @param ptr pointer to search for
+     * @return {@code true} if found, {@code false} otherwise
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code ptr}'s id has a different limit bit size than the base pointer's id
+     */
+    public boolean contains(Pointer ptr) {
+        return getMinimumIndex(ptr) != -1;
+    }
+
+    /**
+     * Searches the finger table for {@code id}.
+     * @param id id to search for
+     * @return {@code true} if found, {@code false} otherwise
+     * @throws NullPointerException if any arguments are {@code null}
+     * @throws IllegalArgumentException if {@code id} has a different limit bit size than the base pointer's id
+     */
+    public boolean contains(Id id) {
+        Validate.notNull(id);
+        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+
+        ListIterator<InternalEntry> lit = table.listIterator();
+        while (lit.hasNext()) {
+            InternalEntry ie = lit.next();
+            
+            if (ie.pointer.getId().equals(id)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

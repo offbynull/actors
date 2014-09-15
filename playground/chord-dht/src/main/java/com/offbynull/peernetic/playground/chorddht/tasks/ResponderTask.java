@@ -105,18 +105,13 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
                     UpdateFingerTableRequest request = (UpdateFingerTableRequest) message;
                     byte[] idBytes = request.getId();
                     Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
-                    
                     ExternalPointer<A> newFinger =
                             new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
-                    
-                    int idx = request.getFingerIndex();
-                    
-                    Pointer currentFinger = context.getFingerTable().get(idx);
-                    if (context.getSelfId().equals(currentFinger.getId()) ||
-                            id.isWithin(context.getSelfId(), true, context.getFingerTable().get(idx).getId(), false)) {
-                        context.getFingerTable().put(newFinger);
-                        if (context.getPredecessor() != null) {
-                            sendAndIgnore(new UpdateFingerTableRequest(idBytes, 0), context.getPredecessor().getAddress());
+
+                    if (!id.equals(context.getSelfId())) {
+                        boolean replaced = context.getFingerTable().replace(newFinger);
+                        if (replaced && context.getPredecessor() != null) {
+                            sendAndIgnore(new UpdateFingerTableRequest(idBytes), context.getPredecessor().getAddress());
                         }
                     }
                     
@@ -128,7 +123,7 @@ public final class ResponderTask<A> extends BaseContinuableTask<A, byte[]> {
                     
                     try {
                         // we don't want to block this task by waiting for remoteroutetosuccessor to complete
-                        RemoteRouteToSuccessorTask.createAndAssignToRouter(getTime(), context, id, request, getSource());
+                        RemoteRouteToTask.createAndAssignToRouter(getTime(), context, id, request, getSource());
                     } catch (Exception e) {
                         // should never happen
                     }

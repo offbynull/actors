@@ -64,17 +64,9 @@ public final class InitFingerTableTask<A> extends BaseContinuableTask<A, byte[]>
             
             FindSuccessorResponse<A> fsr = sendAndWaitUntilResponse(new FindSuccessorRequest(expectedSuccesorId.getValueAsByteArray()),
                     bootstrapNode.getAddress(), FindSuccessorResponse.class);
-            
-            if (fsr.getId() == null) {
+            ExternalPointer<A> successor = convertToExternalPointer(fsr.getId(), fsr.getAddress());
+            if (successor == null) {
                 throw new IllegalStateException();
-            }
-            
-            ExternalPointer<A> successor;
-            if (fsr.getAddress() == null) {
-                successor = new ExternalPointer<>(new Id(fsr.getId(), context.getSelfId().getLimitAsByteArray()),
-                        bootstrapNode.getAddress());
-            } else {
-                successor = new ExternalPointer<>(new Id(fsr.getId(), context.getSelfId().getLimitAsByteArray()), fsr.getAddress());
             }
             fingerTable.put(successor);
             
@@ -83,35 +75,27 @@ public final class InitFingerTableTask<A> extends BaseContinuableTask<A, byte[]>
             GetPredecessorResponse<A> gpr = sendAndWaitUntilResponse(new GetPredecessorRequest(), successor.getAddress(),
                     GetPredecessorResponse.class);
 
-            if (gpr.getId() == null || gpr.getAddress() == null) {
-                throw new IllegalStateException();
-            }
-
             
             // populate fingertable
-            for (int i = 0; i < maxIdx; i++) {
+            for (int i = 1; i < maxIdx; i++) {
                 if (fingerTable.get(i) instanceof ExternalPointer) {
                     continue;
                 }
                 
                 // get expected id of entry in finger table
-                Id findId = context.getFingerTable().getExpectedId(i);
+                Id findId = fingerTable.getExpectedId(i);
 
                 // route to id
-                RouteToSuccessorTask<A> routeToNextFingerTask = RouteToSuccessorTask.createAndAssignToRouter(getTime(), context, findId);
-                waitUntilFinished(routeToNextFingerTask.getEncapsulatingActor());
-                Pointer foundFinger = routeToNextFingerTask.getResult();
+                fsr = sendAndWaitUntilResponse(new FindSuccessorRequest(findId.getValueAsByteArray()),
+                        bootstrapNode.getAddress(), FindSuccessorResponse.class);
+                ExternalPointer<A> foundFinger = convertToExternalPointer(fsr.getId(), fsr.getAddress());
 
                 // set in to finger table
                 if (foundFinger == null) {
                     continue;
                 }
 
-                if (!(foundFinger instanceof ExternalPointer)) {
-                    throw new IllegalStateException();
-                }
-
-                context.getFingerTable().put((ExternalPointer<A>) foundFinger);
+                fingerTable.put((ExternalPointer<A>) foundFinger);
             }
             
             
@@ -120,19 +104,37 @@ public final class InitFingerTableTask<A> extends BaseContinuableTask<A, byte[]>
             successorTable.updateTrim(fingerTable.get(0));
             
             
-            // notify our successor that we're its pred
-            sendAndWaitUntilResponse(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
-                    successor.getAddress(), NotifyResponse.class);
+//            // notify our successor that we're its pred
+//            sendAndWaitUntilResponse(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
+//                    successor.getAddress(), NotifyResponse.class);
             
             
             // update context fields
             context.setFingerTable(fingerTable);
             context.setSuccessorTable(successorTable);
-            context.setPredecessor(new ExternalPointer<>(new Id(gpr.getId(), context.getSelfId().getLimitAsByteArray()), gpr.getAddress()));
+            
+            if (gpr.getId() != null) {
+                Id gprId = new Id(gpr.getId(), context.getSelfId().getLimitAsByteArray());
+                if (gprId.equals(context.getSelfId())) {
+                    context.setPredecessor(new ExternalPointer<>(gprId, gpr.getAddress()));
+                }
+            }
         } catch (Exception e) {
             throw new IllegalStateException(e);
         } finally {
             unassignFromRouter(context, this);
+        }
+    }
+    
+    private ExternalPointer<A> convertToExternalPointer(byte[] idData, A address) {
+        if (idData == null) {
+            throw new IllegalStateException();
+        }
+
+        if (address == null) {
+            return new ExternalPointer<>(new Id(idData, context.getSelfId().getLimitAsByteArray()), bootstrapNode.getAddress());
+        } else {
+            return new ExternalPointer<>(new Id(idData, context.getSelfId().getLimitAsByteArray()), address);
         }
     }
     

@@ -6,8 +6,9 @@ com/offbynull/peernetic/playground/chorddht/tasks/FixFingerTableTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/JoinTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/UpdateOthersTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/ResponderTask.class
+com/offbynull/peernetic/playground/chorddht/tasks/RouteToTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/RouteToSuccessorTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/RouteToPredecessorTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/StabilizeTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/InitFingerTableTask.class
-com/offbynull/peernetic/playground/chorddht/tasks/RemoteRouteToSuccessorTask.class
+com/offbynull/peernetic/playground/chorddht/tasks/RemoteRouteToTask.class

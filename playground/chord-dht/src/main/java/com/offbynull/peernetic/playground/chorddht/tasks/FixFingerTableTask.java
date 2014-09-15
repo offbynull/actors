@@ -52,7 +52,7 @@ public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> 
                     Id findId = context.getFingerTable().getExpectedId(i);
 
                     // route to id
-                    RouteToSuccessorTask<A> routeToFingerTask = RouteToSuccessorTask.createAndAssignToRouter(getTime(), context, findId);
+                    RouteToTask<A> routeToFingerTask = RouteToTask.createAndAssignToRouter(getTime(), context, findId);
                     waitUntilFinished(routeToFingerTask.getEncapsulatingActor());
                     Pointer foundFinger = routeToFingerTask.getResult();
                     
@@ -62,10 +62,10 @@ public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> 
                     }
                     
                     if (foundFinger instanceof InternalPointer) {
-                        Pointer existingPointer = context.getFingerTable().get(i);
-                        if (existingPointer instanceof ExternalPointer) {
-                            context.getFingerTable().remove((ExternalPointer<A>) existingPointer);
-                        }
+//                        Pointer existingPointer = context.getFingerTable().get(i);
+//                        if (existingPointer instanceof ExternalPointer) {
+//                            context.getFingerTable().remove((ExternalPointer<A>) existingPointer);
+//                        }
                     } else if (foundFinger instanceof ExternalPointer) {
                         context.getFingerTable().put((ExternalPointer<A>) foundFinger);
                     } else {

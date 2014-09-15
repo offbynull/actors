@@ -68,7 +68,7 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
             if (foundPred == null) {
                 return;
             }
-            
+                       
             if (foundPred instanceof InternalPointer) {
                 Pointer successor = context.getFingerTable().get(0);
                 
@@ -81,8 +81,6 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
                 } else {
                     throw new IllegalStateException();
                 }
-                
-                return;
             } else if (foundPred instanceof ExternalPointer) {
                 ExternalPointer<A> externalPred = (ExternalPointer<A>) foundPred;
                 

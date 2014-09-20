@@ -9,14 +9,12 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccess
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyRequest;
-import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
+import java.time.Duration;
 import java.time.Instant;
 
 public final class InitFingerTableTask<A> extends BaseContinuableTask<A, byte[]> {
@@ -33,7 +31,7 @@ public final class InitFingerTableTask<A> extends BaseContinuableTask<A, byte[]>
 
         // register types here
 
-        // send priming message
+        // sendRequest priming message
         encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
         
         return task;
@@ -50,79 +48,63 @@ public final class InitFingerTableTask<A> extends BaseContinuableTask<A, byte[]>
     }
 
     @Override
-    public void run() {
-        try {
-            int maxIdx = ChordUtils.getBitLength(context.getSelfId());
-            
-            // start timer
-            scheduleTimer();
-            
-            
-            // create fingertable -- find our successor from the bootstrap node and store it in the fingertable
-            FingerTable fingerTable = new FingerTable(new InternalPointer(context.getSelfId()));
-            Id expectedSuccesorId = fingerTable.getExpectedId(0);
-            
-            FindSuccessorResponse<A> fsr = sendAndWaitUntilResponse(new FindSuccessorRequest(expectedSuccesorId.getValueAsByteArray()),
-                    bootstrapNode.getAddress(), FindSuccessorResponse.class);
-            ExternalPointer<A> successor = convertToExternalPointer(fsr.getId(), fsr.getAddress());
-            if (successor == null) {
-                throw new IllegalStateException();
+    public void execute() throws Exception {
+        int maxIdx = ChordUtils.getBitLength(context.getSelfId());
+
+        // create fingertable -- find our successor from the bootstrap node and store it in the fingertable
+        FingerTable fingerTable = new FingerTable(new InternalPointer(context.getSelfId()));
+        Id expectedSuccesorId = fingerTable.getExpectedId(0);
+
+        FindSuccessorResponse<A> fsr = sendRequestAndWait(new FindSuccessorRequest(expectedSuccesorId.getValueAsByteArray()),
+                bootstrapNode.getAddress(), FindSuccessorResponse.class, Duration.ofSeconds(3L));
+        ExternalPointer<A> successor = convertToExternalPointer(fsr.getId(), fsr.getAddress());
+        if (successor == null) {
+            throw new IllegalStateException();
+        }
+        fingerTable.put(successor);
+
+        // get our successor's pred 
+        GetPredecessorResponse<A> gpr = sendRequestAndWait(new GetPredecessorRequest(), successor.getAddress(),
+                GetPredecessorResponse.class, Duration.ofSeconds(3L));
+
+        // populate fingertable
+        for (int i = 1; i < maxIdx; i++) {
+            if (fingerTable.get(i) instanceof ExternalPointer) {
+                continue;
             }
-            fingerTable.put(successor);
-            
-            
-            // get our successor's pred 
-            GetPredecessorResponse<A> gpr = sendAndWaitUntilResponse(new GetPredecessorRequest(), successor.getAddress(),
-                    GetPredecessorResponse.class);
 
-            
-            // populate fingertable
-            for (int i = 1; i < maxIdx; i++) {
-                if (fingerTable.get(i) instanceof ExternalPointer) {
-                    continue;
-                }
-                
-                // get expected id of entry in finger table
-                Id findId = fingerTable.getExpectedId(i);
+            // get expected id of entry in finger table
+            Id findId = fingerTable.getExpectedId(i);
 
-                // route to id
-                fsr = sendAndWaitUntilResponse(new FindSuccessorRequest(findId.getValueAsByteArray()),
-                        bootstrapNode.getAddress(), FindSuccessorResponse.class);
-                ExternalPointer<A> foundFinger = convertToExternalPointer(fsr.getId(), fsr.getAddress());
+            // route to id
+            fsr = sendRequestAndWait(new FindSuccessorRequest(findId.getValueAsByteArray()),
+                    bootstrapNode.getAddress(), FindSuccessorResponse.class, Duration.ofSeconds(3L));
+            ExternalPointer<A> foundFinger = convertToExternalPointer(fsr.getId(), fsr.getAddress());
 
-                // set in to finger table
-                if (foundFinger == null) {
-                    continue;
-                }
-
-                fingerTable.put((ExternalPointer<A>) foundFinger);
+            // set in to finger table
+            if (foundFinger == null) {
+                continue;
             }
-            
-            
-            // create successor table and sync to finger table
-            SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
-            successorTable.updateTrim(fingerTable.get(0));
-            
-            
+
+            fingerTable.put((ExternalPointer<A>) foundFinger);
+        }
+
+        // create successor table and sync to finger table
+        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
+        successorTable.updateTrim(fingerTable.get(0));
+
 //            // notify our successor that we're its pred
-//            sendAndWaitUntilResponse(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
+//            sendRequestAndWait(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
 //                    successor.getAddress(), NotifyResponse.class);
-            
-            
-            // update context fields
-            context.setFingerTable(fingerTable);
-            context.setSuccessorTable(successorTable);
-            
-            if (gpr.getId() != null) {
-                Id gprId = new Id(gpr.getId(), context.getSelfId().getLimitAsByteArray());
-                if (gprId.equals(context.getSelfId())) {
-                    context.setPredecessor(new ExternalPointer<>(gprId, gpr.getAddress()));
-                }
+        // update context fields
+        context.setFingerTable(fingerTable);
+        context.setSuccessorTable(successorTable);
+
+        if (gpr.getId() != null) {
+            Id gprId = new Id(gpr.getId(), context.getSelfId().getLimitAsByteArray());
+            if (gprId.equals(context.getSelfId())) {
+                context.setPredecessor(new ExternalPointer<>(gprId, gpr.getAddress()));
             }
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            unassignFromRouter(context, this);
         }
     }
     

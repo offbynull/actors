@@ -18,6 +18,7 @@ import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -62,72 +63,64 @@ public final class RemoteRouteToTask<A> extends BaseContinuableTask<A, byte[]> {
     }
     
     @Override
-    public void run() {
-        try {
-            scheduleTimer();
-            
-            // find predecessor
-            RouteToTask<A> routeToTask = RouteToTask.createAndAssignToRouter(getTime(), context, findId);
-            waitUntilFinished(routeToTask.getEncapsulatingActor());
-            Pointer foundSucc = routeToTask.getResult();
-            
-            if (foundSucc == null) {
-                throw new IllegalArgumentException();
-            }
-            
-            Id foundId;
-            A foundAddress = null;
-            
-            boolean isInternalPointer = foundSucc instanceof InternalPointer;
-            boolean isExternalPointer = foundSucc instanceof ExternalPointer;
-            
-            if (isInternalPointer) {
-                Pointer successor = context.getFingerTable().get(0);
-                
-                if (successor instanceof InternalPointer) {
-                    foundId = successor.getId(); // id will always be the same as us
-                } else if (successor instanceof ExternalPointer) {
-                    ExternalPointer<A> externalSuccessor = (ExternalPointer<A>) successor;
-                    foundId = externalSuccessor.getId();
-                    foundAddress = externalSuccessor.getAddress();
-                } else {
-                    throw new IllegalStateException();
-                }
-            } else if (isExternalPointer) {
-                ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
-                
-                GetSuccessorResponse<A> gsr = sendAndWaitUntilResponse(new GetSuccessorRequest(), externalPred.getAddress(),
-                    GetSuccessorResponse.class);
-                
-                SuccessorEntry successorEntry = gsr.getEntries().get(0);
+    public void execute() throws Exception {
+        // find predecessor
+        RouteToTask<A> routeToTask = RouteToTask.createAndAssignToRouter(getTime(), context, findId);
+        waitUntilFinished(routeToTask.getEncapsulatingActor(), Duration.ofSeconds(1L));
+        Pointer foundSucc = routeToTask.getResult();
 
-                A senderAddress = context.getEndpointIdentifier().identify(getSource());
-                A address;
-                if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
-                    address = senderAddress;
-                } else if (successorEntry instanceof ExternalSuccessorEntry) {
-                    address = ((ExternalSuccessorEntry<A>) successorEntry).getAddress();
-                } else {
-                    throw new IllegalStateException();
-                }
+        if (foundSucc == null) {
+            throw new IllegalArgumentException();
+        }
 
-                // ask for that successor's id, wait for response here
-                GetIdResponse gir = sendAndWaitUntilResponse(new GetIdRequest(), address, GetIdResponse.class);
+        Id foundId;
+        A foundAddress = null;
 
-                int bitSize = ChordUtils.getBitLength(findId);
-                foundId = new Id(gir.getId(), bitSize);
-                foundAddress = context.getEndpointIdentifier().identify(getSource());
+        boolean isInternalPointer = foundSucc instanceof InternalPointer;
+        boolean isExternalPointer = foundSucc instanceof ExternalPointer;
+
+        if (isInternalPointer) {
+            Pointer successor = context.getFingerTable().get(0);
+
+            if (successor instanceof InternalPointer) {
+                foundId = successor.getId(); // id will always be the same as us
+            } else if (successor instanceof ExternalPointer) {
+                ExternalPointer<A> externalSuccessor = (ExternalPointer<A>) successor;
+                foundId = externalSuccessor.getId();
+                foundAddress = externalSuccessor.getAddress();
             } else {
                 throw new IllegalStateException();
             }
-            
-            FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
-            context.getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            unassignFromRouter(context, this);
+        } else if (isExternalPointer) {
+            ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
+
+            GetSuccessorResponse<A> gsr = sendRequestAndWait(new GetSuccessorRequest(), externalPred.getAddress(),
+                    GetSuccessorResponse.class, Duration.ofSeconds(3L));
+
+            SuccessorEntry successorEntry = gsr.getEntries().get(0);
+
+            A senderAddress = context.getEndpointIdentifier().identify(getSource());
+            A address;
+            if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
+                address = senderAddress;
+            } else if (successorEntry instanceof ExternalSuccessorEntry) {
+                address = ((ExternalSuccessorEntry<A>) successorEntry).getAddress();
+            } else {
+                throw new IllegalStateException();
+            }
+
+            // ask for that successor's id, wait for response here
+            GetIdResponse gir = sendRequestAndWait(new GetIdRequest(), address, GetIdResponse.class, Duration.ofSeconds(3L));
+
+            int bitSize = ChordUtils.getBitLength(findId);
+            foundId = new Id(gir.getId(), bitSize);
+            foundAddress = context.getEndpointIdentifier().identify(getSource());
+        } else {
+            throw new IllegalStateException();
         }
+
+        FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
+        context.getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
     }
     
     private static final class InternalStart {

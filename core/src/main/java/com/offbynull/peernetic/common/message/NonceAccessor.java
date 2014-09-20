@@ -33,4 +33,14 @@ public interface NonceAccessor<T> {
             return false;
         }
     }
+
+    default boolean containsNonceField(Class<?> cls) {
+        Validate.notNull(cls);
+        try {
+            InternalUtils.findNonceField(cls);
+            return true;
+        } catch (IllegalArgumentException iae) {
+            return false;
+        }
+    }
 }

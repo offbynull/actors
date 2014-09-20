@@ -8,6 +8,7 @@ import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
+import java.time.Duration;
 import java.time.Instant;
 
 public final class CheckPredecessorTask<A> extends BaseContinuableTask<A, byte[]> {
@@ -22,7 +23,7 @@ public final class CheckPredecessorTask<A> extends BaseContinuableTask<A, byte[]
 
         // register types here
 
-        // send priming message
+        // sendRequest priming message
         encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
         
         return task;
@@ -38,29 +39,23 @@ public final class CheckPredecessorTask<A> extends BaseContinuableTask<A, byte[]
     }
 
     @Override
-    public void run() {
-        try {
-            // start timer
-            scheduleTimer();
-            
-            while (true) {
-                ExternalPointer<A> predecessor = context.getPredecessor();
-                
-                if (predecessor == null) {
-                    waitCycles(1);
-                    continue;
-                }
-                GetIdResponse gir = sendAndWaitUntilResponse(new GetIdRequest(), predecessor.getAddress(), GetIdResponse.class);
-                Id id = new Id(gir.getId(), context.getSelfId().getLimitAsByteArray());
-                
-                if (!id.equals(predecessor.getId())) {
-                    context.setPredecessor(null);
-                }
-                
-                waitCycles(1);
+    public void execute() throws Exception {
+        while (true) {
+            ExternalPointer<A> predecessor = context.getPredecessor();
+
+            if (predecessor == null) {
+                wait(Duration.ofSeconds(1L));
+                continue;
             }
-        } finally {
-            unassignFromRouter(context, this);
+            GetIdResponse gir = sendRequestAndWait(new GetIdRequest(), predecessor.getAddress(), GetIdResponse.class,
+                    Duration.ofSeconds(3L));
+            Id id = new Id(gir.getId(), context.getSelfId().getLimitAsByteArray());
+
+            if (!id.equals(predecessor.getId())) {
+                context.setPredecessor(null);
+            }
+
+            wait(Duration.ofSeconds(1L));
         }
     }
     

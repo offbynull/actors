@@ -2,7 +2,6 @@ package com.offbynull.peernetic.playground.chorddht;
 
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.ProcessableUtils;
 import com.offbynull.peernetic.common.message.Nonce;
 import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.transmission.Router;
@@ -11,13 +10,12 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
 
 public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
-
-    private static final Duration TIMER_DURATION = Duration.ofSeconds(3L);
 
     private Instant time;
     private Endpoint source;
@@ -28,6 +26,8 @@ public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
     private final Endpoint selfEndpoint;
     private final EndpointScheduler endpointScheduler;
     private final NonceAccessor<N> nonceAccessor;
+    
+    private int nextTimerMarker;
 
     public BaseContinuableTask(Router<A, N> router, Endpoint selfEndpoint, EndpointScheduler endpointScheduler,
             NonceAccessor<N> nonceAccessor) {
@@ -86,38 +86,46 @@ public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
         return actor;
     }
 
-    protected void waitUntilFinished(ContinuationActor actor) {
+    public abstract void execute() throws Exception;
+    
+    @Override
+    public final void run() {
+        try {
+            execute();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        } finally {
+            router.removeActor(actor);
+        }
+    }
+
+    protected void waitUntilFinished(ContinuationActor actor, Duration checkInterval) {
         if (actor.isFinished()) {
             return;
         }
+        
+        startTimerEvent(checkInterval);
 
         while (true) {
             Continuation.suspend();
             
             // handle timer
-            if (message.getClass() == TimerTrigger.class) {
-                handleTimerEvent();
-            }
-
-            if (actor.isFinished()) {
-                return;
+            if (isTimerEventHit()) {
+                if (actor.isFinished()) {
+                    return;
+                }
+                startTimerEvent(checkInterval);
             }
         }
     }
 
-    protected Object waitUntilType(Class<?>... types) {
+    protected Object waitForRequest(Class<?>... types) {
         Validate.noNullElements(types);
+        Validate.isTrue(Arrays.stream(types).allMatch(x -> nonceAccessor.containsNonceField((Class<?>) x)));
         Set<Class<?>> typesSet = new HashSet<>(Arrays.asList(types));
-
+        
         while (true) {
             Continuation.suspend();
-
-            // handle timer
-            if (message.getClass() == TimerTrigger.class) {
-                if (!handleTimerEvent()) {
-                    continue;
-                }
-            }
 
             // return if this is an expected response type
             if (typesSet.contains(message.getClass())) {
@@ -126,20 +134,31 @@ public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
         }
     }
 
-    protected void waitUntilResponse(Object request) {
+    protected <T> T sendRequestAndWait(Object request, A address, Class<T> expectedResponseType, Duration timeout) {
+        sendRequest(request, address);
+        return waitUntilNonce(request, expectedResponseType, timeout);
+    }
+
+    protected void sendRequest(Object request, A address) {
         Validate.notNull(request);
         Validate.isTrue(nonceAccessor.containsNonceField(request));
 
-        Nonce<N> nonce = nonceAccessor.get(request);
+        router.sendRequest(actor, time, request, address);
+    }
+
+    private Object waitUntilNonce(Duration timeout, BooleanSupplier messagePredicate) {
+        Validate.notNull(timeout);
+        Validate.notNull(messagePredicate);
+        Validate.isTrue(timeout.compareTo(Duration.ZERO) >= 0);
+        
+        startTimerEvent(timeout);
 
         while (true) {
             Continuation.suspend();
 
             // handle timer
-            if (message.getClass() == TimerTrigger.class) {
-                if (!handleTimerEvent()) {
-                    continue;
-                }
+            if (isTimerEventHit()) {
+                return null;
             }
 
             // return if this is an expected response type
@@ -147,121 +166,106 @@ public abstract class BaseContinuableTask<A, N> implements ContinuableTask {
                 continue;
             }
 
-            Nonce<N> extractedNonce = nonceAccessor.get(message);
-            if (extractedNonce.equals(nonce)) {
-                return;
+            if (messagePredicate.getAsBoolean()) {
+                return message;
             }
         }
     }
-
-    protected void waitUntilNonce(Nonce<N> nonce) {
+    
+    protected <T> T waitUntilNonce(Nonce<N> nonce, Duration timeout) {
+        Validate.notNull(timeout);
         Validate.notNull(nonce);
+        Validate.isTrue(timeout.compareTo(Duration.ZERO) >= 0);
+        
+        return (T) waitUntilNonce(timeout, () -> {
+            Nonce<N> extractedNonce = nonceAccessor.get(message);
+            return extractedNonce.equals(nonce);
+        });
+    }
 
+    protected <T> T waitUntilNonce(Nonce<N> nonce, Class<?> expectedResponseType, Duration timeout) {
+        Validate.notNull(expectedResponseType);
+        Validate.notNull(timeout);
+        Validate.notNull(nonce);
+        Validate.isTrue(timeout.compareTo(Duration.ZERO) >= 0);
+        
+        return (T) waitUntilNonce(timeout, () -> {
+            Nonce<N> extractedNonce = nonceAccessor.get(message);
+            return extractedNonce.equals(nonce) && ClassUtils.isAssignable(message.getClass(), expectedResponseType);
+        });
+    }
+
+    protected Object waitUntilNonce(Object request, Duration timeout) {
+        Validate.notNull(timeout);
+        Validate.notNull(request);
+        Validate.isTrue(nonceAccessor.containsNonceField(request));
+        Validate.isTrue(timeout.compareTo(Duration.ZERO) >= 0);
+        
+        Nonce<N> nonce = nonceAccessor.get(request);
+        
+        return waitUntilNonce(timeout, () -> {
+            Nonce<N> extractedNonce = nonceAccessor.get(message);
+            return extractedNonce.equals(nonce);
+        });
+    }
+
+    protected <T> T waitUntilNonce(Object request, Class<T> expectedResponseType, Duration timeout) {
+        Validate.notNull(expectedResponseType);
+        Validate.notNull(timeout);
+        Validate.isTrue(nonceAccessor.containsNonceField(request));
+        Validate.isTrue(timeout.compareTo(Duration.ZERO) >= 0);
+        
+        Nonce<N> nonce = nonceAccessor.get(request);
+        
+        return (T) waitUntilNonce(timeout, () -> {
+            Nonce<N> extractedNonce = nonceAccessor.get(message);
+            return extractedNonce.equals(nonce) && ClassUtils.isAssignable(message.getClass(), expectedResponseType);
+        });
+    }
+    
+    protected void wait(Duration timeout) {
+        Validate.notNull(timeout);
+        Validate.isTrue(timeout.compareTo(Duration.ZERO) >= 0);
+        
+        startTimerEvent(timeout);
+        
         while (true) {
             Continuation.suspend();
 
             // handle timer
-            if (message.getClass() == TimerTrigger.class) {
-                if (!handleTimerEvent()) {
-                    continue;
-                }
-            }
-
-            // return if this is an expected response type
-            if (!nonceAccessor.containsNonceField(message)) {
-                continue;
-            }
-
-            Nonce<N> extractedNonce = nonceAccessor.get(message);
-            if (extractedNonce.equals(nonce)) {
+            if (isTimerEventHit()) {
                 return;
             }
         }
     }
 
-    protected void waitCycles(int count) {
-        Validate.isTrue(count > 0);
-
-        
-        while (count > 0) {
-            Continuation.suspend();
-
-            // handle timer
-            if (message.getClass() == TimerTrigger.class) {
-                if (handleTimerEvent()) {
-                    count--;
-                }
-            }
-        }
-    }
-
-    protected <T> T sendAndWaitUntilResponse(Object request, A address, Class<?> expectedResponseType) {
-        Validate.notNull(request);
-        Validate.isTrue(nonceAccessor.containsNonceField(request));
-
-        router.sendRequest(actor, time, request, address);
-        
-        Nonce<N> nonce = nonceAccessor.get(request);
-
-        while (true) {
-            Continuation.suspend();
-
-            // handle timer
-            if (message.getClass() == TimerTrigger.class) {
-                if (!handleTimerEvent()) {
-                    continue;
-                }
-            }
-
-            // return if this is an expected response type
-            if (!nonceAccessor.containsNonceField(message)) {
-                continue;
-            }
-
-            Nonce<N> extractedNonce = nonceAccessor.get(message);
-            if (extractedNonce.equals(nonce) && ClassUtils.isAssignable(message.getClass(), expectedResponseType)) {
-                return (T) message;
-            }
-        }
-    }
-
-    protected void sendAndIgnore(Object request, A address) {
-        Validate.notNull(request);
-        Validate.isTrue(nonceAccessor.containsNonceField(request));
-
-        router.sendRequest(actor, time, request, address);
-    }
-
-    protected void scheduleTimer() {
+    private void startTimerEvent(Duration duration) {
         router.addTypeHandler(actor, TimerTrigger.class);
-        endpointScheduler.scheduleMessage(TIMER_DURATION, selfEndpoint, selfEndpoint, new TimerTrigger());
+        endpointScheduler.scheduleMessage(duration, selfEndpoint, selfEndpoint, new TimerTrigger(nextTimerMarker));
+        
+        nextTimerMarker++;
     }
     
 
-    private boolean handleTimerEvent() {
-        TimerTrigger timerTrigger = (TimerTrigger) message;
-        if (!timerTrigger.checkParent(this)) {
-            // this timertrigger is from some other routetofingertask (probably a prior one), ignore it
+    private boolean isTimerEventHit() {
+        if (!(message instanceof BaseContinuableTask.TimerTrigger)) {
             return false;
         }
-
-        Duration nextDuration = ProcessableUtils.invokeProcessablesAndScheduleEarliestDuration(time);
-        if (nextDuration == null) {
-            nextDuration = TIMER_DURATION;
-        }
-        endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, new TimerTrigger());
-
-        return true; // mark as handled
+        
+        TimerTrigger timerTrigger = (TimerTrigger) message;
+        return timerTrigger.check(this, nextTimerMarker - 1); 
     }
 
     private final class TimerTrigger {
+        
+        private final int timerMarker;
 
-        private TimerTrigger() {
-            // does nothing, prevents outside instantiation
+        private TimerTrigger(int timerMarker) {
+            this.timerMarker = timerMarker;
         }
 
-        public boolean checkParent(Object obj) {
-            return BaseContinuableTask.this == obj;
+        public boolean check(Object parent, int timerMarker) {
+            return BaseContinuableTask.this == parent && this.timerMarker == timerMarker;
         }
     }
 }

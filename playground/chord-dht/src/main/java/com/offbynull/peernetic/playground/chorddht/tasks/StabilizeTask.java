@@ -17,6 +17,7 @@ import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,7 @@ public final class StabilizeTask<A> extends BaseContinuableTask<A, byte[]> {
 
         // register types here
 
-        // send priming message
+        // sendRequest priming message
         encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
         
         return task;
@@ -49,74 +50,62 @@ public final class StabilizeTask<A> extends BaseContinuableTask<A, byte[]> {
     }
 
     @Override
-    public void run() {
-        try {
-            // start timer
-            scheduleTimer();
-            
-            while (true) {
-                Pointer existingSuccessor = context.getFingerTable().get(0);
-                if (existingSuccessor.getId().equals(context.getSelfId())) {
-                    return;
-                }
-
-
-                // ask for successor's pred
-                A successorAddress = ((ExternalPointer<A>) existingSuccessor).getAddress();
-                GetPredecessorResponse<A> gpr = sendAndWaitUntilResponse(new GetPredecessorRequest(), successorAddress,
-                        GetPredecessorResponse.class);
-
-                // check to see if predecessor is between us and our successor
-                if (gpr.getId() == null) {
-                    return;
-                }
-
-                A address = gpr.getAddress();
-                byte[] idData = gpr.getId();
-
-                Id potentiallyNewSuccessorId = new Id(idData, context.getSelfId().getLimitAsByteArray());
-                Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
-
-
-                if (!potentiallyNewSuccessorId.isWithin(context.getSelfId(), false, existingSuccessorId, false)) {
-                    return;
-                }
-
-
-                // it is between us and our successor, so notify it
-                ExternalPointer<A> newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
-
-                sendAndWaitUntilResponse(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
-                        ((ExternalPointer<A>) newSuccessor).getAddress(),
-                        NotifyResponse.class);
-
-
-                // ask new successor for its successors
-                GetSuccessorResponse<A> gsr = sendAndWaitUntilResponse(new GetSuccessorRequest(),
-                        ((ExternalPointer<A>) newSuccessor).getAddress(),
-                        GetSuccessorResponse.class);
-
-                int bitSize = ChordUtils.getBitLength(context.getSelfId());
-                List<Pointer> subsequentSuccessors = new ArrayList<>();
-                gsr.getEntries().stream().map(x -> {
-                    Id id = new Id(x.getId(), bitSize);
-
-                    if (x instanceof InternalSuccessorEntry) {
-                        return new InternalPointer(id);
-                    } else if (x instanceof ExternalSuccessorEntry) {
-                        return new ExternalPointer<>(id, ((ExternalSuccessorEntry<A>) x).getAddress());
-                    } else {
-                        throw new IllegalStateException();
-                    }
-                }).forEachOrdered(x -> subsequentSuccessors.add(x));
-
-
-                // mark it as our new successor
-                context.getSuccessorTable().update(newSuccessor, subsequentSuccessors);
-                context.getFingerTable().put(newSuccessor);
+    public void execute() throws Exception {
+        while (true) {
+            Pointer existingSuccessor = context.getFingerTable().get(0);
+            if (existingSuccessor.getId().equals(context.getSelfId())) {
+                return;
             }
-        } finally {
-            unassignFromRouter(context, this);
+
+            // ask for successor's pred
+            A successorAddress = ((ExternalPointer<A>) existingSuccessor).getAddress();
+            GetPredecessorResponse<A> gpr = sendRequestAndWait(new GetPredecessorRequest(), successorAddress,
+                    GetPredecessorResponse.class, Duration.ofSeconds(3L));
+
+            // check to see if predecessor is between us and our successor
+            if (gpr.getId() == null) {
+                return;
+            }
+
+            A address = gpr.getAddress();
+            byte[] idData = gpr.getId();
+
+            Id potentiallyNewSuccessorId = new Id(idData, context.getSelfId().getLimitAsByteArray());
+            Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
+
+            if (!potentiallyNewSuccessorId.isWithin(context.getSelfId(), false, existingSuccessorId, false)) {
+                return;
+            }
+
+            // it is between us and our successor, so notify it
+            ExternalPointer<A> newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
+
+            sendRequestAndWait(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
+                    ((ExternalPointer<A>) newSuccessor).getAddress(),
+                    NotifyResponse.class, Duration.ofSeconds(3L));
+
+            // ask new successor for its successors
+            GetSuccessorResponse<A> gsr = sendRequestAndWait(new GetSuccessorRequest(),
+                    ((ExternalPointer<A>) newSuccessor).getAddress(),
+                    GetSuccessorResponse.class, Duration.ofSeconds(3L));
+
+            int bitSize = ChordUtils.getBitLength(context.getSelfId());
+            List<Pointer> subsequentSuccessors = new ArrayList<>();
+            gsr.getEntries().stream().map(x -> {
+                Id id = new Id(x.getId(), bitSize);
+
+                if (x instanceof InternalSuccessorEntry) {
+                    return new InternalPointer(id);
+                } else if (x instanceof ExternalSuccessorEntry) {
+                    return new ExternalPointer<>(id, ((ExternalSuccessorEntry<A>) x).getAddress());
+                } else {
+                    throw new IllegalStateException();
+                }
+            }).forEachOrdered(x -> subsequentSuccessors.add(x));
+
+            // mark it as our new successor
+            context.getSuccessorTable().update(newSuccessor, subsequentSuccessors);
+            context.getFingerTable().put(newSuccessor);
         }
     }
     

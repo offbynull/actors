@@ -9,6 +9,7 @@ import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import java.time.Duration;
 import java.time.Instant;
 
 public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> {
@@ -23,7 +24,7 @@ public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> 
 
         // register types here
 
-        // send priming message
+        // sendRequest priming message
         encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
         
         return task;
@@ -39,51 +40,42 @@ public final class FixFingerTableTask<A> extends BaseContinuableTask<A, byte[]> 
     }
 
     @Override
-    public void run() {
-        try {
-            int maxIdx = ChordUtils.getBitLength(context.getSelfId());
-            
-            // start timer
-            scheduleTimer();
-            
-            while (true) {
-                for (int i = 0; i < maxIdx; i++) {
-                    // get expected id of entry in finger table
-                    Id findId = context.getFingerTable().getExpectedId(i);
+    public void execute() throws Exception {
+        int maxIdx = ChordUtils.getBitLength(context.getSelfId());
 
-                    // route to id
-                    RouteToTask<A> routeToFingerTask = RouteToTask.createAndAssignToRouter(getTime(), context, findId);
-                    waitUntilFinished(routeToFingerTask.getEncapsulatingActor());
-                    Pointer foundFinger = routeToFingerTask.getResult();
-                    
-                    // set in to finger table
-                    if (foundFinger == null) {
-                        continue;
-                    }
-                    
-                    if (foundFinger instanceof InternalPointer) {
+        while (true) {
+            for (int i = 0; i < maxIdx; i++) {
+                // get expected id of entry in finger table
+                Id findId = context.getFingerTable().getExpectedId(i);
+
+                // route to id
+                RouteToTask<A> routeToFingerTask = RouteToTask.createAndAssignToRouter(getTime(), context, findId);
+                waitUntilFinished(routeToFingerTask.getEncapsulatingActor(), Duration.ofSeconds(1L));
+                Pointer foundFinger = routeToFingerTask.getResult();
+
+                // set in to finger table
+                if (foundFinger == null) {
+                    continue;
+                }
+
+                if (foundFinger instanceof InternalPointer) {
 //                        Pointer existingPointer = context.getFingerTable().get(i);
 //                        if (existingPointer instanceof ExternalPointer) {
 //                            context.getFingerTable().remove((ExternalPointer<A>) existingPointer);
 //                        }
-                    } else if (foundFinger instanceof ExternalPointer) {
-                        context.getFingerTable().put((ExternalPointer<A>) foundFinger);
-                    } else {
-                        throw new IllegalStateException();
-                    }
-                    
-                    // update successor table (if first)
-                    if (i == 0) {
-                        context.getSuccessorTable().updateTrim(foundFinger);
-                    }
+                } else if (foundFinger instanceof ExternalPointer) {
+                    context.getFingerTable().put((ExternalPointer<A>) foundFinger);
+                } else {
+                    throw new IllegalStateException();
                 }
-                
-                waitCycles(1);
+
+                // update successor table (if first)
+                if (i == 0) {
+                    context.getSuccessorTable().updateTrim(foundFinger);
+                }
             }
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            unassignFromRouter(context, this);
+
+            wait(Duration.ofSeconds(1L));
         }
     }
     

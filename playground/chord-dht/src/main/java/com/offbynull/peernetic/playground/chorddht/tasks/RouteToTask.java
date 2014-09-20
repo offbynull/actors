@@ -10,6 +10,7 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestF
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -51,54 +52,47 @@ public final class RouteToTask<A> extends BaseContinuableTask<A, byte[]> {
     }
     
     @Override
-    public void run() {
-        try {
-            scheduleTimer();
-            
-            Pointer initialPointer = context.getFingerTable().findClosest(findId);
-            if (initialPointer instanceof InternalPointer) {
-                // our finger table may be corrupt/incomplete, try with maximum non-base finger
-                initialPointer = context.getFingerTable().getMaximumNonBase();
-                if (initialPointer == null) {
-                    // we don't have a maximum non-base, at this point we're fucked so just give back self
-                    foundId = context.getSelfId();
-                    return;
-                }
+    public void execute() throws Exception {
+        Pointer initialPointer = context.getFingerTable().findClosest(findId);
+        if (initialPointer instanceof InternalPointer) {
+            // our finger table may be corrupt/incomplete, try with maximum non-base finger
+            initialPointer = context.getFingerTable().getMaximumNonBase();
+            if (initialPointer == null) {
+                // we don't have a maximum non-base, at this point we're fucked so just give back self
+                foundId = context.getSelfId();
+                return;
             }
-            
-            currentNode = (ExternalPointer<A>) initialPointer;
-            byte[] findIdData = findId.getValueAsByteArray();
-            byte[] skipIdData = context.getSelfId().getValueAsByteArray();
-            
-            // move forward until you can't move forward anymore
-            while (true) {
-                Id oldCurrentNodeId = currentNode.getId();
-                
-                GetClosestFingerResponse<A> gcpfr = sendAndWaitUntilResponse(new GetClosestFingerRequest(findIdData, skipIdData),
-                        currentNode.getAddress(), GetClosestFingerResponse.class);
+        }
 
-                A address = gcpfr.getAddress();
-                byte[] respIdData = gcpfr.getId();
-                Id id = new Id(respIdData, currentNode.getId().getLimitAsByteArray());
-                
+        currentNode = (ExternalPointer<A>) initialPointer;
+        byte[] findIdData = findId.getValueAsByteArray();
+        byte[] skipIdData = context.getSelfId().getValueAsByteArray();
 
-                if (address == null) {
-                    currentNode = new ExternalPointer<>(id, currentNode.getAddress());
-                } else {
-                    currentNode = new ExternalPointer<>(id, address);
-                }
-                
-                if (id.equals(oldCurrentNodeId) || id.equals(context.getSelfId())) {
-                    break;
-                }
+        // move forward until you can't move forward anymore
+        while (true) {
+            Id oldCurrentNodeId = currentNode.getId();
+
+            GetClosestFingerResponse<A> gcpfr = sendRequestAndWait(new GetClosestFingerRequest(findIdData, skipIdData),
+                    currentNode.getAddress(), GetClosestFingerResponse.class, Duration.ofSeconds(3L));
+
+            A address = gcpfr.getAddress();
+            byte[] respIdData = gcpfr.getId();
+            Id id = new Id(respIdData, currentNode.getId().getLimitAsByteArray());
+
+            if (address == null) {
+                currentNode = new ExternalPointer<>(id, currentNode.getAddress());
+            } else {
+                currentNode = new ExternalPointer<>(id, address);
             }
-            
-            foundId = currentNode.getId();
-            if (!currentNode.getId().equals(context.getSelfId())) {
-                foundAddress = currentNode.getAddress();
+
+            if (id.equals(oldCurrentNodeId) || id.equals(context.getSelfId())) {
+                break;
             }
-        } finally {
-            unassignFromRouter(context, this);
+        }
+
+        foundId = currentNode.getId();
+        if (!currentNode.getId().equals(context.getSelfId())) {
+            foundAddress = currentNode.getAddress();
         }
     }
 

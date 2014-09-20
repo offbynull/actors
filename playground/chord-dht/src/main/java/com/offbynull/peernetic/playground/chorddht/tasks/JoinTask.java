@@ -13,6 +13,7 @@ import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
 import java.math.BigInteger;
+import java.time.Duration;
 import java.time.Instant;
 
 public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
@@ -27,7 +28,7 @@ public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
 
         // register types here
         
-        // send priming message
+        // sendRequest priming message
         encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
         
         return task;
@@ -43,48 +44,35 @@ public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
     }
 
     @Override
-    public void run() {
-        try {
-            // initialize state
-            A initialAddress = context.getBootstrapAddress();
-            FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(context.getSelfId()));
-            SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
-            int maxIdx = ChordUtils.getBitLength(context.getSelfId());
-            
-            
-            // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
-            if (initialAddress == null) {
-                context.setFingerTable(fingerTable);
-                context.setSuccessorTable(successorTable);
-                return;
-            }
+    public void execute() throws Exception {
+        // initialize state
+        A initialAddress = context.getBootstrapAddress();
+        FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(context.getSelfId()));
+        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
+        int maxIdx = ChordUtils.getBitLength(context.getSelfId());
 
-            
-            // start timer
-            scheduleTimer();
-
-            
-            // ask for bootstrap node's id
-            GetIdResponse gir = sendAndWaitUntilResponse(new GetIdRequest(), initialAddress, GetIdResponse.class);
-            if (context.getSelfId().getValueAsBigInteger().equals(BigInteger.ONE)) {
-                System.out.println("hit");
-            }
-            Id initialId = new Id(gir.getId(), maxIdx);
-            
-
-            // init finger table, successor table, etc...
-            InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.createAndAssignToRouter(getTime(), context,
-                    new ExternalPointer<>(initialId, initialAddress));
-            waitUntilFinished(initFingerTableTask.getEncapsulatingActor());
-            
-            // notify our fingers that we're here, we don't need to wait until finished
-            UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.createAndAssignToRouter(getTime(), context);
-            //waitUntilFinished(updateOthersTask.getEncapsulatingActor());
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            unassignFromRouter(context, this);
+        // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
+        if (initialAddress == null) {
+            context.setFingerTable(fingerTable);
+            context.setSuccessorTable(successorTable);
+            return;
         }
+
+        // ask for bootstrap node's id
+        GetIdResponse gir = sendRequestAndWait(new GetIdRequest(), initialAddress, GetIdResponse.class, Duration.ofSeconds(3L));
+        if (context.getSelfId().getValueAsBigInteger().equals(BigInteger.ONE)) {
+            System.out.println("hit");
+        }
+        Id initialId = new Id(gir.getId(), maxIdx);
+
+        // init finger table, successor table, etc...
+        InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.createAndAssignToRouter(getTime(), context,
+                new ExternalPointer<>(initialId, initialAddress));
+        waitUntilFinished(initFingerTableTask.getEncapsulatingActor(), Duration.ofSeconds(1L));
+
+        // notify our fingers that we're here, we don't need to wait until finished
+        UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.createAndAssignToRouter(getTime(), context);
+        //waitUntilFinished(updateOthersTask.getEncapsulatingActor());
     }
     
     private static final class InternalStart {

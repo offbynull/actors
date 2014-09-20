@@ -35,7 +35,7 @@ import java.math.BigInteger;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        Actor[] actors = new Actor[32];
+        Actor[] actors = new Actor[4];
 
         // Start visualizer
         Visualizer<Id> visualizer = new JGraphXVisualizer<>();
@@ -113,7 +113,7 @@ public final class Main {
     }
     
     private static <T> void showNode(Visualizer<Id> visualizer, Id id, Mode mode) {
-        Point position = VisualizerUtils.pointOnCircle(300.0,
+        Point position = VisualizerUtils.pointOnCircle(600.0,
                 new BigDecimal(new BigInteger(id.getValueAsByteArray()))
                 .divide(new BigDecimal(new BigInteger(id.getLimitAsByteArray()).add(BigInteger.ONE)))
                 .doubleValue());

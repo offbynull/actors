@@ -1,10 +1,8 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
-import com.offbynull.peernetic.actor.NullEndpoint;
+import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
-import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
@@ -20,47 +18,35 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]> {
-    private final ChordContext<A> context;
+public final class RouteToSuccessorTask<A> extends ChordTask<A> {
     private final Id findId;
     
     private Id foundId;
     private A foundAddress;
     
     
-    public static <A> RouteToSuccessorTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, Id findId) throws Exception {
+    public static <A> RouteToSuccessorTask<A> create(Instant time, ChordContext<A> context, Id findId) throws Exception {
         // create
         RouteToSuccessorTask<A> task = new RouteToSuccessorTask<>(context, findId);
-        ContinuationActor encapsulatingActor = new ContinuationActor(task);
-        task.setEncapsulatingActor(encapsulatingActor);
-        
-        // register types here
+        JavaflowActor actor = new JavaflowActor(task);
+        task.initialize(time, actor);
 
-        // prime
-        encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
-        
         return task;
     }
     
-    public static <A> void unassignFromRouter(ChordContext<A> context, RouteToSuccessorTask<A> task) {
-        context.getRouter().removeActor(task.getEncapsulatingActor());
-    }
-    
     private RouteToSuccessorTask(ChordContext<A> context, Id findId) {
-        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
+        super(context);
         
-        Validate.notNull(context);
         Validate.notNull(findId);
-
-        this.context = context;
+        
         this.findId = findId;
     }
     
     @Override
     public void execute() throws Exception {
         // find predecessor
-        RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.createAndAssignToRouter(getTime(), context, findId);
-        waitUntilFinished(routeToPredTask.getEncapsulatingActor(), Duration.ofSeconds(1L));
+        RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.create(getTime(), getContext(), findId);
+        getFlowControl().waitUntilFinished(routeToPredTask.getActor(), Duration.ofSeconds(1L));
         Pointer foundPred = routeToPredTask.getResult();
 
         if (foundPred == null) {
@@ -68,7 +54,7 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
         }
 
         if (foundPred instanceof InternalPointer) {
-            Pointer successor = context.getFingerTable().get(0);
+            Pointer successor = getContext().getFingerTable().get(0);
 
             if (successor instanceof InternalPointer) {
                 foundId = successor.getId(); // id will always be the same as us
@@ -82,12 +68,12 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
         } else if (foundPred instanceof ExternalPointer) {
             ExternalPointer<A> externalPred = (ExternalPointer<A>) foundPred;
 
-            GetSuccessorResponse<A> gsr = sendRequestAndWait(new GetSuccessorRequest(), externalPred.getAddress(),
+            GetSuccessorResponse<A> gsr = getFlowControl().sendRequestAndWait(new GetSuccessorRequest(), externalPred.getAddress(),
                     GetSuccessorResponse.class, Duration.ofSeconds(3L));
 
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-            A senderAddress = context.getEndpointIdentifier().identify(getSource());
+            A senderAddress = getContext().getEndpointIdentifier().identify(getSource());
             A address;
             if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
                 address = senderAddress;
@@ -98,11 +84,12 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
             }
 
             // ask for that successor's id, wait for response here
-            GetIdResponse gir = sendRequestAndWait(new GetIdRequest(), address, GetIdResponse.class, Duration.ofSeconds(3L));
+            GetIdResponse gir = getFlowControl().sendRequestAndWait(new GetIdRequest(), address, GetIdResponse.class,
+                    Duration.ofSeconds(3L));
 
             int bitSize = ChordUtils.getBitLength(findId);
             foundId = new Id(gir.getId(), bitSize);
-            foundAddress = context.getEndpointIdentifier().identify(getSource());
+            foundAddress = getContext().getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();
         }
@@ -113,14 +100,15 @@ public final class RouteToSuccessorTask<A> extends BaseContinuableTask<A, byte[]
             return null;
         }
         
-        if (foundId.equals(context.getSelfId())) {
+        if (foundId.equals(getContext().getSelfId())) {
             return new InternalPointer(foundId);
         }
         
         return new ExternalPointer<>(foundId, foundAddress);
     }
-    
-    private static final class InternalStart {
-        
+
+    @Override
+    protected boolean requiresPriming() {
+        return true;
     }
 }

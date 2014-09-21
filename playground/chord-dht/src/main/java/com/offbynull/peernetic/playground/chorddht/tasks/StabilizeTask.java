@@ -1,10 +1,8 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
-import com.offbynull.peernetic.actor.NullEndpoint;
+import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
-import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
@@ -22,44 +20,32 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class StabilizeTask<A> extends BaseContinuableTask<A, byte[]> {
+public final class StabilizeTask<A> extends ChordTask<A> {
 
-    private final ChordContext<A> context;
-
-    public static <A> StabilizeTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context) throws Exception {
+    public static <A> StabilizeTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
         StabilizeTask<A> task = new StabilizeTask<>(context);
-        ContinuationActor encapsulatingActor = new ContinuationActor(task);
-        task.setEncapsulatingActor(encapsulatingActor);
+        JavaflowActor actor = new JavaflowActor(task);
+        task.initialize(time, actor);
 
-        // register types here
-
-        // sendRequest priming message
-        encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
-        
         return task;
     }
 
-    public static <A> void unassignFromRouter(ChordContext<A> context, StabilizeTask<A> task) {
-        context.getRouter().removeActor(task.getEncapsulatingActor());
-    }
-
     private StabilizeTask(ChordContext<A> context) {
-        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
-        this.context = context;
+        super(context);
     }
 
     @Override
     public void execute() throws Exception {
         while (true) {
-            Pointer existingSuccessor = context.getFingerTable().get(0);
-            if (existingSuccessor.getId().equals(context.getSelfId())) {
+            Pointer existingSuccessor = getContext().getFingerTable().get(0);
+            if (existingSuccessor.getId().equals(getContext().getSelfId())) {
                 return;
             }
 
             // ask for successor's pred
             A successorAddress = ((ExternalPointer<A>) existingSuccessor).getAddress();
-            GetPredecessorResponse<A> gpr = sendRequestAndWait(new GetPredecessorRequest(), successorAddress,
+            GetPredecessorResponse<A> gpr = getFlowControl().sendRequestAndWait(new GetPredecessorRequest(), successorAddress,
                     GetPredecessorResponse.class, Duration.ofSeconds(3L));
 
             // check to see if predecessor is between us and our successor
@@ -70,26 +56,26 @@ public final class StabilizeTask<A> extends BaseContinuableTask<A, byte[]> {
             A address = gpr.getAddress();
             byte[] idData = gpr.getId();
 
-            Id potentiallyNewSuccessorId = new Id(idData, context.getSelfId().getLimitAsByteArray());
+            Id potentiallyNewSuccessorId = new Id(idData, getContext().getSelfId().getLimitAsByteArray());
             Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
 
-            if (!potentiallyNewSuccessorId.isWithin(context.getSelfId(), false, existingSuccessorId, false)) {
+            if (!potentiallyNewSuccessorId.isWithin(getContext().getSelfId(), false, existingSuccessorId, false)) {
                 return;
             }
 
             // it is between us and our successor, so notify it
             ExternalPointer<A> newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
 
-            sendRequestAndWait(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
+            getFlowControl().sendRequestAndWait(new NotifyRequest(getContext().getSelfId().getValueAsByteArray()),
                     ((ExternalPointer<A>) newSuccessor).getAddress(),
                     NotifyResponse.class, Duration.ofSeconds(3L));
 
             // ask new successor for its successors
-            GetSuccessorResponse<A> gsr = sendRequestAndWait(new GetSuccessorRequest(),
+            GetSuccessorResponse<A> gsr = getFlowControl().sendRequestAndWait(new GetSuccessorRequest(),
                     ((ExternalPointer<A>) newSuccessor).getAddress(),
                     GetSuccessorResponse.class, Duration.ofSeconds(3L));
 
-            int bitSize = ChordUtils.getBitLength(context.getSelfId());
+            int bitSize = ChordUtils.getBitLength(getContext().getSelfId());
             List<Pointer> subsequentSuccessors = new ArrayList<>();
             gsr.getEntries().stream().map(x -> {
                 Id id = new Id(x.getId(), bitSize);
@@ -104,12 +90,13 @@ public final class StabilizeTask<A> extends BaseContinuableTask<A, byte[]> {
             }).forEachOrdered(x -> subsequentSuccessors.add(x));
 
             // mark it as our new successor
-            context.getSuccessorTable().update(newSuccessor, subsequentSuccessors);
-            context.getFingerTable().put(newSuccessor);
+            getContext().getSuccessorTable().update(newSuccessor, subsequentSuccessors);
+            getContext().getFingerTable().put(newSuccessor);
         }
     }
-    
-    private static final class InternalStart {
-        
+
+    @Override
+    protected boolean requiresPriming() {
+        return true;
     }
 }

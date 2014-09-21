@@ -12,14 +12,4 @@
         <module>unstructured-mesh</module>
         <module>chord-dht</module>
     </modules>
-    
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.code.maven-play-plugin.org.apache.commons</groupId>
-                <artifactId>commons-javaflow</artifactId>
-                <version>1590792</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

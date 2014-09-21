@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.playground.chorddht;
 
-import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
 import com.offbynull.peernetic.common.transmission.Router;
+import com.offbynull.peernetic.javaflow.BaseJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.messages.internal.Start;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
@@ -12,25 +12,19 @@ import com.offbynull.peernetic.playground.chorddht.tasks.FixFingerTableTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.JoinTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.ResponderTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.StabilizeTask;
-import com.offbynull.peernetic.playground.chorddht.tasks.UpdateOthersTask;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.javaflow.Continuation;
 
-public final class ChordClient<A> implements ContinuableTask {
-
-    private Instant time;
-    private Endpoint source;
-    private Object message;
+public final class ChordClient<A> extends BaseJavaflowTask {
 
 
     
     @Override
     public void run() {
         try {
-            Start<A> start = (Start<A>) message;
+            Start<A> start = (Start<A>) getMessage();
             ChordContext<A> context = new ChordContext(start.getActiveListener(), start.getLinkListener(), start.getUnlinkListener());
 
             context.setEndpointDirectory(start.getEndpointDirectory());
@@ -47,21 +41,21 @@ public final class ChordClient<A> implements ContinuableTask {
                     context.getNonceAccessor(),
                     context.getEndpointDirectory()));
             
-            JoinTask<A> gftt = JoinTask.createAndAssignToRouter(time, context);
+            JoinTask<A> gftt = JoinTask.create(getTime(), context);
             
-            while(!gftt.getEncapsulatingActor().isFinished()) {
+            while(!gftt.getActor().isFinished()) {
                 Continuation.suspend();
-                context.getRouter().routeMessage(time, message, source);
+                context.getRouter().routeMessage(getTime(), getMessage(), getSource());
             }
 
-            FixFingerTableTask<A> fftt = FixFingerTableTask.createAndAssignToRouter(time, context);
-            StabilizeTask<A> st = StabilizeTask.createAndAssignToRouter(time, context);
-            CheckPredecessorTask<A> cpt = CheckPredecessorTask.createAndAssignToRouter(time, context);
-            ResponderTask<A> rt = ResponderTask.createAndAssignToRouter(time, context);
+            FixFingerTableTask<A> fftt = FixFingerTableTask.create(getTime(), context);
+            StabilizeTask<A> st = StabilizeTask.create(getTime(), context);
+            CheckPredecessorTask<A> cpt = CheckPredecessorTask.create(getTime(), context);
+            ResponderTask<A> rt = ResponderTask.create(getTime(), context);
             
             while (true) {
                 Continuation.suspend();
-                context.getRouter().routeMessage(time, message, source);
+                context.getRouter().routeMessage(getTime(), getMessage(), getSource());
                 
                 notifyStateChange(context);
             }
@@ -87,20 +81,5 @@ public final class ChordClient<A> implements ContinuableTask {
         removedPointers.forEach(x -> context.getUnlinkListener().unlinked(context.getSelfId(), x.getId()));
         
         lastNotifiedPointers = newPointers;
-    }
-
-    @Override
-    public void setMessage(Object message) {
-        this.message = message;
-    }
-
-    @Override
-    public void setSource(Endpoint source) {
-        this.source = source;
-    }
-
-    @Override
-    public void setTime(Instant time) {
-        this.time = time;
     }
 }

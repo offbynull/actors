@@ -16,6 +16,7 @@ import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceGenerator;
 import com.offbynull.peernetic.common.message.Request;
 import com.offbynull.peernetic.common.message.Response;
+import com.offbynull.peernetic.javaflow.BaseJavaflowTask;
 import com.offbynull.peernetic.playground.unstructuredmesh.messages.external.LinkRequest;
 import com.offbynull.peernetic.playground.unstructuredmesh.messages.external.LinkResponse;
 import com.offbynull.peernetic.playground.unstructuredmesh.messages.external.QueryRequest;
@@ -31,7 +32,7 @@ import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class UnstructuredClient<A> implements ContinuableActor {
+public final class UnstructuredClient<A> extends BaseJavaflowTask {
 
     public static final String INITIAL_STATE = "INITIAL";
     public static final String ACTIVE_STATE = "ACTIVE";
@@ -41,10 +42,6 @@ public final class UnstructuredClient<A> implements ContinuableActor {
 
     private static final int MAX_INCOMING_JOINS = 4;
     private static final int MAX_OUTGOING_JOINS = 3;
-
-    Instant time;
-    Endpoint source;
-    Object message;
     
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
@@ -66,26 +63,11 @@ public final class UnstructuredClient<A> implements ContinuableActor {
         this.listener = listener;
     }
 
-    @Override
-    public void setTime(Instant time) {
-        this.time = time;
-    }
-
-    @Override
-    public void setSource(Endpoint source) {
-        this.source = source;
-    }
-
-    @Override
-    public void setMessage(Object message) {
-        this.message = message;
-    }
-
     
     @Override
     public void run() {
         try {
-            Start<A> start = (Start<A>) message;
+            Start<A> start = (Start<A>) getMessage();
 
             endpointDirectory = start.getEndpointDirectory();
             endpointIdentifier = start.getEndpointIdentifier();
@@ -103,37 +85,37 @@ public final class UnstructuredClient<A> implements ContinuableActor {
             listener.onStarted(selfAddress);
 
 
-            handleTimer(time); // initial call to start things off
+            handleTimer(getTime()); // initial call to start things off
 
 
             while (true) {
                 Continuation.suspend();
-                if (message instanceof Request) {
-                    A incomingAddr = endpointIdentifier.identify(source);
+                if (getMessage() instanceof Request) {
+                    A incomingAddr = endpointIdentifier.identify(getSource());
                     // if message to ourself (or invalid) or msg is one which we've already responded to (or invalid) then skip
-                    if (outgoingRequestManager.isTrackedRequest(time, message)
-                            || !incomingRequestManager.testRequestMessage(time, message)) {
+                    if (outgoingRequestManager.isTrackedRequest(getTime(), getMessage())
+                            || !incomingRequestManager.testRequestMessage(getTime(), getMessage())) {
                         continue;
                     }
 
-                    if (message instanceof LinkRequest) {
-                        handleLinkRequest(time, (LinkRequest) message, source);
-                    } else if (message instanceof QueryRequest) {
-                        handleQueryRequest(time, (QueryRequest) message, source);
+                    if (getMessage() instanceof LinkRequest) {
+                        handleLinkRequest(getTime(), (LinkRequest) getMessage(), getSource());
+                    } else if (getMessage() instanceof QueryRequest) {
+                        handleQueryRequest(getTime(), (QueryRequest) getMessage(), getSource());
                     }
-                } else if (message instanceof Response) {
+                } else if (getMessage() instanceof Response) {
                     // makes sure msg is valid (false if not) and makes sure this is a response to a message we've sent
-                    if (!outgoingRequestManager.testResponseMessage(time, message)) {
+                    if (!outgoingRequestManager.testResponseMessage(getTime(), getMessage())) {
                         continue;
                     }
 
-                    if (message instanceof LinkResponse) {
-                        handleLinkResponse(time, (LinkResponse) message, source);
-                    } else if (message instanceof QueryResponse) {
-                        handleQueryResponse(time, (QueryResponse) message, source);
+                    if (getMessage() instanceof LinkResponse) {
+                        handleLinkResponse(getTime(), (LinkResponse) getMessage(), getSource());
+                    } else if (getMessage() instanceof QueryResponse) {
+                        handleQueryResponse(getTime(), (QueryResponse) getMessage(), getSource());
                     }
-                } else if (message instanceof Timer) {
-                    handleTimer(time);
+                } else if (getMessage() instanceof Timer) {
+                    handleTimer(getTime());
                 }
             }
         } catch (Exception ex) {

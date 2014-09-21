@@ -1,6 +1,5 @@
-com/offbynull/peernetic/playground/chorddht/ContinuationActor.class
-com/offbynull/peernetic/playground/chorddht/BaseContinuableTask.class
 com/offbynull/peernetic/playground/chorddht/ChordClient.class
+com/offbynull/peernetic/playground/chorddht/tasks/ChordTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/CheckPredecessorTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/FixFingerTableTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/JoinTask.class

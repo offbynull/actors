@@ -1,10 +1,8 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
-import com.offbynull.peernetic.actor.NullEndpoint;
+import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
-import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
@@ -16,63 +14,57 @@ import java.math.BigInteger;
 import java.time.Duration;
 import java.time.Instant;
 
-public final class JoinTask<A> extends BaseContinuableTask<A, byte[]> {
+public final class JoinTask<A> extends ChordTask<A> {
 
-    private final ChordContext<A> context;
 
-    public static <A> JoinTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context) throws Exception {
+    public static <A> JoinTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
         JoinTask<A> task = new JoinTask<>(context);
-        ContinuationActor encapsulatingActor = new ContinuationActor(task);
-        task.setEncapsulatingActor(encapsulatingActor);
+        JavaflowActor actor = new JavaflowActor(task);
+        task.initialize(time, actor);
 
-        // register types here
-        
-        // sendRequest priming message
-        encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
-        
         return task;
     }
 
-    public static <A> void unassignFromRouter(ChordContext<A> context, JoinTask<A> task) {
-        context.getRouter().removeActor(task.getEncapsulatingActor());
-    }
-
     private JoinTask(ChordContext<A> context) {
-        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
-        this.context = context;
+        super(context);
     }
 
     @Override
     public void execute() throws Exception {
         // initialize state
-        A initialAddress = context.getBootstrapAddress();
-        FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(context.getSelfId()));
-        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
-        int maxIdx = ChordUtils.getBitLength(context.getSelfId());
+        A initialAddress = getContext().getBootstrapAddress();
+        FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(getContext().getSelfId()));
+        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(getContext().getSelfId()));
+        int maxIdx = ChordUtils.getBitLength(getContext().getSelfId());
 
         // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
         if (initialAddress == null) {
-            context.setFingerTable(fingerTable);
-            context.setSuccessorTable(successorTable);
+            getContext().setFingerTable(fingerTable);
+            getContext().setSuccessorTable(successorTable);
             return;
         }
 
         // ask for bootstrap node's id
-        GetIdResponse gir = sendRequestAndWait(new GetIdRequest(), initialAddress, GetIdResponse.class, Duration.ofSeconds(3L));
-        if (context.getSelfId().getValueAsBigInteger().equals(BigInteger.ONE)) {
+        GetIdResponse gir = getFlowControl().sendRequestAndWait(new GetIdRequest(), initialAddress, GetIdResponse.class, Duration.ofSeconds(3L));
+        if (getContext().getSelfId().getValueAsBigInteger().equals(BigInteger.ONE)) {
             System.out.println("hit");
         }
         Id initialId = new Id(gir.getId(), maxIdx);
 
         // init finger table, successor table, etc...
-        InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.createAndAssignToRouter(getTime(), context,
+        InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.create(getTime(), getContext(),
                 new ExternalPointer<>(initialId, initialAddress));
-        waitUntilFinished(initFingerTableTask.getEncapsulatingActor(), Duration.ofSeconds(1L));
+        getFlowControl().waitUntilFinished(initFingerTableTask.getActor(), Duration.ofSeconds(1L));
 
         // notify our fingers that we're here, we don't need to wait until finished
-        UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.createAndAssignToRouter(getTime(), context);
+        UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.create(getTime(), getContext());
         //waitUntilFinished(updateOthersTask.getEncapsulatingActor());
+    }
+
+    @Override
+    protected boolean requiresPriming() {
+        return true;
     }
     
     private static final class InternalStart {

@@ -1,11 +1,9 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
+import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.actor.Endpoint;
-import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.common.identification.Id;
-import com.offbynull.peernetic.playground.chorddht.BaseContinuableTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.ContinuationActor;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
@@ -22,41 +20,29 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RemoteRouteToTask<A> extends BaseContinuableTask<A, byte[]> {
-    private final ChordContext<A> context;
+public final class RemoteRouteToTask<A> extends ChordTask<A> {
     private final Id findId;
     private final Object originalRequest;
     private final Endpoint originalSource;
     
     
-    public static <A> RemoteRouteToTask<A> createAndAssignToRouter(Instant time, ChordContext<A> context, Id findId,
+    public static <A> RemoteRouteToTask<A> create(Instant time, ChordContext<A> context, Id findId,
             Object originalRequest, Endpoint originalSource) throws Exception {
         // create
         RemoteRouteToTask<A> task = new RemoteRouteToTask<>(context, findId, originalRequest, originalSource);
-        ContinuationActor encapsulatingActor = new ContinuationActor(task);
-        task.setEncapsulatingActor(encapsulatingActor);
-        
-        // register types here
+        JavaflowActor actor = new JavaflowActor(task);
+        task.initialize(time, actor);
 
-        // prime
-        encapsulatingActor.onStep(time, NullEndpoint.INSTANCE, new InternalStart());
-        
         return task;
     }
     
-    public static <A> void unassignFromRouter(ChordContext<A> context, RemoteRouteToTask<A> task) {
-        context.getRouter().removeActor(task.getEncapsulatingActor());
-    }
-    
     private RemoteRouteToTask(ChordContext<A> context, Id findId, Object originalRequest, Endpoint originalSource) {
-        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
+        super(context);
         
-        Validate.notNull(context);
         Validate.notNull(findId);
         Validate.notNull(originalRequest);
         Validate.notNull(originalSource);
 
-        this.context = context;
         this.findId = findId;
         this.originalRequest = originalRequest;
         this.originalSource = originalSource;
@@ -65,8 +51,8 @@ public final class RemoteRouteToTask<A> extends BaseContinuableTask<A, byte[]> {
     @Override
     public void execute() throws Exception {
         // find predecessor
-        RouteToTask<A> routeToTask = RouteToTask.createAndAssignToRouter(getTime(), context, findId);
-        waitUntilFinished(routeToTask.getEncapsulatingActor(), Duration.ofSeconds(1L));
+        RouteToTask<A> routeToTask = RouteToTask.create(getTime(), getContext(), findId);
+        getFlowControl().waitUntilFinished(routeToTask.getActor(), Duration.ofSeconds(1L));
         Pointer foundSucc = routeToTask.getResult();
 
         if (foundSucc == null) {
@@ -80,7 +66,7 @@ public final class RemoteRouteToTask<A> extends BaseContinuableTask<A, byte[]> {
         boolean isExternalPointer = foundSucc instanceof ExternalPointer;
 
         if (isInternalPointer) {
-            Pointer successor = context.getFingerTable().get(0);
+            Pointer successor = getContext().getFingerTable().get(0);
 
             if (successor instanceof InternalPointer) {
                 foundId = successor.getId(); // id will always be the same as us
@@ -94,12 +80,12 @@ public final class RemoteRouteToTask<A> extends BaseContinuableTask<A, byte[]> {
         } else if (isExternalPointer) {
             ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
 
-            GetSuccessorResponse<A> gsr = sendRequestAndWait(new GetSuccessorRequest(), externalPred.getAddress(),
+            GetSuccessorResponse<A> gsr = getFlowControl().sendRequestAndWait(new GetSuccessorRequest(), externalPred.getAddress(),
                     GetSuccessorResponse.class, Duration.ofSeconds(3L));
 
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-            A senderAddress = context.getEndpointIdentifier().identify(getSource());
+            A senderAddress = getContext().getEndpointIdentifier().identify(getSource());
             A address;
             if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
                 address = senderAddress;
@@ -110,20 +96,21 @@ public final class RemoteRouteToTask<A> extends BaseContinuableTask<A, byte[]> {
             }
 
             // ask for that successor's id, wait for response here
-            GetIdResponse gir = sendRequestAndWait(new GetIdRequest(), address, GetIdResponse.class, Duration.ofSeconds(3L));
+            GetIdResponse gir = getFlowControl().sendRequestAndWait(new GetIdRequest(), address, GetIdResponse.class, Duration.ofSeconds(3L));
 
             int bitSize = ChordUtils.getBitLength(findId);
             foundId = new Id(gir.getId(), bitSize);
-            foundAddress = context.getEndpointIdentifier().identify(getSource());
+            foundAddress = getContext().getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();
         }
 
         FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
-        context.getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
+        getContext().getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
     }
-    
-    private static final class InternalStart {
-        
+
+    @Override
+    protected boolean requiresPriming() {
+        return true;
     }
 }

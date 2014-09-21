@@ -2,6 +2,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
@@ -14,9 +15,11 @@ import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
 import java.time.Duration;
 import java.time.Instant;
+import org.apache.commons.lang3.Validate;
 
-public final class InitFingerTableTask<A> extends ChordTask<A> {
+public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
+    private final ChordContext<A> context;
     private final ExternalPointer<A> bootstrapNode;
 
     public static <A> InitFingerTableTask<A> create(Instant time, ChordContext<A> context,
@@ -30,16 +33,20 @@ public final class InitFingerTableTask<A> extends ChordTask<A> {
     }
 
     private InitFingerTableTask(ChordContext<A> context, ExternalPointer<A> bootstrapNode) {
-        super(context);
+        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
+        
+        Validate.notNull(context);
+        Validate.notNull(bootstrapNode);
+        this.context = context;
         this.bootstrapNode = bootstrapNode;
     }
 
     @Override
     public void execute() throws Exception {
-        int maxIdx = ChordUtils.getBitLength(getContext().getSelfId());
+        int maxIdx = ChordUtils.getBitLength(context.getSelfId());
 
         // create fingertable -- find our successor from the bootstrap node and store it in the fingertable
-        FingerTable fingerTable = new FingerTable(new InternalPointer(getContext().getSelfId()));
+        FingerTable fingerTable = new FingerTable(new InternalPointer(context.getSelfId()));
         Id expectedSuccesorId = fingerTable.getExpectedId(0);
 
         FindSuccessorResponse<A> fsr = getFlowControl().sendRequestAndWait(new FindSuccessorRequest(expectedSuccesorId.getValueAsByteArray()),
@@ -77,20 +84,20 @@ public final class InitFingerTableTask<A> extends ChordTask<A> {
         }
 
         // create successor table and sync to finger table
-        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(getContext().getSelfId()));
+        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
         successorTable.updateTrim(fingerTable.get(0));
 
 //            // notify our successor that we're its pred
-//            sendRequestAndWait(new NotifyRequest(getContext().getSelfId().getValueAsByteArray()),
+//            sendRequestAndWait(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
 //                    successor.getAddress(), NotifyResponse.class);
         // update getContext() fields
-        getContext().setFingerTable(fingerTable);
-        getContext().setSuccessorTable(successorTable);
+        context.setFingerTable(fingerTable);
+        context.setSuccessorTable(successorTable);
 
         if (gpr.getId() != null) {
-            Id gprId = new Id(gpr.getId(), getContext().getSelfId().getLimitAsByteArray());
-            if (gprId.equals(getContext().getSelfId())) {
-                getContext().setPredecessor(new ExternalPointer<>(gprId, gpr.getAddress()));
+            Id gprId = new Id(gpr.getId(), context.getSelfId().getLimitAsByteArray());
+            if (gprId.equals(context.getSelfId())) {
+                context.setPredecessor(new ExternalPointer<>(gprId, gpr.getAddress()));
             }
         }
     }
@@ -101,9 +108,9 @@ public final class InitFingerTableTask<A> extends ChordTask<A> {
         }
 
         if (address == null) {
-            return new ExternalPointer<>(new Id(idData, getContext().getSelfId().getLimitAsByteArray()), bootstrapNode.getAddress());
+            return new ExternalPointer<>(new Id(idData, context.getSelfId().getLimitAsByteArray()), bootstrapNode.getAddress());
         } else {
-            return new ExternalPointer<>(new Id(idData, getContext().getSelfId().getLimitAsByteArray()), address);
+            return new ExternalPointer<>(new Id(idData, context.getSelfId().getLimitAsByteArray()), address);
         }
     }
 

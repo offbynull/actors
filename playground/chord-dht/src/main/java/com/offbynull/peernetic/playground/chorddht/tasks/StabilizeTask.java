@@ -2,6 +2,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorResponse;
@@ -19,8 +20,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.Validate;
 
-public final class StabilizeTask<A> extends ChordTask<A> {
+public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    
+    private final ChordContext<A> context;
 
     public static <A> StabilizeTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
@@ -32,14 +36,17 @@ public final class StabilizeTask<A> extends ChordTask<A> {
     }
 
     private StabilizeTask(ChordContext<A> context) {
-        super(context);
+        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
+        
+        Validate.notNull(context);
+        this.context = context;
     }
 
     @Override
     public void execute() throws Exception {
         while (true) {
-            Pointer existingSuccessor = getContext().getFingerTable().get(0);
-            if (existingSuccessor.getId().equals(getContext().getSelfId())) {
+            Pointer existingSuccessor = context.getFingerTable().get(0);
+            if (existingSuccessor.getId().equals(context.getSelfId())) {
                 return;
             }
 
@@ -56,17 +63,17 @@ public final class StabilizeTask<A> extends ChordTask<A> {
             A address = gpr.getAddress();
             byte[] idData = gpr.getId();
 
-            Id potentiallyNewSuccessorId = new Id(idData, getContext().getSelfId().getLimitAsByteArray());
+            Id potentiallyNewSuccessorId = new Id(idData, context.getSelfId().getLimitAsByteArray());
             Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
 
-            if (!potentiallyNewSuccessorId.isWithin(getContext().getSelfId(), false, existingSuccessorId, false)) {
+            if (!potentiallyNewSuccessorId.isWithin(context.getSelfId(), false, existingSuccessorId, false)) {
                 return;
             }
 
             // it is between us and our successor, so notify it
             ExternalPointer<A> newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
 
-            getFlowControl().sendRequestAndWait(new NotifyRequest(getContext().getSelfId().getValueAsByteArray()),
+            getFlowControl().sendRequestAndWait(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
                     ((ExternalPointer<A>) newSuccessor).getAddress(),
                     NotifyResponse.class, Duration.ofSeconds(3L));
 
@@ -75,7 +82,7 @@ public final class StabilizeTask<A> extends ChordTask<A> {
                     ((ExternalPointer<A>) newSuccessor).getAddress(),
                     GetSuccessorResponse.class, Duration.ofSeconds(3L));
 
-            int bitSize = ChordUtils.getBitLength(getContext().getSelfId());
+            int bitSize = ChordUtils.getBitLength(context.getSelfId());
             List<Pointer> subsequentSuccessors = new ArrayList<>();
             gsr.getEntries().stream().map(x -> {
                 Id id = new Id(x.getId(), bitSize);
@@ -90,8 +97,8 @@ public final class StabilizeTask<A> extends ChordTask<A> {
             }).forEachOrdered(x -> subsequentSuccessors.add(x));
 
             // mark it as our new successor
-            getContext().getSuccessorTable().update(newSuccessor, subsequentSuccessors);
-            getContext().getFingerTable().put(newSuccessor);
+            context.getSuccessorTable().update(newSuccessor, subsequentSuccessors);
+            context.getFingerTable().put(newSuccessor);
         }
     }
 

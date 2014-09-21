@@ -2,6 +2,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerRequest;
@@ -23,9 +24,12 @@ import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Instant;
 import java.util.List;
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
-public final class ResponderTask<A> extends ChordTask<A> {
+public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    
+    private final ChordContext<A> context;
 
     public static <A> ResponderTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
@@ -37,7 +41,10 @@ public final class ResponderTask<A> extends ChordTask<A> {
     }
 
     private ResponderTask(ChordContext<A> context) {
-        super(context);
+        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
+        
+        Validate.notNull(context);
+        this.context = context;
     }
 
     @Override
@@ -54,71 +61,71 @@ public final class ResponderTask<A> extends ChordTask<A> {
                     FindSuccessorRequest.class);
 
             if (message instanceof GetIdRequest) {
-                getContext().getRouter().sendResponse(getTime(), message, new GetIdResponse(getContext().getSelfId().getValueAsByteArray()),
+                context.getRouter().sendResponse(getTime(), message, new GetIdResponse(context.getSelfId().getValueAsByteArray()),
                         getSource());
             } else if (message instanceof GetClosestFingerRequest) {
                 GetClosestFingerRequest request = (GetClosestFingerRequest) message;
-                Id id = new Id(request.getId(), getContext().getSelfId().getLimitAsByteArray());
-                Id skipId = new Id(request.getSkipId(), getContext().getSelfId().getLimitAsByteArray());
-                Pointer pointer = getContext().getFingerTable().findClosest(id, skipId);
+                Id id = new Id(request.getId(), context.getSelfId().getLimitAsByteArray());
+                Id skipId = new Id(request.getSkipId(), context.getSelfId().getLimitAsByteArray());
+                Pointer pointer = context.getFingerTable().findClosest(id, skipId);
                 ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-                getContext().getRouter().sendResponse(getTime(), message,
+                context.getRouter().sendResponse(getTime(), message,
                         new GetClosestFingerResponse<>(msgValues.getLeft(), msgValues.getRight()), getSource());
             } else if (message instanceof GetClosestPrecedingFingerRequest) {
                 GetClosestPrecedingFingerRequest request = (GetClosestPrecedingFingerRequest) message;
-                Id id = new Id(request.getId(), getContext().getSelfId().getLimitAsByteArray());
-                Pointer pointer = getContext().getFingerTable().findClosestPreceding(id);
+                Id id = new Id(request.getId(), context.getSelfId().getLimitAsByteArray());
+                Pointer pointer = context.getFingerTable().findClosestPreceding(id);
                 ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-                getContext().getRouter().sendResponse(getTime(), message,
+                context.getRouter().sendResponse(getTime(), message,
                         new GetClosestPrecedingFingerResponse<>(msgValues.getLeft(), msgValues.getRight()), getSource());
             } else if (message instanceof GetPredecessorRequest) {
-                Pointer pointer = getContext().getPredecessor();
+                Pointer pointer = context.getPredecessor();
                 ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-                getContext().getRouter().sendResponse(getTime(), message,
+                context.getRouter().sendResponse(getTime(), message,
                         new GetPredecessorResponse<>(msgValues.getLeft(), msgValues.getRight()), getSource());
             } else if (message instanceof GetSuccessorRequest) {
-                List<Pointer> pointers = getContext().getSuccessorTable().dump();
-                getContext().getRouter().sendResponse(getTime(), message,
+                List<Pointer> pointers = context.getSuccessorTable().dump();
+                context.getRouter().sendResponse(getTime(), message,
                         new GetSuccessorResponse<>(pointers), getSource());
             } else if (message instanceof NotifyRequest) {
                 NotifyRequest request = (NotifyRequest) message;
                 byte[] idBytes = request.getId();
-                Id id = new Id(idBytes, getContext().getSelfId().getLimitAsByteArray());
+                Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
 
                 ExternalPointer<A> newPredecessor
-                        = new ExternalPointer<>(id, getContext().getEndpointIdentifier().identify(getSource()));
-                ExternalPointer<A> existingPredecessor = (ExternalPointer<A>) getContext().getPredecessor();
-                if (getContext().getPredecessor() == null || id.isWithin(existingPredecessor.getId(), true, getContext().getSelfId(), false)) {
-                    getContext().setPredecessor(newPredecessor);
+                        = new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
+                ExternalPointer<A> existingPredecessor = (ExternalPointer<A>) context.getPredecessor();
+                if (context.getPredecessor() == null || id.isWithin(existingPredecessor.getId(), true, context.getSelfId(), false)) {
+                    context.setPredecessor(newPredecessor);
                 }
 
-                Pointer pointer = getContext().getPredecessor();
+                Pointer pointer = context.getPredecessor();
                 ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(pointer);
-                getContext().getRouter().sendResponse(getTime(), message,
+                context.getRouter().sendResponse(getTime(), message,
                         new NotifyResponse<>(msgValues.getLeft(), msgValues.getRight()), getSource());
             } else if (message instanceof UpdateFingerTableRequest) {
                 UpdateFingerTableRequest request = (UpdateFingerTableRequest) message;
                 byte[] idBytes = request.getId();
-                Id id = new Id(idBytes, getContext().getSelfId().getLimitAsByteArray());
+                Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
                 ExternalPointer<A> newFinger
-                        = new ExternalPointer<>(id, getContext().getEndpointIdentifier().identify(getSource()));
+                        = new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
 
-                if (!id.equals(getContext().getSelfId())) {
-                    boolean replaced = getContext().getFingerTable().replace(newFinger);
-                    if (replaced && getContext().getPredecessor() != null) {
-                        getFlowControl().sendRequest(new UpdateFingerTableRequest(idBytes), getContext().getPredecessor().getAddress());
+                if (!id.equals(context.getSelfId())) {
+                    boolean replaced = context.getFingerTable().replace(newFinger);
+                    if (replaced && context.getPredecessor() != null) {
+                        getFlowControl().sendRequest(new UpdateFingerTableRequest(idBytes), context.getPredecessor().getAddress());
                     }
                 }
 
-                getContext().getRouter().sendResponse(getTime(), message, new UpdateFingerTableResponse(), getSource());
+                context.getRouter().sendResponse(getTime(), message, new UpdateFingerTableResponse(), getSource());
             } else if (message instanceof FindSuccessorRequest) {
                 FindSuccessorRequest request = (FindSuccessorRequest) message;
                 byte[] idBytes = request.getId();
-                Id id = new Id(idBytes, getContext().getSelfId().getLimitAsByteArray());
+                Id id = new Id(idBytes, context.getSelfId().getLimitAsByteArray());
 
                 try {
                     // we don't want to block this task by waiting for remoteroutetosuccessor to complete
-                    RemoteRouteToTask.create(getTime(), getContext(), id, request, getSource());
+                    RemoteRouteToTask.create(getTime(), context, id, request, getSource());
                 } catch (Exception e) {
                     // should never happen
                 }

@@ -2,6 +2,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
@@ -18,7 +19,10 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RouteToSuccessorTask<A> extends ChordTask<A> {
+public final class RouteToSuccessorTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    
+    private final ChordContext<A> context;
+    
     private final Id findId;
     
     private Id foundId;
@@ -35,17 +39,18 @@ public final class RouteToSuccessorTask<A> extends ChordTask<A> {
     }
     
     private RouteToSuccessorTask(ChordContext<A> context, Id findId) {
-        super(context);
+        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
+        Validate.notNull(context);
         Validate.notNull(findId);
-        
+        this.context = context;
         this.findId = findId;
     }
     
     @Override
     public void execute() throws Exception {
         // find predecessor
-        RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.create(getTime(), getContext(), findId);
+        RouteToPredecessorTask<A> routeToPredTask = RouteToPredecessorTask.create(getTime(), context, findId);
         getFlowControl().waitUntilFinished(routeToPredTask.getActor(), Duration.ofSeconds(1L));
         Pointer foundPred = routeToPredTask.getResult();
 
@@ -54,7 +59,7 @@ public final class RouteToSuccessorTask<A> extends ChordTask<A> {
         }
 
         if (foundPred instanceof InternalPointer) {
-            Pointer successor = getContext().getFingerTable().get(0);
+            Pointer successor = context.getFingerTable().get(0);
 
             if (successor instanceof InternalPointer) {
                 foundId = successor.getId(); // id will always be the same as us
@@ -73,7 +78,7 @@ public final class RouteToSuccessorTask<A> extends ChordTask<A> {
 
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-            A senderAddress = getContext().getEndpointIdentifier().identify(getSource());
+            A senderAddress = context.getEndpointIdentifier().identify(getSource());
             A address;
             if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
                 address = senderAddress;
@@ -89,7 +94,7 @@ public final class RouteToSuccessorTask<A> extends ChordTask<A> {
 
             int bitSize = ChordUtils.getBitLength(findId);
             foundId = new Id(gir.getId(), bitSize);
-            foundAddress = getContext().getEndpointIdentifier().identify(getSource());
+            foundAddress = context.getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();
         }
@@ -100,7 +105,7 @@ public final class RouteToSuccessorTask<A> extends ChordTask<A> {
             return null;
         }
         
-        if (foundId.equals(getContext().getSelfId())) {
+        if (foundId.equals(context.getSelfId())) {
             return new InternalPointer(foundId);
         }
         

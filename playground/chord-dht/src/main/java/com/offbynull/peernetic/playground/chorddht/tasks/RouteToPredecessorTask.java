@@ -2,6 +2,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
@@ -14,7 +15,10 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RouteToPredecessorTask<A> extends ChordTask<A> {
+public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    
+    private final ChordContext<A> context;
+    
     private final Id findId;
     private ExternalPointer<A> currentNode;
     
@@ -32,24 +36,25 @@ public final class RouteToPredecessorTask<A> extends ChordTask<A> {
     }
     
     private RouteToPredecessorTask(ChordContext<A> context, Id findId) {
-        super(context);
+        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
+        Validate.notNull(context);
         Validate.notNull(findId);
-
+        this.context = context;
         this.findId = findId;
     }
     
     @Override
     public void execute() throws Exception {
-        if (findId.isWithin(getContext().getSelfId(), false, getContext().getSuccessorTable().getSuccessor().getId(), true)) {
-            foundId = getContext().getSelfId();
+        if (findId.isWithin(context.getSelfId(), false, context.getSuccessorTable().getSuccessor().getId(), true)) {
+            foundId = context.getSelfId();
             foundAddress = null;
             return;
         }
 
-        Pointer initialPointer = getContext().getFingerTable().findClosestPreceding(findId);
+        Pointer initialPointer = context.getFingerTable().findClosestPreceding(findId);
         if (initialPointer instanceof InternalPointer) { // if the closest predecessor is yourself -- which means the ft is empty
-            foundId = getContext().getSelfId();
+            foundId = context.getSelfId();
             foundAddress = null;
             return;
         } else if (initialPointer instanceof ExternalPointer) {
@@ -77,7 +82,7 @@ public final class RouteToPredecessorTask<A> extends ChordTask<A> {
         }
 
         foundId = currentNode.getId();
-        if (!currentNode.getId().equals(getContext().getSelfId())) {
+        if (!currentNode.getId().equals(context.getSelfId())) {
             foundAddress = currentNode.getAddress();
         }
     }
@@ -93,7 +98,7 @@ public final class RouteToPredecessorTask<A> extends ChordTask<A> {
             return null;
         }
         
-        if (foundId.equals(getContext().getSelfId())) {
+        if (foundId.equals(context.getSelfId())) {
             return new InternalPointer(foundId);
         }
         

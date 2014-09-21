@@ -3,6 +3,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.identification.Id;
+import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
@@ -20,7 +21,8 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class RemoteRouteToTask<A> extends ChordTask<A> {
+public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    private final ChordContext<A> context;
     private final Id findId;
     private final Object originalRequest;
     private final Endpoint originalSource;
@@ -37,12 +39,14 @@ public final class RemoteRouteToTask<A> extends ChordTask<A> {
     }
     
     private RemoteRouteToTask(ChordContext<A> context, Id findId, Object originalRequest, Endpoint originalSource) {
-        super(context);
+        super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
+        Validate.notNull(context);
         Validate.notNull(findId);
         Validate.notNull(originalRequest);
         Validate.notNull(originalSource);
 
+        this.context = context;
         this.findId = findId;
         this.originalRequest = originalRequest;
         this.originalSource = originalSource;
@@ -51,7 +55,7 @@ public final class RemoteRouteToTask<A> extends ChordTask<A> {
     @Override
     public void execute() throws Exception {
         // find predecessor
-        RouteToTask<A> routeToTask = RouteToTask.create(getTime(), getContext(), findId);
+        RouteToTask<A> routeToTask = RouteToTask.create(getTime(), context, findId);
         getFlowControl().waitUntilFinished(routeToTask.getActor(), Duration.ofSeconds(1L));
         Pointer foundSucc = routeToTask.getResult();
 
@@ -66,7 +70,7 @@ public final class RemoteRouteToTask<A> extends ChordTask<A> {
         boolean isExternalPointer = foundSucc instanceof ExternalPointer;
 
         if (isInternalPointer) {
-            Pointer successor = getContext().getFingerTable().get(0);
+            Pointer successor = context.getFingerTable().get(0);
 
             if (successor instanceof InternalPointer) {
                 foundId = successor.getId(); // id will always be the same as us
@@ -85,7 +89,7 @@ public final class RemoteRouteToTask<A> extends ChordTask<A> {
 
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-            A senderAddress = getContext().getEndpointIdentifier().identify(getSource());
+            A senderAddress = context.getEndpointIdentifier().identify(getSource());
             A address;
             if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
                 address = senderAddress;
@@ -100,13 +104,13 @@ public final class RemoteRouteToTask<A> extends ChordTask<A> {
 
             int bitSize = ChordUtils.getBitLength(findId);
             foundId = new Id(gir.getId(), bitSize);
-            foundAddress = getContext().getEndpointIdentifier().identify(getSource());
+            foundAddress = context.getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();
         }
 
         FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
-        getContext().getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
+        context.getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
     }
 
     @Override

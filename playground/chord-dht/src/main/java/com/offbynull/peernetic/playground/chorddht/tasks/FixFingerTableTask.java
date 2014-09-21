@@ -37,38 +37,45 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
         int maxIdx = ChordUtils.getBitLength(context.getSelfId());
 
         while (true) {
-            for (int i = 0; i < maxIdx; i++) {
-                // get expected id of entry in finger table
-                Id findId = context.getFingerTable().getExpectedId(i);
+            for (int i = 1; i < maxIdx; i++) {
+                // for each finger to be fixed, fix the successor (finger[0]) befor fixing that finger. if we're not aggressive about fixing
+                // successor, ring may never be complete
+                fixFinger(0);
+                fixFinger(i);
+            }
 
-                // route to id
-                RouteToTask<A> routeToFingerTask = RouteToTask.create(getTime(), context, findId);
-                getFlowControl().waitUntilFinished(routeToFingerTask.getActor(), Duration.ofSeconds(1L));
-                Pointer foundFinger = routeToFingerTask.getResult();
+            getFlowControl().wait(Duration.ofSeconds(1L));
+        }
+    }
+    
+    private void fixFinger(int i) throws Exception {
+        // get expected id of entry in finger table
+        Id findId = context.getFingerTable().getExpectedId(i);
 
-                // set in to finger table
-                if (foundFinger == null) {
-                    continue;
-                }
+        // route to id
+        RouteToTask<A> routeToFingerTask = RouteToTask.create(getTime(), context, findId);
+        getFlowControl().waitUntilFinished(routeToFingerTask.getActor(), Duration.ofSeconds(1L));
+        Pointer foundFinger = routeToFingerTask.getResult();
 
-                if (foundFinger instanceof InternalPointer) {
+        // set in to finger table
+        if (foundFinger == null) {
+            return;
+        }
+
+        if (foundFinger instanceof InternalPointer) {
 //                        Pointer existingPointer = context.getFingerTable().get(i);
 //                        if (existingPointer instanceof ExternalPointer) {
 //                            context.getFingerTable().remove((ExternalPointer<A>) existingPointer);
 //                        }
-                } else if (foundFinger instanceof ExternalPointer) {
-                    context.getFingerTable().put((ExternalPointer<A>) foundFinger);
-                } else {
-                    throw new IllegalStateException();
-                }
+        } else if (foundFinger instanceof ExternalPointer) {
+            context.getFingerTable().put((ExternalPointer<A>) foundFinger);
+        } else {
+            throw new IllegalStateException();
+        }
 
-                // update successor table (if first)
-                if (i == 0) {
-                    context.getSuccessorTable().updateTrim(foundFinger);
-                }
-            }
-
-            getFlowControl().wait(Duration.ofSeconds(1L));
+        // update successor table (if first)
+        if (i == 0) {
+            context.getSuccessorTable().updateTrim(foundFinger);
         }
     }
 

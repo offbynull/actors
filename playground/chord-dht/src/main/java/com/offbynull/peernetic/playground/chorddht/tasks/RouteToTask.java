@@ -65,6 +65,10 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
             GetClosestFingerResponse<A> gcpfr = getFlowControl().sendRequestAndWait(new GetClosestFingerRequest(findIdData, skipIdData),
                     currentNode.getAddress(), GetClosestFingerResponse.class, Duration.ofSeconds(3L));
+            
+            if (gcpfr == null) {
+                return;
+            }
 
             A address = gcpfr.getAddress();
             byte[] respIdData = gcpfr.getId();

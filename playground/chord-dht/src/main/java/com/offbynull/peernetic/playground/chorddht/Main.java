@@ -36,7 +36,7 @@ import java.math.BigInteger;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        Actor[] actors = new Actor[4];
+        Actor[] actors = new Actor[32];
 
         // Start visualizer
         Visualizer<Id> visualizer = new JGraphXVisualizer<>();

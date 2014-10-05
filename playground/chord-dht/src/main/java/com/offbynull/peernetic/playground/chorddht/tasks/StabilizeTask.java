@@ -4,19 +4,15 @@ import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyRequest;
-import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyResponse;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +21,7 @@ import org.apache.commons.lang3.Validate;
 public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
     private final ChordContext<A> context;
+    private final ChordHelper<A, byte[]> chordHelper;
 
     public static <A> StabilizeTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
@@ -40,6 +37,7 @@ public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
         
         Validate.notNull(context);
         this.context = context;
+        this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
     @Override
@@ -52,8 +50,7 @@ public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
             // ask for successor's pred
             A successorAddress = ((ExternalPointer<A>) existingSuccessor).getAddress();
-            GetPredecessorResponse<A> gpr = getFlowControl().sendRequestAndWait(new GetPredecessorRequest(), successorAddress,
-                    GetPredecessorResponse.class, Duration.ofSeconds(3L));
+            GetPredecessorResponse<A> gpr = chordHelper.sendGetPredecessorRequest(successorAddress);
 
             // check to see if predecessor is between us and our successor
             if (gpr.getId() == null) {
@@ -61,9 +58,8 @@ public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
             }
 
             A address = gpr.getAddress();
-            byte[] idData = gpr.getId();
 
-            Id potentiallyNewSuccessorId = new Id(idData, context.getSelfId().getLimitAsByteArray());
+            Id potentiallyNewSuccessorId = chordHelper.convertToId(gpr.getId());
             Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
 
             if (!potentiallyNewSuccessorId.isWithin(context.getSelfId(), false, existingSuccessorId, false)) {
@@ -73,14 +69,10 @@ public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
             // it is between us and our successor, so notify it
             ExternalPointer<A> newSuccessor = new ExternalPointer<>(potentiallyNewSuccessorId, address);
 
-            getFlowControl().sendRequestAndWait(new NotifyRequest(context.getSelfId().getValueAsByteArray()),
-                    ((ExternalPointer<A>) newSuccessor).getAddress(),
-                    NotifyResponse.class, Duration.ofSeconds(3L));
+            chordHelper.sendNotifyRequest(((ExternalPointer<A>) newSuccessor).getAddress(), context.getSelfId());
 
             // ask new successor for its successors
-            GetSuccessorResponse<A> gsr = getFlowControl().sendRequestAndWait(new GetSuccessorRequest(),
-                    ((ExternalPointer<A>) newSuccessor).getAddress(),
-                    GetSuccessorResponse.class, Duration.ofSeconds(3L));
+            GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(((ExternalPointer<A>) newSuccessor).getAddress());
 
             int bitSize = ChordUtils.getBitLength(context.getSelfId());
             List<Pointer> subsequentSuccessors = new ArrayList<>();

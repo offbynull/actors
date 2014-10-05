@@ -4,12 +4,11 @@ import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerResponse;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
-import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -22,6 +21,8 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
     private Id foundId;
     private A foundAddress;
+    
+    private final ChordHelper<A, byte[]> chordHelper;
     
     
     public static <A> RouteToTask<A> create(Instant time, ChordContext<A> context, Id findId) throws Exception {
@@ -40,6 +41,7 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         Validate.notNull(findId);
         this.context = context;
         this.findId = findId;
+        this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
     
     @Override
@@ -56,23 +58,19 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         }
 
         currentNode = (ExternalPointer<A>) initialPointer;
-        byte[] findIdData = findId.getValueAsByteArray();
-        byte[] skipIdData = context.getSelfId().getValueAsByteArray();
+        Id skipId = context.getSelfId();
 
         // move forward until you can't move forward anymore
         while (true) {
             Id oldCurrentNodeId = currentNode.getId();
 
-            GetClosestFingerResponse<A> gcpfr = getFlowControl().sendRequestAndWait(new GetClosestFingerRequest(findIdData, skipIdData),
-                    currentNode.getAddress(), GetClosestFingerResponse.class, Duration.ofSeconds(3L));
-            
+            GetClosestFingerResponse<A> gcpfr = chordHelper.sendGetClosestFingerRequest(currentNode.getAddress(), findId, skipId);
             if (gcpfr == null) {
                 return;
             }
 
             A address = gcpfr.getAddress();
-            byte[] respIdData = gcpfr.getId();
-            Id id = new Id(respIdData, currentNode.getId().getLimitAsByteArray());
+            Id id = chordHelper.convertToId(gcpfr.getId());
 
             if (address == null) {
                 currentNode = new ExternalPointer<>(id, currentNode.getAddress());

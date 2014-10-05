@@ -16,12 +16,17 @@
  */
 package com.offbynull.peernetic.playground.chorddht.messages.external;
 
+import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.message.Request;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public final class FindSuccessorRequest extends Request {
     private byte[] id;
+
+    public FindSuccessorRequest(Id id) {
+        this(id.getValueAsByteArray());
+    }
 
     public FindSuccessorRequest(byte[] id) {
         this.id = Arrays.copyOf(id, id.length);

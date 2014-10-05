@@ -8,6 +8,7 @@ import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
 import com.offbynull.peernetic.common.message.Request;
 import com.offbynull.peernetic.common.message.Response;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,8 +43,8 @@ public final class RouterTest {
         
         router.routeMessage(Instant.MIN, req1, dstEndpoint);
         router.routeMessage(Instant.MIN, req2, dstEndpoint);
-        router.sendResponse(Instant.MIN, req1, resp1, dstEndpoint);
-        router.sendResponse(Instant.MIN, req2, resp2, dstEndpoint);
+        router.sendResponse(Instant.MIN, req1, resp1, dstEndpoint, Duration.ofSeconds(10L));
+        router.sendResponse(Instant.MIN, req2, resp2, dstEndpoint, Duration.ofSeconds(10L));
         
         Mockito.verify(subActorOne, Mockito.times(1)).onStep(Mockito.any(), Mockito.eq(dstEndpoint), Mockito.eq(req1));
         Mockito.verify(subActorTwo, Mockito.times(1)).onStep(Mockito.any(), Mockito.eq(dstEndpoint), Mockito.eq(req2));

@@ -89,13 +89,19 @@ public final class Router<A, N> implements Processable {
         removeAllTypeHandlersForActor(actor);
     }
     
-    public void sendRequest(Actor actor, Instant time, Object request, A dstAddress) {
+    public void sendRequest(Actor actor, Instant time, Object request, A dstAddress, Duration resendDuration, int maxResendCount,
+            Duration retainDuration) {
         Validate.notNull(actor);
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(dstAddress);
+        Validate.notNull(resendDuration);
+        Validate.notNull(retainDuration);
+        Validate.isTrue(!resendDuration.isNegative() && !retainDuration.isNegative() && maxResendCount >= 0);
+        Validate.isTrue(resendDuration.multipliedBy(maxResendCount).compareTo(retainDuration) <= 0);
         
-        Nonce<N> nonce = outgoingRequestManager.sendRequestAndTrack(time, request, dstAddress);
+        Nonce<N> nonce = outgoingRequestManager.sendRequestAndTrack(time, request, dstAddress, resendDuration, maxResendCount,
+                retainDuration);
         responseNonceHandlers.put(nonce, actor);
     }
 
@@ -103,13 +109,16 @@ public final class Router<A, N> implements Processable {
         return (int) responseNonceHandlers.values().stream().filter(x -> x == actor).count();
     }
     
-    public void sendResponse(Instant time, Object request, Object response, Endpoint srcEndpoint) {
+    public void sendResponse(Instant time, Object request, Object response, Endpoint srcEndpoint,
+            Duration retainDuration) {
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(response);
         Validate.notNull(srcEndpoint);
+        Validate.notNull(retainDuration);
+        Validate.isTrue(!retainDuration.isNegative());
         
-        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint);
+        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint, retainDuration);
     }
     
     public void routeMessage(Instant time, Object message, Endpoint srcEndpoint) throws Exception {

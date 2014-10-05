@@ -5,17 +5,15 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdRequest;
+import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.SuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,12 +22,13 @@ import org.apache.commons.lang3.Validate;
 public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
     private final ChordContext<A> context;
     private final Id findId;
-    private final Object originalRequest;
+    private final FindSuccessorRequest originalRequest;
     private final Endpoint originalSource;
+    private final ChordHelper<A, byte[]> chordHelper;
     
     
     public static <A> RemoteRouteToTask<A> create(Instant time, ChordContext<A> context, Id findId,
-            Object originalRequest, Endpoint originalSource) throws Exception {
+            FindSuccessorRequest originalRequest, Endpoint originalSource) throws Exception {
         // create
         RemoteRouteToTask<A> task = new RemoteRouteToTask<>(context, findId, originalRequest, originalSource);
         JavaflowActor actor = new JavaflowActor(task);
@@ -38,7 +37,7 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         return task;
     }
     
-    private RemoteRouteToTask(ChordContext<A> context, Id findId, Object originalRequest, Endpoint originalSource) {
+    private RemoteRouteToTask(ChordContext<A> context, Id findId, FindSuccessorRequest originalRequest, Endpoint originalSource) {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
@@ -50,6 +49,7 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         this.findId = findId;
         this.originalRequest = originalRequest;
         this.originalSource = originalSource;
+        this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
     
     @Override
@@ -83,10 +83,7 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
             }
         } else if (isExternalPointer) {
             ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
-
-            GetSuccessorResponse<A> gsr = getFlowControl().sendRequestAndWait(new GetSuccessorRequest(), externalPred.getAddress(),
-                    GetSuccessorResponse.class, Duration.ofSeconds(3L));
-
+            GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(externalPred.getAddress());
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
             A senderAddress = context.getEndpointIdentifier().identify(getSource());
@@ -100,17 +97,14 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
             }
 
             // ask for that successor's id, wait for response here
-            GetIdResponse gir = getFlowControl().sendRequestAndWait(new GetIdRequest(), address, GetIdResponse.class, Duration.ofSeconds(3L));
-
-            int bitSize = ChordUtils.getBitLength(findId);
-            foundId = new Id(gir.getId(), bitSize);
+            GetIdResponse gir = chordHelper.sendGetIdRequest(address);
+            foundId = chordHelper.convertToId(gir.getId());
             foundAddress = context.getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();
         }
 
-        FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
-        context.getRouter().sendResponse(getTime(), originalRequest, response, originalSource);
+        chordHelper.sendFindSuccessorResponse(originalRequest, originalSource, foundId, foundAddress);
     }
 
     @Override

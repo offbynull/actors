@@ -4,16 +4,14 @@ import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
-import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -21,6 +19,7 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
 
     private final ChordContext<A> context;
     private final ExternalPointer<A> bootstrapNode;
+    private final ChordHelper<A, byte[]> networkHelper;
 
     public static <A> InitFingerTableTask<A> create(Instant time, ChordContext<A> context,
             ExternalPointer<A> bootstrapNode) throws Exception {
@@ -39,6 +38,7 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
         Validate.notNull(bootstrapNode);
         this.context = context;
         this.bootstrapNode = bootstrapNode;
+        this.networkHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
     @Override
@@ -49,17 +49,16 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
         FingerTable fingerTable = new FingerTable(new InternalPointer(context.getSelfId()));
         Id expectedSuccesorId = fingerTable.getExpectedId(0);
 
-        FindSuccessorResponse<A> fsr = getFlowControl().sendRequestAndWait(new FindSuccessorRequest(expectedSuccesorId.getValueAsByteArray()),
-                bootstrapNode.getAddress(), FindSuccessorResponse.class, Duration.ofSeconds(3L));
+          // it's super important that we have our successor, as its the basis for the correctness of the chord ring. as such, we should
+          // retry this alot of times before giving up.
+        FindSuccessorResponse<A> fsr = networkHelper.sendFindSuccessorRequest(bootstrapNode.getAddress(), expectedSuccesorId);
+        Validate.validState(fsr != null, "Unable to reach successor");
         ExternalPointer<A> successor = convertToExternalPointer(fsr.getId(), fsr.getAddress());
-        if (successor == null) {
-            throw new IllegalStateException();
-        }
         fingerTable.put(successor);
 
         // get our successor's pred 
-        GetPredecessorResponse<A> gpr = getFlowControl().sendRequestAndWait(new GetPredecessorRequest(), successor.getAddress(),
-                GetPredecessorResponse.class, Duration.ofSeconds(3L));
+        GetPredecessorResponse<A> gpr = networkHelper.sendGetPredecessorRequest(successor.getAddress());
+        Validate.validState(gpr != null, "Unable to get successor's predecessor");
 
         // populate fingertable
         for (int i = 1; i < maxIdx; i++) {
@@ -71,16 +70,14 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
             Id findId = fingerTable.getExpectedId(i);
 
             // route to id
-            fsr = getFlowControl().sendRequestAndWait(new FindSuccessorRequest(findId.getValueAsByteArray()),
-                    bootstrapNode.getAddress(), FindSuccessorResponse.class, Duration.ofSeconds(3L));
-            ExternalPointer<A> foundFinger = convertToExternalPointer(fsr.getId(), fsr.getAddress());
-
-            // set in to finger table
-            if (foundFinger == null) {
+            fsr = networkHelper.sendFindSuccessorRequest(bootstrapNode.getAddress(), findId);
+            if (fsr == null) {
                 continue;
             }
 
-            fingerTable.put((ExternalPointer<A>) foundFinger);
+            // set in to finger table
+            ExternalPointer<A> foundFinger = convertToExternalPointer(fsr.getId(), fsr.getAddress());
+            fingerTable.put(foundFinger);
         }
 
         // create successor table and sync to finger table
@@ -103,9 +100,7 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
     }
     
     private ExternalPointer<A> convertToExternalPointer(byte[] idData, A address) {
-        if (idData == null) {
-            throw new IllegalStateException();
-        }
+        Validate.notNull(idData);
 
         if (address == null) {
             return new ExternalPointer<>(new Id(idData, context.getSelfId().getLimitAsByteArray()), bootstrapNode.getAddress());

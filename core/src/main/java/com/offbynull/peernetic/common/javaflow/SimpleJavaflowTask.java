@@ -51,8 +51,7 @@ public abstract class SimpleJavaflowTask<A, N> extends BaseJavaflowTask {
         return actor;
     }
 
-    public FlowControl<A, N> getFlowControl() {
-        Validate.validState(actor != null);
+    protected final FlowControl<A, N> getFlowControl() {
         return flowControl;
     }
     

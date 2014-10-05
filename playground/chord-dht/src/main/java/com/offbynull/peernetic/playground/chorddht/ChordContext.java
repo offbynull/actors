@@ -11,11 +11,17 @@ import com.offbynull.peernetic.common.transmission.Router;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
+import java.time.Duration;
 
 public class ChordContext<A> {
     private final ChordActiveListener<Id> activeListener;
     private final ChordLinkListener<Id> linkListener;
     private final ChordUnlinkListener<Id> unlinkListener;
+    
+    private Duration totalTrackResponeDuration = Duration.ofSeconds(60L);
+    private Duration totalTrackRequestDuration = Duration.ofSeconds(30L);
+    private Duration requestResendDuration = Duration.ofSeconds(3L);
+    private int requestMaxResends = 10;
 
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;
@@ -144,6 +150,38 @@ public class ChordContext<A> {
 
     public void setPredecessor(ExternalPointer<A> predecessor) {
         this.predecessor = predecessor;
+    }
+
+    public Duration getTotalTrackResponeDuration() {
+        return totalTrackResponeDuration;
+    }
+
+    public void setTotalTrackResponeDuration(Duration totalTrackResponeDuration) {
+        this.totalTrackResponeDuration = totalTrackResponeDuration;
+    }
+
+    public Duration getTotalTrackRequestDuration() {
+        return totalTrackRequestDuration;
+    }
+
+    public void setTotalTrackRequestDuration(Duration totalTrackRequestDuration) {
+        this.totalTrackRequestDuration = totalTrackRequestDuration;
+    }
+
+    public Duration getRequestResendDuration() {
+        return requestResendDuration;
+    }
+
+    public void setRequestResendDuration(Duration requestResendDuration) {
+        this.requestResendDuration = requestResendDuration;
+    }
+
+    public int getRequestMaxResends() {
+        return requestMaxResends;
+    }
+
+    public void setRequestMaxResends(int requestMaxResends) {
+        this.requestMaxResends = requestMaxResends;
     }
 
 }

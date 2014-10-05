@@ -4,14 +4,12 @@ import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
-import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
-import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -24,6 +22,8 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
     
     private Id foundId;
     private A foundAddress;
+    
+    private final ChordHelper<A, byte[]> chordHelper;
     
     
     public static <A> RouteToPredecessorTask<A> create(Instant time, ChordContext<A> context, Id findId) throws Exception {
@@ -42,6 +42,7 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
         Validate.notNull(findId);
         this.context = context;
         this.findId = findId;
+        this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
     
     @Override
@@ -63,16 +64,12 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
             throw new IllegalStateException();
         }
 
-        byte[] findIdData = findId.getValueAsByteArray();
-
         // move forward until you can't move forward anymore
         while (!findId.isWithin(currentNode.getId(), false, querySuccessorId(currentNode), true)) {
-            GetClosestPrecedingFingerResponse<A> gcpfr = getFlowControl().sendRequestAndWait(new GetClosestPrecedingFingerRequest(findIdData),
-                    currentNode.getAddress(), GetClosestPrecedingFingerResponse.class, Duration.ofSeconds(3L));
+            GetClosestPrecedingFingerResponse<A> gcpfr = chordHelper.sendGetClosestPrecedingFingerRequest(currentNode.getAddress(), findId);
 
             A address = gcpfr.getAddress();
-            byte[] respIdData = gcpfr.getId();
-            Id id = new Id(respIdData, currentNode.getId().getLimitAsByteArray());
+            Id id = chordHelper.convertToId(gcpfr.getId());
 
             if (address == null) {
                 currentNode = new ExternalPointer<>(id, currentNode.getAddress());
@@ -88,8 +85,7 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
     }
     
     private Id querySuccessorId(ExternalPointer<A> pointer) {
-        GetSuccessorResponse<A> gsr = getFlowControl().sendRequestAndWait(new GetSuccessorRequest(),
-                pointer.getAddress(), GetSuccessorResponse.class, Duration.ofSeconds(3L));
+        GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(pointer.getAddress());
         return new Id(gsr.getEntries().get(0).getId(), pointer.getId().getLimitAsByteArray());
     }
 

@@ -10,3 +10,4 @@ com/offbynull/peernetic/playground/chorddht/tasks/RouteToPredecessorTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/StabilizeTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/InitFingerTableTask.class
 com/offbynull/peernetic/playground/chorddht/tasks/RemoteRouteToTask.class
+com/offbynull/peernetic/playground/chorddht/shared/ChordHelper.class

@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
@@ -93,17 +94,22 @@ public final class FlowControl<A, N> {
         }
     }
 
-    public <T> T sendRequestAndWait(Object request, A address, Class<T> expectedResponseType, Duration timeout) {
-        sendRequest(request, address);
-        return waitUntilNonce(request, expectedResponseType, timeout);
+    public <T> T sendRequestAndWait(Object request, A address, Class<T> expectedResponseType, Duration resendDuration, int maxResendCount,
+            Duration retainDuration) {
+        sendRequest(request, address, resendDuration, maxResendCount, retainDuration);
+        return waitUntilNonce(request, expectedResponseType, retainDuration);
     }
 
-    public void sendRequest(Object request, A address) {
+    public void sendRequest(Object request, A address, Duration resendDuration, int maxResendCount, Duration retainDuration) {
         Validate.notNull(request);
         Validate.notNull(address);
         Validate.isTrue(nonceAccessor.containsNonceField(request));
+        Validate.notNull(resendDuration);
+        Validate.notNull(retainDuration);
+        Validate.isTrue(!resendDuration.isNegative() && !retainDuration.isNegative() && maxResendCount >= 0);
+        Validate.isTrue(resendDuration.multipliedBy(maxResendCount).compareTo(retainDuration) <= 0);
 
-        router.sendRequest(actor, state.getTime(), request, address);
+        router.sendRequest(actor, state.getTime(), request, address, resendDuration, maxResendCount, retainDuration);
     }
 
     private Object waitUntilNonce(Duration timeout, BooleanSupplier messagePredicate) {

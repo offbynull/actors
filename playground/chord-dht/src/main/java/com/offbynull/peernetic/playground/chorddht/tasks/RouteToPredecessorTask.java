@@ -7,9 +7,9 @@ import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
@@ -19,8 +19,6 @@ import org.slf4j.LoggerFactory;
 public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
     private static final Logger LOG = LoggerFactory.getLogger(RouteToPredecessorTask.class);
-    
-    private final ChordContext<A> context;
 
     private final Id findId;
     private ExternalPointer<A> currentNode;
@@ -45,36 +43,46 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
         
         Validate.notNull(context);
         Validate.notNull(findId);
-        this.context = context;
         this.findId = findId;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
     
     @Override
     public void execute() throws Exception {
+        Id selfId = chordHelper.getSelfId();
+        
+        LOG.debug("Routing to predecessor of {}", findId);
+        
         try {
-            if (findId.isWithin(context.getSelfId(), false, context.getSuccessorTable().getSuccessor().getId(), true)) {
-                foundId = context.getSelfId();
+            if (findId.isWithin(selfId, false, chordHelper.getSuccessor().getId(), true)) {
+                LOG.debug("Predecessor is between self and successor. Stopping.");
+                foundId = selfId;
                 foundAddress = null;
                 return;
             }
 
-            Pointer initialPointer = context.getFingerTable().findClosestPreceding(findId);
+            Pointer initialPointer = chordHelper.getClosestPrecedingFinger(findId);
             if (initialPointer instanceof InternalPointer) { // if the closest predecessor is yourself -- which means the ft is empty
-                foundId = context.getSelfId();
+                LOG.debug("Self is the closest preceding finger. Stopping.");
+                foundId = selfId;
                 foundAddress = null;
                 return;
             } else if (initialPointer instanceof ExternalPointer) {
                 currentNode = (ExternalPointer<A>) initialPointer;
+                LOG.debug("{} is the closest preceding finger on file.", currentNode);
             } else {
                 throw new IllegalStateException();
             }
 
             // move forward until you can't move forward anymore
             while (true) {
+                LOG.debug("Querying successor of {}.", currentNode.getId());
                 GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(currentNode.getAddress());
                 Id succId = chordHelper.toId(gsr.getEntries().get(0).getId());
+                
+                LOG.debug("Successor of {} is {}.", currentNode.getId(), succId);
                 if (findId.isWithin(currentNode.getId(), false, succId, true)) {
+                    LOG.debug("{} is between {} and {}.", findId, currentNode.getId(), succId);
                     break;
                 }
 
@@ -87,12 +95,16 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
                 } else {
                     currentNode = new ExternalPointer<>(id, address);
                 }
+                
+                LOG.debug("{} reports its closest predecessor is {}.", succId, id);
             }
 
             foundId = currentNode.getId();
-            if (!currentNode.getId().equals(context.getSelfId())) {
+            if (!currentNode.getId().equals(selfId)) {
                 foundAddress = currentNode.getAddress();
             }
+            
+            LOG.debug("Found {} at {}.", foundId, foundAddress);
         } catch (ChordOperationException coe) {
             LOG.error(coe.getMessage());
         }
@@ -103,7 +115,7 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
             return null;
         }
         
-        if (foundId.equals(context.getSelfId())) {
+        if (chordHelper.isSelfId(foundId)) {
             return new InternalPointer(foundId);
         }
         

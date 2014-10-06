@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.playground.chorddht.shared;
+package com.offbynull.peernetic.playground.chorddht.model;
 
 import com.offbynull.peernetic.common.identification.Id;
 import java.util.Objects;

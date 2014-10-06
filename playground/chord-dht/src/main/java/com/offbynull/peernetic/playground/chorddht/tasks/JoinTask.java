@@ -5,17 +5,15 @@ import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
-import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
-import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
+import com.offbynull.peernetic.playground.chorddht.model.SuccessorTable;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 public final class JoinTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
-    private final ChordContext<A> context;
     private final ChordHelper<A, byte[]> chordHelper;
 
     public static <A> JoinTask<A> create(Instant time, ChordContext<A> context) throws Exception {
@@ -31,7 +29,6 @@ public final class JoinTask<A> extends SimpleJavaflowTask<A, byte[]> {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
-        this.context = context;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
@@ -39,14 +36,13 @@ public final class JoinTask<A> extends SimpleJavaflowTask<A, byte[]> {
     public void execute() throws Exception {
         try {
             // initialize state
-            A initialAddress = context.getBootstrapAddress();
-            FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(context.getSelfId()));
-            SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
+            A initialAddress = chordHelper.getBootstrapAddress();
+            FingerTable<A> fingerTable = new FingerTable<>(chordHelper.getSelfPointer());
+            SuccessorTable<A> successorTable = new SuccessorTable<>(chordHelper.getSelfPointer());
 
             // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
             if (initialAddress == null) {
-                context.setFingerTable(fingerTable);
-                context.setSuccessorTable(successorTable);
+                chordHelper.setTables(fingerTable, successorTable);
                 return;
             }
 

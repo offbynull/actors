@@ -6,13 +6,11 @@ import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetPredecessorResponse;
-import com.offbynull.peernetic.playground.chorddht.shared.IdUtils;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
-import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
+import com.offbynull.peernetic.playground.chorddht.model.SuccessorTable;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -22,7 +20,6 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
 
     private static final Logger LOG = LoggerFactory.getLogger(InitFingerTableTask.class);
     
-    private final ChordContext<A> context;
     private final ExternalPointer<A> bootstrapNode;
     private final ChordHelper<A, byte[]> chordHelper;
 
@@ -41,17 +38,16 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
         
         Validate.notNull(context);
         Validate.notNull(bootstrapNode);
-        this.context = context;
         this.bootstrapNode = bootstrapNode;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
     @Override
     public void execute() throws Exception {
-        int maxIdx = IdUtils.getBitLength(context.getSelfId());
+        int len = chordHelper.getFingerTableLength();
 
         // create fingertable -- find our successor from the bootstrap node and store it in the fingertable
-        FingerTable fingerTable = new FingerTable(new InternalPointer(context.getSelfId()));
+        FingerTable fingerTable = new FingerTable(chordHelper.getSelfPointer());
         Id expectedSuccesorId = fingerTable.getExpectedId(0);
 
         FindSuccessorResponse<A> fsr = chordHelper.sendFindSuccessorRequest(bootstrapNode.getAddress(), expectedSuccesorId);
@@ -64,7 +60,7 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
         chordHelper.failIfSelf(gpr);
 
         // populate fingertable
-        for (int i = 1; i < maxIdx; i++) {
+        for (int i = 1; i < len; i++) {
             // successor may extend multiple slots in to the fingertable... if it does, skip this entry and go to the next
             if (fingerTable.get(i) instanceof ExternalPointer) {
                 LOG.warn("No need to find finger for index {}", i);
@@ -89,7 +85,7 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
         }
 
         // create successor table and sync to finger table
-        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
+        SuccessorTable<A> successorTable = new SuccessorTable<>(chordHelper.getSelfPointer());
         successorTable.updateTrim(fingerTable.get(0));
 
         chordHelper.setTables(fingerTable, successorTable);

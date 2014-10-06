@@ -13,8 +13,8 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccesso
 import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableRequest;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import java.time.Instant;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
@@ -25,7 +25,6 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
     private static final Logger LOG = LoggerFactory.getLogger(ResponderTask.class);
     
-    private final ChordContext<A> context;
     private final ChordHelper<A, byte[]> chordHelper;
 
     public static <A> ResponderTask<A> create(Instant time, ChordContext<A> context) throws Exception {
@@ -41,7 +40,6 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
-        this.context = context;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
@@ -58,54 +56,51 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                     UpdateFingerTableRequest.class,
                     FindSuccessorRequest.class);
 
-            LOG.debug("Handling responder message {} with nonce {}", message.getClass(), context.getNonceAccessor().get(message));
+            LOG.debug("Incoming request {}", message.getClass());
             
             chordHelper.trackRequest(message);
             
             if (message instanceof GetIdRequest) {
                 GetIdRequest request = (GetIdRequest) message;
-                chordHelper.sendGetIdResponse(request, getSource(), context.getSelfId());
+                chordHelper.sendGetIdResponse(request, getSource(), chordHelper.getSelfId());
             } else if (message instanceof GetClosestFingerRequest) {
                 GetClosestFingerRequest request = (GetClosestFingerRequest) message;
-                Id id = chordHelper.toId(request.getId());
-                Id skipId = chordHelper.toId(request.getSkipId());
-                Pointer pointer = context.getFingerTable().findClosest(id, skipId);
+                Pointer pointer = chordHelper.getClosestFinger(request);
                 chordHelper.sendGetClosestFingerResponse(request, getSource(), pointer);
             } else if (message instanceof GetClosestPrecedingFingerRequest) {
                 GetClosestPrecedingFingerRequest request = (GetClosestPrecedingFingerRequest) message;
-                Id id = chordHelper.toId(request.getId());
-                Pointer pointer = context.getFingerTable().findClosestPreceding(id);
+                Pointer pointer = chordHelper.getClosestPrecedingFinger(request);
                 chordHelper.sendGetClosestPrecedingFingerResponse(request, getSource(), pointer);
             } else if (message instanceof GetPredecessorRequest) {
                 GetPredecessorRequest request = (GetPredecessorRequest) message;
-                ExternalPointer<A> pointer = context.getPredecessor();
+                ExternalPointer<A> pointer = chordHelper.getPredecessor();
                 chordHelper.sendGetPredecessorResponse(request, getSource(), pointer);
             } else if (message instanceof GetSuccessorRequest) {
                 GetSuccessorRequest request = (GetSuccessorRequest) message;
-                List<Pointer> successors = context.getSuccessorTable().dump();
+                List<Pointer> successors = chordHelper.getSuccessors();
                 chordHelper.sendGetSuccessorResponse(request, getSource(), successors);
             } else if (message instanceof NotifyRequest) {
                 NotifyRequest request = (NotifyRequest) message;
                 Id id = chordHelper.toId(request.getId());
 
-                ExternalPointer<A> newPredecessor
-                        = new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
-                ExternalPointer<A> existingPredecessor = (ExternalPointer<A>) context.getPredecessor();
-                if (context.getPredecessor() == null || id.isWithin(existingPredecessor.getId(), true, context.getSelfId(), false)) {
-                    context.setPredecessor(newPredecessor);
+                ExternalPointer<A> newPredecessor = new ExternalPointer<>(id, chordHelper.getCurrentMessageAddress());
+                ExternalPointer<A> existingPredecessor = chordHelper.getPredecessor();
+                if (existingPredecessor == null || id.isWithin(existingPredecessor.getId(), true, chordHelper.getSelfId(), false)) {
+                    chordHelper.setPredecessor(newPredecessor);
                 }
 
-                ExternalPointer<A> pointer = context.getPredecessor();
+                ExternalPointer<A> pointer = chordHelper.getPredecessor();
                 chordHelper.sendNotifyResponse(request, getSource(), pointer);
             } else if (message instanceof UpdateFingerTableRequest) {
                 UpdateFingerTableRequest request = (UpdateFingerTableRequest) message;
                 Id id = chordHelper.toId(request.getId());
-                ExternalPointer<A> newFinger = new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
+                ExternalPointer<A> newFinger = new ExternalPointer<>(id, chordHelper.getCurrentMessageAddress());
 
-                if (!id.equals(context.getSelfId())) {
-                    boolean replaced = context.getFingerTable().replace(newFinger);
-                    if (replaced && context.getPredecessor() != null) {
-                        chordHelper.fireUpdateFingerTableRequest(context.getPredecessor().getAddress(), id);
+                if (!chordHelper.isSelfId(id)) {
+                    boolean replaced = chordHelper.replaceFinger(newFinger);
+                    ExternalPointer<A> pred = chordHelper.getPredecessor();
+                    if (replaced && pred != null) {
+                        chordHelper.fireUpdateFingerTableRequest(pred.getAddress(), id);
                     }
                 }
 
@@ -115,8 +110,8 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 Id id = chordHelper.toId(request.getId());
 
                 try {
-                    // we don't want to block this task by waiting for remoteroutetosuccessor to complete
-                    RemoteRouteToTask.create(getTime(), context, id, request, getSource());
+                    // we don't want to block the responder task by waiting for remoterouteto to complete
+                    chordHelper.fireRemoteRouteToTask(id, request, getSource());
                 } catch (Exception e) {
                     // should never happen
                 }

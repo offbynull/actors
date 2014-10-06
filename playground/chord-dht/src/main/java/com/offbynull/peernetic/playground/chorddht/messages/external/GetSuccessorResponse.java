@@ -17,9 +17,9 @@
 package com.offbynull.peernetic.playground.chorddht.messages.external;
 
 import com.offbynull.peernetic.common.message.Response;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

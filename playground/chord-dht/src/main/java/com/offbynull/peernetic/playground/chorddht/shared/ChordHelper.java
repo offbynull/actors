@@ -1,5 +1,11 @@
 package com.offbynull.peernetic.playground.chorddht.shared;
 
+import com.offbynull.peernetic.playground.chorddht.model.IdUtils;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.FingerTable;
+import com.offbynull.peernetic.playground.chorddht.model.SuccessorTable;
+import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.FlowControl;
@@ -22,6 +28,7 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyRespo
 import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableResponse;
 import com.offbynull.peernetic.playground.chorddht.tasks.InitFingerTableTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.RemoteRouteToTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.RouteToPredecessorTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.RouteToTask;
 import com.offbynull.peernetic.playground.chorddht.tasks.UpdateOthersTask;
@@ -264,6 +271,13 @@ public final class ChordHelper<A, N> {
     public void fireUpdateOthersTask() throws Exception {
         UpdateOthersTask.create(taskState.getTime(), context);
     }
+
+    public void fireRemoteRouteToTask(Id id, FindSuccessorRequest request, Endpoint source) throws Exception {
+        Validate.notNull(id);
+        Validate.notNull(request);
+        Validate.notNull(source);
+        RemoteRouteToTask.create(taskState.getTime(), context, id, request, source);
+    }
     
     
     
@@ -271,9 +285,34 @@ public final class ChordHelper<A, N> {
     
     
 
-    public void setImmediateSuccessor(Pointer ptr) {
+    
+    
+    public A getBootstrapAddress() {
+        return context.getBootstrapAddress();
+    }
+    
+    public void setSuccessor(Pointer ptr) {
         Validate.notNull(ptr);
         context.getSuccessorTable().updateTrim(ptr);
+        
+        if (isSelfId(ptr.getId())) {
+            context.getFingerTable().clear();
+        } else {
+            context.getFingerTable().clearBefore(ptr.getId());
+            context.getFingerTable().put((ExternalPointer<A>) ptr);
+        }
+    }
+
+    public void moveToNextSuccessor() {
+        context.getSuccessorTable().moveToNextSucessor();
+        Pointer ptr = context.getSuccessorTable().getSuccessor();
+        
+        if (isSelfId(ptr.getId())) {
+            context.getFingerTable().clear();
+        } else {
+            context.getFingerTable().clearBefore(ptr.getId());
+            context.getFingerTable().put((ExternalPointer<A>) ptr);
+        }
     }
     
     public void setPredecessor(GetPredecessorResponse<A> resp) {
@@ -283,12 +322,25 @@ public final class ChordHelper<A, N> {
         }
     }
 
+    public void setPredecessor(ExternalPointer<A> pointer) {
+        Validate.notNull(pointer);
+        context.setPredecessor(pointer);
+    }
+
     public void clearPredecessor() {
         context.setPredecessor(null);
     }
 
     public ExternalPointer<A> getPredecessor() {
         return context.getPredecessor();
+    }
+
+    public List<Pointer> getSuccessors() {
+        return context.getSuccessorTable().dump();
+    }
+
+    public Pointer getSuccessor() {
+        return context.getSuccessorTable().getSuccessor();
     }
     
     public int getFingerTableLength() {
@@ -300,14 +352,64 @@ public final class ChordHelper<A, N> {
         return context.getFingerTable().get(idx);
     }
 
-    public void putFinger(ExternalPointer<A> ptr) {
-        Validate.notNull(ptr);
-        context.getFingerTable().put(ptr);
+    public Pointer getClosestFinger(GetClosestFingerRequest req) {
+        Validate.notNull(req);
+        return context.getFingerTable().findClosest(toId(req.getId()), toId(req.getSkipId()));
+    }
+
+    public Pointer getClosestFinger(Id id, Id ... skipIds) {
+        Validate.notNull(id);
+        Validate.noNullElements(skipIds);
+        return context.getFingerTable().findClosest(id, skipIds);
+    }
+
+    public Pointer getClosestPrecedingFinger(GetClosestPrecedingFingerRequest req) {
+        Validate.notNull(req);
+        return context.getFingerTable().findClosestPreceding(toId(req.getId()));
+    }
+
+    public Pointer getClosestPrecedingFinger(Id id) {
+        Validate.notNull(id);
+        return context.getFingerTable().findClosestPreceding(id);
     }
 
     public Id getExpectedFingerId(int idx) {
         Validate.isTrue(idx >= 0); // method below also checks < tableLength
         return context.getFingerTable().getExpectedId(idx);
+    }
+
+    public ExternalPointer<A> getMaximumNonSelfFinger() {
+        return context.getFingerTable().getMaximumNonBase();
+    }
+    
+    public Id getIdThatShouldHaveThisNodeAsFinger(int idx) {
+        Validate.isTrue(idx >= 0); // method below also checks < tableLength
+        return context.getFingerTable().getRouterId(idx);
+    }
+    
+    public List<Pointer> getFingers() {
+        return context.getFingerTable().dump();
+    }
+    
+    public void putFinger(ExternalPointer<A> ptr) {
+        Validate.notNull(ptr);
+        context.getFingerTable().put(ptr);
+        
+        if (context.getFingerTable().get(0).equals(ptr)) {
+            context.getSuccessorTable().updateTrim(ptr);
+        }
+    }
+    
+    public boolean replaceFinger(ExternalPointer<A> ptr) {
+        Validate.notNull(ptr);
+        return context.getFingerTable().replace(ptr);
+    }
+    
+    public void updateSuccessor(ExternalPointer<A> successor, List<Pointer> subsequentSuccessors) {
+        Validate.notNull(successor);
+        Validate.noNullElements(subsequentSuccessors);
+        context.getSuccessorTable().update(successor, subsequentSuccessors);
+        context.getFingerTable().put(successor);
     }
     
     public void setTables(FingerTable<A> fingerTable, SuccessorTable<A> successorTable) {
@@ -318,6 +420,14 @@ public final class ChordHelper<A, N> {
         context.setSuccessorTable(successorTable);
     }
 
+    public InternalPointer getSelfPointer() {
+        return new InternalPointer(context.getSelfId());
+    }
+    
+    public Id getSelfId() {
+        return context.getSelfId();
+    }
+    
     public void failIfSelf(GetPredecessorResponse<A> resp) {
         Validate.notNull(resp);
         if (resp.getId() != null && isSelfId(resp.getId())) {
@@ -334,8 +444,12 @@ public final class ChordHelper<A, N> {
     
     public boolean isSelfId(byte[] idData) {
         Validate.notNull(idData);
-        
         return new Id(idData, context.getSelfId().getLimitAsByteArray()).equals(context.getSelfId());
+    }
+
+    public boolean isSelfId(Id id) {
+        Validate.notNull(id);
+        return id.equals(context.getSelfId());
     }
     
     public Id toId(byte[] idData) {
@@ -366,6 +480,14 @@ public final class ChordHelper<A, N> {
             return new ExternalPointer<>(toId(idData), defaultAddress);
         }
     }    
+    
+    
+    
+    
+    
+    public A getCurrentMessageAddress() {
+        return context.getEndpointIdentifier().identify(taskState.getSource());
+    }
     
     
     

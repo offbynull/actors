@@ -6,9 +6,9 @@ import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FixFingerTableTask.class);
-    private final ChordContext<A> context;
     private final ChordHelper<A, byte[]> chordHelper;
     
     public static <A> FixFingerTableTask<A> create(Instant time, ChordContext<A> context) throws Exception {
@@ -33,7 +32,6 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
-        this.context = context;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
@@ -42,9 +40,8 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
         int len = chordHelper.getFingerTableLength();
 
         while (true) {
-            for (int i = 1; i < len; i++) {
-                // for each finger to be fixed, fix the successor (finger[0]) befor fixing that finger. if we're not aggressive about fixing
-                // successor, ring may never be complete
+            for (int i = 1; i < len; i++) { // this task starts from 1, not 0 ... fixing of the 0 / successor is done in stabilize
+                LOG.info("{}: Fixing finger {}", chordHelper.getSelfId(), i);
                 fixFinger(0);
                 fixFinger(i);
             }
@@ -73,14 +70,9 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
 //                        }
         } else if (foundFinger instanceof ExternalPointer) {
             chordHelper.putFinger((ExternalPointer<A>) foundFinger);
-            LOG.debug("{}: Finger for index {} set to {}", context.getSelfId(), i, foundFinger);
+            LOG.debug("{}: Finger for index {} set to {}", chordHelper.getSelfId(), i, foundFinger);
         } else {
             throw new IllegalStateException();
-        }
-
-        // update successor table (if first)
-        if (i == 0) {
-            chordHelper.setImmediateSuccessor(foundFinger);
         }
     }
 

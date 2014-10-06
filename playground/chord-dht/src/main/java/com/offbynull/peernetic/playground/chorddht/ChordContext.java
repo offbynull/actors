@@ -8,9 +8,9 @@ import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceGenerator;
 import com.offbynull.peernetic.common.transmission.Router;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
-import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.FingerTable;
+import com.offbynull.peernetic.playground.chorddht.model.SuccessorTable;
 import java.time.Duration;
 
 public class ChordContext<A> {

@@ -11,16 +11,20 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccesso
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.SuccessorEntry;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
-import java.time.Duration;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
-    private final ChordContext<A> context;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteRouteToTask.class);
+    
     private final Id findId;
     private final FindSuccessorRequest originalRequest;
     private final Endpoint originalSource;
@@ -45,7 +49,6 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         Validate.notNull(originalRequest);
         Validate.notNull(originalSource);
 
-        this.context = context;
         this.findId = findId;
         this.originalRequest = originalRequest;
         this.originalSource = originalSource;
@@ -54,13 +57,12 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
     @Override
     public void execute() throws Exception {
-        // find predecessor
-        RouteToTask<A> routeToTask = RouteToTask.create(getTime(), context, findId);
-        getFlowControl().waitUntilFinished(routeToTask.getActor(), Duration.ofSeconds(1L));
-        Pointer foundSucc = routeToTask.getResult();
-
-        if (foundSucc == null) {
-            throw new IllegalArgumentException();
+        Pointer foundSucc;
+        try {
+            foundSucc = chordHelper.runRouteToTask(findId);
+        } catch (ChordOperationException coe) {
+            LOG.warn("Unable to route to node");
+            return;
         }
 
         Id foundId;
@@ -70,7 +72,7 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         boolean isExternalPointer = foundSucc instanceof ExternalPointer;
 
         if (isInternalPointer) {
-            Pointer successor = context.getFingerTable().get(0);
+            Pointer successor = chordHelper.getSuccessor();
 
             if (successor instanceof InternalPointer) {
                 foundId = successor.getId(); // id will always be the same as us
@@ -82,24 +84,29 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 throw new IllegalStateException();
             }
         } else if (isExternalPointer) {
-            ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
-            GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(externalPred.getAddress());
-            SuccessorEntry successorEntry = gsr.getEntries().get(0);
+            try {
+                ExternalPointer<A> externalPred = (ExternalPointer<A>) foundSucc;
+                GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(externalPred.getAddress());
+                SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-            A senderAddress = context.getEndpointIdentifier().identify(getSource());
-            A address;
-            if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
-                address = senderAddress;
-            } else if (successorEntry instanceof ExternalSuccessorEntry) {
-                address = ((ExternalSuccessorEntry<A>) successorEntry).getAddress();
-            } else {
-                throw new IllegalStateException();
+                A senderAddress = chordHelper.getCurrentMessageAddress();
+                A address;
+                if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
+                    address = senderAddress;
+                } else if (successorEntry instanceof ExternalSuccessorEntry) {
+                    address = ((ExternalSuccessorEntry<A>) successorEntry).getAddress();
+                } else {
+                    throw new IllegalStateException();
+                }
+
+                // ask for that successor's id, wait for response here
+                GetIdResponse gir = chordHelper.sendGetIdRequest(address);
+                foundId = chordHelper.toId(gir.getId());
+                foundAddress = chordHelper.getCurrentMessageAddress();
+            } catch (ChordOperationException coe) {
+                LOG.warn("Unable to get successor of node routed to.");
+                return;
             }
-
-            // ask for that successor's id, wait for response here
-            GetIdResponse gir = chordHelper.sendGetIdRequest(address);
-            foundId = chordHelper.toId(gir.getId());
-            foundAddress = context.getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();
         }

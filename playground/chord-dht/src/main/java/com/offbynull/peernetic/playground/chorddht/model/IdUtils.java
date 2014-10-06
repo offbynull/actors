@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.playground.chorddht.shared;
+package com.offbynull.peernetic.playground.chorddht.model;
 
 import com.offbynull.peernetic.common.identification.Id;
 import java.math.BigInteger;

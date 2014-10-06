@@ -6,15 +6,13 @@ import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetClosestFingerResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
-    
-    private final ChordContext<A> context;
     
     private final Id findId;
     private ExternalPointer<A> currentNode;
@@ -39,26 +37,25 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         
         Validate.notNull(context);
         Validate.notNull(findId);
-        this.context = context;
         this.findId = findId;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
     
     @Override
     public void execute() throws Exception {
-        Pointer initialPointer = context.getFingerTable().findClosest(findId);
+        Pointer initialPointer = chordHelper.getClosestFinger(findId);
         if (initialPointer instanceof InternalPointer) {
             // our finger table may be corrupt/incomplete, try with maximum non-base finger
-            initialPointer = context.getFingerTable().getMaximumNonBase();
+            initialPointer = chordHelper.getMaximumNonSelfFinger();
             if (initialPointer == null) {
                 // we don't have a maximum non-base, at this point we're fucked so just give back self
-                foundId = context.getSelfId();
+                foundId = chordHelper.getSelfId();
                 return;
             }
         }
 
         currentNode = (ExternalPointer<A>) initialPointer;
-        Id skipId = context.getSelfId();
+        Id skipId = chordHelper.getSelfId();
 
         // move forward until you can't move forward anymore
         while (true) {
@@ -78,13 +75,13 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 currentNode = new ExternalPointer<>(id, address);
             }
 
-            if (id.equals(oldCurrentNodeId) || id.equals(context.getSelfId())) {
+            if (id.equals(oldCurrentNodeId) || id.equals(skipId)) {
                 break;
             }
         }
 
         foundId = currentNode.getId();
-        if (!currentNode.getId().equals(context.getSelfId())) {
+        if (!currentNode.getId().equals(skipId)) {
             foundAddress = currentNode.getAddress();
         }
     }
@@ -94,7 +91,7 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
             return null;
         }
         
-        if (foundId.equals(context.getSelfId())) {
+        if (chordHelper.isSelfId(foundId)) {
             return new InternalPointer(foundId);
         }
         

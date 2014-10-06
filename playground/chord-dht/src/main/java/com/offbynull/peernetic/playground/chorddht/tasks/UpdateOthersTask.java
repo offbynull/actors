@@ -6,9 +6,9 @@ import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
-import com.offbynull.peernetic.playground.chorddht.shared.IdUtils;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
-import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.model.IdUtils;
+import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
+import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
@@ -19,7 +19,6 @@ public final class UpdateOthersTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
     private static final Logger LOG = LoggerFactory.getLogger(UpdateOthersTask.class);
 
-    private final ChordContext<A> context;
     private final ChordHelper<A, byte[]> chordHelper;
     
     public static <A> UpdateOthersTask<A> create(Instant time, ChordContext<A> context) throws Exception {
@@ -35,14 +34,15 @@ public final class UpdateOthersTask<A> extends SimpleJavaflowTask<A, byte[]> {
         super(context.getRouter(), context.getSelfEndpoint(), context.getEndpointScheduler(), context.getNonceAccessor());
         
         Validate.notNull(context);
-        this.context = context;
         this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
     @Override
     public void execute() throws Exception {
+        Id selfId = chordHelper.getSelfId();
+        
         while (true) {
-            long uniqueExtPtrCount = context.getFingerTable().dump().stream()
+            long uniqueExtPtrCount = chordHelper.getFingers().stream()
                     .distinct()
                     .filter(x -> x instanceof ExternalPointer)
                     .count();
@@ -54,14 +54,14 @@ public final class UpdateOthersTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 //
                 // if connecting to a overlay of size 1, find_predecessor() will always return yourself, so the node in the overlay will
                 // never get your request to update its finger table and you will never be recognized
-                ExternalPointer<A> ptr = (ExternalPointer<A>) context.getFingerTable().get(0);
+                ExternalPointer<A> ptr = (ExternalPointer<A>) chordHelper.getSuccessor();
                 
-                chordHelper.fireUpdateFingerTableRequest(ptr.getAddress(), context.getSelfId());
+                chordHelper.fireUpdateFingerTableRequest(ptr.getAddress(), selfId);
             } else {
-                int maxIdx = IdUtils.getBitLength(context.getSelfId());
+                int maxIdx = IdUtils.getBitLength(selfId);
                 for (int i = 0; i < maxIdx; i++) {
                     // get id of node that should have us in its finger table at index i
-                    Id routerId = context.getFingerTable().getRouterId(i);
+                    Id routerId = chordHelper.getIdThatShouldHaveThisNodeAsFinger(i);
 
                     Pointer foundRouter;
                     try {
@@ -74,7 +74,7 @@ public final class UpdateOthersTask<A> extends SimpleJavaflowTask<A, byte[]> {
                     }
                     
                     if (foundRouter instanceof ExternalPointer) {
-                        chordHelper.fireUpdateFingerTableRequest(((ExternalPointer<A>) foundRouter).getAddress(), context.getSelfId());
+                        chordHelper.fireUpdateFingerTableRequest(((ExternalPointer<A>) foundRouter).getAddress(), selfId);
                     }
                 }
             }

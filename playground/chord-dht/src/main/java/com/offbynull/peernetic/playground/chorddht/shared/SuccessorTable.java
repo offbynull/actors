@@ -51,10 +51,10 @@ public final class SuccessorTable<A> {
     public SuccessorTable(InternalPointer basePtr) {
         Validate.notNull(basePtr);
         Id baseId = basePtr.getId();
-        Validate.isTrue(ChordUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
+        Validate.isTrue(IdUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
         
         this.basePtr = basePtr;
-        limit = ChordUtils.getBitLength(baseId);
+        limit = IdUtils.getBitLength(baseId);
         
         table = new ArrayDeque<>(limit);
         table.add(basePtr);
@@ -89,7 +89,7 @@ public final class SuccessorTable<A> {
         Id baseId = basePtr.getId();
         Id successorId = successor.getId();
         
-        Validate.isTrue(ChordUtils.getBitLength(successorId) == limit);
+        Validate.isTrue(IdUtils.getBitLength(successorId) == limit);
         
         if (baseId.equals(successorId)) { // test above makes sure if this is true, successor will be of correct type
             table = new ArrayDeque<>();
@@ -132,7 +132,7 @@ public final class SuccessorTable<A> {
         Id baseId = basePtr.getId();
         Id successorId = successor.getId();
         
-        Validate.isTrue(ChordUtils.getBitLength(successorId) == limit);
+        Validate.isTrue(IdUtils.getBitLength(successorId) == limit);
         
         if (table.size() > limit) {
             table = table.subList(0, limit);
@@ -144,7 +144,7 @@ public final class SuccessorTable<A> {
         for (Pointer ptrSuccessor : table) {
             Id ptrSuccessorId = ptrSuccessor.getId();
             
-            Validate.isTrue(ChordUtils.getBitLength(ptrSuccessorId) == limit);
+            Validate.isTrue(IdUtils.getBitLength(ptrSuccessorId) == limit);
             
             if (baseId.equals(ptrSuccessorId)) {
                 lastTableIdx = idx;

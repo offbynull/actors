@@ -18,8 +18,12 @@ import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
 import java.time.Instant;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(ResponderTask.class);
     
     private final ChordContext<A> context;
     private final ChordHelper<A, byte[]> chordHelper;
@@ -54,18 +58,22 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                     UpdateFingerTableRequest.class,
                     FindSuccessorRequest.class);
 
+            LOG.debug("Handling responder message {} with nonce {}", message.getClass(), context.getNonceAccessor().get(message));
+            
+            chordHelper.trackRequest(message);
+            
             if (message instanceof GetIdRequest) {
                 GetIdRequest request = (GetIdRequest) message;
                 chordHelper.sendGetIdResponse(request, getSource(), context.getSelfId());
             } else if (message instanceof GetClosestFingerRequest) {
                 GetClosestFingerRequest request = (GetClosestFingerRequest) message;
-                Id id = chordHelper.convertToId(request.getId());
-                Id skipId = chordHelper.convertToId(request.getSkipId());
+                Id id = chordHelper.toId(request.getId());
+                Id skipId = chordHelper.toId(request.getSkipId());
                 Pointer pointer = context.getFingerTable().findClosest(id, skipId);
                 chordHelper.sendGetClosestFingerResponse(request, getSource(), pointer);
             } else if (message instanceof GetClosestPrecedingFingerRequest) {
                 GetClosestPrecedingFingerRequest request = (GetClosestPrecedingFingerRequest) message;
-                Id id = chordHelper.convertToId(request.getId());
+                Id id = chordHelper.toId(request.getId());
                 Pointer pointer = context.getFingerTable().findClosestPreceding(id);
                 chordHelper.sendGetClosestPrecedingFingerResponse(request, getSource(), pointer);
             } else if (message instanceof GetPredecessorRequest) {
@@ -78,7 +86,7 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 chordHelper.sendGetSuccessorResponse(request, getSource(), successors);
             } else if (message instanceof NotifyRequest) {
                 NotifyRequest request = (NotifyRequest) message;
-                Id id = chordHelper.convertToId(request.getId());
+                Id id = chordHelper.toId(request.getId());
 
                 ExternalPointer<A> newPredecessor
                         = new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
@@ -91,7 +99,7 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 chordHelper.sendNotifyResponse(request, getSource(), pointer);
             } else if (message instanceof UpdateFingerTableRequest) {
                 UpdateFingerTableRequest request = (UpdateFingerTableRequest) message;
-                Id id = chordHelper.convertToId(request.getId());
+                Id id = chordHelper.toId(request.getId());
                 ExternalPointer<A> newFinger = new ExternalPointer<>(id, context.getEndpointIdentifier().identify(getSource()));
 
                 if (!id.equals(context.getSelfId())) {
@@ -104,7 +112,7 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 chordHelper.sendUpdateFingerTableResponse(request, getSource());
             } else if (message instanceof FindSuccessorRequest) {
                 FindSuccessorRequest request = (FindSuccessorRequest) message;
-                Id id = chordHelper.convertToId(request.getId());
+                Id id = chordHelper.toId(request.getId());
 
                 try {
                     // we don't want to block this task by waiting for remoteroutetosuccessor to complete

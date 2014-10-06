@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.common.transmission;
 
-import com.offbynull.peernetic.common.transmission.IncomingRequestManager;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.message.NonceAccessor;
@@ -29,7 +28,8 @@ public final class IncomingRequestManagerTest {
         Duration duration;
         
         Assert.assertTrue(incomingRequestManager.testRequestMessage(nextInstant, request));
-        incomingRequestManager.sendResponseAndTrack(nextInstant, request, response, dstEndpoint);
+        incomingRequestManager.track(nextInstant, request, dstEndpoint, Duration.ofSeconds(60L));
+        incomingRequestManager.respond(nextInstant, request, response, dstEndpoint);
         Mockito.verify(dstEndpoint, Mockito.times(1)).send(srcEndpoint, response);
         Assert.assertFalse(incomingRequestManager.testRequestMessage(nextInstant, request));
         Mockito.verify(dstEndpoint, Mockito.times(2)).send(srcEndpoint, response);

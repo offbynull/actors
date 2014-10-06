@@ -10,13 +10,18 @@ import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[]> {
     
-    private final ChordContext<A> context;
+    private static final Logger LOG = LoggerFactory.getLogger(RouteToPredecessorTask.class);
     
+    private final ChordContext<A> context;
+
     private final Id findId;
     private ExternalPointer<A> currentNode;
     
@@ -47,46 +52,50 @@ public final class RouteToPredecessorTask<A> extends SimpleJavaflowTask<A, byte[
     
     @Override
     public void execute() throws Exception {
-        if (findId.isWithin(context.getSelfId(), false, context.getSuccessorTable().getSuccessor().getId(), true)) {
-            foundId = context.getSelfId();
-            foundAddress = null;
-            return;
-        }
-
-        Pointer initialPointer = context.getFingerTable().findClosestPreceding(findId);
-        if (initialPointer instanceof InternalPointer) { // if the closest predecessor is yourself -- which means the ft is empty
-            foundId = context.getSelfId();
-            foundAddress = null;
-            return;
-        } else if (initialPointer instanceof ExternalPointer) {
-            currentNode = (ExternalPointer<A>) initialPointer;
-        } else {
-            throw new IllegalStateException();
-        }
-
-        // move forward until you can't move forward anymore
-        while (!findId.isWithin(currentNode.getId(), false, querySuccessorId(currentNode), true)) {
-            GetClosestPrecedingFingerResponse<A> gcpfr = chordHelper.sendGetClosestPrecedingFingerRequest(currentNode.getAddress(), findId);
-
-            A address = gcpfr.getAddress();
-            Id id = chordHelper.convertToId(gcpfr.getId());
-
-            if (address == null) {
-                currentNode = new ExternalPointer<>(id, currentNode.getAddress());
-            } else {
-                currentNode = new ExternalPointer<>(id, address);
+        try {
+            if (findId.isWithin(context.getSelfId(), false, context.getSuccessorTable().getSuccessor().getId(), true)) {
+                foundId = context.getSelfId();
+                foundAddress = null;
+                return;
             }
-        }
 
-        foundId = currentNode.getId();
-        if (!currentNode.getId().equals(context.getSelfId())) {
-            foundAddress = currentNode.getAddress();
+            Pointer initialPointer = context.getFingerTable().findClosestPreceding(findId);
+            if (initialPointer instanceof InternalPointer) { // if the closest predecessor is yourself -- which means the ft is empty
+                foundId = context.getSelfId();
+                foundAddress = null;
+                return;
+            } else if (initialPointer instanceof ExternalPointer) {
+                currentNode = (ExternalPointer<A>) initialPointer;
+            } else {
+                throw new IllegalStateException();
+            }
+
+            // move forward until you can't move forward anymore
+            while (true) {
+                GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(currentNode.getAddress());
+                Id succId = chordHelper.toId(gsr.getEntries().get(0).getId());
+                if (findId.isWithin(currentNode.getId(), false, succId, true)) {
+                    break;
+                }
+
+                GetClosestPrecedingFingerResponse<A> gcpfr = chordHelper.sendGetClosestPrecedingFingerRequest(currentNode.getAddress(), findId);
+                A address = gcpfr.getAddress();
+                Id id = chordHelper.toId(gcpfr.getId());
+
+                if (address == null) {
+                    currentNode = new ExternalPointer<>(id, currentNode.getAddress());
+                } else {
+                    currentNode = new ExternalPointer<>(id, address);
+                }
+            }
+
+            foundId = currentNode.getId();
+            if (!currentNode.getId().equals(context.getSelfId())) {
+                foundAddress = currentNode.getAddress();
+            }
+        } catch (ChordOperationException coe) {
+            LOG.error(coe.getMessage());
         }
-    }
-    
-    private Id querySuccessorId(ExternalPointer<A> pointer) {
-        GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(pointer.getAddress());
-        return new Id(gsr.getEntries().get(0).getId(), pointer.getId().getLimitAsByteArray());
     }
 
     public Pointer getResult() {

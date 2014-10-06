@@ -43,8 +43,10 @@ public final class RouterTest {
         
         router.routeMessage(Instant.MIN, req1, dstEndpoint);
         router.routeMessage(Instant.MIN, req2, dstEndpoint);
-        router.sendResponse(Instant.MIN, req1, resp1, dstEndpoint, Duration.ofSeconds(10L));
-        router.sendResponse(Instant.MIN, req2, resp2, dstEndpoint, Duration.ofSeconds(10L));
+        router.trackRequest(Instant.MIN, req1, dstEndpoint, Duration.ofSeconds(10L));
+        router.trackRequest(Instant.MIN, req2, dstEndpoint, Duration.ofSeconds(10L));
+        router.sendResponse(Instant.MIN, req1, resp1, dstEndpoint);
+        router.sendResponse(Instant.MIN, req2, resp2, dstEndpoint);
         
         Mockito.verify(subActorOne, Mockito.times(1)).onStep(Mockito.any(), Mockito.eq(dstEndpoint), Mockito.eq(req1));
         Mockito.verify(subActorTwo, Mockito.times(1)).onStep(Mockito.any(), Mockito.eq(dstEndpoint), Mockito.eq(req2));

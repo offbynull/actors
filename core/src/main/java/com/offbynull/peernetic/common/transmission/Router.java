@@ -109,16 +109,23 @@ public final class Router<A, N> implements Processable {
         return (int) responseNonceHandlers.values().stream().filter(x -> x == actor).count();
     }
     
-    public void sendResponse(Instant time, Object request, Object response, Endpoint srcEndpoint,
-            Duration retainDuration) {
+    public void sendResponse(Instant time, Object request, Object response, Endpoint srcEndpoint) {
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(response);
         Validate.notNull(srcEndpoint);
+        
+        incomingRequestManager.respond(time, request, response, srcEndpoint);
+    }
+
+    public void trackRequest(Instant time, Object request, Endpoint srcEndpoint, Duration retainDuration) {
+        Validate.notNull(time);
+        Validate.notNull(request);
+        Validate.notNull(srcEndpoint);
         Validate.notNull(retainDuration);
         Validate.isTrue(!retainDuration.isNegative());
         
-        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint, retainDuration);
+        incomingRequestManager.track(time, request, srcEndpoint, retainDuration);
     }
     
     public void routeMessage(Instant time, Object message, Endpoint srcEndpoint) throws Exception {
@@ -126,6 +133,7 @@ public final class Router<A, N> implements Processable {
         Validate.notNull(message);
         Validate.notNull(srcEndpoint);
         
+        // check for incoming requests
         Collection<Actor> actors = (Collection<Actor>) typeHandlers.get(message.getClass());
         actors = CollectionUtils.emptyIfNull(actors);
         
@@ -137,7 +145,7 @@ public final class Router<A, N> implements Processable {
         }
         
         
-        
+        // check for responses to previous outgoing requests
         if (!nonceAccessor.containsNonceField(message)) {
             return;
         }

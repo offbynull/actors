@@ -16,88 +16,67 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class IncomingRequestManager<A, N> implements Processable {
-
-    private static final Duration DEFAULT_RETAIN_DURATION = Duration.ofSeconds(60L);
+    
+    private static final Logger LOG = LoggerFactory.getLogger(IncomingRequestManager.class);
     
     private final Endpoint selfEndpoint;
-
     private final PriorityQueue<Event> queue;
     private final NonceAccessor<N> nonceAccessor;
     private final Map<Nonce<N>, Request> requests;
-
-    private final Duration defaultRetainDuration;
-    
     private final Set<Nonce<N>> removedNonces;
-
-    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceAccessor) {
-        this(selfEndpoint, nonceAccessor, DEFAULT_RETAIN_DURATION);
-    }
     
-    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceAccessor, Duration defaultRetainDuration) {
+    public IncomingRequestManager(Endpoint selfEndpoint, NonceAccessor<N> nonceAccessor) {
         Validate.notNull(selfEndpoint);
-        Validate.notNull(defaultRetainDuration);
-
-        Validate.isTrue(!defaultRetainDuration.isNegative());
 
         this.selfEndpoint = selfEndpoint;
         this.nonceAccessor = nonceAccessor;
-
         this.queue = new PriorityQueue<>(new EventTriggerTimeComparator());
         this.requests = new HashMap<>();
-        
-        this.defaultRetainDuration = defaultRetainDuration;
-        
         this.removedNonces = new HashSet<>();
     }
 
-    public void discardAndTrack(Instant time, Object request, Endpoint srcEndpoint) throws IllegalArgumentException,
-            IllegalAccessException, InvocationTargetException {
-        discardAndTrack(time, request, srcEndpoint, defaultRetainDuration);
-    }
-    
-    public void discardAndTrack(Instant time, Object request, Endpoint srcEndpoint, Duration retainDuration)
-            throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+    public void track(Instant time, Object request, Endpoint srcEndpoint, Duration trackDuration) {
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(srcEndpoint);
-        Validate.notNull(retainDuration);
+        Validate.notNull(trackDuration);
 
-        Validate.isTrue(!retainDuration.isNegative());
+        Validate.isTrue(!trackDuration.isNegative());
 
         // generate nonce and validate
         Nonce<N> nonce = nonceAccessor.get(request);
 
-        Validate.isTrue(!requests.containsKey(nonce), "Duplicate stored nonce encountered");
-        
-        // send and queue resends/discards
-        requests.put(nonce, new Request(srcEndpoint, request, null));
-        queue.add(new DiscardEvent(nonce, time.plus(retainDuration)));
-    }
-    
-    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint) {
-        sendResponseAndTrack(time, request, response, srcEndpoint, defaultRetainDuration);
+        if (requests.putIfAbsent(nonce, new Request(srcEndpoint, request, null)) != null) {
+            LOG.warn("Duplicate tracked request encountered: {}", request);
+            return;
+        }
+        queue.add(new DiscardEvent(nonce, time.plus(trackDuration)));
     }
 
-    public void sendResponseAndTrack(Instant time, Object request, Object response, Endpoint srcEndpoint, Duration retainDuration) {
+    public void respond(Instant time, Object request, Object response, Endpoint srcEndpoint) {
         Validate.notNull(time);
         Validate.notNull(request);
         Validate.notNull(response);
         Validate.notNull(srcEndpoint);
-        Validate.notNull(retainDuration);
-
-        Validate.isTrue(!retainDuration.isNegative());
-
+        
         // generate nonce and validate
         Nonce<N> nonce = nonceAccessor.get(request);
-        Validate.isTrue(!requests.containsKey(nonce), "Duplicate stored nonce encountered");
+        Request internalReq;
+        if ((internalReq = requests.get(nonce)) == null) {
+            // may be because respond() wasn't called quickly enough after track() or because the request was not tracked to begin with
+            LOG.warn("Request not tracked: {}", request);
+            return;
+        }
+        
+        Validate.isTrue(internalReq.getResponse() == null, "Response already sent for request %s", request);
+        
+        internalReq.setResponse(response);
+        
         nonceAccessor.set(response, nonce);
-        
-        // send and queue resends/discards
-        requests.put(nonce, new Request(srcEndpoint, request, response));
-        queue.add(new DiscardEvent(nonce, time.plus(retainDuration)));
-        
         srcEndpoint.send(selfEndpoint, response);
     }
 
@@ -200,6 +179,10 @@ public final class IncomingRequestManager<A, N> implements Processable {
 
         public Object getResponse() {
             return response;
+        }
+
+        public void setResponse(Object response) {
+            this.response = response;
         }
 
     }

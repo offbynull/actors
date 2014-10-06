@@ -98,7 +98,7 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
             // ask for that successor's id, wait for response here
             GetIdResponse gir = chordHelper.sendGetIdRequest(address);
-            foundId = chordHelper.convertToId(gir.getId());
+            foundId = chordHelper.toId(gir.getId());
             foundAddress = context.getEndpointIdentifier().identify(getSource());
         } else {
             throw new IllegalStateException();

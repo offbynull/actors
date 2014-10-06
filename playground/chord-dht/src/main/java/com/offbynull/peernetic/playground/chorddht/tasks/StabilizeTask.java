@@ -9,7 +9,7 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccesso
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
+import com.offbynull.peernetic.playground.chorddht.shared.IdUtils;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
@@ -59,7 +59,7 @@ public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
             A address = gpr.getAddress();
 
-            Id potentiallyNewSuccessorId = chordHelper.convertToId(gpr.getId());
+            Id potentiallyNewSuccessorId = chordHelper.toId(gpr.getId());
             Id existingSuccessorId = ((ExternalPointer<A>) existingSuccessor).getId();
 
             if (!potentiallyNewSuccessorId.isWithin(context.getSelfId(), false, existingSuccessorId, false)) {
@@ -74,7 +74,7 @@ public final class StabilizeTask<A> extends SimpleJavaflowTask<A, byte[]> {
             // ask new successor for its successors
             GetSuccessorResponse<A> gsr = chordHelper.sendGetSuccessorRequest(((ExternalPointer<A>) newSuccessor).getAddress());
 
-            int bitSize = ChordUtils.getBitLength(context.getSelfId());
+            int bitSize = IdUtils.getBitLength(context.getSelfId());
             List<Pointer> subsequentSuccessors = new ArrayList<>();
             gsr.getEntries().stream().map(x -> {
                 Id id = new Id(x.getId(), bitSize);

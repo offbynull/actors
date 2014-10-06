@@ -4,17 +4,21 @@ import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
-import com.offbynull.peernetic.playground.chorddht.shared.ChordUtils;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.Pointer;
-import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(FixFingerTableTask.class);
     private final ChordContext<A> context;
+    private final ChordHelper<A, byte[]> chordHelper;
     
     public static <A> FixFingerTableTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
@@ -30,35 +34,35 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
         
         Validate.notNull(context);
         this.context = context;
+        this.chordHelper = new ChordHelper<>(getState(), getFlowControl(), context);
     }
 
     @Override
     public void execute() throws Exception {
-        int maxIdx = ChordUtils.getBitLength(context.getSelfId());
+        int len = chordHelper.getFingerTableLength();
 
         while (true) {
-            for (int i = 1; i < maxIdx; i++) {
+            for (int i = 1; i < len; i++) {
                 // for each finger to be fixed, fix the successor (finger[0]) befor fixing that finger. if we're not aggressive about fixing
                 // successor, ring may never be complete
                 fixFinger(0);
                 fixFinger(i);
             }
 
-            getFlowControl().wait(Duration.ofSeconds(1L));
+            chordHelper.sleep(1L);
         }
     }
     
     private void fixFinger(int i) throws Exception {
         // get expected id of entry in finger table
-        Id findId = context.getFingerTable().getExpectedId(i);
+        Id findId = chordHelper.getExpectedFingerId(i);
 
         // route to id
-        RouteToTask<A> routeToFingerTask = RouteToTask.create(getTime(), context, findId);
-        getFlowControl().waitUntilFinished(routeToFingerTask.getActor(), Duration.ofSeconds(1L));
-        Pointer foundFinger = routeToFingerTask.getResult();
-
-        // set in to finger table
-        if (foundFinger == null) {
+        Pointer foundFinger;
+        try {
+            foundFinger = chordHelper.runRouteToTask(findId);
+        } catch (ChordOperationException coe) {
+            LOG.warn("Unable to find finger for index {}", i);
             return;
         }
 
@@ -68,14 +72,15 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
 //                            context.getFingerTable().remove((ExternalPointer<A>) existingPointer);
 //                        }
         } else if (foundFinger instanceof ExternalPointer) {
-            context.getFingerTable().put((ExternalPointer<A>) foundFinger);
+            chordHelper.putFinger((ExternalPointer<A>) foundFinger);
+            LOG.debug("{}: Finger for index {} set to {}", context.getSelfId(), i, foundFinger);
         } else {
             throw new IllegalStateException();
         }
 
         // update successor table (if first)
         if (i == 0) {
-            context.getSuccessorTable().updateTrim(foundFinger);
+            chordHelper.setImmediateSuccessor(foundFinger);
         }
     }
 

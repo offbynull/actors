@@ -5,12 +5,11 @@ import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
-import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.shared.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import com.offbynull.peernetic.playground.chorddht.shared.SuccessorTable;
-import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -38,33 +37,35 @@ public final class JoinTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
     @Override
     public void execute() throws Exception {
-        // initialize state
-        A initialAddress = context.getBootstrapAddress();
-        FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(context.getSelfId()));
-        SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
+        try {
+            // initialize state
+            A initialAddress = context.getBootstrapAddress();
+            FingerTable<A> fingerTable = new FingerTable<>(new InternalPointer(context.getSelfId()));
+            SuccessorTable<A> successorTable = new SuccessorTable<>(new InternalPointer(context.getSelfId()));
 
-        // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
-        if (initialAddress == null) {
-            context.setFingerTable(fingerTable);
-            context.setSuccessorTable(successorTable);
-            return;
+            // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
+            if (initialAddress == null) {
+                context.setFingerTable(fingerTable);
+                context.setSuccessorTable(successorTable);
+                return;
+            }
+
+            // ask for bootstrap node's id
+              // retry this req lots of time if it fails -- this is an important step, because it's required for the init finger table task to
+              // work properly. it's okay if the init finger table task only resolves some fingers, but it won't be able to resolve any if we
+              // don't have our bootstrap's id.
+            GetIdResponse gir = chordHelper.sendGetIdRequest(initialAddress);
+            Id initialId = chordHelper.toId(gir.getId());
+
+            // init finger table, successor table, etc...
+            chordHelper.runInitFingerTableTask(initialAddress, initialId);
+
+            // notify our fingers that we're here, we don't need to wait until finished
+            chordHelper.fireUpdateOthersTask();
+        } catch (ChordOperationException coe) {
+            // this is a critical operation. if any of the tasks/io fail, then send up the chain
+            throw new IllegalStateException("Join failed.", coe);
         }
-
-        // ask for bootstrap node's id
-          // retry this req lots of time if it fails -- this is an important step, because it's required for the init finger table task to
-          // work properly. it's okay if the init finger table task only resolves some fingers, but it won't be able to resolve any if we
-          // don't have our bootstrap's id.
-        GetIdResponse gir = chordHelper.sendGetIdRequest(initialAddress);
-        Validate.validState(gir != null, "Joining failed -- bootstrap node did not respond to id request");
-        Id initialId = chordHelper.convertToId(gir.getId());
-
-        // init finger table, successor table, etc...
-        InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.create(getTime(), context,
-                new ExternalPointer<>(initialId, initialAddress));
-        getFlowControl().waitUntilFinished(initFingerTableTask.getActor(), Duration.ofSeconds(1L));
-
-        // notify our fingers that we're here, we don't need to wait until finished
-        UpdateOthersTask<A> updateOthersTask = UpdateOthersTask.create(getTime(), context);
     }
 
     @Override

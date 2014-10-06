@@ -70,7 +70,7 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
             }
 
             A address = gcpfr.getAddress();
-            Id id = chordHelper.convertToId(gcpfr.getId());
+            Id id = chordHelper.toId(gcpfr.getId());
 
             if (address == null) {
                 currentNode = new ExternalPointer<>(id, currentNode.getAddress());

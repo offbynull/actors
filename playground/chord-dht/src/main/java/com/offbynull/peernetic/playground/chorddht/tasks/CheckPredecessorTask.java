@@ -7,7 +7,7 @@ import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetIdResponse;
 import com.offbynull.peernetic.playground.chorddht.shared.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import java.time.Duration;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
@@ -36,27 +36,29 @@ public final class CheckPredecessorTask<A> extends SimpleJavaflowTask<A, byte[]>
     @Override
     public void execute() throws Exception {
         while (true) {
-            getFlowControl().wait(Duration.ofSeconds(1L));
+            chordHelper.sleep(1L);
                         
-            ExternalPointer<A> predecessor = context.getPredecessor();
+            ExternalPointer<A> predecessor = chordHelper.getPredecessor();
             if (predecessor == null) {
                 // we don't have a predecessor to check
                 continue;
             }
             
-            // ask for our predecessor's current id
-            GetIdResponse gir = chordHelper.sendGetIdRequest(predecessor.getAddress());
-            
-            if (gir == null) {
+            // ask for our predecessor's id
+            GetIdResponse gir;
+            try {
+                gir = chordHelper.sendGetIdRequest(predecessor.getAddress());
+            } catch (ChordOperationException coe) {
                 // predecessor didn't respond -- clear our predecessor
-                context.setPredecessor(null);
+                chordHelper.clearPredecessor();
                 continue;
             }
             
-            Id id = chordHelper.convertToId(gir.getId());
+            Id id = chordHelper.toId(gir.getId());
+            // TODO: Is it worth checking to see if this new id is between the old id and the us? if it is, set it as the new pred???
             if (!id.equals(predecessor.getId())) {
                 // predecessor responded with unexpected id -- clear our predecessor
-                context.setPredecessor(null);
+                chordHelper.clearPredecessor();
             }
         }
     }

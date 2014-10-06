@@ -4,8 +4,8 @@ import com.offbynull.peernetic.common.identification.Id;
 import java.math.BigInteger;
 import org.apache.commons.lang3.Validate;
 
-public final class ChordUtils {
-    private ChordUtils() {
+public final class IdUtils {
+    private IdUtils() {
         // do nothing
     }
     

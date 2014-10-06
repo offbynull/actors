@@ -32,7 +32,6 @@ import java.awt.Color;
 import java.awt.Point;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Duration;
 
 public final class Main {
 
@@ -69,7 +68,7 @@ public final class Main {
 
         EndpointScheduler endpointScheduler = new SimpleEndpointScheduler();
         LocalGatewayHub<Integer> gatewayHub = new LocalGatewayHub<>(
-                new SimpleLine<>(),//0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 0.9, 10),
+                new SimpleLine<>(),//0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.0, 0.9, 10),
                 new XStreamSerializer());
         for (int i = 0; i < actors.length; i++) {
             Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);

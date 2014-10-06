@@ -119,11 +119,11 @@ public final class FingerTable<A> {
     public FingerTable(InternalPointer basePtr) {
         Validate.notNull(basePtr);
         Id baseId = basePtr.getId();
-        Validate.isTrue(ChordUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
+        Validate.isTrue(IdUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
 
         this.basePtr = basePtr;
 
-        this.bitCount = ChordUtils.getBitLength(baseId);
+        this.bitCount = IdUtils.getBitLength(baseId);
         byte[] limit = baseId.getLimitAsByteArray();
 
         table = new ArrayList<>(bitCount);
@@ -151,7 +151,7 @@ public final class FingerTable<A> {
      */
     public Pointer findClosestPreceding(Id id) {
         Validate.notNull(id);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         Id selfId = basePtr.getId();
 
@@ -181,7 +181,7 @@ public final class FingerTable<A> {
      */
     public Pointer findClosest(Id id) {
         Validate.notNull(id);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         Id selfId = basePtr.getId();
 
@@ -214,7 +214,7 @@ public final class FingerTable<A> {
     public Pointer findClosest(Id id, Id ... skipIds) {
         Validate.notNull(id);
         Validate.noNullElements(skipIds);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         List<Id> skipIdList = Arrays.asList(skipIds);
         Id selfId = basePtr.getId();
@@ -256,7 +256,7 @@ public final class FingerTable<A> {
         Id id = ptr.getId();
         Id baseId = basePtr.getId();
 
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
         Validate.isTrue(!id.equals(baseId));
 
         // search for position to insert to
@@ -329,12 +329,12 @@ public final class FingerTable<A> {
      */
     public boolean replace(ExternalPointer<A> ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(ptr.getId()) == bitCount);
 
         Id id = ptr.getId();
         Id baseId = basePtr.getId();
 
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
         Validate.isTrue(!id.equals(baseId));
 
         // search for position to insert to
@@ -489,13 +489,13 @@ public final class FingerTable<A> {
      */
     public void remove(ExternalPointer<A> ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(ptr.getId()) == bitCount);
 
         Id id = ptr.getId();
         A address = ptr.getAddress();
         Id baseId = basePtr.getId();
 
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
         Validate.isTrue(!id.equals(baseId));
 
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
@@ -578,7 +578,7 @@ public final class FingerTable<A> {
      */
     public Pointer getBefore(Id id) {
         Validate.notNull(id);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         Id baseId = basePtr.getId();
 
@@ -610,7 +610,7 @@ public final class FingerTable<A> {
      */
     public int clearBefore(Id id) {
         Validate.notNull(id);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         Id baseId = basePtr.getId();
 
@@ -670,7 +670,7 @@ public final class FingerTable<A> {
      */
     public int clearAfter(Id id) {
         Validate.notNull(id);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         Id baseId = basePtr.getId();
 
@@ -725,10 +725,10 @@ public final class FingerTable<A> {
      */
     public int getMaximumIndex(Pointer ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(ptr.getId()) == bitCount);
 
         Id id = ptr.getId();
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
         while (lit.hasPrevious()) {
@@ -751,10 +751,10 @@ public final class FingerTable<A> {
      */
     public int getMinimumIndex(Pointer ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(ChordUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(ptr.getId()) == bitCount);
 
         Id id = ptr.getId();
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         ListIterator<InternalEntry> lit = table.listIterator();
         while (lit.hasNext()) {
@@ -788,7 +788,7 @@ public final class FingerTable<A> {
      */
     public boolean contains(Id id) {
         Validate.notNull(id);
-        Validate.isTrue(ChordUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(IdUtils.getBitLength(id) == bitCount);
 
         ListIterator<InternalEntry> lit = table.listIterator();
         while (lit.hasNext()) {

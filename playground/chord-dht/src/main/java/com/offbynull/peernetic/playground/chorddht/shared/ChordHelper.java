@@ -21,6 +21,11 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyReque
 import com.offbynull.peernetic.playground.chorddht.messages.external.NotifyResponse;
 import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableRequest;
 import com.offbynull.peernetic.playground.chorddht.messages.external.UpdateFingerTableResponse;
+import com.offbynull.peernetic.playground.chorddht.tasks.InitFingerTableTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.RouteToPredecessorTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.RouteToTask;
+import com.offbynull.peernetic.playground.chorddht.tasks.UpdateOthersTask;
+import java.time.Duration;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -93,15 +98,21 @@ public final class ChordHelper<A, N> {
         fire(new UpdateFingerTableRequest(id.getValueAsByteArray()), address);
     }
     
-    public <T> T sendAndWait(Object request, Class<T> responseType, A address) {
+    private <T> T sendAndWait(Object request, Class<T> responseType, A address) {
         Validate.notNull(request);
         Validate.notNull(responseType);
         Validate.notNull(address);
-        return flowControl.sendRequestAndWait(request, address, responseType, context.getRequestResendDuration(),
+        T ret = flowControl.sendRequestAndWait(request, address, responseType, context.getRequestResendDuration(),
                 context.getRequestMaxResends(), context.getTotalTrackRequestDuration());
+        
+        if (ret == null) {
+            throw new ChordOperationException(request, responseType);
+        }
+        
+        return ret;
     }
 
-    public void fire(Object request, A address) {
+    private void fire(Object request, A address) {
         Validate.notNull(request);
         Validate.notNull(address);
         flowControl.sendRequest(request, address, context.getRequestResendDuration(),
@@ -111,14 +122,20 @@ public final class ChordHelper<A, N> {
     
     
     
+    
+    
+    public void trackRequest(Object incomingRequest) {
+        context.getRouter().trackRequest(taskState.getTime(), incomingRequest, taskState.getSource(),
+                context.getTotalTrackResponeDuration());
+    }
+    
     public void sendGetIdResponse(GetIdRequest originalRequest, Endpoint originalSource, Id selfId) {
         Validate.notNull(originalRequest);
         Validate.notNull(originalSource);
         Validate.notNull(selfId);
         
         GetIdResponse response = new GetIdResponse(selfId.getValueAsByteArray());
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
 
     public void sendGetPredecessorResponse(GetPredecessorRequest originalRequest, Endpoint originalSource, ExternalPointer<A> finger) {
@@ -129,8 +146,7 @@ public final class ChordHelper<A, N> {
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(finger);
         
         GetPredecessorResponse<A> response = new GetPredecessorResponse<>(msgValues.getLeft(), msgValues.getRight());
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
 
     public void sendGetSuccessorResponse(GetSuccessorRequest originalRequest, Endpoint originalSource, List<Pointer> successors) {
@@ -139,8 +155,7 @@ public final class ChordHelper<A, N> {
         Validate.noNullElements(successors);
         
         GetSuccessorResponse<A> response = new GetSuccessorResponse<>(successors);
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
 
     public void sendGetClosestFingerResponse(GetClosestFingerRequest originalRequest, Endpoint originalSource, Pointer finger) {
@@ -151,8 +166,7 @@ public final class ChordHelper<A, N> {
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(finger);
         
         GetClosestFingerResponse<A> response = new GetClosestFingerResponse<>(msgValues.getLeft(), msgValues.getRight());
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
 
     public void sendGetClosestPrecedingFingerResponse(GetClosestPrecedingFingerRequest originalRequest, Endpoint originalSource,
@@ -164,8 +178,7 @@ public final class ChordHelper<A, N> {
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(finger);
         
         GetClosestPrecedingFingerResponse<A> response = new GetClosestPrecedingFingerResponse<>(msgValues.getLeft(), msgValues.getRight());
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
 
     public void sendNotifyResponse(NotifyRequest originalRequest, Endpoint originalSource, ExternalPointer<A> predecessor) {
@@ -176,8 +189,7 @@ public final class ChordHelper<A, N> {
         ImmutablePair<byte[], A> msgValues = convertPointerToMessageDetails(predecessor);
         
         NotifyResponse<A> response = new NotifyResponse<>(msgValues.getLeft(), msgValues.getRight());
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
     
     public void sendFindSuccessorResponse(FindSuccessorRequest originalRequest, Endpoint originalSource, Id foundId,
@@ -188,8 +200,7 @@ public final class ChordHelper<A, N> {
 //        Validate.notNull(foundAddress); // may be null (null = self address)
         
         FindSuccessorResponse<A> response = new FindSuccessorResponse<>(foundId.getValueAsByteArray(), foundAddress);
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
 
     public void sendUpdateFingerTableResponse(UpdateFingerTableRequest originalRequest, Endpoint originalSource) {
@@ -197,14 +208,7 @@ public final class ChordHelper<A, N> {
         Validate.notNull(originalSource);
         
         UpdateFingerTableResponse response = new UpdateFingerTableResponse();
-        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource,
-                context.getTotalTrackResponeDuration());
-    }
-    
-    public Id convertToId(byte[] idData) {
-        Validate.notNull(idData);
-        
-        return new Id(idData, context.getSelfId().getLimitAsByteArray());
+        context.getRouter().sendResponse(taskState.getTime(), originalRequest, response, originalSource);
     }
     
     private ImmutablePair<byte[], A> convertPointerToMessageDetails(Pointer pointer) {
@@ -221,5 +225,155 @@ public final class ChordHelper<A, N> {
         } else {
             throw new IllegalStateException();
         }
+    }
+    
+    
+    
+    
+    
+    public Pointer runRouteToTask(Id id) throws Exception {
+        RouteToTask<A> task = RouteToTask.create(taskState.getTime(), context, id);
+        flowControl.waitUntilFinished(task.getActor(), Duration.ofSeconds(1L));
+        Pointer ret = task.getResult();
+        
+        if (ret == null) {
+            throw new ChordOperationException(task.getClass());
+        }
+        
+        return ret;
+    }
+
+    public Pointer runRouteToPredecessorTask(Id id) throws Exception {
+        RouteToPredecessorTask<A> task = RouteToPredecessorTask.create(taskState.getTime(), context, id);
+        flowControl.waitUntilFinished(task.getActor(), Duration.ofSeconds(1L));
+        Pointer ret = task.getResult();
+        
+        if (ret == null) {
+            throw new ChordOperationException(task.getClass());
+        }
+        
+        return ret;
+    }
+
+    public void runInitFingerTableTask(A bootstrapAddress, Id bootstrapId) throws Exception {
+        InitFingerTableTask<A> initFingerTableTask = InitFingerTableTask.create(taskState.getTime(), context,
+                new ExternalPointer<>(bootstrapId, bootstrapAddress));
+        flowControl.waitUntilFinished(initFingerTableTask.getActor(), Duration.ofSeconds(1L));
+    }
+    
+    public void fireUpdateOthersTask() throws Exception {
+        UpdateOthersTask.create(taskState.getTime(), context);
+    }
+    
+    
+    
+    
+    
+    
+
+    public void setImmediateSuccessor(Pointer ptr) {
+        Validate.notNull(ptr);
+        context.getSuccessorTable().updateTrim(ptr);
+    }
+    
+    public void setPredecessor(GetPredecessorResponse<A> resp) {
+        Validate.notNull(resp);
+        if (resp.getId() != null && !isSelfId(resp.getId())) {
+            context.setPredecessor(toExternalPointer(resp));
+        }
+    }
+
+    public void clearPredecessor() {
+        context.setPredecessor(null);
+    }
+
+    public ExternalPointer<A> getPredecessor() {
+        return context.getPredecessor();
+    }
+    
+    public int getFingerTableLength() {
+        return IdUtils.getBitLength(context.getSelfId());
+    }
+
+    public Pointer getFinger(int idx) {
+        Validate.isTrue(idx >= 0); // method below also checks < tableLength
+        return context.getFingerTable().get(idx);
+    }
+
+    public void putFinger(ExternalPointer<A> ptr) {
+        Validate.notNull(ptr);
+        context.getFingerTable().put(ptr);
+    }
+
+    public Id getExpectedFingerId(int idx) {
+        Validate.isTrue(idx >= 0); // method below also checks < tableLength
+        return context.getFingerTable().getExpectedId(idx);
+    }
+    
+    public void setTables(FingerTable<A> fingerTable, SuccessorTable<A> successorTable) {
+        Validate.notNull(fingerTable);
+        Validate.notNull(successorTable);
+        
+        context.setFingerTable(fingerTable);
+        context.setSuccessorTable(successorTable);
+    }
+
+    public void failIfSelf(GetPredecessorResponse<A> resp) {
+        Validate.notNull(resp);
+        if (resp.getId() != null && isSelfId(resp.getId())) {
+            throw new ChordOperationException("Id in response is set to this node's id.");
+        }
+    }
+
+    public void failIfSelf(FindSuccessorResponse<A> resp) {
+        Validate.notNull(resp);
+        if (isSelfId(resp.getId())) {
+            throw new ChordOperationException("Id in response is set to this node's id.");
+        }
+    }
+    
+    public boolean isSelfId(byte[] idData) {
+        Validate.notNull(idData);
+        
+        return new Id(idData, context.getSelfId().getLimitAsByteArray()).equals(context.getSelfId());
+    }
+    
+    public Id toId(byte[] idData) {
+        Validate.notNull(idData);
+        
+        return new Id(idData, context.getSelfId().getLimitAsByteArray());
+    }
+    
+    public ExternalPointer<A> toExternalPointer(FindSuccessorResponse<A> resp, A defaultAddress) {
+        Validate.notNull(resp);
+        Validate.notNull(defaultAddress);
+        return toExternalPointer(resp.getId(), resp.getAddress(), defaultAddress);
+    }
+
+    public ExternalPointer<A> toExternalPointer(GetPredecessorResponse<A> resp) {
+        Validate.notNull(resp);
+        return toExternalPointer(resp.getId(), resp.getAddress(), resp.getAddress());
+    }
+    
+    private ExternalPointer<A> toExternalPointer(byte[] idData, A address, A defaultAddress) {
+        Validate.notNull(idData);
+        Validate.notNull(defaultAddress);
+        // address can be null
+
+        if (address != null) {
+            return new ExternalPointer<>(toId(idData), address);
+        } else {
+            return new ExternalPointer<>(toId(idData), defaultAddress);
+        }
+    }    
+    
+    
+    
+    
+    
+    
+    public void sleep(long seconds) {
+        Validate.isTrue(seconds > 0L);
+        flowControl.wait(Duration.ofSeconds(seconds));
     }
 }

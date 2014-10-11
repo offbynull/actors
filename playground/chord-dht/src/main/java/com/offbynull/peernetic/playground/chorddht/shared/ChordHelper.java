@@ -60,7 +60,7 @@ public final class ChordHelper<A, N> {
     public FindSuccessorResponse<A> sendFindSuccessorRequest(A address, Id findId) {
         Validate.notNull(address);
         Validate.notNull(findId);
-        return sendAndWait(new FindSuccessorRequest(findId.getValueAsByteArray()), FindSuccessorResponse.class, address);
+        return sendAndWaitLong(new FindSuccessorRequest(findId.getValueAsByteArray()), FindSuccessorResponse.class, address);
     }
 
     public GetPredecessorResponse<A> sendGetPredecessorRequest(A address) {
@@ -109,6 +109,35 @@ public final class ChordHelper<A, N> {
         Validate.notNull(request);
         Validate.notNull(responseType);
         Validate.notNull(address);
+        return sendAndWait(request, responseType, address, 1);
+    }
+
+    private <T> T sendAndWaitLong(Object request, Class<T> responseType, A address) {
+        Validate.notNull(request);
+        Validate.notNull(responseType);
+        Validate.notNull(address);
+        int multiplier = getFingerTableLength(); // ring can support 2^x nodes, x is this variable's value
+        return sendAndWait(request, responseType, address, multiplier);
+    }
+
+    private <T> T sendAndWait(Object request, Class<T> responseType, A address, int multiplier) {
+        Validate.notNull(request);
+        Validate.notNull(responseType);
+        Validate.notNull(address);
+        Validate.isTrue(multiplier >= 0);
+        return sendAndWait(request, responseType, address, context.getRequestResendDuration().multipliedBy(multiplier),
+                context.getRequestMaxResends() * multiplier,
+                context.getTotalTrackRequestDuration().multipliedBy(multiplier));
+    }
+
+    private <T> T sendAndWait(Object request, Class<T> responseType, A address, Duration reqResendDuration, int reqMaxResends,
+            Duration totalTrackReqDuration) {
+        Validate.notNull(request);
+        Validate.notNull(responseType);
+        Validate.notNull(address);
+        Validate.notNull(reqResendDuration);
+        Validate.notNull(totalTrackReqDuration);
+        Validate.isTrue(reqMaxResends >= 0);
         T ret = flowControl.sendRequestAndWait(request, address, responseType, context.getRequestResendDuration(),
                 context.getRequestMaxResends(), context.getTotalTrackRequestDuration());
         
@@ -132,6 +161,26 @@ public final class ChordHelper<A, N> {
     
     
     public void trackRequest(Object incomingRequest) {
+        Validate.notNull(incomingRequest);
+        trackRequest(incomingRequest, context.getTotalTrackResponeDuration());
+    }
+
+    public void trackRequestLong(Object incomingRequest) {
+        Validate.notNull(incomingRequest);
+        int multiplier = getFingerTableLength(); // ring can support 2^x nodes, x is this variable's value
+        trackRequest(incomingRequest, context.getTotalTrackResponeDuration().multipliedBy(multiplier));
+    }
+
+    public void trackRequest(Object incomingRequest, int multiplier) {
+        Validate.notNull(incomingRequest);
+        Validate.isTrue(multiplier >= 0);
+        trackRequest(incomingRequest, context.getTotalTrackResponeDuration().multipliedBy(multiplier));
+    }
+
+    public void trackRequest(Object incomingRequest, Duration totalTrackRespDuration) {
+        Validate.notNull(incomingRequest);
+        Validate.notNull(totalTrackRespDuration);
+        Validate.isTrue(!totalTrackRespDuration.isNegative());
         context.getRouter().trackRequest(taskState.getTime(), incomingRequest, taskState.getSource(),
                 context.getTotalTrackResponeDuration());
     }

@@ -58,28 +58,32 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
             LOG.debug("Incoming request {}", message.getClass());
             
-            chordHelper.trackRequest(message);
-            
             if (message instanceof GetIdRequest) {
+                chordHelper.trackRequest(message);
                 GetIdRequest request = (GetIdRequest) message;
                 chordHelper.sendGetIdResponse(request, getSource(), chordHelper.getSelfId());
             } else if (message instanceof GetClosestFingerRequest) {
+                chordHelper.trackRequest(message);
                 GetClosestFingerRequest request = (GetClosestFingerRequest) message;
                 Pointer pointer = chordHelper.getClosestFinger(request);
                 chordHelper.sendGetClosestFingerResponse(request, getSource(), pointer);
             } else if (message instanceof GetClosestPrecedingFingerRequest) {
+                chordHelper.trackRequest(message);
                 GetClosestPrecedingFingerRequest request = (GetClosestPrecedingFingerRequest) message;
                 Pointer pointer = chordHelper.getClosestPrecedingFinger(request);
                 chordHelper.sendGetClosestPrecedingFingerResponse(request, getSource(), pointer);
             } else if (message instanceof GetPredecessorRequest) {
+                chordHelper.trackRequest(message);
                 GetPredecessorRequest request = (GetPredecessorRequest) message;
                 ExternalPointer<A> pointer = chordHelper.getPredecessor();
                 chordHelper.sendGetPredecessorResponse(request, getSource(), pointer);
             } else if (message instanceof GetSuccessorRequest) {
+                chordHelper.trackRequest(message);
                 GetSuccessorRequest request = (GetSuccessorRequest) message;
                 List<Pointer> successors = chordHelper.getSuccessors();
                 chordHelper.sendGetSuccessorResponse(request, getSource(), successors);
             } else if (message instanceof NotifyRequest) {
+                chordHelper.trackRequest(message);
                 NotifyRequest request = (NotifyRequest) message;
                 Id id = chordHelper.toId(request.getId());
 
@@ -92,6 +96,7 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 ExternalPointer<A> pointer = chordHelper.getPredecessor();
                 chordHelper.sendNotifyResponse(request, getSource(), pointer);
             } else if (message instanceof UpdateFingerTableRequest) {
+                chordHelper.trackRequest(message);
                 UpdateFingerTableRequest request = (UpdateFingerTableRequest) message;
                 Id id = chordHelper.toId(request.getId());
                 ExternalPointer<A> newFinger = new ExternalPointer<>(id, chordHelper.getCurrentMessageAddress());
@@ -106,11 +111,13 @@ public final class ResponderTask<A> extends SimpleJavaflowTask<A, byte[]> {
 
                 chordHelper.sendUpdateFingerTableResponse(request, getSource());
             } else if (message instanceof FindSuccessorRequest) {
+                chordHelper.trackRequestLong(message);
                 FindSuccessorRequest request = (FindSuccessorRequest) message;
                 Id id = chordHelper.toId(request.getId());
 
                 try {
                     // we don't want to block the responder task by waiting for remoterouteto to complete
+                    // response sent from within task
                     chordHelper.fireRemoteRouteToTask(id, request, getSource());
                 } catch (Exception e) {
                     // should never happen

@@ -58,7 +58,7 @@ public final class UpdateOthersTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 
                 chordHelper.fireUpdateFingerTableRequest(ptr.getAddress(), selfId);
             } else {
-                int maxIdx = IdUtils.getBitLength(selfId);
+                int maxIdx = chordHelper.getFingerTableLength(); // bit length of ring
                 for (int i = 0; i < maxIdx; i++) {
                     // get id of node that should have us in its finger table at index i
                     Id routerId = chordHelper.getIdThatShouldHaveThisNodeAsFinger(i);

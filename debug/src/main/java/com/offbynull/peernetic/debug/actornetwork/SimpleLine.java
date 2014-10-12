@@ -9,9 +9,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SimpleLine<A> implements Line<A> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleLine.class);
+    
     private Random random;
     private Duration minDelayPerKb;
     private Duration maxJitterPerKb;
@@ -45,16 +49,23 @@ public final class SimpleLine<A> implements Line<A> {
 
     @Override
     public void nodeJoin(A address) {
+        Validate.notNull(address);
+        LOG.debug("Adding node {}", address);
         // do nothing
     }
 
     @Override
     public void nodeLeave(A address) {
+        Validate.notNull(address);
+        LOG.debug("Removing node {}", address);
         // do nothing
     }
 
     @Override
     public Collection<TransitMessage<A>> messageDepart(Instant time, BufferMessage<A> departMessage) {
+        Validate.notNull(time);
+        Validate.notNull(departMessage);
+        
         int size = departMessage.getData().remaining();
         int sizeInKb = size / 1024 + (size % 1024 == 0 ? 0 : 1); // to kb, always round up
 
@@ -73,17 +84,24 @@ public final class SimpleLine<A> implements Line<A> {
             repeatCount++;
         } while (repeatCount <= maxRepeat && calculateNextRepeat(sizeInKb));
         
+        LOG.debug("Message from {} to {} will be sent {} times", departMessage.getSource(), departMessage.getDestination(), repeatCount);
+        
         return ret;
     }
 
     @Override
     public Collection<BufferMessage<A>> messageArrive(Instant time, TransitMessage<A> transitMessage) {
+        Validate.notNull(time);
+        Validate.notNull(transitMessage);
+        
         BufferMessage<A> bufferMessage = new BufferMessage<>(transitMessage.getData(), transitMessage.getSource(),
                 transitMessage.getDestination());
         return Collections.singleton(bufferMessage);
     }
 
     private Duration calculateNextDuration(int sizeInKb) {
+        Validate.isTrue(sizeInKb > 0);
+        
         long maxJitterMillis = maxJitterPerKb.toMillis();
         long jitter = maxJitterMillis == 0 ? 0L : random.nextLong() % (maxJitterMillis * (long) sizeInKb);
         
@@ -92,10 +110,14 @@ public final class SimpleLine<A> implements Line<A> {
     }
 
     private boolean calculateNextRepeat(int sizeInKb) {
+        Validate.isTrue(sizeInKb > 0);
+        
         return random.nextDouble() > (nonRepeatChancePerKb * sizeInKb);
     }
 
     private boolean calculateNextDrop(int sizeInKb) {
+        Validate.isTrue(sizeInKb > 0);
+        
         return random.nextDouble() <= (dropChancePerKb * sizeInKb);
     }
 }

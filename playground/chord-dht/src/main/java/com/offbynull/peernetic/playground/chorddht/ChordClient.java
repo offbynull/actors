@@ -4,6 +4,8 @@ import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
 import com.offbynull.peernetic.common.transmission.Router;
 import com.offbynull.peernetic.javaflow.BaseJavaflowTask;
+import com.offbynull.peernetic.playground.chorddht.ChordActiveListener.Mode;
+import com.offbynull.peernetic.playground.chorddht.ChordDeactiveListener.Type;
 import com.offbynull.peernetic.playground.chorddht.messages.internal.Start;
 import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.Pointer;
@@ -23,9 +25,12 @@ public final class ChordClient<A> extends BaseJavaflowTask {
     
     @Override
     public void run() {
+        Start<A> start = (Start<A>) getMessage();
+        ChordContext<A> context = new ChordContext(start.getActiveListener(), start.getLinkListener(), start.getUnlinkListener(),
+                start.getDeactiveListener());
+
         try {
-            Start<A> start = (Start<A>) getMessage();
-            ChordContext<A> context = new ChordContext(start.getActiveListener(), start.getLinkListener(), start.getUnlinkListener());
+            context.getActiveListener().active(start.getSelfId(), start.getBootstrapAddress() == null ? Mode.SEED : Mode.JOIN);
 
             context.setEndpointDirectory(start.getEndpointDirectory());
             context.setEndpointIdentifier(start.getEndpointIdentifier());
@@ -60,7 +65,7 @@ public final class ChordClient<A> extends BaseJavaflowTask {
                 notifyStateChange(context);
             }
         } catch (Exception e) {
-            throw new IllegalStateException(e);
+            context.getDeactiveListener().deactive(start.getSelfId(), Type.ERROR);
         }
     }
     

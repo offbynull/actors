@@ -27,6 +27,7 @@ import com.offbynull.peernetic.network.Gateway;
 import com.offbynull.peernetic.network.GatewayListener;
 import com.offbynull.peernetic.network.XStreamSerializer;
 import com.offbynull.peernetic.playground.chorddht.ChordActiveListener.Mode;
+import com.offbynull.peernetic.playground.chorddht.ChordDeactiveListener.Type;
 import com.offbynull.peernetic.playground.chorddht.messages.internal.Start;
 import java.awt.Color;
 import java.awt.Point;
@@ -37,7 +38,7 @@ import java.time.Duration;
 public final class Main {
 
     public static void main(String[] args) throws Throwable {
-        Actor[] actors = new Actor[32];
+        Actor[] actors = new Actor[4];
 
         // Start visualizer
         Visualizer<Id> visualizer = new JGraphXVisualizer<>();
@@ -45,7 +46,12 @@ public final class Main {
 
         ChordActiveListener<Id> activeListener = (id, mode) -> {
             visualizer.step("Activating node " + id + " as " + mode,
-                    new ChangeNodeCommand<>(id, null, null, Color.GREEN));
+                    new ChangeNodeCommand<>(id, null, null, mode == Mode.SEED ? Color.BLUE : Color.GREEN));
+        };
+
+        ChordDeactiveListener<Id> deactiveListener = (id, type) -> {
+            visualizer.step("Deactivating node " + id + " as " + type,
+                    new ChangeNodeCommand<>(id, null, null, type == Type.ERROR ? Color.RED : Color.GRAY));
         };
 
         ChordLinkListener<Id> linkListener = (id, dstId) -> {
@@ -69,7 +75,7 @@ public final class Main {
 
         EndpointScheduler endpointScheduler = new SimpleEndpointScheduler();
         LocalGatewayHub<Integer> gatewayHub = new LocalGatewayHub<>(
-                new SimpleLine<>(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.0, 1.0, 10),
+                new SimpleLine<>(0L, Duration.ofMillis(500L), Duration.ofMillis(100L), 0.1, 1.0, 10),
                 new XStreamSerializer());
         for (int i = 0; i < actors.length; i++) {
             Endpoint endpoint = actorRunnable.getEndpoint(actors[i]);
@@ -80,10 +86,12 @@ public final class Main {
 
             Id id = generateId(i, actors.length);
             if (i == 0) {
-                linkToGatewayAndSeedStart(activeListener, linkListener, unlinkListener, i, actors.length, endpoint, gateway, endpointScheduler);
+                linkToGatewayAndSeedStart(activeListener, linkListener, unlinkListener, deactiveListener, i, actors.length, endpoint,
+                        gateway, endpointScheduler);
                 showNode(visualizer, id, Mode.SEED);
             } else {
-                linkToGatewayAndBootstrapStart(activeListener, linkListener, unlinkListener, i, actors.length, 0, endpoint, gateway, endpointScheduler);
+                linkToGatewayAndBootstrapStart(activeListener, linkListener, unlinkListener, deactiveListener, i, actors.length, 0,
+                        endpoint, gateway, endpointScheduler);
                 showNode(visualizer, id, Mode.JOIN);
             }
         }
@@ -91,25 +99,27 @@ public final class Main {
 
     private static <T> void linkToGatewayAndSeedStart(
             ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener,
-            int selfId, int idLen, Endpoint selfEndpoint, Gateway<T> gateway, EndpointScheduler endpointScheduler) {
+            ChordDeactiveListener<Id> deactiveListener, int selfId, int idLen, Endpoint selfEndpoint, Gateway<T> gateway,
+            EndpointScheduler endpointScheduler) {
         EndpointDirectory<T> endpointDirectory = new GatewayEndpointDirectory<>(gateway);
         EndpointIdentifier<T> endpointIdentifier = new GatewayEndpointIdentifier<>();
 
-        Start<T> start = new Start<>(activeListener, linkListener, unlinkListener, endpointDirectory, endpointIdentifier, endpointScheduler,
-                selfEndpoint, generateId(selfId, idLen), null);
+        Start<T> start = new Start<>(activeListener, linkListener, unlinkListener, deactiveListener, endpointDirectory, endpointIdentifier,
+                endpointScheduler, selfEndpoint, generateId(selfId, idLen), null);
 
         selfEndpoint.send(NullEndpoint.INSTANCE, start);
     }
     
     private static <T> void linkToGatewayAndBootstrapStart(
             ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener,
-            int selfId, int idLen, T joinAddress, Endpoint selfEndpoint, Gateway<T> gateway, EndpointScheduler endpointScheduler) {
+            ChordDeactiveListener<Id> deactiveListener, int selfId, int idLen, T joinAddress, Endpoint selfEndpoint, Gateway<T> gateway,
+            EndpointScheduler endpointScheduler) {
         EndpointDirectory<T> endpointDirectory = new GatewayEndpointDirectory<>(gateway);
         EndpointIdentifier<T> endpointIdentifier = new GatewayEndpointIdentifier<>();
         
         
-        Start<T> start = new Start<>(activeListener, linkListener, unlinkListener, endpointDirectory, endpointIdentifier, endpointScheduler,
-                selfEndpoint, generateId(selfId, idLen), joinAddress);
+        Start<T> start = new Start<>(activeListener, linkListener, unlinkListener, deactiveListener, endpointDirectory, endpointIdentifier,
+                endpointScheduler, selfEndpoint, generateId(selfId, idLen), joinAddress);
 
         selfEndpoint.send(NullEndpoint.INSTANCE, start);
     }

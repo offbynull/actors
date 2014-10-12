@@ -454,6 +454,11 @@ public final class ChordHelper<A, N> {
         return context.getFingerTable().replace(ptr);
     }
     
+    public void removeFinger(ExternalPointer<A> ptr) {
+        Validate.notNull(ptr);
+        context.getFingerTable().remove(ptr);
+    }
+    
     public void updateSuccessor(ExternalPointer<A> successor, List<Pointer> subsequentSuccessors) {
         Validate.notNull(successor);
         Validate.noNullElements(subsequentSuccessors);

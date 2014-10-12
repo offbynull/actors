@@ -9,7 +9,6 @@ import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccesso
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.messages.external.GetSuccessorResponse.InternalSuccessorEntry;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
-import com.offbynull.peernetic.playground.chorddht.model.IdUtils;
 import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.Pointer;

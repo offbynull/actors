@@ -64,10 +64,12 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
         }
 
         if (foundFinger instanceof InternalPointer) {
-//                        Pointer existingPointer = context.getFingerTable().get(i);
-//                        if (existingPointer instanceof ExternalPointer) {
-//                            context.getFingerTable().remove((ExternalPointer<A>) existingPointer);
-//                        }
+            // get existing finger in that slot... if it's not self, remove it... removing it should automatically shift the next finger in
+            // to its place
+            Pointer existingFinger = chordHelper.getFinger(i);
+            if (existingFinger instanceof ExternalPointer) {
+                chordHelper.removeFinger((ExternalPointer<A>) existingFinger);
+            }
         } else if (foundFinger instanceof ExternalPointer) {
             chordHelper.putFinger((ExternalPointer<A>) foundFinger);
             LOG.debug("{}: Finger for index {} set to {}", chordHelper.getSelfId(), i, foundFinger);

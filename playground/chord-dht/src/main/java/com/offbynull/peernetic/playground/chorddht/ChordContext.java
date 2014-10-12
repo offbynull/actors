@@ -17,6 +17,7 @@ public class ChordContext<A> {
     private final ChordActiveListener<Id> activeListener;
     private final ChordLinkListener<Id> linkListener;
     private final ChordUnlinkListener<Id> unlinkListener;
+    private final ChordDeactiveListener<Id> deactiveListener;
     
     private Duration totalTrackResponeDuration = Duration.ofSeconds(60L);
     private Duration totalTrackRequestDuration = Duration.ofSeconds(30L);
@@ -38,10 +39,12 @@ public class ChordContext<A> {
     private Id selfId;
     private A bootstrapAddress;
 
-    public ChordContext(ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener) {
+    public ChordContext(ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener,
+            ChordDeactiveListener<Id> deactiveListener) {
         this.activeListener = activeListener;
         this.linkListener = linkListener;
         this.unlinkListener = unlinkListener;
+        this.deactiveListener = deactiveListener;
     }
 
     public ChordActiveListener<Id> getActiveListener() {
@@ -54,6 +57,10 @@ public class ChordContext<A> {
 
     public ChordUnlinkListener<Id> getUnlinkListener() {
         return unlinkListener;
+    }
+
+    public ChordDeactiveListener<Id> getDeactiveListener() {
+        return deactiveListener;
     }
 
     public EndpointDirectory<A> getEndpointDirectory() {

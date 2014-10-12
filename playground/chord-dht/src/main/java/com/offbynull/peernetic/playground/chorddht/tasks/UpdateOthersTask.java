@@ -79,7 +79,7 @@ public final class UpdateOthersTask<A> extends SimpleJavaflowTask<A, byte[]> {
                 }
             }
 
-            getFlowControl().wait(Duration.ofSeconds(1L));
+            chordHelper.sleep(1L);
         }
     }
 

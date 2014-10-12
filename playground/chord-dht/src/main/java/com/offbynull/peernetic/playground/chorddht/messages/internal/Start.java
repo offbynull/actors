@@ -6,6 +6,7 @@ import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.playground.chorddht.ChordActiveListener;
+import com.offbynull.peernetic.playground.chorddht.ChordDeactiveListener;
 import com.offbynull.peernetic.playground.chorddht.ChordLinkListener;
 import com.offbynull.peernetic.playground.chorddht.ChordUnlinkListener;
 import org.apache.commons.lang3.Validate;
@@ -15,6 +16,7 @@ public final class Start<A> {
     private final ChordActiveListener<Id> activeListener;
     private final ChordLinkListener<Id> linkListener;
     private final ChordUnlinkListener<Id> unlinkListener;
+    private final ChordDeactiveListener<Id> deactiveListener;
     private final EndpointDirectory<A> endpointDirectory;
     private final EndpointIdentifier<A> endpointIdentifier;
     private final EndpointScheduler endpointScheduler;
@@ -23,11 +25,12 @@ public final class Start<A> {
     private final A bootstrapAddress;
 
     public Start(ChordActiveListener<Id> activeListener, ChordLinkListener<Id> linkListener, ChordUnlinkListener<Id> unlinkListener,
-            EndpointDirectory<A> endpointDirectory, EndpointIdentifier<A> endpointIdentifier, EndpointScheduler endpointScheduler,
-            Endpoint selfEndpoint, Id selfId, A bootstrapAddress) {
+            ChordDeactiveListener<Id> deactiveListener, EndpointDirectory<A> endpointDirectory, EndpointIdentifier<A> endpointIdentifier,
+            EndpointScheduler endpointScheduler, Endpoint selfEndpoint, Id selfId, A bootstrapAddress) {
         Validate.notNull(activeListener);
         Validate.notNull(linkListener);
         Validate.notNull(unlinkListener);
+        Validate.notNull(deactiveListener);
         Validate.notNull(endpointDirectory);
         Validate.notNull(endpointIdentifier);
         Validate.notNull(endpointScheduler);
@@ -38,6 +41,7 @@ public final class Start<A> {
         this.activeListener = activeListener;
         this.linkListener = linkListener;
         this.unlinkListener = unlinkListener;
+        this.deactiveListener = deactiveListener;
         this.endpointDirectory = endpointDirectory;
         this.endpointIdentifier = endpointIdentifier;
         this.endpointScheduler = endpointScheduler;
@@ -56,6 +60,10 @@ public final class Start<A> {
 
     public ChordUnlinkListener<Id> getUnlinkListener() {
         return unlinkListener;
+    }
+
+    public ChordDeactiveListener<Id> getDeactiveListener() {
+        return deactiveListener;
     }
 
     public EndpointDirectory<A> getEndpointDirectory() {

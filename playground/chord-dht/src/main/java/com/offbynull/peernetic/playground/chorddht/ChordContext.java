@@ -19,10 +19,10 @@ public class ChordContext<A> {
     private final ChordUnlinkListener<Id> unlinkListener;
     private final ChordDeactiveListener<Id> deactiveListener;
     
-    private Duration totalTrackResponeDuration = Duration.ofSeconds(60L);
-    private Duration totalTrackRequestDuration = Duration.ofSeconds(30L);
-    private Duration requestResendDuration = Duration.ofSeconds(3L);
-    private int requestMaxResends = 10;
+    private Duration totalTrackResponeDuration = Duration.ofSeconds(20L);
+    private Duration totalTrackRequestDuration = Duration.ofSeconds(10L);
+    private Duration requestResendDuration = Duration.ofSeconds(2L);
+    private int requestMaxResends = 5;
 
     private EndpointDirectory<A> endpointDirectory;
     private EndpointIdentifier<A> endpointIdentifier;

@@ -9,10 +9,15 @@ import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.Pointer;
+import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(RouteToTask.class);
     
     private final Id findId;
     private ExternalPointer<A> currentNode;
@@ -61,8 +66,11 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
         while (true) {
             Id oldCurrentNodeId = currentNode.getId();
 
-            GetClosestFingerResponse<A> gcpfr = chordHelper.sendGetClosestFingerRequest(currentNode.getAddress(), findId, skipId);
-            if (gcpfr == null) {
+            GetClosestFingerResponse<A> gcpfr;
+            try {
+                gcpfr = chordHelper.sendGetClosestFingerRequest(currentNode.getAddress(), findId, skipId);
+            } catch (ChordOperationException coe) {
+                LOG.warn("Routing failed -- failed to get closest finger from {}", currentNode);
                 return;
             }
 

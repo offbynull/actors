@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.debug.actornetwork;
 
 import com.offbynull.peernetic.debug.actornetwork.messages.TransitMessage;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +25,8 @@ public final class SimpleLine<A> implements Line<A> {
     private double nonRepeatChancePerKb;
     private int maxRepeat;
 
-    public SimpleLine() {
-        this(0L, Duration.ZERO, Duration.ZERO, 0.0, 1.0, 0); // no delay, no jitter, no dropped packets, no repeating packets
+    public SimpleLine(long randomSeed) {
+        this(randomSeed, Duration.ZERO, Duration.ZERO, 0.0, 1.0, 0); // no delay, no jitter, no dropped packets, no repeating packets
     }
 
     public SimpleLine(long randomSeed, Duration minDelayPerKb, Duration maxJitterPerKb, double dropChancePerKb, double nonRepeatChancePerKb,
@@ -84,7 +86,13 @@ public final class SimpleLine<A> implements Line<A> {
             repeatCount++;
         } while (repeatCount <= maxRepeat && calculateNextRepeat(sizeInKb));
         
-        LOG.debug("Message from {} to {} will be sent {} times", departMessage.getSource(), departMessage.getDestination(), repeatCount);
+        if (LOG.isDebugEnabled()) {
+            ByteBuffer dataBuffer = departMessage.getData();
+            byte[] data = new byte[dataBuffer.limit()];
+            dataBuffer.get(data);
+            LOG.debug("Message from {} to {} will be sent {} times: {}", departMessage.getSource(), departMessage.getDestination(),
+                   repeatCount, ArrayUtils.toString(data));
+        }
         
         return ret;
     }

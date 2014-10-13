@@ -49,7 +49,7 @@ public final class BasicHubTest {
         directoryForRecverRef.set(directoryForRecver);
         
         // Have actors join hubs
-        hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(endpointScheduler, new SimpleLine(), new XStreamSerializer(), hubEndpoint));
+        hubEndpoint.send(NullEndpoint.INSTANCE, new StartHub<>(endpointScheduler, new SimpleLine(0), new XStreamSerializer(), hubEndpoint));
         hubEndpoint.send(senderEndpoint, new JoinHub<>("sender"));
         hubEndpoint.send(recverEndpoint, new JoinHub<>("recver"));
         

@@ -46,6 +46,8 @@ public final class InitFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> 
     public void execute() throws Exception {
         int len = chordHelper.getFingerTableLength();
 
+        // NOTE: everything up until the populate finger loop is an essential operation... if a failure occurs, joining has to fail
+        
         // create fingertable -- find our successor from the bootstrap node and store it in the fingertable
         FingerTable fingerTable = new FingerTable(chordHelper.getSelfPointer());
         Id expectedSuccesorId = fingerTable.getExpectedId(0);

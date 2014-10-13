@@ -54,6 +54,10 @@ public abstract class SimpleJavaflowTask<A, N> extends BaseJavaflowTask {
     protected final FlowControl<A, N> getFlowControl() {
         return flowControl;
     }
+
+    protected final Router<A, N> getRouter() {
+        return router;
+    }
     
     protected abstract boolean requiresPriming();
     

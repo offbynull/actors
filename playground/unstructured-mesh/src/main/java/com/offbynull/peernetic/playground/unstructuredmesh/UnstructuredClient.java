@@ -1,8 +1,6 @@
 package com.offbynull.peernetic.playground.unstructuredmesh;
 
-import com.offbynull.peernetic.common.AddressCache;
-import com.offbynull.peernetic.common.AddressCache.RetentionMode;
-import com.offbynull.peernetic.common.SessionManager;
+import com.offbynull.peernetic.playground.unstructuredmesh.AddressCache.RetentionMode;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;

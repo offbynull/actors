@@ -53,6 +53,15 @@ public final class StepTimer<K> implements Processable {
         slot.ignore(); // equivalent to nonceTimeoutQueue.cancel(nonce);, will be removed when encountered
     }
 
+    public void cancelIfContains(K key) {
+        Validate.notNull(key);
+        
+        Slot<K> slot = lookup.remove(key);
+        if (slot != null) {
+            slot.ignore(); // equivalent to nonceTimeoutQueue.cancel(nonce);, will be removed when encountered
+        }
+    }
+
     public boolean contains(K key) {
         Validate.notNull(key);
         return lookup.containsKey(key);

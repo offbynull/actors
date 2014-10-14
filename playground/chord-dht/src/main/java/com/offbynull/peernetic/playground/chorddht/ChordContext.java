@@ -7,7 +7,7 @@ import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceGenerator;
-import com.offbynull.peernetic.common.transmission.Router;
+import com.offbynull.peernetic.common.skeleton.Router;
 import com.offbynull.peernetic.playground.chorddht.model.ExternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.FingerTable;
 import com.offbynull.peernetic.playground.chorddht.model.SuccessorTable;

@@ -8,7 +8,7 @@ import com.offbynull.peernetic.playground.chorddht.model.InternalPointer;
 import com.offbynull.peernetic.playground.chorddht.model.Pointer;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.identification.Id;
-import com.offbynull.peernetic.common.javaflow.FlowControl;
+import com.offbynull.peernetic.common.skeleton.FlowControl;
 import com.offbynull.peernetic.javaflow.TaskState;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.messages.external.FindSuccessorRequest;

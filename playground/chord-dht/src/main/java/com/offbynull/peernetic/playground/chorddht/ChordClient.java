@@ -2,7 +2,7 @@ package com.offbynull.peernetic.playground.chorddht;
 
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
-import com.offbynull.peernetic.common.transmission.Router;
+import com.offbynull.peernetic.common.skeleton.Router;
 import com.offbynull.peernetic.javaflow.BaseJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordActiveListener.Mode;
 import com.offbynull.peernetic.playground.chorddht.ChordDeactiveListener.Type;

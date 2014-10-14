@@ -1,4 +1,5 @@
 com/offbynull/peernetic/JavaflowActor.class
 com/offbynull/peernetic/javaflow/BaseJavaflowTask.class
-com/offbynull/peernetic/common/javaflow/FlowControl.class
-com/offbynull/peernetic/common/javaflow/SimpleJavaflowTask.class
+com/offbynull/peernetic/common/skeleton/FlowControl.class
+com/offbynull/peernetic/common/skeleton/SimpleJavaflowTask.class
+com/offbynull/peernetic/common/transmission/TransmissionTask.class

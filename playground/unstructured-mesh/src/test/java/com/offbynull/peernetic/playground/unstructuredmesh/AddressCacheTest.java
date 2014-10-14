@@ -1,6 +1,7 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.playground.unstructuredmesh;
 
-import com.offbynull.peernetic.common.AddressCache.RetentionMode;
+import com.offbynull.peernetic.playground.unstructuredmesh.AddressCache;
+import com.offbynull.peernetic.playground.unstructuredmesh.AddressCache.RetentionMode;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;

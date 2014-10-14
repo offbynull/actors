@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.playground.chorddht.shared;
 
-import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
+import com.offbynull.peernetic.common.skeleton.SimpleJavaflowTask;
 import org.apache.commons.lang3.Validate;
 
 public class ChordOperationException extends RuntimeException {

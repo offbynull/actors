@@ -1,11 +1,10 @@
-package com.offbynull.peernetic.common.javaflow;
+package com.offbynull.peernetic.common.skeleton;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.common.message.NonceAccessor;
-import com.offbynull.peernetic.common.transmission.Router;
 import com.offbynull.peernetic.javaflow.BaseJavaflowTask;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;

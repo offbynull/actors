@@ -1,11 +1,11 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.playground.unstructuredmesh;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
-public final class AddressCache<A> {
+final class AddressCache<A> {
     private final int maxCacheItems;
     private final int minCacheItems;
     private final HashSet<A> cacheSet;

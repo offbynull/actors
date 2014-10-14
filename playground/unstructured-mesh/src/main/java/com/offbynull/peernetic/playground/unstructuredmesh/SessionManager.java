@@ -1,5 +1,7 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.playground.unstructuredmesh;
 
+import com.offbynull.peernetic.common.Processable;
+import com.offbynull.peernetic.common.StepTimer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -7,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-public final class SessionManager<A> implements Processable {
+final class SessionManager<A> implements Processable {
     private final StepTimer<A> timer;
     private final Map<A, Object> values;
 

@@ -2,7 +2,7 @@ package com.offbynull.peernetic.playground.chorddht.tasks;
 
 import com.offbynull.peernetic.JavaflowActor;
 import com.offbynull.peernetic.common.identification.Id;
-import com.offbynull.peernetic.common.javaflow.SimpleJavaflowTask;
+import com.offbynull.peernetic.common.skeleton.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordHelper;
 import com.offbynull.peernetic.playground.chorddht.shared.ChordOperationException;

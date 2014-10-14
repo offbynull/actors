@@ -1,5 +1,6 @@
-package com.offbynull.peernetic.common;
+package com.offbynull.peernetic.playground.unstructuredmesh;
 
+import com.offbynull.peernetic.playground.unstructuredmesh.SessionManager;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.Assert;

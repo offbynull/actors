@@ -32,11 +32,11 @@ final class IncomingResponseState<N> {
         return nonce;
     }
     
-    public Duration getNextDuration() {
+    public Duration getDiscardDuration() {
         return parameters.getRetainDuration();
     }
 
-    public Object getNextEvent() {
+    public Object getDiscardEvent() {
         return new IncomingResponseDiscardEvent<>(nonce);
     }
     

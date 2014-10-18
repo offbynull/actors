@@ -5,7 +5,6 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.actor.NullEndpoint;
 import com.offbynull.peernetic.common.message.NonceAccessor;
 import java.time.Duration;
 import java.util.HashMap;
@@ -48,6 +47,7 @@ public final class TransmissionActorBuilder<A, N> {
         Validate.notNull(type);
         Validate.notNull(retainDuration);
         Validate.isTrue(retainDuration.compareTo(Duration.ZERO) > 0);
+        Validate.isTrue(nonceAccessor.containsNonceField(type));
         
         if (incomingRequestTypeParametersMapping.putIfAbsent(type, new IncomingRequestTypeParameters(retainDuration)) != null) {
             throw new IllegalArgumentException("Already set for type.");
@@ -60,6 +60,7 @@ public final class TransmissionActorBuilder<A, N> {
         Validate.notNull(type);
         Validate.notNull(retainDuration);
         Validate.isTrue(retainDuration.compareTo(Duration.ZERO) > 0);
+        Validate.isTrue(nonceAccessor.containsNonceField(type));
         
         if (incomingResponseTypeParametersMapping.putIfAbsent(type, new IncomingResponseTypeParameters(retainDuration)) != null) {
             throw new IllegalArgumentException("Already set for type.");
@@ -77,6 +78,7 @@ public final class TransmissionActorBuilder<A, N> {
         Validate.isTrue(!responseDuration.isNegative());
         Validate.isTrue(maxSendCount > 0);
         Validate.isTrue(resendDuration.multipliedBy(maxSendCount).compareTo(responseDuration) <= 0);
+        Validate.isTrue(nonceAccessor.containsNonceField(type));
 
         
         if (outgoingRequestTypeParametersMapping.putIfAbsent(type,
@@ -91,6 +93,7 @@ public final class TransmissionActorBuilder<A, N> {
         Validate.notNull(type);
         Validate.notNull(retainDuration);
         Validate.isTrue(retainDuration.compareTo(Duration.ZERO) > 0);
+        Validate.isTrue(nonceAccessor.containsNonceField(type));
         
         if (outgoingResponseTypeParametersMapping.putIfAbsent(type, new OutgoingResponseTypeParameters(retainDuration)) != null) {
             throw new IllegalArgumentException("Already set for type.");
@@ -99,13 +102,13 @@ public final class TransmissionActorBuilder<A, N> {
         return this;
     }
     
-    public JavaflowActor construct() {
+    public JavaflowActor buildActor() {
         TransmissionTask<A, N> task = new TransmissionTask<>();
         JavaflowActor actor = new JavaflowActor(task);
         return actor;
     }
-    
-    public void start(Endpoint endpoint) {
+
+    public Object buildStartMessage(Endpoint selfEndpoint) {
         Set<Class<?>> types = new HashSet<>();
         
         types.addAll(incomingRequestTypeParametersMapping.keySet());
@@ -121,7 +124,7 @@ public final class TransmissionActorBuilder<A, N> {
                 outgoingResponseTypeParametersMapping.get(x))
         ));
         
-        endpoint.send(NullEndpoint.INSTANCE, new StartEvent<>(endpoint, userEndpoint, endpointScheduler, endpointDirectory,
-                endpointIdentifier, nonceAccessor, typeParameters));
+        return new StartEvent<>(selfEndpoint, userEndpoint, endpointScheduler, endpointDirectory,
+                endpointIdentifier, nonceAccessor, typeParameters);
     }
 }

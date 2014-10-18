@@ -23,10 +23,6 @@ final class OutgoingRequestState<N> {
         this.message = message;
     }
 
-    public OutgoingRequestTypeParameters getParameters() {
-        return parameters;
-    }
-
     public Endpoint getEndpoint() {
         return endpoint;
     }
@@ -39,12 +35,20 @@ final class OutgoingRequestState<N> {
         sendCount++;
     }
 
-    public Duration getNextDuration() {
-        return sendCount >= parameters.getMaxSendCount() ? parameters.getResponseDuration() : parameters.getResendDuration();
+    public Duration getNextResendDuration() {
+        return sendCount < parameters.getMaxSendCount() ? parameters.getResendDuration() : null;
     }
 
-    public Object getNextEvent() {
-        return sendCount >= parameters.getMaxSendCount() ? new OutgoingRequestDiscardEvent<>(nonce) : new OutgoingRequestResendEvent<>(nonce);
+    public Object getNextResendEvent() {
+        return sendCount < parameters.getMaxSendCount() ? new OutgoingRequestResendEvent<>(nonce) : null;
+    }
+    
+    public Duration getDiscardDuration() {
+        return parameters.getResponseDuration();
+    }
+
+    public Object getDiscardEvent() {
+        return new OutgoingRequestDiscardEvent<>(nonce);
     }
     
 }

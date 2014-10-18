@@ -50,8 +50,6 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
     
     @Override
     public void run() {
-        Continuation.suspend();
-        
         Validate.validState(getMessage() instanceof StartEvent, "First message to this task must be of type %s", StartEvent.class);
         StartEvent<A, N> startEvent = (StartEvent<A, N>) getMessage();
         
@@ -80,18 +78,26 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
     }
 
     private void handle(OutgoingRequestResendEvent event) {
-        OutgoingRequestResendEvent<N> resendEvent = (OutgoingRequestResendEvent<N>) event;
-        Nonce<N> nonce = resendEvent.getNonce();
+        OutgoingRequestResendEvent<N> reqResendEvent = (OutgoingRequestResendEvent<N>) event;
+        Nonce<N> nonce = reqResendEvent.getNonce();
 
         OutgoingRequestState<N> requestState = outgoingRequestStates.get(nonce);
         if (requestState == null) {
             return;
         }
+        
+        if (incomingResponseStates.containsKey(nonce)) {
+            LOG.debug("Ignoring resend event since response has already arrived");
+            return;
+        }
 
         requestState.incrementSendCount();
-        Duration nextDuration = requestState.getNextDuration();
-        Object nextEvent = requestState.getNextEvent();
-        endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, nextEvent);
+        
+        Duration resendDuration = requestState.getNextResendDuration();
+        Object resendEvent = requestState.getNextResendEvent();
+        if (resendDuration != null && resendEvent != null) {
+            endpointScheduler.scheduleMessage(resendDuration, selfEndpoint, selfEndpoint, resendEvent);
+        }
 
         Endpoint dstEndpoint = requestState.getEndpoint();
         Object msg = requestState.getMessage();
@@ -140,18 +146,28 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
         OutgoingResponseTypeParameters responseParams;
 
         if ((requestParams = typeParameters.getOutgoingRequestTypeParameters()) != null) {
-            Validate.validState(!outgoingRequestStates.containsKey(nonce), "Request already sent %s", innerMsg);
+            if (outgoingRequestStates.containsKey(nonce)) {
+                LOG.warn("Request with nonce already sent, ignoring: {}", innerMsg);
+                return;
+            }
 
             Endpoint dstEndpoint = endpointDirectory.lookup(address);
             OutgoingRequestState<N> outgoingState = new OutgoingRequestState<>(requestParams, dstEndpoint, nonce, innerMsg);
             outgoingRequestStates.put(nonce, outgoingState);
 
             outgoingState.incrementSendCount();
-            Duration nextDuration = outgoingState.getNextDuration();
-            Object nextEvent = outgoingState.getNextEvent();
-
+            
+            Duration nextResendDuration = outgoingState.getNextResendDuration();
+            Object nextResendEvent = outgoingState.getNextResendEvent();
+            if (nextResendDuration != null || nextResendEvent != null) {
+                endpointScheduler.scheduleMessage(nextResendDuration, selfEndpoint, selfEndpoint, nextResendEvent);    
+            }
+            
+            Duration discardDuration = outgoingState.getDiscardDuration();
+            Object discardEvent = outgoingState.getDiscardEvent();
+            endpointScheduler.scheduleMessage(discardDuration, selfEndpoint, selfEndpoint, discardEvent);    
+            
             dstEndpoint.send(selfEndpoint, innerMsg);
-            endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, nextEvent);
         } else if ((responseParams = typeParameters.getOutgoingResponseTypeParameters()) != null) {
             Validate.validState(!outgoingResponseStates.containsKey(nonce), "Response already sent %s", innerMsg);
 
@@ -159,11 +175,11 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
             OutgoingResponseState<N> outgoingState = new OutgoingResponseState<>(responseParams, dstEndpoint, nonce, innerMsg);
             outgoingResponseStates.put(nonce, outgoingState);
 
-            Duration nextDuration = outgoingState.getNextDuration();
-            Object nextEvent = outgoingState.getNextEvent();
+            Duration discardDuration = outgoingState.getDiscardDuration();
+            Object discardEvent = outgoingState.getDiscardEvent();
 
             dstEndpoint.send(selfEndpoint, innerMsg);
-            endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, nextEvent);
+            endpointScheduler.scheduleMessage(discardDuration, selfEndpoint, selfEndpoint, discardEvent);
         } else {
             throw new IllegalStateException("Unsupported outgoing message " + innerMsg);
         }
@@ -205,11 +221,13 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
             IncomingRequestState<N> incomingState = new IncomingRequestState<>(requestParams, srcEndpoint, nonce, innerMsg);
             incomingRequestStates.put(nonce, incomingState);
 
-            Duration nextDuration = incomingState.getNextDuration();
-            Object nextEvent = incomingState.getNextEvent();
-            endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, nextEvent);
+            Duration discardDuration = incomingState.getDiscardDuration();
+            Object discardEvent = incomingState.getDiscardEvent();
+            endpointScheduler.scheduleMessage(discardDuration, selfEndpoint, selfEndpoint, discardEvent);
 
-            userEndpoint.send(selfEndpoint, innerMsg);
+            // wrap source endpoint so they can derive address
+            TransmissionInputEndpoint<A> proxyEndpoint = new TransmissionInputEndpoint<>(selfEndpoint, address);
+            userEndpoint.send(proxyEndpoint, innerMsg);
         } else if ((responseParams = typeParameters.getIncomingResponseTypeParameters()) != null) {
             if (incomingResponseStates.containsKey(nonce)) {
                 LOG.debug("Duplicate response received, ignoring: {}", innerMsg);
@@ -225,11 +243,13 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
             IncomingResponseState<N> incomingState = new IncomingResponseState<>(responseParams, dstEndpoint, nonce, innerMsg);
             incomingResponseStates.put(nonce, incomingState);
 
-            Duration nextDuration = incomingState.getNextDuration();
-            Object nextEvent = incomingState.getNextEvent();
-
-            dstEndpoint.send(selfEndpoint, innerMsg);
-            endpointScheduler.scheduleMessage(nextDuration, selfEndpoint, selfEndpoint, nextEvent);
+            Duration discardDuration = incomingState.getDiscardDuration();
+            Object discardEvent = incomingState.getDiscardEvent();
+            endpointScheduler.scheduleMessage(discardDuration, selfEndpoint, selfEndpoint, discardEvent);
+            
+            // wrap source endpoint so they can derive address
+            TransmissionInputEndpoint<A> proxyEndpoint = new TransmissionInputEndpoint<>(selfEndpoint, address);
+            userEndpoint.send(proxyEndpoint, innerMsg);
         } else {
             LOG.warn("Unsupported incoming message {}", innerMsg);
         }

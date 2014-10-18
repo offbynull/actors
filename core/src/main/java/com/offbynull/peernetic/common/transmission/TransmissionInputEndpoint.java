@@ -52,6 +52,6 @@ public final class TransmissionInputEndpoint<A> implements Endpoint {
         Validate.notNull(source);
         Validate.notNull(message);
 
-        transActorEndpoint.send(source, new OutgoingMessageEvent<>(message, address));
+        transActorEndpoint.send(source, new IncomingMessageEvent<>(message, address));
     }
 }

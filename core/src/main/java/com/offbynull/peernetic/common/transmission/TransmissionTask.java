@@ -17,6 +17,13 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// 1. will send request, then resend up until some point
+//   1.1 once response arrives, will stop resending
+//   1.2 duplicate response arrivals will be ignored, up until some point
+//   1.3 duplicate request sends will be ignored, up until some point
+// 2. requests to self are ignored
+// 3. responses will be cached and resent if the request for that response comes in again (because the initial response may not have made it
+//      to the other side)
 public final class TransmissionTask<A, N> extends BaseJavaflowTask {
 
     private static final Logger LOG = LoggerFactory.getLogger(TransmissionTask.class);

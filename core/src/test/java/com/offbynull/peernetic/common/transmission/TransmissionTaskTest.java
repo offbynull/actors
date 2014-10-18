@@ -116,6 +116,22 @@ public final class TransmissionTaskTest {
         
         verify(networkNode1Endpoint, times(1)).send(eq(transEndpoint), any(OutgoingCustomReq.class));
         verify(userEndpoint, times(1))
+                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(IncomingCustomResp.class));
+    }
+
+    @Test
+    public void testRequestToSelf() throws Exception {        
+        // send a message to network node 1, have network node 1 respond to it...
+        Endpoint userToTransmissionEndpoint = transmissionEndpointDirectory.lookup(1); // used when user sends to transmission
+        Endpoint networkToTransmissionEndpoint = new TransmissionInputEndpoint(transEndpoint, 1); // used when network sends to transmission
+        
+        userToTransmissionEndpoint.send(userEndpoint, new OutgoingCustomReq("id-a"));
+        networkToTransmissionEndpoint.send(networkToTransmissionEndpoint, new OutgoingCustomReq("id-a"));
+        
+        Thread.sleep(800L); // sleep to make sure multiple requests aren't sent
+        
+        verify(networkNode1Endpoint, times(3)).send(eq(transEndpoint), any(OutgoingCustomReq.class));
+        verify(userEndpoint, times(0))
                 .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(OutgoingCustomReq.class));
     }
 
@@ -137,7 +153,7 @@ public final class TransmissionTaskTest {
         
         verify(networkNode1Endpoint, times(1)).send(eq(transEndpoint), any(OutgoingCustomReq.class));
         verify(userEndpoint, times(1))
-                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(OutgoingCustomReq.class));
+                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(IncomingCustomResp.class));
     }
 
     @Test
@@ -158,7 +174,7 @@ public final class TransmissionTaskTest {
         
         verify(networkNode1Endpoint, times(1)).send(eq(transEndpoint), any(OutgoingCustomReq.class));
         verify(userEndpoint, times(1))
-                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(OutgoingCustomReq.class));
+                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(IncomingCustomResp.class));
     }
 
     @Test
@@ -181,9 +197,9 @@ public final class TransmissionTaskTest {
         verify(networkNode1Endpoint, times(1)).send(eq(transEndpoint), any(OutgoingCustomReq.class));
         verify(networkNode2Endpoint, times(1)).send(eq(transEndpoint), any(OutgoingCustomReq.class));
         verify(userEndpoint, times(1))
-                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(OutgoingCustomReq.class));
+                .send(eq(new TransmissionInputEndpoint(transEndpoint, 1)), any(IncomingCustomResp.class));
         verify(userEndpoint, times(1))
-                .send(eq(new TransmissionInputEndpoint(transEndpoint, 2)), any(OutgoingCustomReq.class));
+                .send(eq(new TransmissionInputEndpoint(transEndpoint, 2)), any(IncomingCustomResp.class));
     }
 
     protected static final class OutgoingCustomReq extends Request {

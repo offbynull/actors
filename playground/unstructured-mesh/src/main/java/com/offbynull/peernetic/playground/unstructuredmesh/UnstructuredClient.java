@@ -5,11 +5,9 @@ import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
-import com.offbynull.peernetic.common.ProcessableUtils;
 import com.offbynull.peernetic.common.message.ByteArrayNonceAccessor;
-import com.offbynull.peernetic.common.transmission.IncomingRequestManager;
-import com.offbynull.peernetic.common.transmission.OutgoingRequestManager;
 import com.offbynull.peernetic.common.message.ByteArrayNonceGenerator;
+import com.offbynull.peernetic.common.message.Nonce;
 import com.offbynull.peernetic.common.message.NonceAccessor;
 import com.offbynull.peernetic.common.message.NonceGenerator;
 import com.offbynull.peernetic.common.message.Request;
@@ -47,8 +45,6 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
     private AddressCache<A> addressCache;
     private NonceGenerator<byte[]> nonceGenerator;
     private NonceAccessor<byte[]> nonceAccessor;
-    private IncomingRequestManager<A, byte[]> incomingRequestManager;
-    private OutgoingRequestManager<A, byte[]> outgoingRequestManager;
     private SessionManager<A> incomingSessions;
     private SessionManager<A> outgoingSessions;
     private Endpoint selfEndpoint;
@@ -77,8 +73,6 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
             outgoingSessions = new SessionManager<>();
             nonceGenerator = new ByteArrayNonceGenerator(8);
             nonceAccessor = new ByteArrayNonceAccessor();
-            incomingRequestManager = new IncomingRequestManager<>(selfEndpoint, nonceAccessor);
-            outgoingRequestManager = new OutgoingRequestManager<>(selfEndpoint, nonceGenerator, nonceAccessor, endpointDirectory);
 
             listener.onStarted(selfAddress);
 
@@ -89,24 +83,12 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
             while (true) {
                 Continuation.suspend();
                 if (getMessage() instanceof Request) {
-                    A incomingAddr = endpointIdentifier.identify(getSource());
-                    // if message to ourself (or invalid) or msg is one which we've already responded to (or invalid) then skip
-                    if (outgoingRequestManager.isTrackedRequest(getTime(), getMessage())
-                            || !incomingRequestManager.testRequestMessage(getTime(), getMessage())) {
-                        continue;
-                    }
-
                     if (getMessage() instanceof LinkRequest) {
                         handleLinkRequest(getTime(), (LinkRequest) getMessage(), getSource());
                     } else if (getMessage() instanceof QueryRequest) {
                         handleQueryRequest(getTime(), (QueryRequest) getMessage(), getSource());
                     }
                 } else if (getMessage() instanceof Response) {
-                    // makes sure msg is valid (false if not) and makes sure this is a response to a message we've sent
-                    if (!outgoingRequestManager.testResponseMessage(getTime(), getMessage())) {
-                        continue;
-                    }
-
                     if (getMessage() instanceof LinkResponse) {
                         handleLinkResponse(getTime(), (LinkResponse) getMessage(), getSource());
                     } else if (getMessage() instanceof QueryResponse) {
@@ -123,8 +105,6 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
     
     private void handleTimer(Instant time) throws Exception {
         // Prune nonce managers and session managers
-        Duration nextIrmDuration = incomingRequestManager.process(time);
-        Duration nextOrmDuration = outgoingRequestManager.process(time);
         incomingSessions.process(time);
         outgoingSessions.process(time);
         Set<A> prunedOutgoingLinks = outgoingSessions.getRemovedIds();
@@ -139,17 +119,17 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
                 int pos = RandomUtils.nextInt(0, links.size());
                 A address = links.get(pos);
 
-                sendQueryRequest(time, address);
+                sendQueryRequest(address);
             } else {
                 // If we have no neighbours, grab the next node from the address cache and query it
                 A next = addressCache.next();
-                sendQueryRequest(time, next);
+                sendQueryRequest(next);
             }
         }
 
         // Send a message to all outgoing links telling them we're still alive, otherwise we'll get dropped
         for (A address : outgoingSessions.getSessions()) {
-            sendLinkRequest(time, address);
+            sendLinkRequest(address);
         }
 
         // Check to see if we have room for more outgoing links. If we do, sendRequestAndTrack out new link requests
@@ -165,19 +145,18 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
                 continue;
             }
 
-            sendLinkRequest(time, address);
+            sendLinkRequest(address);
         }
 
         // Reschedule this state to be triggered again
-        Duration timerDuration = ProcessableUtils.scheduleEarliestDuration(DEFAULT_TIMER_DURATION, nextOrmDuration, nextIrmDuration);
-        endpointScheduler.scheduleMessage(timerDuration, selfEndpoint, selfEndpoint, new Timer());
+        endpointScheduler.scheduleMessage(DEFAULT_TIMER_DURATION, selfEndpoint, selfEndpoint, new Timer());
     }
 
     public void handleLinkRequest(Instant time, LinkRequest message, Endpoint srcEndpoint) throws Exception {
         A address = endpointIdentifier.identify(srcEndpoint);
         
         boolean successful = incomingSessions.containsSession(address) || incomingSessions.size() < MAX_INCOMING_JOINS;
-        sendLinkResponse(time, srcEndpoint, message, successful);
+        sendLinkResponse(srcEndpoint, message, successful);
         
         if (successful) {
             incomingSessions.addOrUpdateSession(time, SESSION_DURATION, address, null);
@@ -185,7 +164,7 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
     }
 
     public void handleQueryRequest(Instant time, QueryRequest message, Endpoint srcEndpoint) throws Exception {
-        sendQueryResponse(time, srcEndpoint, message);
+        sendQueryResponse(srcEndpoint, message);
     }
 
     public void handleLinkResponse(Instant time, LinkResponse message, Endpoint srcEndpoint) {
@@ -223,23 +202,43 @@ public final class UnstructuredClient<A> extends BaseJavaflowTask {
         return links;
     }
     
-    private void sendLinkRequest(Instant time, A address) throws Exception {
-        outgoingRequestManager.sendRequestAndTrack(time, new LinkRequest(), address);
+    private void sendLinkRequest(A address) throws Exception {
+        Endpoint dstEndpoint = endpointDirectory.lookup(address);
+        
+        LinkRequest req = new LinkRequest();
+        Nonce<byte[]> nonce = nonceGenerator.generate();
+        nonceAccessor.set(req, nonce);
+        
+        dstEndpoint.send(selfEndpoint, req);
     }
 
-    private void sendQueryRequest(Instant time, A address) throws Exception {
-        outgoingRequestManager.sendRequestAndTrack(time, new QueryRequest(), address);
+    private void sendQueryRequest(A address) throws Exception {
+        Endpoint dstEndpoint = endpointDirectory.lookup(address);
+        
+        QueryRequest req = new QueryRequest();
+        Nonce<byte[]> nonce = nonceGenerator.generate();
+        nonceAccessor.set(req, nonce);
+        
+        dstEndpoint.send(selfEndpoint, req);
     }
     
-    private void sendLinkResponse(Instant time, Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
+    private void sendLinkResponse(Endpoint srcEndpoint, Object request, boolean successful) throws Exception {
         List<A> links = getAllSessions();
-        LinkResponse<A> response = new LinkResponse<>(successful, links);
-        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint);
+        
+        LinkResponse<A> resp = new LinkResponse<>(successful, links);
+        Nonce<byte[]> nonce = nonceAccessor.get(request);
+        nonceAccessor.set(resp, nonce);
+        
+        srcEndpoint.send(selfEndpoint, resp);
     }
 
-    private void sendQueryResponse(Instant time, Endpoint srcEndpoint, Object request) throws Exception {
+    private void sendQueryResponse(Endpoint srcEndpoint, Object request) throws Exception {
         List<A> links = getAllSessions();
-        QueryResponse<A> response = new QueryResponse<>(links);
-        incomingRequestManager.sendResponseAndTrack(time, request, response, srcEndpoint);
+        
+        QueryResponse<A> resp = new QueryResponse<>(links);
+        Nonce<byte[]> nonce = nonceAccessor.get(request);
+        nonceAccessor.set(resp, nonce);
+        
+        srcEndpoint.send(selfEndpoint, resp);
     }
 }

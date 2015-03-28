@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.common.transmission;
 
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.actor.ActorRunnable;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
@@ -59,7 +59,7 @@ public final class TransmissionTaskTest {
         
         
         // make actor and initialize
-        JavaflowActor transActor = builder.buildActor();
+        CoroutineActor transActor = builder.buildActor();
         actorRunnable = ActorRunnable.createAndStart(transActor);
         transEndpoint = actorRunnable.getEndpoint(transActor);
         Object startMsg = builder.buildStartMessage(transEndpoint);

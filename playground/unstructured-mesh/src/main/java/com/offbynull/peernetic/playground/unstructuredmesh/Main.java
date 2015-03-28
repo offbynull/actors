@@ -21,7 +21,7 @@ import com.offbynull.peernetic.debug.visualizer.JGraphXVisualizer;
 import com.offbynull.peernetic.debug.visualizer.RemoveEdgeCommand;
 import com.offbynull.peernetic.debug.visualizer.Visualizer;
 import com.offbynull.peernetic.debug.visualizer.VisualizerUtils;
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.network.Gateway;
 import com.offbynull.peernetic.network.GatewayListener;
 import com.offbynull.peernetic.network.XStreamSerializer;
@@ -66,7 +66,7 @@ public final class Main {
         // Create actors
         for (int i = 0; i < actors.length; i++) {
             UnstructuredClient<? extends Object> client = new UnstructuredClient<>(listener);
-            actors[i] = new JavaflowActor(client);
+            actors[i] = new CoroutineActor(client);
         }
 
         // Start actors all within the same thread

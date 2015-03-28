@@ -1,18 +1,19 @@
 package com.offbynull.peernetic.common.transmission;
 
+import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.CoroutineActor.Context;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
 import com.offbynull.peernetic.actor.EndpointScheduler;
 import com.offbynull.peernetic.common.message.Nonce;
 import com.offbynull.peernetic.common.message.NonceAccessor;
-import com.offbynull.peernetic.javaflow.BaseJavaflowTask;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.apache.commons.collections4.map.UnmodifiableMap;
-import org.apache.commons.javaflow.Continuation;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ import org.slf4j.LoggerFactory;
 // 2. requests to self are ignored
 // 3. responses will be cached and resent if the request for that response comes in again (because the initial response may not have made it
 //      to the other side)
-public final class TransmissionTask<A, N> extends BaseJavaflowTask {
+public final class TransmissionTask<A, N> implements Coroutine {
 
     private static final Logger LOG = LoggerFactory.getLogger(TransmissionTask.class);
 
@@ -56,9 +57,11 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
     }
     
     @Override
-    public void run() {
-        Validate.validState(getMessage() instanceof StartEvent, "First message to this task must be of type %s", StartEvent.class);
-        StartEvent<A, N> startEvent = (StartEvent<A, N>) getMessage();
+    public void run(Continuation continuation) {
+        Context context = (Context) continuation.getContext();
+        
+        Validate.validState(context.getMessage() instanceof StartEvent, "First message to this task must be of type %s", StartEvent.class);
+        StartEvent<A, N> startEvent = (StartEvent<A, N>) context.getMessage();
         
         selfEndpoint = startEvent.getSelfEndpoint();
         userEndpoint = startEvent.getUserEndpoint();
@@ -73,9 +76,9 @@ public final class TransmissionTask<A, N> extends BaseJavaflowTask {
         incomingResponseStates = new HashMap<>();
         
         while (true) {
-            Continuation.suspend();
+            continuation.suspend();
 
-            Object event = getMessage();
+            Object event = context.getMessage();
             Consumer<Object> handler = (Consumer<Object>) eventHandlers.get(event.getClass());
             
             Validate.validState(handler != null, "Unrecognized event type %s", event);

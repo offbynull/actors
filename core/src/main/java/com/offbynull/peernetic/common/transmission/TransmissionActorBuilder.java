@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.common.transmission;
 
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.actor.EndpointDirectory;
 import com.offbynull.peernetic.actor.EndpointIdentifier;
@@ -102,9 +102,9 @@ public final class TransmissionActorBuilder<A, N> {
         return this;
     }
     
-    public JavaflowActor buildActor() {
+    public CoroutineActor buildActor() {
         TransmissionTask<A, N> task = new TransmissionTask<>();
-        JavaflowActor actor = new JavaflowActor(task);
+        CoroutineActor actor = new CoroutineActor(task);
         return actor;
     }
 

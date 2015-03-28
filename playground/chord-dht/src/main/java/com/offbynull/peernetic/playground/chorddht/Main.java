@@ -3,7 +3,7 @@ package com.offbynull.peernetic.playground.chorddht;
 import com.offbynull.peernetic.GatewayEndpointDirectory;
 import com.offbynull.peernetic.GatewayEndpointIdentifier;
 import com.offbynull.peernetic.GatewayInputAdapter;
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.actor.Actor;
 import com.offbynull.peernetic.actor.ActorRunnable;
 import com.offbynull.peernetic.actor.Endpoint;
@@ -67,7 +67,7 @@ public final class Main {
         // Create actors
         for (int i = 0; i < actors.length; i++) {
             ChordClient<? extends Object> chordClient = new ChordClient<>();
-            actors[i] = new JavaflowActor(chordClient);
+            actors[i] = new CoroutineActor(chordClient);
         }
 
         // Start actors all within the same thread

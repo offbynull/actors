@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.skeleton.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
@@ -22,7 +22,7 @@ public final class FixFingerTableTask<A> extends SimpleJavaflowTask<A, byte[]> {
     public static <A> FixFingerTableTask<A> create(Instant time, ChordContext<A> context) throws Exception {
         // create
         FixFingerTableTask<A> task = new FixFingerTableTask<>(context);
-        JavaflowActor actor = new JavaflowActor(task);
+        CoroutineActor actor = new CoroutineActor(task);
         task.initialize(time, actor);
 
         return task;

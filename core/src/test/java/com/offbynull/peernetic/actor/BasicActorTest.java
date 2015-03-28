@@ -1,46 +1,115 @@
 package com.offbynull.peernetic.actor;
 
-import java.time.Instant;
+import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.coroutines.user.CoroutineRunner;
+import com.offbynull.peernetic.CoroutineActor;
+import com.offbynull.peernetic.CoroutineActor.Context;
+import java.util.concurrent.CountDownLatch;
+import org.apache.commons.lang3.Validate;
 import org.junit.Test;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import org.mockito.Mockito;
 
 public final class BasicActorTest {
 
+    private static final int COUNT = 10;
+
     @Test
     public void basicActorsTest() throws Throwable {
-        Actor actor1 = Mockito.mock(Actor.class);
-        Actor actor2 = Mockito.mock(Actor.class);
-        ActorRunnable actorRunnable = ActorRunnable.createAndStart(actor1, actor2);
+//        final CountDownLatch latch = new CountDownLatch(10);
+//        Coroutine coroutine = new Coroutine() {
+//
+//            @Override
+//            public void run(Continuation c) throws Exception {
+//                System.out.println("1");
+//                Context context = (Context) c.getContext();
+//
+//                Endpoint selfEp = (Endpoint) context.getMessage();
+//                c.suspend();
+//                System.out.println("2");
+//                Endpoint dstEp = (Endpoint) context.getMessage();
+//
+//                for (int i = 0; i < 10; i++) {
+//                    dstEp.send(selfEp, i);
+//                    System.out.println("3");
+//                    c.suspend();
+//                    System.out.println("i currently is " + i);
+////                Validate.isTrue(context.getMessage().equals(i));
+////                try {
+////                    latch.countDown();
+////                } catch (Exception e) {
+////                    System.out.println("lolwat?");
+////                }
+////                System.out.println("5");
+//                }
+//            }
+//        };
+//        
+//        Context context = new Context();
+//        CoroutineRunner runner = new CoroutineRunner(coroutine);
+//        runner.setContext(context);
+//
+//        context.setSource(NullEndpoint.INSTANCE);
+//
+//        context.setMessage(NullEndpoint.INSTANCE);
+//        runner.execute();
+//        context.setMessage(NullEndpoint.INSTANCE);
+//        runner.execute();
+//
+//        context.setMessage(0);
+//        runner.execute();
+//        context.setMessage(1);
+//        runner.execute();
+//        context.setMessage(2);
+//        runner.execute();
+//        context.setMessage(3);
+//        runner.execute();
 
-        Mockito.verify(actor1, Mockito.timeout(1000)).onStart(any(Instant.class));
-        Mockito.verify(actor2, Mockito.timeout(1000)).onStart(any(Instant.class));
+        final CountDownLatch latch = new CountDownLatch(10);
         
+        Actor sender = new CoroutineActor(c -> {
+            System.out.println("1");
+            Context context = (Context) c.getContext();
+            
+            Endpoint selfEp = (Endpoint) context.getMessage();
+            c.suspend();
+            System.out.println("2");
+            Endpoint dstEp = (Endpoint) context.getMessage();
+            
+            for (int i = 0; i < 10; i++) {
+                dstEp.send(selfEp, i);
+                System.out.println("3");
+                c.suspend();
+                System.out.println("4");
+                Validate.isTrue(context.getMessage().equals(i));
+                try {
+                    latch.countDown();
+                } catch (Exception e) {
+                    System.out.println("lolwat?");
+                }
+                System.out.println("5");
+            }
+        });
         
+        Actor echoer = new CoroutineActor(c -> {
+            Context context = (Context) c.getContext();
+            
+            Endpoint selfEp = (Endpoint) context.getMessage();
+            
+            while (true) {
+                c.suspend();
+                context.getSource().send(selfEp, context.getMessage());
+            }
+        });
+
+        ActorRunnable actorRunnable = ActorRunnable.createAndStart(sender, echoer);
+        Endpoint senderEp = actorRunnable.getEndpoint(sender);
+        Endpoint echoerEp = actorRunnable.getEndpoint(echoer);
         
-        Endpoint endpoint1 = actorRunnable.getEndpoint(actor1);
-        Endpoint endpoint2 = actorRunnable.getEndpoint(actor2);
+        senderEp.send(NullEndpoint.INSTANCE, senderEp, echoerEp);
+        echoerEp.send(NullEndpoint.INSTANCE, echoerEp);
         
-        endpoint1.send(NullEndpoint.INSTANCE, 1);
-        endpoint1.send(NullEndpoint.INSTANCE, 2);
-        endpoint1.send(NullEndpoint.INSTANCE, 3);
-        Mockito.verify(actor1, Mockito.timeout(1000)).onStep(any(Instant.class), eq(NullEndpoint.INSTANCE), eq(1));
-        Mockito.verify(actor1, Mockito.timeout(1000)).onStep(any(Instant.class), eq(NullEndpoint.INSTANCE), eq(2));
-        Mockito.verify(actor1, Mockito.timeout(1000)).onStep(any(Instant.class), eq(NullEndpoint.INSTANCE), eq(3));
-        
-        endpoint2.send(NullEndpoint.INSTANCE, 1);
-        endpoint2.send(NullEndpoint.INSTANCE, 2);
-        endpoint2.send(NullEndpoint.INSTANCE, 3);
-        Mockito.verify(actor2, Mockito.timeout(1000)).onStep(any(Instant.class), eq(NullEndpoint.INSTANCE), eq(1));
-        Mockito.verify(actor2, Mockito.timeout(1000)).onStep(any(Instant.class), eq(NullEndpoint.INSTANCE), eq(2));
-        Mockito.verify(actor2, Mockito.timeout(1000)).onStep(any(Instant.class), eq(NullEndpoint.INSTANCE), eq(3));
-        
-        
-        
+        latch.await();
+
         actorRunnable.shutdown();
-        
-        Mockito.verify(actor1, Mockito.timeout(1000)).onStop(any(Instant.class));
-        Mockito.verify(actor2, Mockito.timeout(1000)).onStop(any(Instant.class));
-    }    
+    }
 }

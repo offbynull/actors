@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.skeleton.SimpleJavaflowTask;
 import com.offbynull.peernetic.playground.chorddht.ChordContext;
@@ -31,7 +31,7 @@ public final class RouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
     public static <A> RouteToTask<A> create(Instant time, ChordContext<A> context, Id findId) throws Exception {
         // create
         RouteToTask<A> task = new RouteToTask<>(context, findId);
-        JavaflowActor actor = new JavaflowActor(task);
+        CoroutineActor actor = new CoroutineActor(task);
         task.initialize(time, actor);
 
         return task;

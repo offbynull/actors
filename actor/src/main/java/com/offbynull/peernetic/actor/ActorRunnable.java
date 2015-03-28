@@ -1,0 +1,315 @@
+package com.offbynull.peernetic.actor;
+
+import com.offbynull.coroutines.user.Coroutine;
+import static com.offbynull.peernetic.actor.ActorUtils.getAddress;
+import com.offbynull.peernetic.actor.Context.BatchedOutgoingMessage;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.apache.commons.collections4.collection.UnmodifiableCollection;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public final class ActorRunnable implements Runnable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ActorRunnable.class);
+
+    private static final String MANAGEMENT_PREFIX = "management";
+    private static final String MANAGEMENT_ID = "management";
+    private static final String MANAGEMENT_ADDRESS = getAddress(MANAGEMENT_PREFIX, MANAGEMENT_ID);
+
+    private final String prefix;
+    private final Bus bus;
+    private final Shuttle incomingShuttle;
+
+    private ActorRunnable(String prefix) {
+        Validate.notNull(prefix);
+        Validate.notEmpty(prefix);
+        
+        Validate.isTrue(!MANAGEMENT_PREFIX.equals(prefix)); // management prefix is a special case
+
+        this.prefix = prefix;
+        bus = new Bus();
+        incomingShuttle = new ActorShuttle(prefix, bus);
+    }
+    
+    public static ActorThread create(String prefix) {
+        // create runnable
+        ActorRunnable runnable = new ActorRunnable(prefix);
+
+        // add in our own shuttle as well so we can send msgs to ourselves
+        Message messages = new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, new AddShuttleMessage(runnable.incomingShuttle));
+        runnable.bus.add(Collections.singletonList(messages));
+
+        // start thread
+        Thread thread = new Thread(runnable);
+        thread.setDaemon(true);
+        thread.setName(ActorRunnable.class.getSimpleName());
+        thread.start();
+
+        // return
+        return new ActorThread(thread, runnable);
+    }
+
+    @Override
+    public void run() {
+        try {
+            Map<String, Shuttle> outgoingShuttles = new HashMap<>(); // prefix -> shuttle
+            Map<String, LoadedActor> actors = new HashMap<>(); // id -> actor
+
+            while (true) {
+                List<Message> incomingMessages = bus.pull();
+                List<Message> outgoingMessages = new LinkedList<>(); // outgoing messages destined for destinations not in here
+
+                for (Message incomingMessage : incomingMessages) {
+                    Object msg = incomingMessage.getMessage();
+                    String src = incomingMessage.getSourceAddress();
+                    String dst = incomingMessage.getDestinationAddress();
+
+                    if (MANAGEMENT_ADDRESS.equals(src)) {
+                        processManagementMessage(msg, actors, outgoingMessages, outgoingShuttles);
+                    } else {
+                        processNormalMessage(msg, src, dst, actors, outgoingMessages);
+                    }
+                }
+
+                sendOutgoingMessages(outgoingMessages, outgoingShuttles);
+            }
+        } catch (InterruptedException ie) {
+            throw new RuntimeException(ie); // do nothing
+        } finally {
+            bus.close();
+        }
+    }
+
+    private void processManagementMessage(Object msg, Map<String, LoadedActor> actors, List<Message> outgoingMessages,
+            Map<String, Shuttle> outgoingShuttles) {
+        if (msg instanceof AddActorMessage) {
+            AddActorMessage aam = (AddActorMessage) msg;
+            actors.put(aam.id, new LoadedActor(aam.actor, new Context()));
+            List<Message> initialMessages = new LinkedList<>();
+            for (Object primingMessage : aam.primingMessages) {
+                String dstAddr = getAddress(prefix, aam.id);
+                Message initialMessage = new Message(dstAddr, dstAddr, primingMessage);
+                initialMessages.add(initialMessage);
+            }
+            outgoingMessages.addAll(initialMessages);
+        } else if (msg instanceof RemoveActorMessage) {
+            RemoveActorMessage ram = (RemoveActorMessage) msg;
+            actors.remove(ram.id);
+        } else if (msg instanceof AddShuttleMessage) {
+            AddShuttleMessage asm = (AddShuttleMessage) msg;
+            Shuttle existingShuttle = outgoingShuttles.putIfAbsent(asm.shuttle.getPrefix(), asm.shuttle);
+            
+            Validate.isTrue(existingShuttle == null); // unable to add a prefix for a shuttle that already exists
+        } else if (msg instanceof RemoveShuttleMessage) {
+            RemoveShuttleMessage rsm = (RemoveShuttleMessage) msg;
+            Shuttle existingShuttle = outgoingShuttles.remove(rsm.prefix);
+            
+            Validate.isTrue(existingShuttle == null); // unable to remove a shuttle prefix that doesnt exist
+        } else {
+            LOGGER.warn("Unprocessed management message: {}", msg);
+        }
+    }
+
+    private void processNormalMessage(Object msg, String src, String dst, Map<String, LoadedActor> actors, List<Message> outgoingMessages) {
+        // Get actor to dump to
+        String dstPrefix = ActorUtils.getPrefix(dst);
+        String dstId = ActorUtils.getIdElement(dst, 0);
+        Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
+
+        LoadedActor loadedActor = actors.get(dstId);
+        if (loadedActor == null) {
+            LOGGER.warn("Undeliverable message: id={} message={}", dstId, msg);
+            return;
+        }
+
+        Actor actor = loadedActor.actor;
+        Context context = loadedActor.context;
+        context.setIncomingMessage(msg);
+        context.setSource(src);
+        context.setTime(Instant.now());
+
+        // Pass to actor, shut down if returns false or throws exception
+        boolean shutdown = false;
+        try {
+            if (!actor.onStep(context)) {
+                shutdown = true;
+            }
+        } catch (Exception e) {
+            shutdown = true;
+        }
+
+        if (shutdown) {
+            actors.remove(dstId);
+        }
+
+        // Queue up outgoing messages
+        List<BatchedOutgoingMessage> batchedOutgoingMessages = context.copyAndClearOutgoingMessages();
+        for (BatchedOutgoingMessage batchedOutgoingMessage : batchedOutgoingMessages) {
+            Message outgoingMessage = new Message(
+                    dst/* dst = this actor */,
+                    batchedOutgoingMessage.getDestination(),
+                    batchedOutgoingMessage.getMessage());
+
+            outgoingMessages.add(outgoingMessage);
+        }
+    }
+
+    private void sendOutgoingMessages(List<Message> foreignOutgoingMessages, Map<String, Shuttle> outgoingShuttles) {
+        // Group outgoing messages by prefix
+        Map<String, List<Message>> outgoingMap = new HashMap<>();
+        for (Message outgoingMessage : foreignOutgoingMessages) {
+            String outDst = outgoingMessage.getDestinationAddress();
+            String outDstPrefix = ActorUtils.getPrefix(outDst);
+
+            List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
+            if (batchedMessages == null) {
+                batchedMessages = new LinkedList<>();
+                outgoingMap.put(outDstPrefix, batchedMessages);
+            }
+
+            batchedMessages.add(outgoingMessage);
+        }
+
+        // Send outgoing messaged by prefix
+        for (Entry<String, List<Message>> entry : outgoingMap.entrySet()) {
+            Shuttle shuttle = outgoingShuttles.get(entry.getKey());
+            Validate.isTrue(shuttle != null);
+            shuttle.send(entry.getValue());
+        }
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public Shuttle getShuttle() {
+        return incomingShuttle;
+    }
+    
+    public void addActor(String id, Actor actor, Object ... primingMessages) {
+        Validate.notNull(id);
+        Validate.notNull(actor);
+        Validate.notNull(primingMessages);
+        Validate.noNullElements(primingMessages);
+        AddActorMessage aam = new AddActorMessage(id, actor, primingMessages);
+        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, aam)));
+    }
+
+    public void addCoroutineActor(String id, Coroutine coroutine, Object ... primingMessages) {
+        Validate.notNull(id);
+        Validate.notNull(coroutine);
+        Validate.notNull(primingMessages);
+        Validate.noNullElements(primingMessages);
+        AddActorMessage aam = new AddActorMessage(id, new CoroutineActor(coroutine), primingMessages);
+        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, aam)));
+    }
+
+    public void removeActor(String id) {
+        Validate.notNull(id);
+        RemoveActorMessage ram = new RemoveActorMessage(id);
+        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, ram)));
+    }
+
+    public void addShuttle(Shuttle shuttle) {
+        Validate.notNull(shuttle);
+        AddShuttleMessage asm = new AddShuttleMessage(shuttle);
+        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, asm)));
+    }
+
+    public void removeShuttle(String prefix) {
+        Validate.notNull(prefix);
+        RemoveShuttleMessage rsm = new RemoveShuttleMessage(prefix);
+        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, rsm)));
+    }
+    
+    private static final class LoadedActor {
+        private final Actor actor;
+        private final Context context;
+
+        public LoadedActor(Actor actor, Context context) {
+            Validate.notNull(actor);
+            Validate.notNull(context);
+            this.actor = actor;
+            this.context = context;
+        }
+    }
+    
+    public static final class ActorThread {
+        private final Thread thread;
+        private final ActorRunnable actorRunnable;
+
+        public ActorThread(Thread thread, ActorRunnable actorRunnable) {
+            Validate.notNull(thread);
+            Validate.notNull(actorRunnable);
+            this.thread = thread;
+            this.actorRunnable = actorRunnable;
+        }
+
+        public Thread getThread() {
+            return thread;
+        }
+
+        public ActorRunnable getActorRunnable() {
+            return actorRunnable;
+        }
+    }
+
+    private static final class AddActorMessage {
+
+        private final String id;
+        private final Actor actor;
+        private final UnmodifiableCollection<Object> primingMessages;
+
+        public AddActorMessage(String id, Actor actor, Object... primingMessages) {
+            Validate.notNull(id);
+            Validate.notNull(actor);
+            Validate.notNull(primingMessages);
+            Validate.noNullElements(primingMessages);
+
+            this.id = id;
+            this.actor = actor;
+            this.primingMessages = (UnmodifiableCollection<Object>) UnmodifiableCollection.<Object>unmodifiableCollection(
+                    Arrays.asList(primingMessages));
+        }
+    }
+
+    private static final class RemoveActorMessage {
+
+        private final String id;
+
+        public RemoveActorMessage(String id) {
+            Validate.notNull(id);
+
+            this.id = id;
+        }
+    }
+
+    private static final class AddShuttleMessage {
+
+        private final Shuttle shuttle;
+
+        public AddShuttleMessage(Shuttle shuttle) {
+            Validate.notNull(shuttle);
+            this.shuttle = shuttle;
+        }
+    }
+
+    private static final class RemoveShuttleMessage {
+
+        private final String prefix;
+
+        public RemoveShuttleMessage(String prefix) {
+            Validate.notNull(prefix);
+
+            this.prefix = prefix;
+        }
+    }
+}

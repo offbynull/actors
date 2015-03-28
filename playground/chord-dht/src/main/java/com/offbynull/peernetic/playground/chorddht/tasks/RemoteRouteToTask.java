@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.playground.chorddht.tasks;
 
-import com.offbynull.peernetic.JavaflowActor;
+import com.offbynull.peernetic.CoroutineActor;
 import com.offbynull.peernetic.actor.Endpoint;
 import com.offbynull.peernetic.common.identification.Id;
 import com.offbynull.peernetic.common.skeleton.SimpleJavaflowTask;
@@ -35,7 +35,7 @@ public final class RemoteRouteToTask<A> extends SimpleJavaflowTask<A, byte[]> {
             FindSuccessorRequest originalRequest, Endpoint originalSource) throws Exception {
         // create
         RemoteRouteToTask<A> task = new RemoteRouteToTask<>(context, findId, originalRequest, originalSource);
-        JavaflowActor actor = new JavaflowActor(task);
+        CoroutineActor actor = new CoroutineActor(task);
         task.initialize(time, actor);
 
         return task;

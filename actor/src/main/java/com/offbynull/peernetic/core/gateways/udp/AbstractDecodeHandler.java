@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.actor.network;
+package com.offbynull.peernetic.core.gateways.udp;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.AddressedEnvelope;

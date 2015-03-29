@@ -1,5 +1,6 @@
-package com.offbynull.peernetic.actor.network;
+package com.offbynull.peernetic.core.gateways.udp;
 
+import com.offbynull.peernetic.core.gateway.Serializer;
 import io.netty.buffer.ByteBuf;
 import org.apache.commons.lang3.Validate;
 

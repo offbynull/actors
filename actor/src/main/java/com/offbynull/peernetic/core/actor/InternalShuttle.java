@@ -1,5 +1,7 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.Message;
 import java.util.Collection;
 import org.apache.commons.lang3.Validate;
 

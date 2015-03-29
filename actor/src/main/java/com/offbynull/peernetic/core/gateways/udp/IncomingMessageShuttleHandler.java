@@ -1,7 +1,7 @@
-package com.offbynull.peernetic.actor.network;
+package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.actor.Message;
-import com.offbynull.peernetic.actor.Shuttle;
+import com.offbynull.peernetic.core.Message;
+import com.offbynull.peernetic.core.Shuttle;
 import io.netty.channel.AddressedEnvelope;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultAddressedEnvelope;

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;

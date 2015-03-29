@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.core.actor;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,5 +1,6 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.Message;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;

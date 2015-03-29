@@ -1,7 +1,9 @@
-package com.offbynull.peernetic.actor.network;
+package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.actor.ActorUtils;
-import com.offbynull.peernetic.actor.Shuttle;
+import com.offbynull.peernetic.core.actor.ActorUtils;
+import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.gateway.Gateway;
+import com.offbynull.peernetic.core.gateway.Serializer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -12,7 +14,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
-public final class UdpGateway implements AutoCloseable {
+public final class UdpGateway implements Gateway {
 
     private final String prefix;
     private final Shuttle srcShuttle;
@@ -72,6 +74,7 @@ public final class UdpGateway implements AutoCloseable {
         this.srcShuttle = new InternalShuttle(prefix, channel);
     }
     
+    @Override
     public Shuttle getShuttle() {
         return srcShuttle;
     }

@@ -1,8 +1,10 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.Message;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.peernetic.actor.ActorUtils.getAddress;
-import com.offbynull.peernetic.actor.Context.BatchedOutgoingMessage;
+import static com.offbynull.peernetic.core.actor.ActorUtils.getAddress;
+import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -242,25 +244,6 @@ public final class ActorRunnable implements Runnable {
         }
     }
     
-    public static final class ActorThread {
-        private final Thread thread;
-        private final ActorRunnable actorRunnable;
-
-        public ActorThread(Thread thread, ActorRunnable actorRunnable) {
-            Validate.notNull(thread);
-            Validate.notNull(actorRunnable);
-            this.thread = thread;
-            this.actorRunnable = actorRunnable;
-        }
-
-        public Thread getThread() {
-            return thread;
-        }
-
-        public ActorRunnable getActorRunnable() {
-            return actorRunnable;
-        }
-    }
 
     private static final class AddActorMessage {
 

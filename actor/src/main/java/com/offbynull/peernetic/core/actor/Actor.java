@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.actor;
+package com.offbynull.peernetic.core.actor;
 
 public interface Actor {
     boolean onStep(Context context) throws Exception;

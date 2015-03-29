@@ -1,6 +1,8 @@
-package com.offbynull.peernetic.actor.network;
+package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.actor.*;
+import com.offbynull.peernetic.core.actor.ActorUtils;
+import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.Message;
 import io.netty.channel.Channel;
 import io.netty.channel.DefaultAddressedEnvelope;
 import java.net.InetAddress;

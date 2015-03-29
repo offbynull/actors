@@ -7,10 +7,28 @@ import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class Context {
-    Instant time;
-    String source;
-    Object incomingMessage;
-    List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
+    private String selfPrefix;
+    private String selfId;
+    private Instant time;
+    private String source;
+    private Object incomingMessage;
+    private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
+
+    public String getSelfPrefix() {
+        return selfPrefix;
+    }
+
+    void setSelfPrefix(String selfPrefix) {
+        this.selfPrefix = selfPrefix;
+    }
+
+    public String getSelfId() {
+        return selfId;
+    }
+
+    void setSelfId(String selfId) {
+        this.selfId = selfId;
+    }
 
     public Instant getTime() {
         return time;

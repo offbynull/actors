@@ -18,45 +18,28 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ActorRunnable implements Runnable {
+final class ActorRunnable implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ActorRunnable.class);
 
-    private static final String MANAGEMENT_PREFIX = "management";
-    private static final String MANAGEMENT_ID = "management";
-    private static final String MANAGEMENT_ADDRESS = getAddress(MANAGEMENT_PREFIX, MANAGEMENT_ID);
+    static final String MANAGEMENT_PREFIX = "management";
+    static final String MANAGEMENT_ID = "management";
+    static final String MANAGEMENT_ADDRESS = getAddress(MANAGEMENT_PREFIX, MANAGEMENT_ID);
 
     private final String prefix;
     private final InternalBus bus;
     private final Shuttle incomingShuttle;
 
-    private ActorRunnable(String prefix) {
+    ActorRunnable(String prefix, InternalBus bus) {
         Validate.notNull(prefix);
+        Validate.notNull(bus);
         Validate.notEmpty(prefix);
         
         Validate.isTrue(!MANAGEMENT_PREFIX.equals(prefix)); // management prefix is a special case
 
         this.prefix = prefix;
-        bus = new InternalBus();
+        this.bus = bus;
         incomingShuttle = new InternalShuttle(prefix, bus);
-    }
-    
-    public static ActorThread create(String prefix) {
-        // create runnable
-        ActorRunnable runnable = new ActorRunnable(prefix);
-
-        // add in our own shuttle as well so we can send msgs to ourselves
-        Message messages = new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, new AddShuttleMessage(runnable.incomingShuttle));
-        runnable.bus.add(Collections.singletonList(messages));
-
-        // start thread
-        Thread thread = new Thread(runnable);
-        thread.setDaemon(true);
-        thread.setName(ActorRunnable.class.getSimpleName());
-        thread.start();
-
-        // return
-        return new ActorThread(thread, runnable);
     }
 
     @Override
@@ -123,17 +106,20 @@ public final class ActorRunnable implements Runnable {
     private void processNormalMessage(Object msg, String src, String dst, Map<String, LoadedActor> actors, List<Message> outgoingMessages) {
         // Get actor to dump to
         String dstPrefix = ActorUtils.getPrefix(dst);
-        String dstId = ActorUtils.getIdElement(dst, 0);
+        String dstImmediateId = ActorUtils.getIdElement(dst, 0);
+        String dstId = ActorUtils.getId(dst);
         Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
 
-        LoadedActor loadedActor = actors.get(dstId);
+        LoadedActor loadedActor = actors.get(dstImmediateId);
         if (loadedActor == null) {
-            LOGGER.warn("Undeliverable message: id={} message={}", dstId, msg);
+            LOGGER.warn("Undeliverable message: id={} message={}", dstImmediateId, msg);
             return;
         }
 
         Actor actor = loadedActor.actor;
         Context context = loadedActor.context;
+        context.setSelfPrefix(prefix);
+        context.setSelfId(dstId);
         context.setIncomingMessage(msg);
         context.setSource(src);
         context.setTime(Instant.now());
@@ -149,7 +135,7 @@ public final class ActorRunnable implements Runnable {
         }
 
         if (shutdown) {
-            actors.remove(dstId);
+            actors.remove(dstImmediateId);
         }
 
         // Queue up outgoing messages
@@ -164,10 +150,10 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    private void sendOutgoingMessages(List<Message> foreignOutgoingMessages, Map<String, Shuttle> outgoingShuttles) {
+    private void sendOutgoingMessages(List<Message> outgoingMessages, Map<String, Shuttle> outgoingShuttles) {
         // Group outgoing messages by prefix
         Map<String, List<Message>> outgoingMap = new HashMap<>();
-        for (Message outgoingMessage : foreignOutgoingMessages) {
+        for (Message outgoingMessage : outgoingMessages) {
             String outDst = outgoingMessage.getDestinationAddress();
             String outDstPrefix = ActorUtils.getPrefix(outDst);
 
@@ -188,15 +174,15 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    public String getPrefix() {
+    String getPrefix() {
         return prefix;
     }
 
-    public Shuttle getShuttle() {
+    Shuttle getShuttle() {
         return incomingShuttle;
     }
     
-    public void addActor(String id, Actor actor, Object ... primingMessages) {
+    void addActor(String id, Actor actor, Object ... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(actor);
         Validate.notNull(primingMessages);
@@ -205,7 +191,7 @@ public final class ActorRunnable implements Runnable {
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, aam)));
     }
 
-    public void addCoroutineActor(String id, Coroutine coroutine, Object ... primingMessages) {
+    void addCoroutineActor(String id, Coroutine coroutine, Object ... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
@@ -214,19 +200,19 @@ public final class ActorRunnable implements Runnable {
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, aam)));
     }
 
-    public void removeActor(String id) {
+    void removeActor(String id) {
         Validate.notNull(id);
         RemoveActorMessage ram = new RemoveActorMessage(id);
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, ram)));
     }
 
-    public void addShuttle(Shuttle shuttle) {
+    void addShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
         AddShuttleMessage asm = new AddShuttleMessage(shuttle);
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, asm)));
     }
 
-    public void removeShuttle(String prefix) {
+    void removeShuttle(String prefix) {
         Validate.notNull(prefix);
         RemoveShuttleMessage rsm = new RemoveShuttleMessage(prefix);
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, rsm)));
@@ -245,7 +231,7 @@ public final class ActorRunnable implements Runnable {
     }
     
 
-    private static final class AddActorMessage {
+    static final class AddActorMessage {
 
         private final String id;
         private final Actor actor;
@@ -264,7 +250,7 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    private static final class RemoveActorMessage {
+    static final class RemoveActorMessage {
 
         private final String id;
 
@@ -275,7 +261,7 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    private static final class AddShuttleMessage {
+    static final class AddShuttleMessage {
 
         private final Shuttle shuttle;
 
@@ -285,7 +271,7 @@ public final class ActorRunnable implements Runnable {
         }
     }
 
-    private static final class RemoveShuttleMessage {
+    static final class RemoveShuttleMessage {
 
         private final String prefix;
 

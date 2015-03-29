@@ -19,6 +19,10 @@ public final class ActorUtils {
         return splitAddress(address).getPrefix();
     }
 
+    public static String getId(String address) {
+        return splitAddress(address).getId();
+    }
+
     public static String getIdElement(String address, int idx) {
         return splitAddress(address).getIdElement(idx);
     }
@@ -61,9 +65,10 @@ public final class ActorUtils {
         int startIdx = separatorIdx;
         int endIdx;
         List<String> idElements = new LinkedList<>();
-        while ((endIdx = address.indexOf(SEPARATOR, separatorIdx + 1)) != -1) {
+        while ((endIdx = address.indexOf(SEPARATOR, startIdx + 1)) != -1) {
             String idElement = address.substring(startIdx + 1, endIdx);
             idElements.add(idElement);
+            startIdx = endIdx;
         }
         
         // add tail element, if it exists
@@ -99,6 +104,12 @@ public final class ActorUtils {
         
         public int getIdElementSize() {
             return idElements.size();
+        }
+
+        public String getId() {
+            StringJoiner joiner = new StringJoiner(SEPARATOR);
+            idElements.forEach(x -> joiner.add(x));
+            return joiner.toString();
         }
     }
 }

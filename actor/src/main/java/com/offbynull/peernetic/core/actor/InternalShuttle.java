@@ -2,11 +2,17 @@ package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class InternalShuttle implements Shuttle {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(InternalShuttle.class);
+    
     private String prefix;
     private InternalBus bus;
 
@@ -26,12 +32,23 @@ final class InternalShuttle implements Shuttle {
 
     @Override
     public void send(Collection<Message> messages) {
-        messages.forEach(x -> {
-            String dst = x.getDestinationAddress();
-            String dstPrefix = ActorUtils.getPrefix(dst);
-            Validate.isTrue(dstPrefix.equals(prefix));
+        Validate.notNull(messages);
+        Validate.noNullElements(messages);
+        
+        List<Message> filteredMessages = new ArrayList<>(messages.size());
+        messages.stream().forEach(x -> {
+            try {
+                String dst = x.getDestinationAddress();
+                String dstPrefix = ActorUtils.getPrefix(dst);
+                Validate.isTrue(dstPrefix.equals(prefix));
+                
+                filteredMessages.add(x);
+            } catch (Exception e) {
+                LOGGER.error("Error shuttling message: " + x, e);
+            }
         });
-        bus.add(messages); // throws npe if null or contains null
+        
+        bus.add(filteredMessages);
     }
 
 }

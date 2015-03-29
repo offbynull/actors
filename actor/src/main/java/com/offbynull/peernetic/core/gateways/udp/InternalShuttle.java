@@ -45,14 +45,15 @@ final class InternalShuttle implements Shuttle {
             try {
                 String dst = x.getDestinationAddress();
                 String dstPrefix = ActorUtils.getPrefix(dst);
+                String dstId = ActorUtils.getId(dst);
                 Validate.isTrue(dstPrefix.equals(prefix));
 
-                InetSocketAddress dstAddr = fromShuttleAddress(dst);
+                InetSocketAddress dstAddr = fromShuttleAddress(dstId);
 
                 DefaultAddressedEnvelope datagramPacket = new DefaultAddressedEnvelope(x.getMessage(), dstAddr);
                 channel.writeAndFlush(datagramPacket);
             } catch (Exception e) {
-                LOGGER.error("Error pushing out message to UDP channel: " + x, e);
+                LOGGER.error("Error shuttling message: " + x, e);
             }
         });
     }

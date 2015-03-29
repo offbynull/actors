@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class Bus {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Bus.class);
+final class InternalBus {
+    private static final Logger LOGGER = LoggerFactory.getLogger(InternalBus.class);
     
     private LinkedBlockingQueue<Message> queue = new LinkedBlockingQueue<>();
     private AtomicBoolean closed = new AtomicBoolean();

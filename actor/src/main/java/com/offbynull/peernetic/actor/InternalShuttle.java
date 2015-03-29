@@ -3,12 +3,12 @@ package com.offbynull.peernetic.actor;
 import java.util.Collection;
 import org.apache.commons.lang3.Validate;
 
-public final class ActorShuttle implements Shuttle {
+final class InternalShuttle implements Shuttle {
 
     private String prefix;
-    private Bus bus;
+    private InternalBus bus;
 
-    ActorShuttle(String prefix, Bus bus) {
+    InternalShuttle(String prefix, InternalBus bus) {
         Validate.notNull(prefix);
         Validate.notEmpty(prefix);
         Validate.notNull(bus);

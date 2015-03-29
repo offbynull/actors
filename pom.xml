@@ -50,6 +50,11 @@
                 <version>4.0</version>
             </dependency>
             <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.10</version>
+            </dependency>
+            <dependency>
                 <groupId>com.thoughtworks.xstream</groupId>
                 <artifactId>xstream</artifactId>
                 <version>1.4.7</version>
@@ -57,7 +62,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.0.20.Final</version>
+                <version>4.0.26.Final</version>
             </dependency>
             <dependency>
                 <groupId>org.tinyjee.jgraphx</groupId>

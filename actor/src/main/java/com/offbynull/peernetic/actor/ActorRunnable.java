@@ -25,7 +25,7 @@ public final class ActorRunnable implements Runnable {
     private static final String MANAGEMENT_ADDRESS = getAddress(MANAGEMENT_PREFIX, MANAGEMENT_ID);
 
     private final String prefix;
-    private final Bus bus;
+    private final InternalBus bus;
     private final Shuttle incomingShuttle;
 
     private ActorRunnable(String prefix) {
@@ -35,8 +35,8 @@ public final class ActorRunnable implements Runnable {
         Validate.isTrue(!MANAGEMENT_PREFIX.equals(prefix)); // management prefix is a special case
 
         this.prefix = prefix;
-        bus = new Bus();
-        incomingShuttle = new ActorShuttle(prefix, bus);
+        bus = new InternalBus();
+        incomingShuttle = new InternalShuttle(prefix, bus);
     }
     
     public static ActorThread create(String prefix) {

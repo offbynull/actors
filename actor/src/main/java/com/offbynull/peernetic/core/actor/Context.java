@@ -64,7 +64,14 @@ public final class Context {
     public void addOutgoingMessage(String destination, Object message) {
         Validate.notNull(destination);
         Validate.notNull(message);
-        outgoingMessages.add(new BatchedOutgoingMessage(destination, message));
+        outgoingMessages.add(new BatchedOutgoingMessage(null, destination, message));
+    }
+
+    public void addOutgoingMessage(String sourceId, String destination, Object message) {
+        Validate.notNull(sourceId);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        outgoingMessages.add(new BatchedOutgoingMessage(sourceId, destination, message));
     }
     
     List<BatchedOutgoingMessage> copyAndClearOutgoingMessages() {
@@ -75,16 +82,23 @@ public final class Context {
     }
     
     static final class BatchedOutgoingMessage {
+        private final String sourceId;
         private final String destination;
         private final Object message;
 
-        public BatchedOutgoingMessage(String destination, Object message) {
+        public BatchedOutgoingMessage(String sourceId, String destination, Object message) {
+            // sourceId may be null
             Validate.notNull(destination);
             Validate.notNull(message);
             Validate.notEmpty(destination);
             
+            this.sourceId = sourceId;
             this.destination = destination;
             this.message = message;
+        }
+
+        public String getSourceId() {
+            return sourceId;
         }
 
         public String getDestination() {

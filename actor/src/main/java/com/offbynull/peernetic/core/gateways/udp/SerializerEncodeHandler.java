@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.core.gateway.Serializer;
+import com.offbynull.peernetic.core.common.Serializer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.Validate;

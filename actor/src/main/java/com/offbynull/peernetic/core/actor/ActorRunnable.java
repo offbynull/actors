@@ -1,10 +1,12 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.peernetic.core.actor.ActorUtils.getAddress;
+import static com.offbynull.peernetic.core.common.AddressUtils.getAddress;
 import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
+import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,9 +107,8 @@ final class ActorRunnable implements Runnable {
 
     private void processNormalMessage(Object msg, String src, String dst, Map<String, LoadedActor> actors, List<Message> outgoingMessages) {
         // Get actor to dump to
-        String dstPrefix = ActorUtils.getPrefix(dst);
-        String dstImmediateId = ActorUtils.getIdElement(dst, 0);
-        String dstId = ActorUtils.getId(dst);
+        String dstPrefix = AddressUtils.getPrefix(dst);
+        String dstImmediateId = AddressUtils.getIdElement(dst, 0);
         Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
 
         LoadedActor loadedActor = actors.get(dstImmediateId);
@@ -118,10 +119,10 @@ final class ActorRunnable implements Runnable {
 
         Actor actor = loadedActor.actor;
         Context context = loadedActor.context;
-        context.setSelfPrefix(prefix);
-        context.setSelfId(dstId);
+        context.setSelf(dstPrefix + SEPARATOR + dstImmediateId);
         context.setIncomingMessage(msg);
         context.setSource(src);
+        context.setDestination(dst);
         context.setTime(Instant.now());
 
         // Pass to actor, shut down if returns false or throws exception
@@ -155,7 +156,7 @@ final class ActorRunnable implements Runnable {
         Map<String, List<Message>> outgoingMap = new HashMap<>();
         for (Message outgoingMessage : outgoingMessages) {
             String outDst = outgoingMessage.getDestinationAddress();
-            String outDstPrefix = ActorUtils.getPrefix(outDst);
+            String outDstPrefix = AddressUtils.getPrefix(outDst);
 
             List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
             if (batchedMessages == null) {

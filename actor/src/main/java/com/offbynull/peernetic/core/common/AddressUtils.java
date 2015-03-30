@@ -1,17 +1,16 @@
-package com.offbynull.peernetic.core.actor;
+package com.offbynull.peernetic.core.common;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringJoiner;
 import org.apache.commons.lang3.Validate;
 
-public final class ActorUtils {
+public final class AddressUtils {
 
     public static final String SEPARATOR = ":";
 
-    private ActorUtils() {
+    private AddressUtils() {
         // do nothing
     }
 
@@ -21,6 +20,26 @@ public final class ActorUtils {
 
     public static String getId(String address) {
         return splitAddress(address).getId();
+    }
+    
+    public static final String relativize(String parentAddress, String absoluteAddress) {
+        Validate.notNull(parentAddress);
+        Validate.notNull(absoluteAddress);
+        Validate.isTrue(absoluteAddress.startsWith(parentAddress));
+        
+        String ret = absoluteAddress.substring(parentAddress.length());
+        if (ret.startsWith(SEPARATOR)) {
+            ret = ret.substring(1);
+        }
+        
+        return ret;
+    }
+
+    public static final String parentize(String parentAddress, String relativeAddress) {
+        Validate.notNull(parentAddress);
+        Validate.notNull(relativeAddress);
+        
+        return parentAddress + SEPARATOR + relativeAddress;
     }
 
     public static String getIdElement(String address, int idx) {
@@ -50,12 +69,12 @@ public final class ActorUtils {
         return joiner.toString();
     }
 
-    public static String getAddress(ActorAddress actorAddress) {
+    public static String getAddress(Address actorAddress) {
         Validate.notNull(actorAddress);
         return getAddress(actorAddress.prefix, actorAddress.idElements);
     }
 
-    public static ActorAddress splitAddress(String address) {
+    public static Address splitAddress(String address) {
         // get prefix, prefix must always end with a separator, so even if there are no id elements it'd be something like "prefix:"
         int separatorIdx = address.indexOf(SEPARATOR);
         Validate.isTrue(separatorIdx != -1);
@@ -77,39 +96,7 @@ public final class ActorUtils {
             idElements.add(idElement);
         }
 
-        return new ActorAddress(prefix, idElements);
+        return new Address(prefix, idElements);
     }
 
-    public static final class ActorAddress {
-
-        private final String prefix;
-        private final List<String> idElements;
-
-        public ActorAddress(String prefix, List<String> idElements) {
-            Validate.notNull(prefix);
-            Validate.notNull(idElements);
-            Validate.notEmpty(prefix);
-            Validate.noNullElements(idElements);
-            this.prefix = prefix;
-            this.idElements = new ArrayList<>(idElements);
-        }
-
-        public String getPrefix() {
-            return prefix;
-        }
-
-        public String getIdElement(int idx) {
-            return idElements.get(idx); //ioobe if negative or 
-        }
-        
-        public int getIdElementSize() {
-            return idElements.size();
-        }
-
-        public String getId() {
-            StringJoiner joiner = new StringJoiner(SEPARATOR);
-            idElements.forEach(x -> joiner.add(x));
-            return joiner.toString();
-        }
-    }
 }

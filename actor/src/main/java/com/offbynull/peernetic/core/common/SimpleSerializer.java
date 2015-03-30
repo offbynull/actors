@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.gateway;
+package com.offbynull.peernetic.core.common;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

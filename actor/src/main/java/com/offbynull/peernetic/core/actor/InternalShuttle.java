@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
 import java.util.ArrayList;
@@ -39,7 +40,7 @@ final class InternalShuttle implements Shuttle {
         messages.stream().forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = ActorUtils.getPrefix(dst);
+                String dstPrefix = AddressUtils.getPrefix(dst);
                 Validate.isTrue(dstPrefix.equals(prefix));
                 
                 filteredMessages.add(x);

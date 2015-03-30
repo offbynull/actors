@@ -3,8 +3,11 @@ package com.offbynull.peernetic.core;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actors.unreliable.SimpleLine;
+import com.offbynull.peernetic.core.actors.unreliable.StartProxy;
+import com.offbynull.peernetic.core.actors.unreliable.UnreliableProxyCoroutine;
 import com.offbynull.peernetic.core.gateway.Gateway;
-import com.offbynull.peernetic.core.gateway.SimpleSerializer;
+import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.gateways.udp.UdpGateway;
 import java.net.InetSocketAddress;
@@ -14,7 +17,7 @@ import org.apache.commons.lang3.Validate;
 public class Test {
 
     public static void main(String[] args) throws InterruptedException {
-        basicTimer();
+        basicUnreliable();
     }
     
     private static void basicTest() throws InterruptedException {
@@ -51,6 +54,54 @@ public class Test {
         senderThread.addShuttle(echoerThread.getShuttle());
         echoerThread.addCoroutineActor("echoer", echoer);
         senderThread.addCoroutineActor("sender", sender, "echoer:echoer");
+        
+        latch.await();        
+    }
+    
+    private static void basicUnreliable() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        
+        Coroutine sender = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            String dstAddr = ctx.getIncomingMessage();
+
+            for (int i = 0; i < 10; i++) {
+                ctx.addOutgoingMessage(dstAddr, i);
+                cnt.suspend();
+                Validate.isTrue(i == (int) ctx.getIncomingMessage());
+            }
+            
+            latch.countDown();
+        };
+        
+        Coroutine echoer = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            
+            while (true) {
+                String src = ctx.getSource();
+                Object msg = ctx.getIncomingMessage();
+                ctx.addOutgoingMessage(src, msg);
+                cnt.suspend();
+            }
+        };
+        
+        ActorThread echoerThread = ActorThread.create("echoer");
+        ActorThread senderThread = ActorThread.create("sender");
+        ActorThread unreliableProxyThread = ActorThread.create("up");
+        TimerGateway timerGateway = new TimerGateway("timer");
+        
+        unreliableProxyThread.addCoroutineActor("up", new UnreliableProxyCoroutine(),
+                new StartProxy("timer", new SimpleLine(12345L), new SimpleSerializer()));
+        unreliableProxyThread.addShuttle(timerGateway.getShuttle());
+        unreliableProxyThread.addShuttle(echoerThread.getShuttle());
+        unreliableProxyThread.addShuttle(senderThread.getShuttle());
+        
+        echoerThread.addShuttle(unreliableProxyThread.getShuttle());
+        senderThread.addShuttle(unreliableProxyThread.getShuttle());
+        timerGateway.addShuttle(unreliableProxyThread.getShuttle());
+        
+        echoerThread.addCoroutineActor("echoer", echoer);
+        senderThread.addCoroutineActor("sender", sender, "up:up:echoer:echoer");
         
         latch.await();        
     }
@@ -108,7 +159,7 @@ public class Test {
             Context ctx = (Context) cnt.getContext();
             
             String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix + ":2000:" + ctx.getSelfPrefix() + ":" + ctx.getSelfId(), 0);
+            ctx.addOutgoingMessage(timerPrefix + ":2000:" + ctx.getSelf(), 0);
             cnt.suspend();
             
             latch.countDown();

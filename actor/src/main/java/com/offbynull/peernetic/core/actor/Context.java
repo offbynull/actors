@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
+import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -7,27 +8,21 @@ import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class Context {
-    private String selfPrefix;
-    private String selfId;
+    private String self;
     private Instant time;
     private String source;
+    private String destination;
     private Object incomingMessage;
     private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
 
-    public String getSelfPrefix() {
-        return selfPrefix;
+    public String getSelf() {
+        return self;
     }
 
-    void setSelfPrefix(String selfPrefix) {
-        this.selfPrefix = selfPrefix;
-    }
-
-    public String getSelfId() {
-        return selfId;
-    }
-
-    void setSelfId(String selfId) {
-        this.selfId = selfId;
+    void setSelf(String self) {
+        Validate.notNull(self);
+        Validate.notEmpty(self);
+        this.self = self;
     }
 
     public Instant getTime() {
@@ -46,6 +41,15 @@ public final class Context {
     void setSource(String source) {
         Validate.notNull(source);
         this.source = source;
+    }
+
+    public String getDestination() {
+        return destination;
+    }
+
+    void setDestination(String destination) {
+        Validate.notNull(destination);
+        this.destination = destination;
     }
 
     public <T> T getIncomingMessage() {

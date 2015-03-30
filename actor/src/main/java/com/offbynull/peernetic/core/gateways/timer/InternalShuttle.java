@@ -1,9 +1,10 @@
 package com.offbynull.peernetic.core.gateways.timer;
 
+import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.actor.*;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
-import static com.offbynull.peernetic.core.actor.ActorUtils.SEPARATOR;
+import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,10 +46,10 @@ final class InternalShuttle implements Shuttle {
         messages.forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = ActorUtils.getPrefix(dst);
-                String dstId = ActorUtils.getId(dst);
+                String dstPrefix = AddressUtils.getPrefix(dst);
+                String dstId = AddressUtils.getId(dst);
                 Validate.isTrue(dstPrefix.equals(prefix));
-                Validate.isTrue(ActorUtils.getIdElementSize(dst) > 1);
+                Validate.isTrue(AddressUtils.getIdElementSize(dst) > 1);
 
                 String[] splitDstId = dstId.split(SEPARATOR, 2);
                 long delay = Long.parseLong(splitDstId[0]);
@@ -57,10 +58,10 @@ final class InternalShuttle implements Shuttle {
                 Validate.notEmpty(sendAddr);
 
                 service.schedule(() -> {
-                    String sendPrefix = ActorUtils.getPrefix(sendAddr);
+                    String sendPrefix = AddressUtils.getPrefix(sendAddr);
                     Shuttle shuttle = outgoingShuttles.get(sendPrefix);
                     
-                    Message message = new Message(dst, sendAddr, x);
+                    Message message = new Message(dst, sendAddr, x.getMessage());
                     shuttle.send(Collections.singletonList(message));
                 }, delay, TimeUnit.MILLISECONDS);
             } catch (Exception e) {

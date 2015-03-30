@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.core.actor.ActorUtils;
+import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
 import io.netty.channel.Channel;
@@ -44,8 +44,8 @@ final class InternalShuttle implements Shuttle {
         messages.forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = ActorUtils.getPrefix(dst);
-                String dstId = ActorUtils.getId(dst);
+                String dstPrefix = AddressUtils.getPrefix(dst);
+                String dstId = AddressUtils.getId(dst);
                 Validate.isTrue(dstPrefix.equals(prefix));
 
                 InetSocketAddress dstAddr = fromShuttleAddress(dstId);

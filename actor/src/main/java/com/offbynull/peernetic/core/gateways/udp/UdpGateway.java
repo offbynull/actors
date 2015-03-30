@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.core.actor.ActorUtils;
+import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.gateway.Gateway;
-import com.offbynull.peernetic.core.gateway.Serializer;
+import com.offbynull.peernetic.core.common.Serializer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;

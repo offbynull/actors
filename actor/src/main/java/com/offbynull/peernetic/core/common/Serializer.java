@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.gateway;
+package com.offbynull.peernetic.core.common;
 
 public interface Serializer {
     byte[] serialize(Object obj);

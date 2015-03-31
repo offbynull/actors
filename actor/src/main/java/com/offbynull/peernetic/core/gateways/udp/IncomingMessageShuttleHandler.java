@@ -2,6 +2,7 @@ package com.offbynull.peernetic.core.gateways.udp;
 
 import com.offbynull.peernetic.core.Message;
 import com.offbynull.peernetic.core.Shuttle;
+import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import io.netty.channel.AddressedEnvelope;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultAddressedEnvelope;
@@ -51,10 +52,19 @@ final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object
     }
     
     protected Object transform(SocketAddress localAddress, SocketAddress remoteAddress, Object obj) {
+        EncapsulatedMessage em = (EncapsulatedMessage) obj;
+        String srcAddress = srcAddressPrefix + SEPARATOR + toShuttleAddress(remoteAddress);
+        String srcSuffix = em.getAddressSuffix();
+        if (srcSuffix != null) {
+            srcAddress += SEPARATOR + em.getAddressSuffix();
+        }
+        
+        Object msgObj = em.getObject();
+        
         Message message = new Message(
-                srcAddressPrefix + ':' + toShuttleAddress(remoteAddress),
+                srcAddress,
                 dstAddress,
-                obj);
+                msgObj);
         dstShuttle.send(Collections.singleton(message));
         
         return obj;

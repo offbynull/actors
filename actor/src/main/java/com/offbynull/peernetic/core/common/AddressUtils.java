@@ -34,9 +34,10 @@ public final class AddressUtils {
         return parentAddress + SEPARATOR + relativeAddress;
     }
 
-    public static String removePrefix(String address, int idx) {
+    public static String removePrefix(String address, int fromIdx) {
         String[] elements = splitAddress(address);
-        return getAddress(Arrays.asList(elements).subList(1, elements.length));
+        Validate.validIndex(elements, fromIdx);
+        return getAddress(Arrays.asList(elements).subList(fromIdx, elements.length));
     }
     
     public static String getAddressElement(String address, int idx) {
@@ -57,11 +58,17 @@ public final class AddressUtils {
     }
 
     public static String getAddress(String ... ids) {
+        return getAddress(0, ids);
+    }
+
+    public static String getAddress(int offset, String ... ids) {
         Validate.notNull(ids);
         Validate.noNullElements(ids);
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset < ids.length);
         
         StringJoiner joiner = new StringJoiner(SEPARATOR);
-        Arrays.stream(ids).forEach(x -> joiner.add(x));
+        Arrays.asList(ids).subList(offset, ids.length).forEach(x -> joiner.add(x));
         
         return joiner.toString();
     }

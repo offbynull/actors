@@ -8,6 +8,7 @@ import io.netty.channel.DefaultAddressedEnvelope;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Collection;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -44,13 +45,23 @@ final class InternalShuttle implements Shuttle {
         messages.forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = AddressUtils.getAddressElement(dst, 0);
-                String dstId = AddressUtils.removePrefix(dst, 0);
+                String[] splitDst = AddressUtils.splitAddress(dst);
+                
+                Validate.isTrue(splitDst.length >= 2);
+                String dstPrefix = splitDst[0];
+                String dstAddress = splitDst[1];
+                
                 Validate.isTrue(dstPrefix.equals(prefix));
+                
+                String dstSuffix = null;
+                if (splitDst.length > 2) {
+                    dstSuffix = AddressUtils.getAddress(2, splitDst);
+                }
 
-                InetSocketAddress dstAddr = fromShuttleAddress(dstId);
-
-                DefaultAddressedEnvelope datagramPacket = new DefaultAddressedEnvelope(x.getMessage(), dstAddr);
+                InetSocketAddress dstAddr = fromShuttleAddress(dstAddress);
+                EncapsulatedMessage em = new EncapsulatedMessage(dstSuffix, x.getMessage());
+                DefaultAddressedEnvelope<Object, InetSocketAddress> datagramPacket = new DefaultAddressedEnvelope<>(em, dstAddr);
+                
                 channel.writeAndFlush(datagramPacket);
             } catch (Exception e) {
                 LOGGER.error("Error shuttling message: " + x, e);

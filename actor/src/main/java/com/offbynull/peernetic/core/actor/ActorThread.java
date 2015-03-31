@@ -39,6 +39,10 @@ public final class ActorThread {
         // return
         return new ActorThread(thread, runnable);
     }
+    
+    public void kill() {
+        thread.interrupt();
+    }
 
     public Thread getThread() {
         return thread;

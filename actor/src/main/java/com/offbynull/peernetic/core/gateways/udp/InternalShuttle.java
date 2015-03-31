@@ -44,8 +44,8 @@ final class InternalShuttle implements Shuttle {
         messages.forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = AddressUtils.getPrefix(dst);
-                String dstId = AddressUtils.getId(dst);
+                String dstPrefix = AddressUtils.getAddressElement(dst, 0);
+                String dstId = AddressUtils.removePrefix(dst, 0);
                 Validate.isTrue(dstPrefix.equals(prefix));
 
                 InetSocketAddress dstAddr = fromShuttleAddress(dstId);

@@ -1,10 +1,10 @@
-package com.offbynull.peernetic.core.actors.unreliable;
+package com.offbynull.peernetic.core.actors.unreliableproxy;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.actors.unreliable.Line.BufferMessage;
+import com.offbynull.peernetic.core.actors.unreliableproxy.Line.BufferMessage;
 import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.common.ByteBufferUtils;
 import com.offbynull.peernetic.core.common.Serializer;

@@ -3,9 +3,9 @@ package com.offbynull.peernetic.core;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
-import com.offbynull.peernetic.core.actors.unreliable.SimpleLine;
-import com.offbynull.peernetic.core.actors.unreliable.StartProxy;
-import com.offbynull.peernetic.core.actors.unreliable.UnreliableProxyCoroutine;
+import com.offbynull.peernetic.core.actors.unreliableproxy.SimpleLine;
+import com.offbynull.peernetic.core.actors.unreliableproxy.StartProxy;
+import com.offbynull.peernetic.core.actors.unreliableproxy.UnreliableProxyCoroutine;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
@@ -17,6 +17,9 @@ import org.apache.commons.lang3.Validate;
 public class Test {
 
     public static void main(String[] args) throws InterruptedException {
+        basicTest();
+        basicTimer();
+        basicUdp();
         basicUnreliable();
     }
     

@@ -107,8 +107,11 @@ final class ActorRunnable implements Runnable {
 
     private void processNormalMessage(Object msg, String src, String dst, Map<String, LoadedActor> actors, List<Message> outgoingMessages) {
         // Get actor to dump to
-        String dstPrefix = AddressUtils.getPrefix(dst);
-        String dstImmediateId = AddressUtils.getIdElement(dst, 0);
+        String[] splitDst = AddressUtils.splitAddress(dst);
+        Validate.isTrue(splitDst.length >= 2); // sanity check
+        
+        String dstPrefix = splitDst[0];
+        String dstImmediateId = splitDst[1];
         Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
 
         LoadedActor loadedActor = actors.get(dstImmediateId);
@@ -164,7 +167,7 @@ final class ActorRunnable implements Runnable {
         Map<String, List<Message>> outgoingMap = new HashMap<>();
         for (Message outgoingMessage : outgoingMessages) {
             String outDst = outgoingMessage.getDestinationAddress();
-            String outDstPrefix = AddressUtils.getPrefix(outDst);
+            String outDstPrefix = AddressUtils.getAddressElement(outDst, 0);
 
             List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
             if (batchedMessages == null) {

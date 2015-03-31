@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.actors.unreliable;
+package com.offbynull.peernetic.core.actors.unreliableproxy;
 
 import com.offbynull.peernetic.core.common.Serializer;
 import org.apache.commons.lang3.Validate;

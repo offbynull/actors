@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.actors.unreliable;
+package com.offbynull.peernetic.core.actors.unreliableproxy;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;

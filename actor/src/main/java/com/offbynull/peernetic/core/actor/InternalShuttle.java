@@ -40,7 +40,7 @@ final class InternalShuttle implements Shuttle {
         messages.stream().forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = AddressUtils.getPrefix(dst);
+                String dstPrefix = AddressUtils.getAddressElement(dst, 0);
                 Validate.isTrue(dstPrefix.equals(prefix));
                 
                 filteredMessages.add(x);

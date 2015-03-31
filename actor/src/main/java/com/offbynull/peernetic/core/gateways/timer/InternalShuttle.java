@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.core.gateways.timer;
 
 import com.offbynull.peernetic.core.common.AddressUtils;
-import com.offbynull.peernetic.core.actor.*;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
@@ -46,8 +45,8 @@ final class InternalShuttle implements Shuttle {
         messages.forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = AddressUtils.getPrefix(dst);
-                String dstId = AddressUtils.getId(dst);
+                String dstPrefix = AddressUtils.getAddressElement(dst, 0);
+                String dstId = AddressUtils.removePrefix(dst, 0);
                 Validate.isTrue(dstPrefix.equals(prefix));
                 Validate.isTrue(AddressUtils.getIdElementSize(dst) > 1);
 
@@ -58,7 +57,7 @@ final class InternalShuttle implements Shuttle {
                 Validate.notEmpty(sendAddr);
 
                 service.schedule(() -> {
-                    String sendPrefix = AddressUtils.getPrefix(sendAddr);
+                    String sendPrefix = AddressUtils.getAddressElement(sendAddr, 0);
                     Shuttle shuttle = outgoingShuttles.get(sendPrefix);
                     
                     Message message = new Message(dst, sendAddr, x.getMessage());

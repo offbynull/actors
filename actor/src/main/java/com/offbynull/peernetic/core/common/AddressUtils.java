@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.common;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -12,14 +12,6 @@ public final class AddressUtils {
 
     private AddressUtils() {
         // do nothing
-    }
-
-    public static String getPrefix(String address) {
-        return splitAddress(address).getPrefix();
-    }
-
-    public static String getId(String address) {
-        return splitAddress(address).getId();
     }
     
     public static final String relativize(String parentAddress, String absoluteAddress) {
@@ -42,61 +34,65 @@ public final class AddressUtils {
         return parentAddress + SEPARATOR + relativeAddress;
     }
 
-    public static String getIdElement(String address, int idx) {
-        return splitAddress(address).getIdElement(idx);
+    public static String removePrefix(String address, int idx) {
+        String[] elements = splitAddress(address);
+        return getAddress(Arrays.asList(elements).subList(1, elements.length));
+    }
+    
+    public static String getAddressElement(String address, int idx) {
+        Validate.notNull(address);
+        Validate.isTrue(idx >= 0);
+        
+        String[] elements = splitAddress(address);
+        
+        Validate.validIndex(elements, idx);
+        
+        return elements[idx];
     }
 
     public static int getIdElementSize(String address) {
-        return splitAddress(address).getIdElementSize();
+        Validate.notNull(address);
+        
+        return splitAddress(address).length;
     }
 
-    public static String getAddress(String prefix, String id) {
-        Validate.notNull(prefix);
-        Validate.notNull(id);
-        return getAddress(prefix, Collections.singletonList(id));
+    public static String getAddress(String ... ids) {
+        Validate.notNull(ids);
+        Validate.noNullElements(ids);
+        
+        StringJoiner joiner = new StringJoiner(SEPARATOR);
+        Arrays.stream(ids).forEach(x -> joiner.add(x));
+        
+        return joiner.toString();
     }
     
-    public static String getAddress(String prefix, List<String> idElements) {
-        Validate.notNull(prefix);
+    public static String getAddress(List<String> idElements) {
         Validate.notNull(idElements);
-        Validate.notEmpty(prefix);
         Validate.noNullElements(idElements);
         
         StringJoiner joiner = new StringJoiner(SEPARATOR);
-        joiner.add(prefix);
         idElements.forEach(x -> joiner.add(x));
         
         return joiner.toString();
     }
 
-    public static String getAddress(Address actorAddress) {
-        Validate.notNull(actorAddress);
-        return getAddress(actorAddress.prefix, actorAddress.idElements);
-    }
-
-    public static Address splitAddress(String address) {
-        // get prefix, prefix must always end with a separator, so even if there are no id elements it'd be something like "prefix:"
-        int separatorIdx = address.indexOf(SEPARATOR);
-        Validate.isTrue(separatorIdx != -1);
-        String prefix = address.substring(0, separatorIdx);
-        
-        // add stuff after prefix
-        int startIdx = separatorIdx;
+    public static String[] splitAddress(String address) {
+        int startIdx = 0;
         int endIdx;
-        List<String> idElements = new LinkedList<>();
-        while ((endIdx = address.indexOf(SEPARATOR, startIdx + 1)) != -1) {
-            String idElement = address.substring(startIdx + 1, endIdx);
-            idElements.add(idElement);
-            startIdx = endIdx;
+        List<String> elements = new LinkedList<>();
+        while ((endIdx = address.indexOf(SEPARATOR, startIdx)) != -1) {
+            String element = address.substring(startIdx, endIdx);
+            elements.add(element);
+            startIdx = endIdx + 1;
         }
         
         // add tail element, if it exists
         if (startIdx < address.length()) {
-            String idElement = address.substring(startIdx + 1);
-            idElements.add(idElement);
+            String element = address.substring(startIdx);
+            elements.add(element);
         }
 
-        return new Address(prefix, idElements);
+        return elements.toArray(new String[elements.size()]);
     }
 
 }

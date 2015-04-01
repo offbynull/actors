@@ -14,6 +14,24 @@ public final class AddressUtils {
         // do nothing
     }
     
+    public static final boolean isParent(String parentAddress, String otherAddress) {
+        Validate.notNull(parentAddress);
+        Validate.notNull(otherAddress);
+        
+        // if address being tested is smaller than parent, fail
+        if (parentAddress.length() > otherAddress.length()) {
+            return false;
+        }
+        
+        // if address being tested is the same size as parent, make sure strings are equal
+        if (parentAddress.length() == otherAddress.length() && parentAddress.equals(otherAddress)) {
+            return true;
+        }
+        
+        // otherwise, return true if other starts with parent and has a : right after it
+        return otherAddress.startsWith(parentAddress + SEPARATOR);
+    }
+
     public static final String relativize(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(absoluteAddress);

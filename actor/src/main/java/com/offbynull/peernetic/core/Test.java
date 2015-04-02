@@ -18,8 +18,8 @@ public class Test {
 
     public static void main(String[] args) throws InterruptedException {
 //        basicTest();
-//        basicTimer();
-        basicUdp();
+        basicTimer();
+//        basicUdp();
 //        basicUnreliable();
     }
     
@@ -162,7 +162,7 @@ public class Test {
             Context ctx = (Context) cnt.getContext();
             
             String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix + ":2000:" + ctx.getSelf(), 0);
+            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
             cnt.suspend();
             
             latch.countDown();

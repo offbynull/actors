@@ -44,23 +44,20 @@ final class InternalShuttle implements Shuttle {
 
         messages.forEach(x -> {
             try {
+                String src = x.getSourceAddress();
                 String dst = x.getDestinationAddress();
                 String dstPrefix = AddressUtils.getAddressElement(dst, 0);
-                String dstId = AddressUtils.removePrefix(dst, 0);
                 Validate.isTrue(dstPrefix.equals(prefix));
-                Validate.isTrue(AddressUtils.getIdElementSize(dst) > 1);
 
-                String[] splitDstId = dstId.split(SEPARATOR, 2);
-                long delay = Long.parseLong(splitDstId[0]);
+                String delayStr = AddressUtils.getAddressElement(dst, 1);
+                long delay = Long.parseLong(delayStr);
                 Validate.isTrue(delay >= 0L);
-                String sendAddr = splitDstId[1];
-                Validate.notEmpty(sendAddr);
 
                 service.schedule(() -> {
-                    String sendPrefix = AddressUtils.getAddressElement(sendAddr, 0);
+                    String sendPrefix = AddressUtils.getAddressElement(src, 0);
                     Shuttle shuttle = outgoingShuttles.get(sendPrefix);
                     
-                    Message message = new Message(dst, sendAddr, x.getMessage());
+                    Message message = new Message(dst, src, x.getMessage());
                     shuttle.send(Collections.singletonList(message));
                 }, delay, TimeUnit.MILLISECONDS);
             } catch (Exception e) {

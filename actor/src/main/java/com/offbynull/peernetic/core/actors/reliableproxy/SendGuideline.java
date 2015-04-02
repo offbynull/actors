@@ -6,12 +6,13 @@ import java.util.TreeSet;
 import org.apache.commons.collections4.set.UnmodifiableSortedSet;
 import org.apache.commons.lang3.Validate;
 
-public final class TransmissionGuideline {
+public final class SendGuideline {
     private final UnmodifiableSortedSet<Duration> sendDurations;
     private final Duration ackWaitDuration;
 
-    public TransmissionGuideline(Duration ackWaitDuration, Duration ... sendDurations) {
+    public SendGuideline(Duration ackWaitDuration, Duration ... sendDurations) {
         Validate.notNull(ackWaitDuration);
+        Validate.isTrue(!ackWaitDuration.isNegative());
         Validate.notNull(sendDurations);
         
         SortedSet<Duration> retryDurationSet = new TreeSet<>();

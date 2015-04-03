@@ -70,6 +70,24 @@ public final class AddressUtils {
         return elements[idx];
     }
 
+    public static String getFirstAddressElement(String address) {
+        Validate.notNull(address);
+        
+        String[] elements = splitAddress(address);
+        Validate.isTrue(elements.length > 0);
+        
+        return elements[0];
+    }
+
+    public static String getLastAddressElement(String address) {
+        Validate.notNull(address);
+        
+        String[] elements = splitAddress(address);
+        Validate.isTrue(elements.length > 0);
+        
+        return elements[elements.length - 1];
+    }
+    
     public static int getIdElementSize(String address) {
         Validate.notNull(address);
         

@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.core.actor;
 
-import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -52,6 +51,7 @@ public final class Context {
         this.destination = destination;
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T getIncomingMessage() {
         return (T) incomingMessage;
     }

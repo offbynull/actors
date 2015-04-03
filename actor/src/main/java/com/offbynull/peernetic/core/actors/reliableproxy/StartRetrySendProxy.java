@@ -5,17 +5,21 @@ import org.apache.commons.lang3.Validate;
 
 public class StartRetrySendProxy {
     private final String timerPrefix;
-    private final String destinationAddress;
+    private final String sourcePrefix;
+    private final String destinationPrefix;
     private final Random random;
     private final SendGuidelineGenerator generator;
 
-    public StartRetrySendProxy(String timerPrefix, String destinationAddress, Random random, SendGuidelineGenerator generator) {
+    public StartRetrySendProxy(String timerPrefix, String sourcePrefix, String destinationPrefix, Random random,
+            SendGuidelineGenerator generator) {
         Validate.notNull(timerPrefix);
-        Validate.notNull(destinationAddress);
+        Validate.notNull(sourcePrefix);
+        Validate.notNull(destinationPrefix);
         Validate.notNull(random);
         Validate.notNull(generator);
         this.timerPrefix = timerPrefix;
-        this.destinationAddress = destinationAddress;
+        this.sourcePrefix = sourcePrefix;
+        this.destinationPrefix = destinationPrefix;
         this.random = random;
         this.generator = generator;
     }
@@ -24,8 +28,12 @@ public class StartRetrySendProxy {
         return timerPrefix;
     }
 
-    public String getDestinationAddress() {
-        return destinationAddress;
+    public String getSourcePrefix() {
+        return sourcePrefix;
+    }
+    
+    public String getDestinationPrefix() {
+        return destinationPrefix;
     }
 
     public Random getRandom() {

@@ -20,11 +20,10 @@ public final class RetrySendProxyCoroutine implements Coroutine {
         StartRetrySendProxy startProxy = ctx.getIncomingMessage();
         IdExtractor idExtractor = startProxy.getIdExtractor();
         String timerAddressPrefix = startProxy.getTimerPrefix();
-        String reqAddressPrefix = startProxy.getSourcePrefix();
-        String respAddressPrefix = startProxy.getDestinationPrefix();
+        String dstPrefix = startProxy.getDestinationAddress();
         String self = ctx.getSelf();
 
-        Map<String, CoroutineRunner> senders = new HashMap<>();
+        Map<String, MessageState> cache = new HashMap<>();
 
         while (true) {
             cnt.suspend();
@@ -32,51 +31,55 @@ public final class RetrySendProxyCoroutine implements Coroutine {
             String from = ctx.getSource();
 
             if (AddressUtils.isParent(timerAddressPrefix, from)) { // timer
-                // Get id of transmitter
+                // Timer indicated that a coroutine needs to be run
                 String id = AddressUtils.relativize(self, ctx.getDestination());
-
-                // Execute transmitter with that id (if it exists)
-                CoroutineRunner transmitter = senders.get(id);
-                if (transmitter != null) {
-                    boolean stillRunning = transmitter.execute();
+                MessageState msgState = cache.get(id);
+                if (msgState != null) {
+                    CoroutineRunner sender = msgState.getCoroutineRunner();
+                    boolean stillRunning = sender.execute();
                     if (!stillRunning) {
-                        senders.remove(id);
+                        cache.remove(id);
                     }
                 }
-            } else if (AddressUtils.isParent(respAddressPrefix, from)) { // incoming resp (response from destination)
-                // Get id of response
+            } else if (AddressUtils.isParent(dstPrefix, from)) { // incoming resp
+                // Response has come in, find out who response was for
                 Object msg = ctx.getIncomingMessage();
                 String id = idExtractor.getId(msg);
+                String suffix = AddressUtils.relativize(dstPrefix, from);
                 
-                String suffix = AddressUtils.relativize(respAddressPrefix, from);
+                MessageState msgState = cache.get(id);
                 
-                // Remove transmitter and send response to source (if transmitter existed)
-                CoroutineRunner sender = senders.remove(id);
-                if (sender != null) {
-                    ctx.addOutgoingMessage(
-                            reqAddressPrefix + SEPARATOR + suffix,
-                            msg);
+                // If we can't find out who response was for, ignore
+                if (msgState == null) {
+                    continue;
                 }
                 
-            } else if (AddressUtils.isParent(reqAddressPrefix, from)) { // outgoing msg (request from source)
-                // Create and save transmitter
+                // If the message already has a response, ignore
+                if (msgState.isResponseArrived()) {
+                    continue;
+                }
+                
+                // Send response and save
+                String to = msgState.getRequesterAddress();
+                ctx.addOutgoingMessage(to, msg);
+            } else {
+                // Request has come in. Make sure id isn't one we've already cached and send it out
                 Object msg = ctx.getIncomingMessage();
                 String id = idExtractor.getId(msg);
-                
+
                 SenderCoroutine senderCoroutine = new SenderCoroutine(ctx, startProxy, msg, id);
                 CoroutineRunner sender = new CoroutineRunner(senderCoroutine);
-                boolean alreadyExists = senders.putIfAbsent(id, sender) != null;
+                MessageState msgState = new MessageState(from, sender);
+                MessageState oldMsgState = cache.put(id, msgState);
                 
-                Validate.isTrue(!alreadyExists); // must not be duplicating an existing id
+                Validate.isTrue(oldMsgState != null);
 
                 // Execute a transmitter cycle
                 boolean stillRunning = sender.execute();
                 if (!stillRunning) {
-                    senders.remove(id);
+                    cache.remove(id);
                 }
-            } else {
-                throw new IllegalStateException();
-            }
+            } 
         }
     }
 
@@ -96,12 +99,8 @@ public final class RetrySendProxyCoroutine implements Coroutine {
 
         @Override
         public void run(Continuation cnt) throws Exception {
-            String srcPrefix = startProxy.getSourcePrefix();
-            String dstPrefix = startProxy.getDestinationPrefix();
+            String dstAddress = startProxy.getDestinationAddress();
             String timerPrefix = startProxy.getTimerPrefix();
-
-            String suffix = AddressUtils.relativize(srcPrefix, context.getSource());
-            String dstAddress = dstPrefix + SEPARATOR + suffix;
             
             SendGuidelineGenerator generator = startProxy.getGenerator();
             SendGuideline guideline = generator.generate(msg);
@@ -130,4 +129,34 @@ public final class RetrySendProxyCoroutine implements Coroutine {
 
     }
 
+    private static final class MessageState {
+
+        private final String requesterAddress;
+        private final CoroutineRunner coroutineRunner;
+        private boolean responseArrived;
+
+        public MessageState(String requesterAddress, CoroutineRunner coroutineRunner) {
+            Validate.notNull(requesterAddress);
+            Validate.notNull(coroutineRunner);
+            this.requesterAddress = requesterAddress;
+            this.coroutineRunner = coroutineRunner;
+        }
+
+        public String getRequesterAddress() {
+            return requesterAddress;
+        }
+
+        public CoroutineRunner getCoroutineRunner() {
+            return coroutineRunner;
+        }
+
+        public boolean isResponseArrived() {
+            return responseArrived;
+        }
+
+        public void setResponseArrived(boolean responseArrived) {
+            this.responseArrived = responseArrived;
+        }
+
+    }
 }

@@ -8,6 +8,7 @@ import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.Validate;
 
 public final class RetryReceiveProxyCoroutine implements Coroutine {
 
@@ -17,12 +18,12 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
 
         StartRetryReceiveProxy startProxy = ctx.getIncomingMessage();
         String timerAddressPrefix = startProxy.getTimerPrefix();
-        String dst = startProxy.getDestinationAddress();
+        String dstAddress = startProxy.getDestinationAddress();
         String self = ctx.getSelf();
         IdExtractor idExtractor = startProxy.getIdExtractor();
         ReceiveGuidelineGenerator generator = startProxy.getGenerator();
 
-        Map<String, RequestState> cache = new HashMap<>();
+        Map<String, MessageState> cache = new HashMap<>();
 
         while (true) {
             cnt.suspend();
@@ -33,12 +34,12 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
                 // Timer indicated that a cached item needs to be removed
                 String id = AddressUtils.relativize(self, ctx.getDestination());
                 cache.remove(id);
-            } else if (AddressUtils.isParent(dst, from)) { // outgoing resp
+            } else if (AddressUtils.isParent(dstAddress, from)) { // outgoing resp
                 Object resp = ctx.getIncomingMessage();
                 String id = idExtractor.getId(resp);
 
                 // Add response to cache and send response
-                RequestState reqState = cache.get(id);
+                MessageState reqState = cache.get(id);
                 if (reqState != null) {
                     reqState.setResponse(resp);
 
@@ -52,10 +53,10 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
                 Object req = ctx.getIncomingMessage();
                 String id = idExtractor.getId(req);
 
-                RequestState reqState = cache.get(id);
+                MessageState reqState = cache.get(id);
                 if (reqState == null) {
                     // If id isn't cached, add to cache + schedule removal from cache + pass to destination
-                    reqState = new RequestState(from);
+                    reqState = new MessageState(from);
                     cache.put(id, reqState);
                     
                     ReceiveGuideline guideline = generator.generate(req);
@@ -63,7 +64,7 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
                     String timerAddress = timerAddressPrefix + SEPARATOR + cacheWaitDuration.toMillis();
                     ctx.addOutgoingMessage(id, timerAddress, "");
 
-                    ctx.addOutgoingMessage(dst, req);
+                    ctx.addOutgoingMessage(dstAddress, req);
                 } else if (reqState.getResponse() == null) {
                     // If id is cached but hasn't been responded to yet, log and ignore
                     // TODO hereLog here
@@ -78,12 +79,13 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
         }
     }
 
-    private static final class RequestState {
+    private static final class MessageState {
 
         private final String sourceAddress;
         private Object response;
 
-        public RequestState(String sourceAddress) {
+        public MessageState(String sourceAddress) {
+            Validate.notNull(sourceAddress);
             this.sourceAddress = sourceAddress;
         }
 
@@ -96,6 +98,7 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
         }
 
         public void setResponse(Object response) {
+            Validate.notNull(response);
             this.response = response;
         }
 

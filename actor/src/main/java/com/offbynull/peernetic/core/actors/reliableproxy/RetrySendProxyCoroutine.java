@@ -20,7 +20,7 @@ public final class RetrySendProxyCoroutine implements Coroutine {
         StartRetrySendProxy startProxy = ctx.getIncomingMessage();
         IdExtractor idExtractor = startProxy.getIdExtractor();
         String timerAddressPrefix = startProxy.getTimerPrefix();
-        String dstPrefix = startProxy.getDestinationAddress();
+        String dstAddress = startProxy.getDestinationAddress();
         String self = ctx.getSelf();
 
         Map<String, MessageState> cache = new HashMap<>();
@@ -41,11 +41,10 @@ public final class RetrySendProxyCoroutine implements Coroutine {
                         cache.remove(id);
                     }
                 }
-            } else if (AddressUtils.isParent(dstPrefix, from)) { // incoming resp
+            } else if (AddressUtils.isParent(dstAddress, from)) { // incoming resp
                 // Response has come in, find out who response was for
                 Object msg = ctx.getIncomingMessage();
                 String id = idExtractor.getId(msg);
-                String suffix = AddressUtils.relativize(dstPrefix, from);
                 
                 MessageState msgState = cache.get(id);
                 
@@ -63,18 +62,19 @@ public final class RetrySendProxyCoroutine implements Coroutine {
                 String to = msgState.getRequesterAddress();
                 ctx.addOutgoingMessage(to, msg);
             } else {
-                // Request has come in. Make sure id isn't one we've already cached and send it out
+                // Request has come in. Make sure id isn't one we've already cached
                 Object msg = ctx.getIncomingMessage();
                 String id = idExtractor.getId(msg);
 
                 SenderCoroutine senderCoroutine = new SenderCoroutine(ctx, startProxy, msg, id);
                 CoroutineRunner sender = new CoroutineRunner(senderCoroutine);
                 MessageState msgState = new MessageState(from, sender);
-                MessageState oldMsgState = cache.put(id, msgState);
+                Validate.isTrue(!cache.containsKey(id));
                 
-                Validate.isTrue(oldMsgState != null);
+                // Cache request
+                cache.put(id, msgState);
 
-                // Execute a transmitter cycle
+                // Send request
                 boolean stillRunning = sender.execute();
                 if (!stillRunning) {
                     cache.remove(id);
@@ -99,11 +99,20 @@ public final class RetrySendProxyCoroutine implements Coroutine {
 
         @Override
         public void run(Continuation cnt) throws Exception {
-            String dstAddress = startProxy.getDestinationAddress();
+            String dstPrefix = startProxy.getDestinationAddress();
             String timerPrefix = startProxy.getTimerPrefix();
             
             SendGuidelineGenerator generator = startProxy.getGenerator();
             SendGuideline guideline = generator.generate(msg);
+            
+            String self = context.getSelf();
+            String fullSelf = context.getDestination();
+            String suffix = AddressUtils.relativize(self, fullSelf);
+            
+            String dstAddress = dstPrefix;
+            if (!suffix.isEmpty()) {
+                dstAddress += SEPARATOR + suffix;
+            }
 
             
             // Fire off message

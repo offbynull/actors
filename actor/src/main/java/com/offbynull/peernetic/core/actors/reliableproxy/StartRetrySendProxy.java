@@ -7,20 +7,20 @@ public class StartRetrySendProxy {
     private final String timerPrefix;
     private final String sourcePrefix;
     private final String destinationPrefix;
-    private final Random random;
+    private final IdExtractor idExtractor;
     private final SendGuidelineGenerator generator;
 
-    public StartRetrySendProxy(String timerPrefix, String sourcePrefix, String destinationPrefix, Random random,
+    public StartRetrySendProxy(String timerPrefix, String sourcePrefix, String destinationPrefix, IdExtractor idExtractor,
             SendGuidelineGenerator generator) {
         Validate.notNull(timerPrefix);
         Validate.notNull(sourcePrefix);
         Validate.notNull(destinationPrefix);
-        Validate.notNull(random);
+        Validate.notNull(idExtractor);
         Validate.notNull(generator);
         this.timerPrefix = timerPrefix;
         this.sourcePrefix = sourcePrefix;
         this.destinationPrefix = destinationPrefix;
-        this.random = random;
+        this.idExtractor = idExtractor;
         this.generator = generator;
     }
 
@@ -36,8 +36,8 @@ public class StartRetrySendProxy {
         return destinationPrefix;
     }
 
-    public Random getRandom() {
-        return random;
+    public IdExtractor getIdExtractor() {
+        return idExtractor;
     }
 
     public SendGuidelineGenerator getGenerator() {

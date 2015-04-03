@@ -7,10 +7,12 @@ import org.apache.commons.collections4.set.UnmodifiableSortedSet;
 import org.apache.commons.lang3.Validate;
 
 public final class SendGuideline {
+    private final String messageId;
     private final UnmodifiableSortedSet<Duration> sendDurations;
     private final Duration ackWaitDuration;
 
-    public SendGuideline(Duration ackWaitDuration, Duration ... sendDurations) {
+    public SendGuideline(String messageId, Duration ackWaitDuration, Duration ... sendDurations) {
+        Validate.notNull(messageId);
         Validate.notNull(ackWaitDuration);
         Validate.isTrue(!ackWaitDuration.isNegative());
         Validate.notNull(sendDurations);
@@ -24,8 +26,13 @@ public final class SendGuideline {
             Validate.isTrue(ackWaitDuration.compareTo(retryDuration) >= 0);
         }
         
+        this.messageId = messageId;
         this.sendDurations = (UnmodifiableSortedSet<Duration>) UnmodifiableSortedSet.unmodifiableSortedSet(retryDurationSet);
         this.ackWaitDuration = ackWaitDuration;
+    }
+
+    public String getMessageId() {
+        return messageId;
     }
 
     public UnmodifiableSortedSet<Duration> getSendDurations() {

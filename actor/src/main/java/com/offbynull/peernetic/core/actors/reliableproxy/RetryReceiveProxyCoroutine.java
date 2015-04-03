@@ -19,62 +19,86 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
         String timerAddressPrefix = startProxy.getTimerPrefix();
         String dst = startProxy.getDestinationAddress();
         String self = ctx.getSelf();
+        IdExtractor idExtractor = startProxy.getIdExtractor();
         ReceiveGuidelineGenerator generator = startProxy.getGenerator();
 
-        Map<Long, Object> cache = new HashMap<>();
+        Map<String, RequestState> cache = new HashMap<>();
 
         while (true) {
             cnt.suspend();
 
             String from = ctx.getSource();
-            String to = ctx.getDestination();
 
             if (AddressUtils.isParent(timerAddressPrefix, from)) { // from timer
-                // Get id of the cache item that we should remove
-                String idStr = AddressUtils.relativize(self, ctx.getDestination());
-                long id = Long.parseLong(idStr);
-
-                // Remove id
+                // Timer indicated that a cached item needs to be removed
+                String id = AddressUtils.relativize(self, ctx.getDestination());
                 cache.remove(id);
             } else if (AddressUtils.isParent(dst, from)) { // outgoing resp
-                // Get message
                 Object resp = ctx.getIncomingMessage();
+                String id = idExtractor.getId(resp);
 
-                // Get id for request
-                String idStr = AddressUtils.getLastAddressElement(to);
-                long id = Long.parseLong(idStr);
-                
-                // Add response to cache ... if id doesn't exist or if response has already been calculate for id, skip
-                if (!cache.replace(id, null, resp)) {
-                    continue;
+                // Add response to cache and send response
+                RequestState reqState = cache.get(id);
+                if (reqState != null) {
+                    reqState.setResponse(resp);
+
+                    String to = reqState.getSourceAddress();
+                    ctx.addOutgoingMessage(to, resp);
+                } else {
+                    // Warn here that you're trying to override a response
+                    // TODO log here
                 }
-                
-                // Pass response along with idStr in source address, so the destination can associate this response with a request
-                ctx.addOutgoingMessage(idStr, dst, resp);
             } else { // incoming req
-                // Get request
                 Object req = ctx.getIncomingMessage();
+                String id = idExtractor.getId(req);
 
-                // Get id for request
-                String idStr = AddressUtils.getLastAddressElement(from);
-                long id = Long.parseLong(idStr);
+                RequestState reqState = cache.get(id);
+                if (reqState == null) {
+                    // If id isn't cached, add to cache + schedule removal from cache + pass to destination
+                    reqState = new RequestState(from);
+                    cache.put(id, reqState);
+                    
+                    ReceiveGuideline guideline = generator.generate(req);
+                    Duration cacheWaitDuration = guideline.getCacheWaitDuration();
+                    String timerAddress = timerAddressPrefix + SEPARATOR + cacheWaitDuration.toMillis();
+                    ctx.addOutgoingMessage(id, timerAddress, "");
 
-                // Add request to cache ... if already exists, skip
-                if (cache.putIfAbsent(id, null) != null) {
-                    continue;
+                    ctx.addOutgoingMessage(dst, req);
+                } else if (reqState.getResponse() == null) {
+                    // If id is cached but hasn't been responded to yet, log and ignore
+                    // TODO hereLog here
+                } else {
+                    // if id is cached and we've already responed, send back the cached response
+                    String to = reqState.getSourceAddress();
+                    Object resp = reqState.getResponse();
+
+                    ctx.addOutgoingMessage(to, resp);
                 }
-
-                // Schedule removal from cache
-                ReceiveGuideline guideline = generator.generate(req);
-
-                Duration cacheWaitDuration = guideline.getCacheWaitDuration();
-                String timerAddress = timerAddressPrefix + SEPARATOR + cacheWaitDuration.toMillis();
-                ctx.addOutgoingMessage(idStr, timerAddress, "");
-
-                // Pass request along with idStr in source address, so if the destination wants to respond it can
-                ctx.addOutgoingMessage(idStr, dst, req);
             }
         }
+    }
+
+    private static final class RequestState {
+
+        private final String sourceAddress;
+        private Object response;
+
+        public RequestState(String sourceAddress) {
+            this.sourceAddress = sourceAddress;
+        }
+
+        public String getSourceAddress() {
+            return sourceAddress;
+        }
+
+        public Object getResponse() {
+            return response;
+        }
+
+        public void setResponse(Object response) {
+            this.response = response;
+        }
+
     }
 
 }

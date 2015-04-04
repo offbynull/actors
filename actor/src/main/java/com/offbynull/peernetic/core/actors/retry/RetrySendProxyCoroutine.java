@@ -34,7 +34,8 @@ public final class RetrySendProxyCoroutine implements Coroutine {
                 // Timer indicated that a coroutine needs to be run
                 String id = AddressUtils.relativize(self, ctx.getDestination());
                 MessageState msgState = cache.get(id);
-                if (msgState != null) {
+                
+                if (msgState != null && !msgState.isResponseArrived()) {
                     CoroutineRunner sender = msgState.getCoroutineRunner();
                     boolean stillRunning = sender.execute();
                     if (!stillRunning) {
@@ -45,6 +46,8 @@ public final class RetrySendProxyCoroutine implements Coroutine {
                 // Response has come in, find out who response was for
                 Object msg = ctx.getIncomingMessage();
                 String id = idExtractor.getId(msg);
+                
+                System.out.println("* SENDER RESPONSE ARRIVED " + msg);
                 
                 MessageState msgState = cache.get(id);
                 
@@ -59,6 +62,7 @@ public final class RetrySendProxyCoroutine implements Coroutine {
                 }
                 
                 // Send response and save
+                msgState.setResponseArrived(true);
                 String to = msgState.getRequesterAddress();
                 ctx.addOutgoingMessage(to, msg);
             } else {
@@ -116,6 +120,7 @@ public final class RetrySendProxyCoroutine implements Coroutine {
 
             
             // Fire off message
+            System.out.println("* SENDER SENDING INITIAL MSG " + msg);
             context.addOutgoingMessage(dstAddress, msg);
 
             // Resend
@@ -126,6 +131,7 @@ public final class RetrySendProxyCoroutine implements Coroutine {
                 cnt.suspend();
 
                 // Fire off message
+                System.out.println("* SENDER SENDING " + msg + " AGAIN");
                 context.addOutgoingMessage(dstAddress, msg);
             }
 

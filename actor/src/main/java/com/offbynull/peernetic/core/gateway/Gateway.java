@@ -4,6 +4,6 @@ import com.offbynull.peernetic.core.Shuttle;
 
 public interface Gateway extends AutoCloseable {
 
-    Shuttle getShuttle();
+    Shuttle getIncomingShuttle();
     
 }

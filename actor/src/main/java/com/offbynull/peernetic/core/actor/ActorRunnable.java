@@ -135,7 +135,7 @@ final class ActorRunnable implements Runnable {
                 shutdown = true;
             }
         } catch (Exception e) {
-            LOGGER.error("Actor " + dst + "threw an error", e);
+            LOGGER.error("Actor " + dst + " threw an exception", e);
             shutdown = true;
         }
 
@@ -148,11 +148,7 @@ final class ActorRunnable implements Runnable {
         for (BatchedOutgoingMessage batchedOutgoingMessage : batchedOutgoingMessages) {
             String sentFrom;
             String srcId = batchedOutgoingMessage.getSourceId();
-            if (srcId == null) {
-                sentFrom = dst; /* dst is the address the original message was sent to (e.g. local:actor:subaddr1:subaddr2)*/
-            } else {
-                sentFrom = dstPrefix + SEPARATOR + dstImmediateId + SEPARATOR + srcId;
-            }
+            sentFrom = dstPrefix + SEPARATOR + dstImmediateId + (srcId != null ? SEPARATOR + srcId : "");
             
             Message outgoingMessage = new Message(
                     sentFrom,
@@ -191,7 +187,7 @@ final class ActorRunnable implements Runnable {
         return prefix;
     }
 
-    Shuttle getShuttle() {
+    Shuttle getIncomingShuttle() {
         return incomingShuttle;
     }
     
@@ -219,7 +215,7 @@ final class ActorRunnable implements Runnable {
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, ram)));
     }
 
-    void addShuttle(Shuttle shuttle) {
+    void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
         AddShuttleMessage asm = new AddShuttleMessage(shuttle);
         bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, asm)));

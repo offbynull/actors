@@ -1,31 +1,29 @@
 package com.offbynull.peernetic.core.actors.unreliable;
 
-import com.offbynull.peernetic.core.common.Serializer;
 import org.apache.commons.lang3.Validate;
 
-public class StartProxy {
-    private final Serializer serializer;
+public class StartUnreliableProxy {
     private final String timerPrefix;
+    private final String actorPrefix;
     private final Line line;
 
-    public StartProxy(String timerPrefix, Line line, Serializer serializer) {
+    public StartUnreliableProxy(String timerPrefix, String actorPrefix, Line line) {
         Validate.notNull(timerPrefix);
         Validate.notNull(line);
-        Validate.notNull(serializer);
         this.timerPrefix = timerPrefix;
+        this.actorPrefix = actorPrefix;
         this.line = line;
-        this.serializer = serializer;
     }
 
     public String getTimerPrefix() {
         return timerPrefix;
     }
 
-    public Line getLine() {
-        return line;
+    public String getActorPrefix() {
+        return actorPrefix;
     }
 
-    public Serializer getSerializer() {
-        return serializer;
+    public Line getLine() {
+        return line;
     }
 }

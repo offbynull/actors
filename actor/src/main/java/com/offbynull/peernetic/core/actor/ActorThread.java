@@ -24,7 +24,7 @@ public final class ActorThread {
         InternalBus internalBus = new InternalBus();
         ActorRunnable runnable = new ActorRunnable(prefix, internalBus);
         
-        Shuttle selfShuttle = runnable.getShuttle();
+        Shuttle selfShuttle = runnable.getIncomingShuttle();
 
         // add in our own shuttle as well so we can send msgs to ourselves
         Message messages = new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, new AddShuttleMessage(selfShuttle));
@@ -48,8 +48,8 @@ public final class ActorThread {
         return thread;
     }
 
-    public Shuttle getShuttle() {
-        return actorRunnable.getShuttle();
+    public Shuttle getIncomingShuttle() {
+        return actorRunnable.getIncomingShuttle();
     }
 
     public void addActor(String id, Actor actor, Object... primingMessages) {
@@ -64,8 +64,8 @@ public final class ActorThread {
         actorRunnable.removeActor(id);
     }
 
-    public void addShuttle(Shuttle shuttle) {
-        actorRunnable.addShuttle(shuttle);
+    public void addOutgoingShuttle(Shuttle shuttle) {
+        actorRunnable.addOutgoingShuttle(shuttle);
     }
 
     public void removeShuttle(String prefix) {

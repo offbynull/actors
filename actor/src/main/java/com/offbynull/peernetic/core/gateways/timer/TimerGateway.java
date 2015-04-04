@@ -27,11 +27,11 @@ public final class TimerGateway implements Gateway {
     }
 
     @Override
-    public Shuttle getShuttle() {
+    public Shuttle getIncomingShuttle() {
         return shuttle;
     }
 
-    public void addShuttle(Shuttle shuttle) {
+    public void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
         Shuttle oldShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
         Validate.isTrue(oldShuttle == null);

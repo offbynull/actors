@@ -33,6 +33,8 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
             if (AddressUtils.isParent(timerAddressPrefix, from)) { // from timer
                 // Timer indicated that a cached item needs to be removed
                 String id = AddressUtils.relativize(self, ctx.getDestination());
+                
+                System.out.println("* RECVER REMOVING " + id);
                 cache.remove(id);
             } else if (AddressUtils.isParent(dstAddress, from)) { // outgoing resp
                 Object resp = ctx.getIncomingMessage();
@@ -43,6 +45,7 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
                 if (reqState != null) {
                     reqState.setResponse(resp);
 
+                    System.out.println("* RECVER PASSING BACK " + resp);
                     String to = reqState.getSourceAddress();
                     ctx.addOutgoingMessage(to, resp);
                 } else {
@@ -52,7 +55,7 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
             } else { // incoming req
                 Object req = ctx.getIncomingMessage();
                 String id = idExtractor.getId(req);
-
+                
                 MessageState reqState = cache.get(id);
                 if (reqState == null) {
                     // If id isn't cached, add to cache + schedule removal from cache + pass to destination
@@ -64,6 +67,7 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
                     String timerAddress = timerAddressPrefix + SEPARATOR + cacheWaitDuration.toMillis();
                     ctx.addOutgoingMessage(id, timerAddress, "");
 
+                    System.out.println("* RECVER PASSING IN " + req);
                     ctx.addOutgoingMessage(dstAddress, req);
                 } else if (reqState.getResponse() == null) {
                     // If id is cached but hasn't been responded to yet, log and ignore
@@ -73,6 +77,7 @@ public final class RetryReceiveProxyCoroutine implements Coroutine {
                     String to = reqState.getSourceAddress();
                     Object resp = reqState.getResponse();
 
+                    System.out.println("* RECVER RESPONDING FROM CACHE " + resp);
                     ctx.addOutgoingMessage(to, resp);
                 }
             }

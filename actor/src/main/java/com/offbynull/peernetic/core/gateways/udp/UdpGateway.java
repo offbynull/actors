@@ -26,10 +26,10 @@ public final class UdpGateway implements Gateway {
     private final boolean closeEventLoopGroup;
     
     
-    public UdpGateway(InetSocketAddress bindAddress, String prefix, Shuttle dstShuttle, String dstId, Serializer serializer) {
+    public UdpGateway(InetSocketAddress bindAddress, String prefix, Shuttle outgoingShuttle, String dstId, Serializer serializer) {
         Validate.notNull(bindAddress);
         Validate.notNull(prefix);
-        Validate.notNull(dstShuttle);
+        Validate.notNull(outgoingShuttle);
         Validate.notNull(dstId);
         Validate.notNull(serializer);
         
@@ -37,7 +37,7 @@ public final class UdpGateway implements Gateway {
         // Validate.notEmpty(dstId); don't do this because dstId can be empty
         
         this.prefix = prefix;
-        this.dstShuttle = dstShuttle;
+        this.dstShuttle = outgoingShuttle;
         this.dstId = dstId;
 
         this.eventLoopGroup = new NioEventLoopGroup(1, new DefaultThreadFactory(NioEventLoopGroup.class, true));
@@ -54,7 +54,7 @@ public final class UdpGateway implements Gateway {
                             ch.pipeline()
                                     .addLast(new SerializerEncodeHandler(serializer))
                                     .addLast(new SerializerDecodeHandler(serializer))
-                                    .addLast(new IncomingMessageShuttleHandler(prefix, dstShuttle, dstId));
+                                    .addLast(new IncomingMessageShuttleHandler(prefix, outgoingShuttle, dstId));
                         }
                     });
             channel = cb.bind(bindAddress).sync().channel();
@@ -75,7 +75,7 @@ public final class UdpGateway implements Gateway {
     }
     
     @Override
-    public Shuttle getShuttle() {
+    public Shuttle getIncomingShuttle() {
         return srcShuttle;
     }
 

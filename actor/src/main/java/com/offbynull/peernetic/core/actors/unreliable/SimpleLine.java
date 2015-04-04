@@ -76,7 +76,7 @@ public final class SimpleLine implements Line {
             Duration delay = minDelay.plusMillis(jitter);
             delay = delay.isNegative() ? Duration.ZERO : delay; // if neg, give back 0
             
-            TransitMessage transitMsg = new TransitMessage(departMessage.getSource(), departMessage.getDestination(),
+            TransitMessage transitMsg = new TransitMessage(departMessage.getSourceSuffix(), departMessage.getDestinationAddress(),
                     departMessage.getMessage(), time, delay);
             ret.add(transitMsg);
             
@@ -84,8 +84,11 @@ public final class SimpleLine implements Line {
         } while (sendCount < maxSend && random.nextDouble() < repeatChance);
         
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Message from {} to {} will be sent {} times: {}", departMessage.getSource(), departMessage.getDestination(),
-                   sendCount, departMessage.getMessage());
+            LOG.debug("Message from {} to {} will be sent {} times: {}",
+                    departMessage.getSourceSuffix(),
+                    departMessage.getDestinationAddress(),
+                    sendCount,
+                    departMessage.getMessage());
         }
         
         return ret;
@@ -96,8 +99,8 @@ public final class SimpleLine implements Line {
         Validate.notNull(time);
         Validate.notNull(transitMessage);
         
-        DepartMessage departMessage = new DepartMessage(transitMessage.getMessage(), transitMessage.getSource(),
-                transitMessage.getDestination());
+        DepartMessage departMessage = new DepartMessage(transitMessage.getMessage(), transitMessage.getSourceSuffix(),
+                transitMessage.getDestinationAddress());
         return Collections.singleton(departMessage);
     }
 }

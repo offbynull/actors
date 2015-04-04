@@ -40,6 +40,8 @@ public final class AddressUtils {
         String ret = absoluteAddress.substring(parentAddress.length());
         if (ret.startsWith(SEPARATOR)) {
             ret = ret.substring(1);
+        } else if (ret.isEmpty()) {
+            ret = null;
         }
         
         return ret;

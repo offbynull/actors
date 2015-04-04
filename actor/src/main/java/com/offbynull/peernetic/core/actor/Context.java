@@ -62,13 +62,11 @@ public final class Context {
     }
 
     public void addOutgoingMessage(String destination, Object message) {
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        outgoingMessages.add(new BatchedOutgoingMessage(null, destination, message));
+        addOutgoingMessage(null, destination, message);
     }
 
     public void addOutgoingMessage(String sourceId, String destination, Object message) {
-        Validate.notNull(sourceId);
+        // sourceId can be null
         Validate.notNull(destination);
         Validate.notNull(message);
         outgoingMessages.add(new BatchedOutgoingMessage(sourceId, destination, message));

@@ -8,7 +8,6 @@ import io.netty.channel.DefaultAddressedEnvelope;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.Collection;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;

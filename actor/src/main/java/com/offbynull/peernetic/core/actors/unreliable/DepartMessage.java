@@ -3,41 +3,30 @@ package com.offbynull.peernetic.core.actors.unreliable;
 import org.apache.commons.lang3.Validate;
 
 public final class DepartMessage {
-    private Object message;
-    private String source;
-    private String destination;
+    private final Object message;
+    private final String sourceSuffix;
+    private final String destinationAddress;
 
-    public DepartMessage(Object message, String source, String destination) {
+    public DepartMessage(Object message, String sourceSuffix, String destinationAddress) {
         Validate.notNull(message);
-        Validate.notNull(source);
-        Validate.notNull(destination);
+        // sourceSuffix can be null
+        Validate.notNull(destinationAddress);
         this.message = message;
-        this.source = source;
-        this.destination = destination;
+        this.sourceSuffix = sourceSuffix;
+        this.destinationAddress = destinationAddress;
     }
 
     public Object getMessage() {
         return message;
     }
 
-    public void setMessage(Object message) {
-        this.message = message;
+    public String getSourceSuffix() {
+        return sourceSuffix;
     }
 
-    public String getSource() {
-        return source;
+    public String getDestinationAddress() {
+        return destinationAddress;
     }
 
-    public void setSource(String source) {
-        this.source = source;
-    }
-
-    public String getDestination() {
-        return destination;
-    }
-
-    public void setDestination(String destination) {
-        this.destination = destination;
-    }
     
 }

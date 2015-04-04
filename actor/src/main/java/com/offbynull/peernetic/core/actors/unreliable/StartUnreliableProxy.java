@@ -9,7 +9,9 @@ public class StartUnreliableProxy {
 
     public StartUnreliableProxy(String timerPrefix, String actorPrefix, Line line) {
         Validate.notNull(timerPrefix);
+        Validate.notNull(actorPrefix);
         Validate.notNull(line);
+        Validate.isTrue(!timerPrefix.equals(actorPrefix));
         this.timerPrefix = timerPrefix;
         this.actorPrefix = actorPrefix;
         this.line = line;

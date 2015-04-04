@@ -15,8 +15,8 @@ import org.apache.commons.lang3.Validate;
 
 public final class RetryProxyCoroutine implements Coroutine {
 
-    private static final String INBOUND_TIMER_MSG = "inbound";
-    private static final String OUTBOUND_TIMER_MSG = "outbound";
+    private static final String REMOVE_INBOUND_TIMER_MSG = "inbound";
+    private static final String EXECUTE_OUTBOUND_TIMER_MSG = "outbound";
 
     @Override
     public void run(Continuation cnt) throws Exception {
@@ -43,7 +43,7 @@ public final class RetryProxyCoroutine implements Coroutine {
                 String id = AddressUtils.relativize(self, ctx.getDestination());
                 
                 switch ((String) ctx.getIncomingMessage()) {
-                    case OUTBOUND_TIMER_MSG: {
+                    case EXECUTE_OUTBOUND_TIMER_MSG: {
                         // Timer indicates that a SendCoroutine should run another cycle, thereby sending another message out
                         OutboundRequestState outReqState = outboundRequests.get(id);
 
@@ -56,7 +56,7 @@ public final class RetryProxyCoroutine implements Coroutine {
                         }
                         break;
                     }
-                    case INBOUND_TIMER_MSG: {
+                    case REMOVE_INBOUND_TIMER_MSG: {
                         // Timer indicates that an inbound request needs to be removed
                         inboundRequests.remove(id);
                         break;
@@ -125,8 +125,8 @@ public final class RetryProxyCoroutine implements Coroutine {
                 inboundRequests.put(id, inReqState);
 
                 ReceiveGuideline guideline = rgGen.generate(msg);
-                String timerAddress = timerPrefix + SEPARATOR + guideline.getCacheWaitDuration().toMillis();
-                ctx.addOutgoingMessage(id, timerAddress, INBOUND_TIMER_MSG);
+                String timerAddress = timerPrefix + SEPARATOR + guideline.getWaitDuration().toMillis();
+                ctx.addOutgoingMessage(id, timerAddress, REMOVE_INBOUND_TIMER_MSG);
 
                 proxyHelper.forwardToActor(msg);
             }
@@ -164,7 +164,7 @@ public final class RetryProxyCoroutine implements Coroutine {
             for (Duration duration : guideline.getSendDurations()) {
                 // Ask timer to trigger us again after duration
                 String timerAddress = timerPrefix + SEPARATOR + duration.toMillis();
-                context.addOutgoingMessage(id, timerAddress, OUTBOUND_TIMER_MSG);
+                context.addOutgoingMessage(id, timerAddress, EXECUTE_OUTBOUND_TIMER_MSG);
                 cnt.suspend();
 
                 // Fire off message
@@ -177,7 +177,7 @@ public final class RetryProxyCoroutine implements Coroutine {
             // Final wait before discard
             Duration finalWaitDuration = guideline.getAckWaitDuration();
             String timerAddress = timerPrefix + SEPARATOR + finalWaitDuration.toMillis();
-            context.addOutgoingMessage(id, timerAddress, OUTBOUND_TIMER_MSG);
+            context.addOutgoingMessage(id, timerAddress, EXECUTE_OUTBOUND_TIMER_MSG);
             cnt.suspend();
         }
 

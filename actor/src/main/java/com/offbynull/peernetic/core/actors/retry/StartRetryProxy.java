@@ -16,6 +16,7 @@ public class StartRetryProxy {
         Validate.notNull(idExtractor);
         Validate.notNull(sendGuidelineGenerator);
         Validate.notNull(receiveGuidelineGenerator);
+        Validate.isTrue(!timerPrefix.equals(actorPrefix));
         this.timerPrefix = timerPrefix;
         this.actorPrefix = actorPrefix;
         this.idExtractor = idExtractor;

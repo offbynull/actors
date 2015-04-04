@@ -1,34 +1,25 @@
 package com.offbynull.peernetic.core.actors.retry;
 
 import java.time.Duration;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import org.apache.commons.collections4.set.UnmodifiableSortedSet;
+import java.util.Arrays;
+import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class SendGuideline {
-    private final UnmodifiableSortedSet<Duration> sendDurations;
+    private final UnmodifiableList<Duration> sendDurations;
     private final Duration ackWaitDuration;
 
     public SendGuideline(Duration ackWaitDuration, Duration ... sendDurations) {
         Validate.notNull(ackWaitDuration);
         Validate.isTrue(!ackWaitDuration.isNegative());
         Validate.notNull(sendDurations);
-        
-        SortedSet<Duration> retryDurationSet = new TreeSet<>();
-        for (Duration retryDuration : sendDurations) {
-            Validate.notNull(retryDuration);
-            Validate.isTrue(!retryDuration.isNegative());
-            
-            retryDurationSet.add(retryDuration);
-            Validate.isTrue(ackWaitDuration.compareTo(retryDuration) >= 0);
-        }
+        Validate.noNullElements(sendDurations);
 
-        this.sendDurations = (UnmodifiableSortedSet<Duration>) UnmodifiableSortedSet.unmodifiableSortedSet(retryDurationSet);
+        this.sendDurations = (UnmodifiableList<Duration>) UnmodifiableList.unmodifiableList(Arrays.asList(sendDurations));
         this.ackWaitDuration = ackWaitDuration;
     }
 
-    public UnmodifiableSortedSet<Duration> getSendDurations() {
+    public UnmodifiableList<Duration> getSendDurations() {
         return sendDurations;
     }
 

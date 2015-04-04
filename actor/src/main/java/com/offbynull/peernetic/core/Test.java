@@ -3,6 +3,10 @@ package com.offbynull.peernetic.core;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actors.retry.RetryProxyCoroutine;
+import com.offbynull.peernetic.core.actors.retry.SimpleReceiveGuidelineGenerator;
+import com.offbynull.peernetic.core.actors.retry.SimpleSendGuidelineGenerator;
+import com.offbynull.peernetic.core.actors.retry.StartRetryProxy;
 import com.offbynull.peernetic.core.actors.unreliable.SimpleLine;
 import com.offbynull.peernetic.core.actors.unreliable.StartUnreliableProxy;
 import com.offbynull.peernetic.core.actors.unreliable.UnreliableProxyCoroutine;
@@ -20,8 +24,8 @@ public class Test {
 //        basicTest();
 //        basicTimer();
 //        basicUdp();
-        basicUnreliable();
-//        basicRetry();
+//        basicUnreliable();
+        basicRetry();
     }
 
     private static void basicTest() throws InterruptedException {
@@ -183,66 +187,56 @@ public class Test {
         latch.await();
     }
 
-//    private static void basicRetry() throws InterruptedException {
-//        CountDownLatch latch = new CountDownLatch(1);
-//
-//        Coroutine sender = (cnt) -> {
-//            Context ctx = (Context) cnt.getContext();
-//            String dstAddr = ctx.getIncomingMessage();
-//
-//            for (int i = 0; i < 10; i++) {
-//                ctx.addOutgoingMessage(dstAddr, i);
-//                System.out.println("SENDER SENT " + i);
-//                cnt.suspend();
-//                System.out.println("SENDER GOT " + ctx.getIncomingMessage());
-//                Validate.isTrue(i == (int) ctx.getIncomingMessage());
-//            }
-//
-//            latch.countDown();
-//        };
-//
-//        Coroutine echoer = (cnt) -> {
-//            Context ctx = (Context) cnt.getContext();
-//
-//            while (true) {
-//                String src = ctx.getSource();
-//                Object msg = ctx.getIncomingMessage();
-//                ctx.addOutgoingMessage(src, msg);
-//                System.out.println("ECHOER GOT " + ctx.getIncomingMessage());
-//                cnt.suspend();
-//            }
-//        };
-//
-//        ActorThread thread = ActorThread.create("local");
-//        TimerGateway timerGateway = new TimerGateway("timer");
-//
-//        thread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-//        timerGateway.addOutgoingShuttle(thread.getIncomingShuttle());
-//
-//        IdExtractor idExtractor = x -> x.toString();
-//        ReceiveGuidelineGenerator recvGen = x -> new ReceiveGuideline(Duration.ofSeconds(4L));
-//        SendGuidelineGenerator sendGen = x -> new SendGuideline(Duration.ofSeconds(2L),
-//                Duration.ofMillis(100L),
-//                Duration.ofMillis(100L),
-//                Duration.ofMillis(100L),
-//                Duration.ofMillis(100L),
-//                Duration.ofMillis(100L),
-//                Duration.ofMillis(100L));
-//
-//        thread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
-//                new StartUnreliableProxy(
-//                        "timer",
-//                        new SimpleLine(12345L, Duration.ofMillis(20L), Duration.ofMillis(200L), 0.5, 0.0, 10)
-//                ));
-//        
-//        thread.addCoroutineActor("echoer", echoer);
-//        thread.addCoroutineActor("sender", sender, "local:retrySender");
-//        
-//        thread.addCoroutineActor("retryRecver", new RetryReceiveProxyCoroutine(),
-//                new StartRetryReceiveProxy("timer", "local:echoer", idExtractor, recvGen));
-//        thread.addCoroutineActor("retrySender", new RetrySendProxyCoroutine(),
-//                new StartRetrySendProxy("timer", "local:unreliable:local:retryRecver", idExtractor, sendGen));
-//
-//        latch.await();
-//    }
+    private static void basicRetry() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Coroutine sender = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            String dstAddr = ctx.getIncomingMessage();
+
+            for (int i = 0; i < 10; i++) {
+                ctx.addOutgoingMessage("hi", dstAddr, i);
+                cnt.suspend();
+                Validate.isTrue(i == (int) ctx.getIncomingMessage());
+            }
+
+            latch.countDown();
+        };
+
+        Coroutine echoer = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+
+            while (true) {
+                String src = ctx.getSource();
+                Object msg = ctx.getIncomingMessage();
+                ctx.addOutgoingMessage(src, msg);
+                cnt.suspend();
+            }
+        };
+
+        ActorThread echoerThread = ActorThread.create("echoer");
+        ActorThread senderThread = ActorThread.create("sender");
+        TimerGateway timerGateway = new TimerGateway("timer");
+
+        echoerThread.addCoroutineActor("echoer", echoer);
+        echoerThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
+                new StartRetryProxy("timer", "echoer:echoer", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
+        echoerThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
+                new StartUnreliableProxy("timer", "echoer:retry", new SimpleLine(12345L)));
+        
+        senderThread.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable");
+        senderThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
+                new StartRetryProxy("timer", "sender:sender", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
+        senderThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
+                new StartUnreliableProxy("timer", "sender:retry", new SimpleLine(12345L)));
+
+        echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+        echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+        senderThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+        
+        latch.await();
+    }
 }

@@ -4,15 +4,15 @@ import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
 public final class ReceiveGuideline {
-    private final Duration cacheWaitDuration;
+    private final Duration waitDuration;
 
-    public ReceiveGuideline(Duration cacheWaitDuration) {
-        Validate.notNull(cacheWaitDuration);
-        Validate.isTrue(!cacheWaitDuration.isNegative());
-        this.cacheWaitDuration = cacheWaitDuration;
+    public ReceiveGuideline(Duration waitDuration) {
+        Validate.notNull(waitDuration);
+        Validate.isTrue(!waitDuration.isNegative());
+        this.waitDuration = waitDuration;
     }
 
-    public Duration getCacheWaitDuration() {
-        return cacheWaitDuration;
+    public Duration getWaitDuration() {
+        return waitDuration;
     }
 }

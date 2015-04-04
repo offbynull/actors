@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.actors.reliableproxy;
+package com.offbynull.peernetic.core.actors.retry;
 
 import org.apache.commons.lang3.Validate;
 

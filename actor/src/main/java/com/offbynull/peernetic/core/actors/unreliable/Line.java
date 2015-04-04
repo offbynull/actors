@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.actors.unreliableproxy;
+package com.offbynull.peernetic.core.actors.unreliable;
 
 import com.offbynull.peernetic.core.common.ByteBufferUtils;
 import java.nio.ByteBuffer;

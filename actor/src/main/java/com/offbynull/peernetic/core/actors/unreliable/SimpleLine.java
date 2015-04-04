@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.actors.unreliableproxy;
+package com.offbynull.peernetic.core.actors.unreliable;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;

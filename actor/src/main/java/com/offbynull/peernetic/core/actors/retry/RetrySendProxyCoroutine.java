@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.actors.reliableproxy;
+package com.offbynull.peernetic.core.actors.retry;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;

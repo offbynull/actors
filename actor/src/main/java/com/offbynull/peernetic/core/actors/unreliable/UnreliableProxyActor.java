@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.actors.unreliableproxy;
+package com.offbynull.peernetic.core.actors.unreliable;
 
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;

@@ -15,6 +15,7 @@ import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.gateways.udp.UdpGateway;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.Validate;
 
@@ -196,9 +197,10 @@ public class Test {
 
             for (int i = 0; i < 10; i++) {
                 ctx.addOutgoingMessage("hi", dstAddr, i);
+                System.out.println("sending msg " + i + " to " + dstAddr);
                 cnt.suspend();
-                System.out.println(i);
                 Validate.isTrue(i == (int) ctx.getIncomingMessage());
+                System.out.println("recvd response from " + ctx.getSource() + " to " + ctx.getDestination() + " with value " + i);
             }
 
             latch.countDown();
@@ -210,6 +212,7 @@ public class Test {
             while (true) {
                 String src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
+                System.out.println("echoing msg from " + src + " with value " + msg);
                 ctx.addOutgoingMessage(src, msg);
                 cnt.suspend();
             }
@@ -219,14 +222,16 @@ public class Test {
         ActorThread senderThread = ActorThread.create("sender");
         TimerGateway timerGateway = new TimerGateway("timer");
 
+        // This is slow because the retry durations are very far apart in SimpleSendGuidelineGenerator/SimpleReceiveGuidelineGenerator, but
+        // it will eventually finish!
         echoerThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
-                new StartUnreliableProxy("timer", "echoer:retry", new SimpleLine(12345L)));
+                new StartUnreliableProxy("timer", "echoer:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
         echoerThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
                 new StartRetryProxy("timer", "echoer:echoer", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
         echoerThread.addCoroutineActor("echoer", echoer);
         
         senderThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
-                new StartUnreliableProxy("timer", "sender:retry", new SimpleLine(12345L)));
+                new StartUnreliableProxy("timer", "sender:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
         senderThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
                 new StartRetryProxy("timer", "sender:sender", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
         senderThread.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable"); // needs to be added last to avoid race condition

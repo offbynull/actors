@@ -3,6 +3,15 @@ package com.offbynull.peernetic.core;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actors.reliableproxy.IdExtractor;
+import com.offbynull.peernetic.core.actors.reliableproxy.ReceiveGuideline;
+import com.offbynull.peernetic.core.actors.reliableproxy.ReceiveGuidelineGenerator;
+import com.offbynull.peernetic.core.actors.reliableproxy.RetryReceiveProxyCoroutine;
+import com.offbynull.peernetic.core.actors.reliableproxy.RetrySendProxyCoroutine;
+import com.offbynull.peernetic.core.actors.reliableproxy.SendGuideline;
+import com.offbynull.peernetic.core.actors.reliableproxy.SendGuidelineGenerator;
+import com.offbynull.peernetic.core.actors.reliableproxy.StartRetryReceiveProxy;
+import com.offbynull.peernetic.core.actors.reliableproxy.StartRetrySendProxy;
 import com.offbynull.peernetic.core.actors.unreliableproxy.SimpleLine;
 import com.offbynull.peernetic.core.actors.unreliableproxy.StartProxy;
 import com.offbynull.peernetic.core.actors.unreliableproxy.UnreliableProxyCoroutine;
@@ -11,6 +20,7 @@ import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.gateways.udp.UdpGateway;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.Validate;
 
@@ -18,9 +28,10 @@ public class Test {
 
     public static void main(String[] args) throws InterruptedException {
 //        basicTest();
-        basicTimer();
+//        basicTimer();
 //        basicUdp();
 //        basicUnreliable();
+        basicRetry();
     }
     
     private static void basicTest() throws InterruptedException {
@@ -182,4 +193,70 @@ public class Test {
         latch.await();        
     }
 
+    private static void basicRetry() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        
+        Coroutine sender = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            String dstAddr = ctx.getIncomingMessage();
+
+            for (int i = 0; i < 10; i++) {
+                ctx.addOutgoingMessage(dstAddr, i);
+                cnt.suspend();
+                Validate.isTrue(i == (int) ctx.getIncomingMessage());
+            }
+            
+            latch.countDown();
+        };
+        
+        Coroutine echoer = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            
+            while (true) {
+                String src = ctx.getSource();
+                Object msg = ctx.getIncomingMessage();
+                ctx.addOutgoingMessage(src, msg);
+                cnt.suspend();
+            }
+        };
+        
+        ActorThread echoerThread = ActorThread.create("echoer");
+        ActorThread senderThread = ActorThread.create("sender");
+        TimerGateway timerGateway = new TimerGateway("timer");
+
+        
+        senderThread.addShuttle(echoerThread.getShuttle());
+        senderThread.addShuttle(timerGateway.getShuttle());
+        
+        echoerThread.addShuttle(senderThread.getShuttle());
+        echoerThread.addShuttle(timerGateway.getShuttle());
+        
+        timerGateway.addShuttle(echoerThread.getShuttle());
+        timerGateway.addShuttle(senderThread.getShuttle());
+        
+        IdExtractor idExtractor = x -> x.toString();
+        ReceiveGuidelineGenerator recvGen = x -> new ReceiveGuideline(Duration.ofSeconds(1L));
+        SendGuidelineGenerator sendGen = x -> new SendGuideline(Duration.ofSeconds(2L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L),
+                Duration.ofMillis(50L));
+        
+        echoerThread.addCoroutineActor("echoer", echoer);
+        echoerThread.addCoroutineActor("retryRecver", new RetryReceiveProxyCoroutine(),
+                new StartRetryReceiveProxy("timer", "echoer:echoer", idExtractor, recvGen));
+        
+        senderThread.addCoroutineActor("sender", sender, "sender:retrySender");
+        senderThread.addCoroutineActor("retrySender", new RetrySendProxyCoroutine(),
+                new StartRetrySendProxy("timer", "echoer:retryRecver", idExtractor, sendGen));
+        
+        latch.await();        
+    }
 }

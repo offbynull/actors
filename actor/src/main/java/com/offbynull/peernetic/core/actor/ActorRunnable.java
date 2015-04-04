@@ -135,6 +135,7 @@ final class ActorRunnable implements Runnable {
                 shutdown = true;
             }
         } catch (Exception e) {
+            LOGGER.error("Actor " + dst + "threw an error", e);
             shutdown = true;
         }
 
@@ -150,7 +151,7 @@ final class ActorRunnable implements Runnable {
             if (srcId == null) {
                 sentFrom = dst; /* dst is the address the original message was sent to (e.g. local:actor:subaddr1:subaddr2)*/
             } else {
-                sentFrom = dstPrefix + SEPARATOR + dstImmediateId + srcId;
+                sentFrom = dstPrefix + SEPARATOR + dstImmediateId + SEPARATOR + srcId;
             }
             
             Message outgoingMessage = new Message(

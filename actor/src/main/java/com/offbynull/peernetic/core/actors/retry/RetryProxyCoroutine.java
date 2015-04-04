@@ -77,7 +77,7 @@ public final class RetryProxyCoroutine implements Coroutine {
                     // This is a response from the actor to an inbound request. Make sure we haven't processed the respone already before
                     // sending it out
                     Validate.isTrue(inReqState.getResponse() == null);
-                    proxyHelper.forwardToOutside(inReqState);
+                    proxyHelper.forwardToOutside(msg);
                     continue;
                 }
 

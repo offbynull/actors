@@ -197,6 +197,7 @@ public class Test {
             for (int i = 0; i < 10; i++) {
                 ctx.addOutgoingMessage("hi", dstAddr, i);
                 cnt.suspend();
+                System.out.println(i);
                 Validate.isTrue(i == (int) ctx.getIncomingMessage());
             }
 

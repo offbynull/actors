@@ -219,17 +219,17 @@ public class Test {
         ActorThread senderThread = ActorThread.create("sender");
         TimerGateway timerGateway = new TimerGateway("timer");
 
-        echoerThread.addCoroutineActor("echoer", echoer);
-        echoerThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
-                new StartRetryProxy("timer", "echoer:echoer", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
         echoerThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
                 new StartUnreliableProxy("timer", "echoer:retry", new SimpleLine(12345L)));
+        echoerThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
+                new StartRetryProxy("timer", "echoer:echoer", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
+        echoerThread.addCoroutineActor("echoer", echoer);
         
-        senderThread.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable");
-        senderThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
-                new StartRetryProxy("timer", "sender:sender", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
         senderThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
                 new StartUnreliableProxy("timer", "sender:retry", new SimpleLine(12345L)));
+        senderThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
+                new StartRetryProxy("timer", "sender:sender", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
+        senderThread.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable"); // needs to be added last to avoid race condition
 
         echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
         echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());

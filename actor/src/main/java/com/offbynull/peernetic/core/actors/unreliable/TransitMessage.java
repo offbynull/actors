@@ -16,30 +16,27 @@
  */
 package com.offbynull.peernetic.core.actors.unreliable;
 
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-final class TransitMessage {
+public final class TransitMessage {
     private String source;
     private String destination;
-    private ByteBuffer data;
+    private Object message;
     private Instant departTime;
     private Duration duration;
 
-    TransitMessage(String source, String destination, ByteBuffer data, Instant departTime, Duration duration) {
+    TransitMessage(String source, String destination, Object message, Instant departTime, Duration duration) {
         Validate.notNull(source);
         Validate.notNull(destination);
-        Validate.notNull(data);
+        Validate.notNull(message);
         Validate.notNull(departTime);
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
         this.source = source;
         this.destination = destination;
-        this.data = ByteBuffer.allocate(data.remaining());
-        this.data.put(data);
-        this.data.flip();
+        this.message = message;
         this.departTime = departTime;
         this.duration = duration;
     }
@@ -52,8 +49,8 @@ final class TransitMessage {
         return destination;
     }
 
-    ByteBuffer getData() {
-        return data.asReadOnlyBuffer();
+    Object getMessage() {
+        return message;
     }
 
     Instant getDepartTime() {

@@ -4,7 +4,6 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.actors.unreliable.Line.BufferMessage;
 import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.common.ByteBufferUtils;
 import com.offbynull.peernetic.core.common.Serializer;
@@ -34,14 +33,12 @@ public final class UnreliableProxyCoroutine implements Coroutine {
             if (msg instanceof TransitMessage) {
                 TransitMessage tMsg = (TransitMessage) msg;
 
-                Collection<BufferMessage> msgs = line.messageArrive(time, tMsg);
+                Collection<DepartMessage> msgs = line.messageArrive(time, tMsg);
                 msgs.forEach(x -> {
                     String dstAddr = x.getDestination();
                     
                     String finalDstAddr = AddressUtils.relativize(selfAddr, dstAddr); // removes self prefix from dst addr
-
-                    byte[] data = ByteBufferUtils.copyContentsToArray(x.getData());
-                    Object dataObj = serializer.deserialize(data);
+                    Object dataObj = x.getMessage();
 
                     ctx.addOutgoingMessage(finalDstAddr, dataObj);
                 });
@@ -53,9 +50,9 @@ public final class UnreliableProxyCoroutine implements Coroutine {
 
                 byte[] data = serializer.serialize(msg);
                 ByteBuffer dataBuffer = ByteBuffer.wrap(data);
-                BufferMessage bufferMessage = new BufferMessage(dataBuffer, finalSrcAddr, dstAddr);
+                DepartMessage departMessage = new DepartMessage(dataBuffer, finalSrcAddr, dstAddr);
 
-                Collection<TransitMessage> msgs = line.messageDepart(time, bufferMessage);
+                Collection<TransitMessage> msgs = line.messageDepart(time, departMessage);
                 msgs.forEach(x -> {
                     ctx.addOutgoingMessage(timerPrefix + SEPARATOR + x.getDuration().toMillis() + SEPARATOR + x.getSource(), x);
                 });

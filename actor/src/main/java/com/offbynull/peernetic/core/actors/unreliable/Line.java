@@ -20,43 +20,29 @@ import java.time.Instant;
 import java.util.Collection;
 
 /**
- * Controls how a test network behaves. For example, depending on the line, a message may be dropped/duplicated/corrupted/slow/fast/etc...
+ * Interface for mimicking network conditions. For example, depending on the implementation, a message may be dropped, duplicate, corrupted,
+ * slowed, etc.
  *
  * @author Kasra Faghihi
-
  */
 public interface Line {
-
-    /**
-     * Called when a node joins the network.
-     * 
-     * @param address address of node
-     */
-    void nodeJoin(String address);
     
     /**
-     * Called when a node leaves the network.
-     * 
-     * @param address address of node
-     */
-    void nodeLeave(String address);
-    
-    /**
-     * Called when a message is put on the network.
+     * Called when an outgoing message should be processed by this line.
      *
      * @param time time of departure
      * @param departMessage outgoing message
      * @return list of {@link TransitMessage} objects generated from {@code departMessage}
      */
-    Collection<TransitMessage> messageDepart(Instant time, DepartMessage departMessage);
+    Collection<TransitMessage> processOutgoing(Instant time, DepartMessage departMessage);
 
     /**
-     * Called when a message on the network reaches its destination.
+     * Called when an incoming message should be processed by this line.
      *
-     * @param time time of arrival
-     * @param transitMessage message that has arrived
-     * @return list of {@link DepartMessage} objects generated from {@code transitMessage}
+     * @param time time of departure
+     * @param departMessage outgoing message
+     * @return list of {@link TransitMessage} objects generated from {@code departMessage}
      */
-    Collection<DepartMessage> messageArrive(Instant time, TransitMessage transitMessage);
+    Collection<TransitMessage> processIncoming(Instant time, DepartMessage departMessage);
 
 }

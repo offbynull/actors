@@ -42,21 +42,16 @@ public final class SimpleLine implements Line {
     }
 
     @Override
-    public void nodeJoin(String address) {
-        Validate.notNull(address);
-        LOG.debug("Adding node {}", address);
-        // do nothing
+    public Collection<TransitMessage> processOutgoing(Instant time, DepartMessage departMessage) {
+        return process(time, departMessage);
     }
 
     @Override
-    public void nodeLeave(String address) {
-        Validate.notNull(address);
-        LOG.debug("Removing node {}", address);
-        // do nothing
+    public Collection<TransitMessage> processIncoming(Instant time, DepartMessage departMessage) {
+        return process(time, departMessage);
     }
-
-    @Override
-    public Collection<TransitMessage> messageDepart(Instant time, DepartMessage departMessage) {
+    
+    private Collection<TransitMessage> process(Instant time, DepartMessage departMessage) {
         Validate.notNull(time);
         Validate.notNull(departMessage);
 
@@ -76,7 +71,7 @@ public final class SimpleLine implements Line {
             Duration delay = minDelay.plusMillis(jitter);
             delay = delay.isNegative() ? Duration.ZERO : delay; // if neg, give back 0
             
-            TransitMessage transitMsg = new TransitMessage(departMessage.getSourceSuffix(), departMessage.getDestinationAddress(),
+            TransitMessage transitMsg = new TransitMessage(departMessage.getSourceId(), departMessage.getDestinationAddress(),
                     departMessage.getMessage(), time, delay);
             ret.add(transitMsg);
             
@@ -85,22 +80,12 @@ public final class SimpleLine implements Line {
         
         if (LOG.isDebugEnabled()) {
             LOG.debug("Message from {} to {} will be sent {} times: {}",
-                    departMessage.getSourceSuffix(),
+                    departMessage.getSourceId(),
                     departMessage.getDestinationAddress(),
                     sendCount,
                     departMessage.getMessage());
         }
         
         return ret;
-    }
-
-    @Override
-    public Collection<DepartMessage> messageArrive(Instant time, TransitMessage transitMessage) {
-        Validate.notNull(time);
-        Validate.notNull(transitMessage);
-        
-        DepartMessage departMessage = new DepartMessage(transitMessage.getMessage(), transitMessage.getSourceSuffix(),
-                transitMessage.getDestinationAddress());
-        return Collections.singleton(departMessage);
     }
 }

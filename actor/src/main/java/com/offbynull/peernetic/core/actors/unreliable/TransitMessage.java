@@ -21,28 +21,28 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 public final class TransitMessage {
-    private String sourceSuffix;
+    private String sourceId;
     private String destinationAddress;
     private Object message;
     private Instant departTime;
     private Duration duration;
 
-    TransitMessage(String sourceSuffix, String destinationAddress, Object message, Instant departTime, Duration duration) {
-        // sourceSuffix can be null
+    TransitMessage(String sourceId, String destinationAddress, Object message, Instant departTime, Duration duration) {
+        // sourceId can be null
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
         Validate.notNull(departTime);
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
-        this.sourceSuffix = sourceSuffix;
+        this.sourceId = sourceId;
         this.destinationAddress = destinationAddress;
         this.message = message;
         this.departTime = departTime;
         this.duration = duration;
     }
 
-    String getSourceSuffix() {
-        return sourceSuffix;
+    String getSourceId() {
+        return sourceId;
     }
 
     String getDestinationAddress() {

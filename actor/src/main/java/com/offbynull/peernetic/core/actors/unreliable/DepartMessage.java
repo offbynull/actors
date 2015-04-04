@@ -4,15 +4,15 @@ import org.apache.commons.lang3.Validate;
 
 public final class DepartMessage {
     private final Object message;
-    private final String sourceSuffix;
+    private final String sourceId;
     private final String destinationAddress;
 
-    public DepartMessage(Object message, String sourceSuffix, String destinationAddress) {
+    public DepartMessage(Object message, String sourceId, String destinationAddress) {
         Validate.notNull(message);
-        // sourceSuffix can be null
+        // sourceId can be null
         Validate.notNull(destinationAddress);
         this.message = message;
-        this.sourceSuffix = sourceSuffix;
+        this.sourceId = sourceId;
         this.destinationAddress = destinationAddress;
     }
 
@@ -20,8 +20,8 @@ public final class DepartMessage {
         return message;
     }
 
-    public String getSourceSuffix() {
-        return sourceSuffix;
+    public String getSourceId() {
+        return sourceId;
     }
 
     public String getDestinationAddress() {

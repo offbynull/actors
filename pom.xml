@@ -16,7 +16,7 @@
         <module>build-tools</module>
         <module>debug</module>
         <module>playground</module>
-        <module>actor</module>
+        <module>core</module>
     </modules>
     
     <dependencyManagement>

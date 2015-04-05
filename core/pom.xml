@@ -6,7 +6,7 @@
         <artifactId>parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>actor</artifactId>
+    <artifactId>core</artifactId>
     <packaging>jar</packaging>
     
     <name>${project.groupId}:${project.artifactId}</name>

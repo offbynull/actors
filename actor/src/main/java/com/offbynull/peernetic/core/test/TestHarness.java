@@ -1,10 +1,12 @@
 package com.offbynull.peernetic.core.test;
 
+import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
 import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
 import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_PREFIX;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
+import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.common.AddressUtils;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.time.Duration;
@@ -21,7 +23,7 @@ import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 
 public final class TestHarness {
-    private final UnmodifiableMap<Class<? extends Event>, Consumer<? extends Event>> eventHandlers;
+    private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
     private final String timerPrefix;
     private final Map<String, ActorBundle> actors;
@@ -40,16 +42,21 @@ public final class TestHarness {
         this.actors = new HashMap<>();
         this.lastWhen = startTime;
         
-        Map<Class<? extends Event>, Consumer<? extends Event>> eventHandlers = new HashMap<>();
+        Map<Class<? extends Event>, Consumer<Event>> eventHandlers = new HashMap<>();
         eventHandlers.put(CustomEvent.class, this::handleCustomEvent);
         eventHandlers.put(JoinEvent.class, this::handleJoinEvent);
         eventHandlers.put(LeaveEvent.class, this::handleLeaveEvent);
         eventHandlers.put(MessageEvent.class, this::handleMessageEvent);
         
         this.eventHandlers =
-                (UnmodifiableMap<Class<? extends Event>, Consumer<? extends Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
+                (UnmodifiableMap<Class<? extends Event>, Consumer<Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
     }
-    
+
+    public void addCoroutineActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
+        Validate.notNull(coroutine);
+        addActor(address, new CoroutineActor(coroutine), timeOffset, when, primingMessages);
+    }
+
     public void addActor(String address, Actor actor, Duration timeOffset, Instant when, Object... primingMessages) {
         Validate.notNull(address);
         Validate.notNull(actor);
@@ -60,7 +67,7 @@ public final class TestHarness {
         Validate.isTrue(!when.isBefore(lastWhen), "Attempting to add actor event prior to current time");
         Validate.isTrue(!timeOffset.isNegative(), "Negative time offset not allowed");
 
-        events.add(new JoinEvent(address, actor, timeOffset, when));
+        events.add(new JoinEvent(address, actor, timeOffset, when, primingMessages));
     }
 
     public void removeActor(String address, Instant when) {
@@ -89,9 +96,9 @@ public final class TestHarness {
 
         lastWhen = event.getWhen();
         
-        Consumer<? extends Event> eventHandler = eventHandlers.get(event.getClass());
+        Consumer<Event> eventHandler = eventHandlers.get(event.getClass());
         Validate.validState(eventHandler != null);
-        
+        eventHandler.accept(event);
         
         return lastWhen;
     }
@@ -124,13 +131,12 @@ public final class TestHarness {
         String address = joinEvent.getAddress();
         Actor actor = joinEvent.getActor();
         Duration timeOffset = joinEvent.getTimeOffset();
-        UnmodifiableList<Object> primingMessages = joinEvent.primingMessages;
+        UnmodifiableList<Object> primingMessages = joinEvent.getPrimingMessages();
 
         validateActorAddressDoesNotConflict(address);
 
         ActorBundle newBundle = new ActorBundle(address, actor, timeOffset);
-        ActorBundle existingBundle = actors.putIfAbsent(address, newBundle);
-        Validate.isTrue(existingBundle == null, "Actor identifier already in use");
+        actors.put(address, newBundle); // won't overwrite because validateActorAddress above will throw exception if it does
 
         processMessages(newBundle, MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, primingMessages.toArray());        
     }
@@ -153,8 +159,8 @@ public final class TestHarness {
                 !AddressUtils.isParent(MANAGEMENT_PREFIX, address),
                 "Actor address {} conflicts with management address {}", address, MANAGEMENT_PREFIX);
         ActorBundle conflictingActor = findActor(address);
-        Validate.isTrue(conflictingActor != null,
-                "Actor address {} conflicts with existing actor address {}", address, conflictingActor.getAddress());
+        Validate.isTrue(conflictingActor == null,
+                "Actor address {} conflicts with existing actor address {}", address, conflictingActor);
     }
 
     private ActorBundle findActor(String address) {
@@ -162,7 +168,7 @@ public final class TestHarness {
 
         List<String> splitAddress = Arrays.asList(AddressUtils.splitAddress(address));
         
-        for (int i = 0; i < splitAddress.size(); i++) {
+        for (int i = 0; i <= splitAddress.size(); i++) {
             StringJoiner joiner = new StringJoiner(SEPARATOR);
             splitAddress.subList(0, i).forEach(x -> joiner.add(x));
             

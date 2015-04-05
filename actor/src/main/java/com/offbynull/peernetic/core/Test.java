@@ -14,8 +14,10 @@ import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.gateways.udp.UdpGateway;
+import com.offbynull.peernetic.core.test.TestHarness;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.Validate;
 
@@ -26,7 +28,9 @@ public class Test {
 //        basicTimer();
 //        basicUdp();
 //        basicUnreliable();
-        basicRetry();
+//        basicRetry();
+//        testEnvironmentTimer();
+        testEnvironmentEcho();
     }
 
     private static void basicTest() throws InterruptedException {
@@ -244,5 +248,57 @@ public class Test {
         timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
         
         latch.await();
+    }
+
+    private static void testEnvironmentTimer() {
+        Coroutine tester = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+
+            System.out.println("Sending out at " + ctx.getTime());
+            String timerPrefix = ctx.getIncomingMessage();
+            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
+            cnt.suspend();
+            System.out.println("Got response at " + ctx.getTime());
+        };
+
+        TestHarness testHarness = new TestHarness("timer");
+        testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
+        
+        while (testHarness.hasMore()) {
+            testHarness.process();
+        }
+    }
+
+    private static void testEnvironmentEcho() {
+        Coroutine sender = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            String dstAddr = ctx.getIncomingMessage();
+
+            for (int i = 0; i < 10; i++) {
+                ctx.addOutgoingMessage(dstAddr, i);
+                cnt.suspend();
+                Validate.isTrue(i == (int) ctx.getIncomingMessage());
+                System.out.println("Got " + i);
+            }
+        };
+
+        Coroutine echoer = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+
+            while (true) {
+                String src = ctx.getSource();
+                Object msg = ctx.getIncomingMessage();
+                ctx.addOutgoingMessage(src, msg);
+                cnt.suspend();
+            }
+        };
+
+        TestHarness testHarness = new TestHarness("timer");
+        testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
+        testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        
+        while (testHarness.hasMore()) {
+            testHarness.process();
+        }
     }
 }

@@ -1,43 +1,53 @@
 package com.offbynull.peernetic.core.test;
 
 import com.offbynull.peernetic.core.actor.Actor;
+import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
+import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_PREFIX;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
+import com.offbynull.peernetic.core.common.AddressUtils;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.StringJoiner;
+import java.util.function.Consumer;
 import org.apache.commons.collections4.list.UnmodifiableList;
+import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 
 public final class TestHarness {
-    private final MessageDriver messageDriver;
+    private final UnmodifiableMap<Class<? extends Event>, Consumer<? extends Event>> eventHandlers;
     private final PriorityQueue<Event> events;
     private final String timerPrefix;
     private final Map<String, ActorBundle> actors;
     private Instant lastWhen;
     
     public TestHarness(String timerPrefix) {
-        this(Instant.ofEpochMilli(0L), new SimpleMessageDriver(), timerPrefix);
+        this(Instant.ofEpochMilli(0L), timerPrefix);
     }
     
     public TestHarness(Instant startTime, String timerPrefix) {
-        this(startTime, new SimpleMessageDriver(), timerPrefix);
-    }
-    
-    public TestHarness(Instant startTime, MessageDriver messageDriver, String timerPrefix) {
         Validate.notNull(startTime);
-        Validate.notNull(messageDriver);
         Validate.notNull(timerPrefix);
 
-        this.messageDriver = messageDriver;
         this.events = new PriorityQueue<>();
         this.timerPrefix = timerPrefix;
         this.actors = new HashMap<>();
         this.lastWhen = startTime;
+        
+        Map<Class<? extends Event>, Consumer<? extends Event>> eventHandlers = new HashMap<>();
+        eventHandlers.put(CustomEvent.class, this::handleCustomEvent);
+        eventHandlers.put(JoinEvent.class, this::handleJoinEvent);
+        eventHandlers.put(LeaveEvent.class, this::handleLeaveEvent);
+        eventHandlers.put(MessageEvent.class, this::handleMessageEvent);
+        
+        this.eventHandlers =
+                (UnmodifiableMap<Class<? extends Event>, Consumer<? extends Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
     }
     
     public void addActor(String address, Actor actor, Duration timeOffset, Instant when, Object... primingMessages) {
@@ -79,129 +89,108 @@ public final class TestHarness {
 
         lastWhen = event.getWhen();
         
-        if (event instanceof CustomEvent) {
-//            CustomEvent customEvent = (CustomEvent) event;
-//            
-//            Runnable runnable = customEvent.getRunnable();
-//            runnable.run();
-        } else if (event instanceof MessageEvent) {
-//            MessageEvent messageEvent = (MessageEvent) event;
-//            
-//            Object message = messageEvent.getMessage();
-//            String fromId = messageEvent.getSource();
-//            String toId = messageEvent.getDestination();
-//            
-//            ActorBundle srcBundle = actors.get(fromId);
-//            ActorBundle dstBundle = actors.get(toId);
-//            if (dstBundle != null) {
-//                Actor actor = dstBundle.getActor();
-//                Endpoint source = srcBundle != null ? srcBundle.getEndpoint() : new InternalEndpoint(fromId); // create fake if not exists
-//                Endpoint destination = dstBundle.getEndpoint();
-//                Duration timeOffset = dstBundle.getTimeOffset();
-//                
-//                Instant adjustedLastWhen = lastWhen.plus(timeOffset);
-//                
-//                try {
-//                    actor.onStep(adjustedLastWhen, source, message);
-//                } catch (Exception e) {
-//                    LOG.error("Actor encountered an error on run", e);
-//
-//                    try {
-//                        actor.onStop(adjustedLastWhen);
-//                    } catch (Exception ex) {
-//                        LOG.error("Actor encountered an error on stop", ex);
-//                    }
-//
-//                    actors.remove(toId);
-//                    actorLookupByEndpoint.remove(destination);
-//                }
-//            }
-        } else if (event instanceof ScheduledMessageEvent) {
-//            ScheduledMessageEvent scheduledMessageEvent = (ScheduledMessageEvent) event;
-//            
-//            Object message = scheduledMessageEvent.getMessage();
-//            Endpoint source = scheduledMessageEvent.getSource();
-//            Endpoint destination = scheduledMessageEvent.getDestination();
-//            
-//            ActorBundle dstBundle = actorLookupByEndpoint.get(destination);
-//            if (dstBundle != null) {
-//                Actor actor = dstBundle.getActor();
-//                
-//                Duration timeOffset = dstBundle.getTimeOffset();
-//                Instant adjustedLastWhen = lastWhen.plus(timeOffset);
-//                
-//                try {
-//                    actor.onStep(adjustedLastWhen, source, message);
-//                } catch (Exception e) {
-//                    LOG.error("Actor encountered an error on run", e);
-//
-//                    try {
-//                        actor.onStop(adjustedLastWhen);
-//                    } catch (Exception ex) {
-//                        LOG.error("Actor encountered an error on stop", ex);
-//                    }
-//
-//                    actors.remove(dstBundle.getName());
-//                    actorLookupByEndpoint.remove(destination);
-//                }
-//            }
-        } else if (event instanceof JoinEvent) {
-            JoinEvent joinEvent = (JoinEvent) event;
-
-            String id = joinEvent.getAddress();
-            Actor actor = joinEvent.getActor();
-            Duration timeOffset = joinEvent.getTimeOffset();
-            UnmodifiableList<Object> primingMessages = joinEvent.primingMessages;
-            
-            ActorBundle bundle = new ActorBundle(id, actor, timeOffset);
-
-            ActorBundle prevBundle = actors.putIfAbsent(id, bundle);
-            Validate.isTrue(prevBundle == null, "Actor identifier already in use");
-
-            Instant adjustedLastWhen = lastWhen.plus(timeOffset);
-            processMessages(adjustedLastWhen, id, "management:management", "management:management", primingMessages.toArray());
-        } else if (event instanceof LeaveEvent) {
-//            LeaveEvent leaveEvent = (LeaveEvent) event;
-//
-//            A id = leaveEvent.getAddress();
-//
-//            ActorBundle bundle = actors.get(id);
-//            Validate.isTrue(bundle != null, "Actor identifier does not exist");
-//            
-//            Duration timeOffset = bundle.getTimeOffset();
-//            Instant adjustedLastWhen = lastWhen.plus(timeOffset);
-//            
-//            try {
-//                bundle.getActor().onStop(adjustedLastWhen);
-//            } catch (Exception ex) {
-//                LOG.error("Actor encountered an error on stop", ex);
-//            }
-//            
-//            actors.remove(id);
-//            actorLookupByEndpoint.remove(bundle.getEndpoint());
-        } else {
-            throw new IllegalStateException();
-        }
+        Consumer<? extends Event> eventHandler = eventHandlers.get(event.getClass());
+        Validate.validState(eventHandler != null);
+        
         
         return lastWhen;
     }
     
-    private void processMessages(Instant time, String address, String source, String destination, Object ... messages) {
+    private void handleCustomEvent(Event event) {
+        CustomEvent customEvent = (CustomEvent) event;
+        Runnable runnable = customEvent.getRunnable();
+        runnable.run();
+    }
+    
+    private void handleMessageEvent(Event event) {
+        MessageEvent messageEvent = (MessageEvent) event;
+
+        Object message = messageEvent.getMessage();
+        String source = messageEvent.getSourceAddress();
+        String destination = messageEvent.getDestinationAddress();
+
+        ActorBundle actorBundle = findActor(destination);
+        if (actorBundle == null) {
+            // LOG WARNING
+            return;
+        }
+        
+        processMessages(actorBundle, source, destination, message);
+    }
+    
+    private void handleJoinEvent(Event event) {
+        JoinEvent joinEvent = (JoinEvent) event;
+
+        String address = joinEvent.getAddress();
+        Actor actor = joinEvent.getActor();
+        Duration timeOffset = joinEvent.getTimeOffset();
+        UnmodifiableList<Object> primingMessages = joinEvent.primingMessages;
+
+        validateActorAddressDoesNotConflict(address);
+
+        ActorBundle newBundle = new ActorBundle(address, actor, timeOffset);
+        ActorBundle existingBundle = actors.putIfAbsent(address, newBundle);
+        Validate.isTrue(existingBundle == null, "Actor identifier already in use");
+
+        processMessages(newBundle, MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, primingMessages.toArray());        
+    }
+    
+    private void handleLeaveEvent(Event event) {
+        LeaveEvent leaveEvent = (LeaveEvent) event;
+
+        String address = leaveEvent.getAddress();
+
+        ActorBundle bundle = actors.remove(address);
+        Validate.isTrue(bundle != null, "Actor identifier does not exist");
+    }
+    
+    private void validateActorAddressDoesNotConflict(String address) {
         Validate.notNull(address);
+        Validate.isTrue(
+                !AddressUtils.isParent(timerPrefix, address),
+                "Actor address {} conflicts with timer address {}", address, timerPrefix);
+        Validate.isTrue(
+                !AddressUtils.isParent(MANAGEMENT_PREFIX, address),
+                "Actor address {} conflicts with management address {}", address, MANAGEMENT_PREFIX);
+        ActorBundle conflictingActor = findActor(address);
+        Validate.isTrue(conflictingActor != null,
+                "Actor address {} conflicts with existing actor address {}", address, conflictingActor.getAddress());
+    }
+
+    private ActorBundle findActor(String address) {
+        Validate.notNull(address);
+
+        List<String> splitAddress = Arrays.asList(AddressUtils.splitAddress(address));
+        
+        for (int i = 0; i < splitAddress.size(); i++) {
+            StringJoiner joiner = new StringJoiner(SEPARATOR);
+            splitAddress.subList(0, i).forEach(x -> joiner.add(x));
+            
+            String testAddress = joiner.toString();
+            ActorBundle actorBundle = actors.get(testAddress);
+            if (actorBundle != null) {
+                return actorBundle;
+            }
+        }
+        
+        return null;
+    }
+    
+    private void processMessages(ActorBundle actorBundle, String source, String destination, Object ... messages) {
+        Validate.notNull(actorBundle);
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         
-        ActorBundle actorBundle = actors.get(address);
-        Validate.notNull(actorBundle, "Attempting to process messages for non-existant actor {}", address);
-        
         Actor actor = actorBundle.getActor();
+        String address = actorBundle.getAddress();
         Context context = actorBundle.getContext();
+        Instant localActorTime = lastWhen.plus(actorBundle.getTimeOffset());
         
         try {
             for (Object message : messages) {
-                context.setTime(time);
+                context.setTime(localActorTime);
                 context.setSource(source);
                 context.setDestination(destination);
                 context.setSelf(address);
@@ -216,7 +205,21 @@ public final class TestHarness {
                     Object newMessage = batchedOutgoingMessage.getMessage();
                     String newSource = address + (newSourceId != null ? SEPARATOR + newSourceId : "");
                     
-                    events.add(new MessageEvent(newSource, newDestination, newMessage, time));
+                    if (AddressUtils.isParent(timerPrefix, newDestination)) {
+                        // Message for timer. Add in the RESPONSE FROM the timer.
+                        try {
+                            String durationStr = AddressUtils.getAddressElement(newDestination, 1);
+                            Duration duration = Duration.ofMillis(Long.parseLong(durationStr));
+                            Validate.isTrue(!duration.isNegative());
+
+                            events.add(new MessageEvent(newDestination, newSource, newMessage, lastWhen.plus(duration)));
+                        } catch (Exception e) {
+                            // TODO log here. nothing else, technically if the timer gets bad suffixes or anything like that it'll ignore
+                        }
+                    } else {
+                        // Message for other actor. Add in the message.
+                        events.add(new MessageEvent(newSource, newDestination, newMessage, lastWhen));
+                    }
                 }
             }
         } catch (Exception e) {

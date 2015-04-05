@@ -3,8 +3,8 @@ package com.offbynull.peernetic.core.actor;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.Message;
 import com.offbynull.peernetic.core.Shuttle;
+import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
 import com.offbynull.peernetic.core.actor.ActorRunnable.AddShuttleMessage;
-import static com.offbynull.peernetic.core.actor.ActorRunnable.MANAGEMENT_ADDRESS;
 import java.util.Collections;
 import org.apache.commons.lang3.Validate;
 
@@ -40,7 +40,7 @@ public final class ActorThread {
         return new ActorThread(thread, runnable);
     }
     
-    public void kill() {
+    public void interruptThread() {
         thread.interrupt();
     }
 

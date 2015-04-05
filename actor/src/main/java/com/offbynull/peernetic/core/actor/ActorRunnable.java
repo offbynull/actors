@@ -4,6 +4,8 @@ import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.Message;
 import com.offbynull.coroutines.user.Coroutine;
+import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
+import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_PREFIX;
 import static com.offbynull.peernetic.core.common.AddressUtils.getAddress;
 import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
@@ -23,10 +25,6 @@ import org.slf4j.LoggerFactory;
 final class ActorRunnable implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ActorRunnable.class);
-
-    static final String MANAGEMENT_PREFIX = "management";
-    static final String MANAGEMENT_ID = "management";
-    static final String MANAGEMENT_ADDRESS = getAddress(MANAGEMENT_PREFIX, MANAGEMENT_ID);
 
     private final String prefix;
     private final InternalBus bus;

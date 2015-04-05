@@ -18,7 +18,7 @@ public final class Context {
         return self;
     }
 
-    void setSelf(String self) {
+    public void setSelf(String self) {
         Validate.notNull(self);
         Validate.notEmpty(self);
         this.self = self;
@@ -28,7 +28,7 @@ public final class Context {
         return time;
     }
 
-    void setTime(Instant time) {
+    public void setTime(Instant time) {
         Validate.notNull(time);
         this.time = time;
     }
@@ -37,7 +37,7 @@ public final class Context {
         return source;
     }
 
-    void setSource(String source) {
+    public void setSource(String source) {
         Validate.notNull(source);
         this.source = source;
     }
@@ -46,7 +46,7 @@ public final class Context {
         return destination;
     }
 
-    void setDestination(String destination) {
+    public void setDestination(String destination) {
         Validate.notNull(destination);
         this.destination = destination;
     }
@@ -56,7 +56,7 @@ public final class Context {
         return (T) incomingMessage;
     }
 
-    void setIncomingMessage(Object incomingMessage) {
+    public void setIncomingMessage(Object incomingMessage) {
         Validate.notNull(incomingMessage);
         this.incomingMessage = incomingMessage;
     }
@@ -72,14 +72,14 @@ public final class Context {
         outgoingMessages.add(new BatchedOutgoingMessage(sourceId, destination, message));
     }
     
-    List<BatchedOutgoingMessage> copyAndClearOutgoingMessages() {
+    public List<BatchedOutgoingMessage> copyAndClearOutgoingMessages() {
         List<BatchedOutgoingMessage> ret = new ArrayList<>(outgoingMessages);
         outgoingMessages.clear();
         
         return ret;
     }
     
-    static final class BatchedOutgoingMessage {
+    public static final class BatchedOutgoingMessage {
         private final String sourceId;
         private final String destination;
         private final Object message;

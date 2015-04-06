@@ -33,10 +33,10 @@ public final class Graph extends Group {
 
         Platform.runLater(() -> {
             Label label = new Label(id);
-            
+
             DoubleBinding centerXBinding = doubleExpression(doubleExpression(label.widthProperty().divide(2.0).negate())).add(x);
             DoubleBinding centerYBinding = doubleExpression(doubleExpression(label.heightProperty().divide(2.0).negate())).add(y);
-            
+
             label.layoutXProperty().bind(centerXBinding);
             label.layoutYProperty().bind(centerYBinding);
 
@@ -44,6 +44,33 @@ public final class Graph extends Group {
             Validate.isTrue(existingLabel == null);
 
             getChildren().add(label);
+        });
+    }
+
+    public void moveNode(String id, double x, double y) {
+        Validate.notNull(id);
+        Validate.isTrue(Double.isFinite(x));
+        Validate.isTrue(Double.isFinite(y));
+
+        Platform.runLater(() -> {
+            Label label = nodes.get(id);
+            Validate.isTrue(label != null);
+            DoubleBinding centerXBinding = doubleExpression(doubleExpression(label.widthProperty().divide(2.0).negate())).add(x);
+            label.layoutXProperty().bind(centerXBinding);
+
+            DoubleBinding centerYBinding = doubleExpression(doubleExpression(label.heightProperty().divide(2.0).negate())).add(y);
+            label.layoutYProperty().bind(centerYBinding);
+        });
+    }
+    
+    public void styleNode(String id, String style) {
+        Validate.notNull(id);
+
+        Platform.runLater(() -> {
+            Label label = nodes.get(id);
+            Validate.isTrue(label != null);
+            
+            label.setStyle(style); // null is implicitly converted to an empty string
         });
     }
 
@@ -99,6 +126,18 @@ public final class Graph extends Group {
         });
     }
 
+    public void styleEdge(String fromId, String toId, String style) {
+        Validate.notNull(fromId);
+        Validate.notNull(toId);
+
+        Platform.runLater(() -> {
+            Line line = edges.remove(new ImmutablePair<>(fromId, toId));
+            Validate.isTrue(line != null);
+
+            line.setStyle(style); // null is implicitly converted to an empty string
+        });
+    }
+    
     public void removeEdge(String fromId, String toId) {
         Validate.notNull(fromId);
         Validate.notNull(toId);
@@ -109,8 +148,10 @@ public final class Graph extends Group {
 
             Validate.notNull(fromLabel);
             Validate.notNull(toLabel);
-            
+
             Line line = edges.remove(new ImmutablePair<>(fromId, toId));
+            Validate.isTrue(line != null);
+            
             anchors.removeMapping(fromLabel, line);
             anchors.removeMapping(toLabel, line);
 

@@ -34,6 +34,9 @@ public class Main extends Application {
         
         graph.removeNode("222222");
         
+        graph.moveNode("111111", 300, 300);
+        graph.styleNode("111111", "-fx-background-color: #000000; -fx-text-fill: #FFFFFF;");
+        
         root.getChildren().add(graph);
 
 

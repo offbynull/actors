@@ -31,6 +31,10 @@ public final class TestHarness {
     private final ActorBehaviourDriver actorDurationCalculator;
     private final MessageBehaviourDriver messageDurationCalculator;
     private Instant currentTime;
+    private long nextSequenceNumber; // Each time an event created and added to the events collection, this sequence number is incremented
+                                     // and used for the events sequence number. The sequence number is used to properly order order events
+                                     // that trigger at the same time. That is, if two events trigger at the same time, they'll be returned
+                                     // in the order they were added.
     
     public TestHarness(String timerPrefix) {
         this(Instant.ofEpochMilli(0L), timerPrefix);
@@ -79,7 +83,7 @@ public final class TestHarness {
         Validate.isTrue(!when.isBefore(currentTime), "Attempting to add actor event prior to current time");
         Validate.isTrue(!timeOffset.isNegative(), "Negative time offset not allowed");
 
-        events.add(new JoinEvent(address, actor, timeOffset, when, primingMessages));
+        events.add(new JoinEvent(address, actor, timeOffset, when, nextSequenceNumber++, primingMessages));
     }
 
     public void removeActor(String address, Instant when) {
@@ -87,7 +91,7 @@ public final class TestHarness {
         Validate.notNull(when);
         Validate.isTrue(!when.isBefore(currentTime), "Attempting to remove actor event prior to current time");
 
-        events.add(new LeaveEvent(address, when));
+        events.add(new LeaveEvent(address, when, nextSequenceNumber++));
     }
 
     public void addCustom(Runnable runnable, Instant when) {
@@ -95,7 +99,7 @@ public final class TestHarness {
         Validate.notNull(when);
         Validate.isTrue(!when.isBefore(currentTime), "Attempting to add custom event prior to current time");
 
-        events.add(new CustomEvent(runnable, when));
+        events.add(new CustomEvent(runnable, when, nextSequenceNumber++));
     }
 
     public boolean hasMore() {
@@ -223,7 +227,7 @@ public final class TestHarness {
             }
         }
         
-        events.add(new MessageEvent(source, destination, message, arriveTime));
+        events.add(new MessageEvent(source, destination, message, arriveTime, nextSequenceNumber++));
     }
     
     private void processMessage(MessageEvent messageEvent) {
@@ -345,7 +349,8 @@ public final class TestHarness {
                     pendingMessageEvent.getSourceAddress(),
                     pendingMessageEvent.getDestinationAddress(),
                     pendingMessageEvent.getMessage(),
-                    pendingMessageEvent.getTriggerTime());
+                    pendingMessageEvent.getTriggerTime(),
+                    nextSequenceNumber++);
             events.add(rescheduledMessageEvent);
         }
     }

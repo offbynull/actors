@@ -8,8 +8,8 @@ final class MessageEvent extends Event {
     final String destinationAddress;
     final Object message;
 
-    public MessageEvent(String sourceAddress, String destinationAddress, Object message, Instant when) {
-        super(when);
+    public MessageEvent(String sourceAddress, String destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
+        super(triggerTime, sequenceNumber);
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);

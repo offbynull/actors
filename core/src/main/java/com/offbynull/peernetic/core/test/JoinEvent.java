@@ -13,8 +13,9 @@ final class JoinEvent extends Event {
     final Duration timeOffset;
     final UnmodifiableList<Object> primingMessages;
 
-    public JoinEvent(String address, Actor actor, Duration timeOffset, Instant triggerTime, Object... primingMessages) {
-        super(triggerTime);
+    public JoinEvent(String address, Actor actor, Duration timeOffset, Instant triggerTime, long sequenceNumber,
+            Object... primingMessages) {
+        super(triggerTime, sequenceNumber);
         Validate.notNull(address);
         Validate.notNull(actor);
         Validate.notNull(timeOffset);

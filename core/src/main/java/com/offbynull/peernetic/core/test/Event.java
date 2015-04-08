@@ -4,20 +4,20 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 abstract class Event implements Comparable<Event> {
-    private final Instant when;
+    private final Instant triggerTime;
 
-    public Event(Instant when) {
-        Validate.notNull(when);
-        this.when = when;
+    public Event(Instant triggerTime) {
+        Validate.notNull(triggerTime);
+        this.triggerTime = triggerTime;
     }
 
-    public Instant getWhen() {
-        return when;
+    public Instant getTriggerTime() {
+        return triggerTime;
     }
 
     @Override
     public int compareTo(Event o) {
-        return when.compareTo(o.when); // smallest time to largest time
+        return triggerTime.compareTo(o.triggerTime); // smallest time to largest time
     }
     
 }

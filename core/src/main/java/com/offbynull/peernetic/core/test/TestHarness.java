@@ -5,7 +5,6 @@ import com.offbynull.peernetic.core.actor.Actor;
 import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
 import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_PREFIX;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.common.AddressUtils;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
@@ -13,6 +12,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -27,20 +28,29 @@ public final class TestHarness {
     private final PriorityQueue<Event> events;
     private final String timerPrefix;
     private final Map<String, ActorBundle> actors;
-    private Instant lastWhen;
+    private final ActorBehaviourDriver actorDurationCalculator;
+    private final MessageBehaviourDriver messageDurationCalculator;
+    private Instant currentTime;
     
     public TestHarness(String timerPrefix) {
         this(Instant.ofEpochMilli(0L), timerPrefix);
     }
     
     public TestHarness(Instant startTime, String timerPrefix) {
+        this(startTime, timerPrefix, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
+    }
+    
+    public TestHarness(Instant startTime, String timerPrefix, ActorBehaviourDriver actorDurationCalculator,
+            MessageBehaviourDriver messageDurationCalculator) {
         Validate.notNull(startTime);
         Validate.notNull(timerPrefix);
+        Validate.notNull(actorDurationCalculator);
+        Validate.notNull(messageDurationCalculator);
 
         this.events = new PriorityQueue<>();
         this.timerPrefix = timerPrefix;
         this.actors = new HashMap<>();
-        this.lastWhen = startTime;
+        this.currentTime = startTime;
         
         Map<Class<? extends Event>, Consumer<Event>> eventHandlers = new HashMap<>();
         eventHandlers.put(CustomEvent.class, this::handleCustomEvent);
@@ -50,6 +60,8 @@ public final class TestHarness {
         
         this.eventHandlers =
                 (UnmodifiableMap<Class<? extends Event>, Consumer<Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
+        this.actorDurationCalculator = actorDurationCalculator;
+        this.messageDurationCalculator = messageDurationCalculator;
     }
 
     public void addCoroutineActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
@@ -64,7 +76,7 @@ public final class TestHarness {
         Validate.notNull(when);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        Validate.isTrue(!when.isBefore(lastWhen), "Attempting to add actor event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add actor event prior to current time");
         Validate.isTrue(!timeOffset.isNegative(), "Negative time offset not allowed");
 
         events.add(new JoinEvent(address, actor, timeOffset, when, primingMessages));
@@ -73,7 +85,7 @@ public final class TestHarness {
     public void removeActor(String address, Instant when) {
         Validate.notNull(address);
         Validate.notNull(when);
-        Validate.isTrue(!when.isBefore(lastWhen), "Attempting to remove actor event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to remove actor event prior to current time");
 
         events.add(new LeaveEvent(address, when));
     }
@@ -81,7 +93,7 @@ public final class TestHarness {
     public void addCustom(Runnable runnable, Instant when) {
         Validate.notNull(runnable);
         Validate.notNull(when);
-        Validate.isTrue(!when.isBefore(lastWhen), "Attempting to add custom event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add custom event prior to current time");
 
         events.add(new CustomEvent(runnable, when));
     }
@@ -94,13 +106,13 @@ public final class TestHarness {
         Event event = events.poll();
         Validate.isTrue(event != null, "No events left to process");
 
-        lastWhen = event.getWhen();
+        currentTime = event.getTriggerTime();
         
         Consumer<Event> eventHandler = eventHandlers.get(event.getClass());
         Validate.validState(eventHandler != null);
         eventHandler.accept(event);
         
-        return lastWhen;
+        return currentTime;
     }
     
     private void handleCustomEvent(Event event) {
@@ -110,19 +122,8 @@ public final class TestHarness {
     }
     
     private void handleMessageEvent(Event event) {
-        MessageEvent messageEvent = (MessageEvent) event;
-
-        Object message = messageEvent.getMessage();
-        String source = messageEvent.getSourceAddress();
-        String destination = messageEvent.getDestinationAddress();
-
-        ActorBundle actorBundle = findActor(destination);
-        if (actorBundle == null) {
-            // LOG WARNING
-            return;
-        }
-        
-        processMessages(actorBundle, source, destination, message);
+        MessageEvent messageEvent = (MessageEvent) event;        
+        processMessage(messageEvent);
     }
     
     private void handleJoinEvent(Event event) {
@@ -135,10 +136,12 @@ public final class TestHarness {
 
         validateActorAddressDoesNotConflict(address);
 
-        ActorBundle newBundle = new ActorBundle(address, actor, timeOffset);
+        ActorBundle newBundle = new ActorBundle(address, actor, timeOffset, currentTime);
         actors.put(address, newBundle); // won't overwrite because validateActorAddress above will throw exception if it does
 
-        processMessages(newBundle, MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, primingMessages.toArray());        
+        for (Object message : primingMessages) {
+            queueMessage(MANAGEMENT_ADDRESS, address, message, Duration.ZERO);
+        }
     }
     
     private void handleLeaveEvent(Event event) {
@@ -182,54 +185,168 @@ public final class TestHarness {
         return null;
     }
     
-    private void processMessages(ActorBundle actorBundle, String source, String destination, Object ... messages) {
-        Validate.notNull(actorBundle);
+    private void queueMessage(String source, String destination, Object message, Duration scheduledDuration) {
         Validate.notNull(source);
         Validate.notNull(destination);
-        Validate.notNull(messages);
-        Validate.noNullElements(messages);
+        Validate.notNull(message);
+        Validate.notNull(scheduledDuration);
         
-        Actor actor = actorBundle.getActor();
-        String address = actorBundle.getAddress();
-        Context context = actorBundle.getContext();
-        Instant localActorTime = lastWhen.plus(actorBundle.getTimeOffset());
+        // Source must exist or be management address.
+        Validate.isTrue(MANAGEMENT_ADDRESS.equals(source) || findActor(source) != null);
         
+        // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
+        // to existance exist by the time the message arrives. Also, do a sanity check to make sure destination address isn't set to the
+        // special internal management address value
+        Validate.isTrue(!AddressUtils.isParent(MANAGEMENT_ADDRESS, destination));
+        
+        Instant arriveTime = currentTime;
+        
+        // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
+        // should be zero (or close to zero).
+        Duration messageDuration = messageDurationCalculator.calculateDuration(source, destination, message);
+        Validate.isTrue(!messageDuration.isNegative()); // sanity check here, make sure it isn't negative
+        
+        arriveTime = arriveTime.plus(messageDuration);
+        
+        // Message may be scheduled by the timer to run at a certain delay. If it is, add that scheduled delay to the arrival time.
+        arriveTime = arriveTime.plus(scheduledDuration);
+        
+        // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. Why is
+        // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
+        // (technically). It makes sense no sense to have a message arrive at that actor before then. So, we make sure here that it doesn't
+        // arrive before then.
+        ActorBundle destBundle = findActor(destination);
+        if (destBundle != null) { //destBundle may be null, see comment above about destination not having to exist
+            Instant nextAvailableStepTime = destBundle.getEarliestPossibleOnStepTime();
+            if (arriveTime.isBefore(nextAvailableStepTime)) {
+                arriveTime = nextAvailableStepTime;
+            }
+        }
+        
+        events.add(new MessageEvent(source, destination, message, arriveTime));
+    }
+    
+    private void processMessage(MessageEvent messageEvent) {
+        Validate.notNull(messageEvent);
+        
+        String source = messageEvent.getSourceAddress();
+        String destination = messageEvent.getDestinationAddress();
+        Object message = messageEvent.getMessage();
+        
+        // Special case: If this is a timer messages, bounce it back to the source -- scheduled to arrive after the specified duration
+        if (AddressUtils.isParent(timerPrefix, destination)) {
+            Duration timerDuration;
+            try {
+                String durationStr = AddressUtils.getAddressElement(destination, 1);
+                timerDuration = Duration.ofMillis(Long.parseLong(durationStr));
+                Validate.isTrue(!timerDuration.isNegative());
+            } catch (Exception e) {
+                // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
+                return;
+            }
+            
+            queueMessage(destination, source, message, timerDuration);
+            return;
+        }
+        
+        
+        // Get destination
+        ActorBundle destBundle = findActor(destination);
+        
+        // If destination doesn't exist, log a warning and move on. In the real world if the destination doesn't exist or is otherwise
+        // unreachable, the same thing happens -- message is sent to some destination but the system doesn't really care if it arrives or
+        // not.
+        if (destBundle == null) {
+            // TODO log here
+            return;
+        }
+        
+        // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. That is,
+        // the message being processed must be >= to the earliest possible step time. Otherwise, something has gone wrong. This is a sanity
+        // check.
+        Instant minTime = destBundle.getEarliestPossibleOnStepTime();
+        Validate.isTrue(!currentTime.isBefore(minTime));
+        
+        
+        // Set up values for calling onStep, and then call onStep. If onStep throws an exception, then log and remove the actor from the
+        // test harness. In the real world, if an actor throws an exception, it'll get removed from the list of actors assigned to that
+        // ActorThread/ActorRunnable and no more execution is done on it.
+        Actor actor = destBundle.getActor();
+        String address = destBundle.getAddress();
+        Context context = destBundle.getContext();
+        Instant localActorTime = currentTime.plus(destBundle.getTimeOffset()); // This is the time as it appears to the actor. Clocks
+                                                                               // between different machines are never going to be entirely
+                                                                               // in sync. So, one actor may technically have a different
+                                                                               // local time than another (because they may be running on
+                                                                               // different machines).
+        
+        context.setTime(localActorTime);
+        context.setSource(source);
+        context.setDestination(destination);
+        context.setSelf(address);
+        context.setIncomingMessage(message);
+        
+        Duration realExecDuration;
         try {
-            for (Object message : messages) {
-                context.setTime(localActorTime);
-                context.setSource(source);
-                context.setDestination(destination);
-                context.setSelf(address);
-                context.setIncomingMessage(message);
-                actor.onStep(context);
-                
-                List<BatchedOutgoingMessage> batchedOutgoingMessages = context.copyAndClearOutgoingMessages();
-                
-                for (BatchedOutgoingMessage batchedOutgoingMessage : batchedOutgoingMessages) {
-                    String newSourceId = batchedOutgoingMessage.getSourceId();
-                    String newDestination = batchedOutgoingMessage.getDestination();
-                    Object newMessage = batchedOutgoingMessage.getMessage();
-                    String newSource = address + (newSourceId != null ? SEPARATOR + newSourceId : "");
-                    
-                    if (AddressUtils.isParent(timerPrefix, newDestination)) {
-                        // Message for timer. Add in the RESPONSE FROM the timer.
-                        try {
-                            String durationStr = AddressUtils.getAddressElement(newDestination, 1);
-                            Duration duration = Duration.ofMillis(Long.parseLong(durationStr));
-                            Validate.isTrue(!duration.isNegative());
-
-                            events.add(new MessageEvent(newDestination, newSource, newMessage, lastWhen.plus(duration)));
-                        } catch (Exception e) {
-                            // TODO log here. nothing else, technically if the timer gets bad suffixes or anything like that it'll ignore
-                        }
-                    } else {
-                        // Message for other actor. Add in the message.
-                        events.add(new MessageEvent(newSource, newDestination, newMessage, lastWhen));
-                    }
+            Instant execStartTime = Instant.now();
+            actor.onStep(context);
+            Instant execEndTime = Instant.now();
+            realExecDuration = Duration.between(execStartTime, execEndTime);
+        } catch (Exception e) {
+            // Actor crashed. Remove it from the list of actors and stop processing.
+            actors.remove(address);
+            return;
+        }
+        
+        // We've finished calling onStep(). Next, add the amount of time it took to do the processing of the message by onStep. This is a
+        // calculated value. We have the real execution time, and we pass that in as a hint to the interface that does the calculations, but
+        // ultimately the interface can specify whatever duration it wants (provided that it isn't negative).
+        //
+        // Add the execution duration to the current time and set it as the actor's next possible step time. There's no way we can call
+        // onStep() before this time. Otherwise we'd be going back in time.
+        if (realExecDuration.isNegative()) { // System clock may be wonky, so make sure exec duration doesn't come out as negative!
+            realExecDuration = Duration.ZERO;
+        }
+        Duration execDuration = actorDurationCalculator.calculateDuration(address, message, realExecDuration);
+        Validate.isTrue(!execDuration.isNegative()); // sanity check here, make sure calculated duration it isn't negative
+        
+        Instant earliestPossibleOnStepTime = currentTime.plus(execDuration);
+        destBundle.setEarliestPossibleOnStepTime(earliestPossibleOnStepTime);
+        
+        // Go through any messages queued to arrive at this actor before earliest possible onstep time. Reschedule each of those messages
+        // such that they arrive at earliest possible on step time. Like the comment above says, it wouldn't make sense to call onStep()
+        // before this time. We'd be going back in time if we did.
+        List<MessageEvent> messageEventsToReschedule = new LinkedList<>();
+        Iterator<Event> it = events.iterator();
+        while (it.hasNext()) {
+            Event event = it.next();
+            
+            // Events queue is ordered. If the event we're looking at right now is >= to the earliest possible onstep time, it means that
+            // this event and all events after it don't need to be rescheduled, so stop checking here.
+            if (!earliestPossibleOnStepTime.isBefore(event.getTriggerTime())) {
+                break;
+            }
+            
+            // We only care about MessageEvents because they're the ones that trigger calls to onStep(). If the event is a MessageEvent and
+            // the destination of that event is this actor, remove it from the events queue and add it to a temporary collection. All items
+            // in this temporary collection are going to be rescheduled such that they trigger at earliestPossibleOnStepTime and re-added
+            // to the events queue.
+            if (event instanceof MessageEvent) {
+                MessageEvent pendingMessageEvent = (MessageEvent) event;
+                if (pendingMessageEvent.getDestinationAddress().equals(address)) {
+                    messageEventsToReschedule.add(pendingMessageEvent);
+                    it.remove();
                 }
             }
-        } catch (Exception e) {
-            actors.remove(address);
+        }
+        
+        for (MessageEvent pendingMessageEvent : messageEventsToReschedule) {
+            MessageEvent rescheduledMessageEvent = new MessageEvent(
+                    pendingMessageEvent.getSourceAddress(),
+                    pendingMessageEvent.getDestinationAddress(),
+                    pendingMessageEvent.getMessage(),
+                    pendingMessageEvent.getTriggerTime());
+            events.add(rescheduledMessageEvent);
         }
     }
 }

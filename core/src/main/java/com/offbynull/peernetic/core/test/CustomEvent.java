@@ -6,8 +6,8 @@ import org.apache.commons.lang3.Validate;
 final class CustomEvent extends Event {
     final Runnable runnable;
 
-    public CustomEvent(Runnable runnable, Instant when) {
-        super(when);
+    public CustomEvent(Runnable runnable, Instant triggerTime) {
+        super(triggerTime);
         Validate.notNull(runnable);
         this.runnable = runnable;
     }

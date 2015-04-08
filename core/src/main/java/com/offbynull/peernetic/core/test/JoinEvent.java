@@ -13,12 +13,12 @@ final class JoinEvent extends Event {
     final Duration timeOffset;
     final UnmodifiableList<Object> primingMessages;
 
-    public JoinEvent(String address, Actor actor, Duration timeOffset, Instant when, Object... primingMessages) {
-        super(when);
+    public JoinEvent(String address, Actor actor, Duration timeOffset, Instant triggerTime, Object... primingMessages) {
+        super(triggerTime);
         Validate.notNull(address);
         Validate.notNull(actor);
         Validate.notNull(timeOffset);
-        Validate.notNull(when);
+        Validate.notNull(triggerTime);
         Validate.notNull(primingMessages);
         Validate.isTrue(!timeOffset.isNegative());
         Validate.noNullElements(primingMessages);

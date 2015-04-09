@@ -11,8 +11,6 @@ public final class Message {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
-        Validate.notEmpty(sourceAddress);
-        Validate.notEmpty(destinationAddress);
         
         this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;

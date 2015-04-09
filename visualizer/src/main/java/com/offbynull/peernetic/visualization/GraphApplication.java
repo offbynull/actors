@@ -1,12 +1,18 @@
-package com.offbynull.peernetic.visualization.graph;
+package com.offbynull.peernetic.visualization;
 
 import java.util.Collection;
+import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.DoubleBinding;
 import static javafx.beans.binding.DoubleExpression.doubleExpression;
 import javafx.scene.Group;
+import javafx.scene.Scene;
+import javafx.scene.SceneAntialiasing;
 import javafx.scene.control.Label;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
+import javafx.stage.Stage;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
@@ -14,36 +20,90 @@ import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
-public final class Graph extends Group {
+public final class GraphApplication extends Application {
 
-    private final BidiMap<String, Label> nodes;
-    private final BidiMap<ImmutablePair<String, String>, Line> edges;
-    private final MultiMap<Label, Line> anchors;
+    private static volatile GraphApplication instance;
+    
+    private final BidiMap<String, Label> nodes = new DualHashBidiMap<>();
+    private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
+    private final MultiMap<Label, Line> anchors = new MultiValueMap<>();
+    private Group graph;
 
-    public Graph() {
-        nodes = new DualHashBidiMap<>();
-        edges = new DualHashBidiMap<>();
-        anchors = new MultiValueMap<>();
+    @Override
+    public void init() throws Exception {
+        instance = this;
     }
 
-    public void addNode(String id, double x, double y) {
+    @Override
+    public void start(Stage stage) {
+        graph = new Group();
+        graph.setStyle("-fx-border: 12px solid; -fx-border-color: black;");
+        
+//        graph.scaleXProperty().bind(stage.widthProperty());
+//        graph.scaleXProperty().bind(stage.widthProperty().divide(graph.getLayoutBounds().getWidth()));
+//        graph.scaleYProperty().bind(stage.heightProperty().divide(graph.getLayoutBounds().getHeight()));
+//        ScrollPane scroll = new ScrollPane();
+//        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+//        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+//        scroll.setPannable(true);
+//        scroll.setContent(graph);
+        
+        stage.setTitle("Graph");
+        stage.setWidth(700);
+        stage.setHeight(700);
+
+
+        Scene scene = new Scene(graph, 1.0, 1.0, true, SceneAntialiasing.BALANCED);
+        scene.setFill(Color.WHITESMOKE);
+        stage.setScene(scene);
+        
+        InvalidationListener invalidationListener = (x) -> {
+            double scaleX = scene.getWidth() / graph.getLayoutBounds().getWidth();
+            double scaleY = scene.getHeight() / graph.getLayoutBounds().getHeight();
+            double layoutX = (scene.getWidth() / 2.0) - (graph.getLayoutBounds().getWidth() / 2.0);
+            double layoutY = (scene.getHeight() / 2.0) - (graph.getLayoutBounds().getHeight() / 2.0);
+            System.out.println(scene.getY());
+            graph.setScaleX(scaleX);
+            graph.setScaleY(scaleY);
+            graph.setLayoutX(layoutX);
+            graph.setLayoutY(layoutY);
+//            graph.setTranslateX((scaleY / 2.0) - (graph.getLayoutBounds().getWidth() * scaleX) / 2.0);     
+//            graph.setTranslateY(-((scene.getHeight() / 2.0) - (graph.getLayoutBounds().getHeight() / 2.0)));
+        };
+        
+        graph.layoutBoundsProperty().addListener(invalidationListener);
+        scene.widthProperty().addListener(invalidationListener);
+        scene.heightProperty().addListener(invalidationListener);
+        
+        stage.show();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        instance = null;
+    }
+
+    public static GraphApplication getInstance() {
+        return instance;
+    }
+    
+    public void addNode(String id, double x, double y, String style) {
         Validate.notNull(id);
         Validate.isTrue(Double.isFinite(x));
         Validate.isTrue(Double.isFinite(y));
+        Validate.notNull(style);
 
         Platform.runLater(() -> {
             Label label = new Label(id);
 
-            DoubleBinding centerXBinding = doubleExpression(doubleExpression(label.widthProperty().divide(2.0).negate())).add(x);
-            DoubleBinding centerYBinding = doubleExpression(doubleExpression(label.heightProperty().divide(2.0).negate())).add(y);
-
-            label.layoutXProperty().bind(centerXBinding);
-            label.layoutYProperty().bind(centerYBinding);
+            label.layoutXProperty().set(x);
+            label.layoutYProperty().set(y);
+            label.setStyle(style);
 
             Label existingLabel = nodes.putIfAbsent(id, label);
             Validate.isTrue(existingLabel == null);
 
-            getChildren().add(label);
+            graph.getChildren().add(label);
         });
     }
 
@@ -55,22 +115,20 @@ public final class Graph extends Group {
         Platform.runLater(() -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null);
-            DoubleBinding centerXBinding = doubleExpression(doubleExpression(label.widthProperty().divide(2.0).negate())).add(x);
-            label.layoutXProperty().bind(centerXBinding);
-
-            DoubleBinding centerYBinding = doubleExpression(doubleExpression(label.heightProperty().divide(2.0).negate())).add(y);
-            label.layoutYProperty().bind(centerYBinding);
+            label.layoutXProperty().set(x);
+            label.layoutYProperty().set(y);
         });
     }
     
     public void styleNode(String id, String style) {
         Validate.notNull(id);
+        Validate.notNull(style);
 
         Platform.runLater(() -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null);
             
-            label.setStyle(style); // null is implicitly converted to an empty string
+            label.setStyle(style);
         });
     }
 
@@ -81,12 +139,12 @@ public final class Graph extends Group {
         Platform.runLater(() -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null);
-            getChildren().remove(label);
+            graph.getChildren().remove(label);
 
             Collection<Line> lines = (Collection<Line>) anchors.remove(label);
             for (Line line : lines) {
                 edges.removeValue(line);
-                getChildren().remove(line);
+                graph.getChildren().remove(line);
             }
         });
     }
@@ -102,6 +160,15 @@ public final class Graph extends Group {
             Validate.notNull(fromLabel);
             Validate.notNull(toLabel);
 
+            DoubleBinding fromCenterXBinding = doubleExpression(doubleExpression(fromLabel.widthProperty().divide(2.0).negate()))
+                    .add(fromLabel.layoutXProperty());
+            DoubleBinding fromCenterYBinding = doubleExpression(doubleExpression(fromLabel.heightProperty().divide(2.0).negate()))
+                    .add(fromLabel.layoutYProperty());
+            DoubleBinding toCenterXBinding = doubleExpression(doubleExpression(toLabel.widthProperty().divide(2.0).negate()))
+                    .add(toLabel.layoutXProperty());
+            DoubleBinding toCenterYBinding = doubleExpression(doubleExpression(toLabel.heightProperty().divide(2.0).negate()))
+                    .add(toLabel.layoutYProperty());
+            
             Line line = new Line();
             DoubleBinding fromXBinding = doubleExpression(fromLabel.layoutXProperty())
                     .add(doubleExpression(fromLabel.widthProperty()).divide(2.0));
@@ -122,7 +189,7 @@ public final class Graph extends Group {
             anchors.put(fromLabel, line);
             anchors.put(toLabel, line);
 
-            getChildren().add(0, line);
+            graph.getChildren().add(0, line);
         });
     }
 
@@ -155,8 +222,7 @@ public final class Graph extends Group {
             anchors.removeMapping(fromLabel, line);
             anchors.removeMapping(toLabel, line);
 
-            getChildren().remove(line);
+            graph.getChildren().remove(line);
         });
     }
-
 }

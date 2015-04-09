@@ -1,6 +1,10 @@
 package com.offbynull.peernetic.visualization;
 
 import java.util.Collection;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -22,7 +26,9 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class GraphApplication extends Application {
 
-    private static volatile GraphApplication instance;
+    private static GraphApplication instance;
+    private static final Lock readyLock = new ReentrantLock();
+    private static final Condition readyCondition = readyLock.newCondition();
     
     private final BidiMap<String, Label> nodes = new DualHashBidiMap<>();
     private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
@@ -31,22 +37,18 @@ public final class GraphApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        instance = this;
+        readyLock.lock();
+        try {
+            instance = this;
+            readyCondition.signal();
+        } finally {
+            readyLock.unlock();
+        }
     }
 
     @Override
     public void start(Stage stage) {
         graph = new Group();
-        graph.setStyle("-fx-border: 12px solid; -fx-border-color: black;");
-        
-//        graph.scaleXProperty().bind(stage.widthProperty());
-//        graph.scaleXProperty().bind(stage.widthProperty().divide(graph.getLayoutBounds().getWidth()));
-//        graph.scaleYProperty().bind(stage.heightProperty().divide(graph.getLayoutBounds().getHeight()));
-//        ScrollPane scroll = new ScrollPane();
-//        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-//        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-//        scroll.setPannable(true);
-//        scroll.setContent(graph);
         
         stage.setTitle("Graph");
         stage.setWidth(700);
@@ -62,13 +64,10 @@ public final class GraphApplication extends Application {
             double scaleY = scene.getHeight() / graph.getLayoutBounds().getHeight();
             double layoutX = (scene.getWidth() / 2.0) - (graph.getLayoutBounds().getWidth() / 2.0);
             double layoutY = (scene.getHeight() / 2.0) - (graph.getLayoutBounds().getHeight() / 2.0);
-            System.out.println(scene.getY());
             graph.setScaleX(scaleX);
             graph.setScaleY(scaleY);
             graph.setLayoutX(layoutX);
             graph.setLayoutY(layoutY);
-//            graph.setTranslateX((scaleY / 2.0) - (graph.getLayoutBounds().getWidth() * scaleX) / 2.0);     
-//            graph.setTranslateY(-((scene.getHeight() / 2.0) - (graph.getLayoutBounds().getHeight() / 2.0)));
         };
         
         graph.layoutBoundsProperty().addListener(invalidationListener);
@@ -80,11 +79,33 @@ public final class GraphApplication extends Application {
 
     @Override
     public void stop() throws Exception {
-        instance = null;
+        readyLock.lock();
+        try {
+            instance = null;
+        } finally {
+            readyLock.unlock();
+        }
     }
 
     public static GraphApplication getInstance() {
-        return instance;
+        readyLock.lock();
+        try {
+            return instance;
+        } finally {
+            readyLock.unlock();
+        }
+    }
+    
+    public static GraphApplication awaitInstance() throws InterruptedException {
+        readyLock.lock();
+        try {
+            if (instance == null) {
+                readyCondition.await();
+            }
+            return instance;
+        } finally {
+            readyLock.unlock();
+        }
     }
     
     public void addNode(String id, double x, double y, String style) {

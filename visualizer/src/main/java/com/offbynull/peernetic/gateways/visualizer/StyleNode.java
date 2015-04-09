@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.visualization;
+package com.offbynull.peernetic.gateways.visualizer;
 
 import org.apache.commons.lang3.Validate;
 

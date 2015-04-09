@@ -1,12 +1,12 @@
-package com.offbynull.peernetic.visualization;
+package com.offbynull.peernetic.gateways.visualizer;
 
 import org.apache.commons.lang3.Validate;
 
-public final class AddEdge {
+public final class RemoveEdge {
     private final String fromId;
     private final String toId;
 
-    public AddEdge(String fromId, String toId) {
+    public RemoveEdge(String fromId, String toId) {
         Validate.notNull(fromId);
         Validate.notNull(toId);
         this.fromId = fromId;

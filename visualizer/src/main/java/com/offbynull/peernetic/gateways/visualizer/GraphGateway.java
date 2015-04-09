@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.visualization;
+package com.offbynull.peernetic.gateways.visualizer;
 
 import com.offbynull.peernetic.core.Shuttle;
 import com.offbynull.peernetic.core.gateway.Gateway;

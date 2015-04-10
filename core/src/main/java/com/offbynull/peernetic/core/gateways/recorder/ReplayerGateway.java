@@ -33,6 +33,10 @@ public final class ReplayerGateway implements Gateway {
     private ReplayerGateway(Thread readThread) {
         this.readThread = readThread;
     }
+    
+    public void await() throws InterruptedException {
+        readThread.join();
+    }
 
     @Override
     public void close() throws Exception {

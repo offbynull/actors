@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.core.gateways.recorder;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -29,5 +31,11 @@ final class WriteBus {
     
     MessageBlock pull() throws InterruptedException {
         return queue.take();
+    }
+
+    List<MessageBlock> drain() {
+        List<MessageBlock> ret = new ArrayList<>();
+        queue.drainTo(ret);
+        return ret;
     }
 }

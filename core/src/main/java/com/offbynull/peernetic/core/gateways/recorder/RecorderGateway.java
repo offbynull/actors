@@ -49,6 +49,10 @@ public final class RecorderGateway implements InputGateway {
         return recorderShuttle;
     }
 
+    public void await() throws InterruptedException {
+        writeThread.join();
+    }
+    
     @Override
     public void close() {
         writeThread.interrupt(); // thread will close the bus when it gets an exception

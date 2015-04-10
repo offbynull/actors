@@ -363,8 +363,8 @@ public class Test {
             senderThread.addCoroutineActor("sender", sender, "recorder");
 
             latch.await();
-            Thread.sleep(1000L); // make sure call to close() has actually closed down the file
             echoRecorderGateway.close();
+            echoRecorderGateway.await();
         }
         
         
@@ -398,8 +398,7 @@ public class Test {
                     "echoer:echoer",
                     eventsFile,
                     new SimpleSerializer());
+            replayerGateway.await();
         }
-        
-        Thread.sleep(1000L); // make sure call to close() has actually closed down the file
     }
 }

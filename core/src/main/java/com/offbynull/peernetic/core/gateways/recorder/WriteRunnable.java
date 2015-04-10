@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.common.Serializer;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,38 +45,52 @@ final class WriteRunnable implements Runnable {
         LOG.info("Started writing");
         try (FileOutputStream fos = new FileOutputStream(file);
                 DataOutputStream dos = new DataOutputStream(fos)) {
-            while (true) {
-                MessageBlock messageBlock = bus.pull();
+            try {
+                while (true) {
+                    MessageBlock messageBlock = bus.pull();
 
-                Instant time = messageBlock.getTime();
-                UnmodifiableList<Message> messages = messageBlock.getMessages();
+                    writeMessageBlock(messageBlock, dos);
+                }
+            } catch (InterruptedException ie) {
+                LOG.info("Stopping write thread (interrupted)");
+                Thread.interrupted(); // remove interrupted flag cause we're going to be flushing remaining items here
 
-                List<RecordedMessage> recordedMessages = messages.stream()
-                        .filter(x -> AddressUtils.isParent(selfPrefix, x.getDestinationAddress())) // only msgs that are destined for output
-                        .map(x -> {
-                            return new RecordedMessage(
-                                    x.getSourceAddress(),
-                                    AddressUtils.relativize(selfPrefix, x.getDestinationAddress()),
-                                    x.getMessage());
-                        })
-                        .collect(Collectors.toList());
-                
-                RecordedBlock recordedBlock = new RecordedBlock(recordedMessages, time);
-
-                byte[] data = serializer.serialize(recordedBlock);
-                dos.writeInt(data.length);
-                IOUtils.write(data, dos);
-                dos.flush();
+                bus.drain().forEach(x -> {
+                    try {
+                        LOG.debug("Flushing message block");
+                        writeMessageBlock(x, dos);
+                    } catch (IOException ioe) {
+                        LOG.error("Error in write thread while flushing", ioe);
+                    }
+                });
             }
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                LOG.info("Stopping write thread (interrupted)");
-            } else {
-                LOG.error("Error in write thread", e);
-            }
+            LOG.error("Error in write thread", e);
         } finally {
             bus.close(); // so stuff doesn't keep accumulating in this internalbus
         }
+    }
+
+    private void writeMessageBlock(MessageBlock messageBlock, final DataOutputStream dos) throws IOException {
+        Instant time = messageBlock.getTime();
+        UnmodifiableList<Message> messages = messageBlock.getMessages();
+
+        List<RecordedMessage> recordedMessages = messages.stream()
+                .filter(x -> AddressUtils.isParent(selfPrefix, x.getDestinationAddress())) // only msgs that are destined for output
+                .map(x -> {
+                    return new RecordedMessage(
+                            x.getSourceAddress(),
+                            AddressUtils.relativize(selfPrefix, x.getDestinationAddress()),
+                            x.getMessage());
+                })
+                .collect(Collectors.toList());
+
+        RecordedBlock recordedBlock = new RecordedBlock(recordedMessages, time);
+
+        byte[] data = serializer.serialize(recordedBlock);
+        dos.writeInt(data.length);
+        IOUtils.write(data, dos);
+        dos.flush();
     }
 
 }

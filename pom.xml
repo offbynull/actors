@@ -14,10 +14,10 @@
     
     <modules>
         <module>build-tools</module>
-        <module>debug</module>
         <module>playground</module>
         <module>core</module>
         <module>visualizer</module>
+        <module>network</module>
     </modules>
     
     <dependencyManagement>

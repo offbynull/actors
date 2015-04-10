@@ -10,11 +10,13 @@ import com.offbynull.peernetic.core.actors.retry.StartRetryProxy;
 import com.offbynull.peernetic.core.actors.unreliable.SimpleLine;
 import com.offbynull.peernetic.core.actors.unreliable.StartUnreliableProxy;
 import com.offbynull.peernetic.core.actors.unreliable.UnreliableProxyCoroutine;
-import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
+import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.test.TestHarness;
-import java.net.InetSocketAddress;
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
@@ -22,14 +24,15 @@ import org.apache.commons.lang3.Validate;
 
 public class Test {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
 //        basicTest();
 //        basicTimer();
 //        basicUdp();
 //        basicUnreliable();
 //        basicRetry();
 //        testEnvironmentTimer();
-        testEnvironmentEcho();
+//        testEnvironmentEcho();
+        testRecordAndReplay();
     }
 
     private static void basicTest() throws InterruptedException {
@@ -299,5 +302,104 @@ public class Test {
         while (testHarness.hasMore()) {
             testHarness.process();
         }
+    }
+    
+    private static void testRecordAndReplay() throws InterruptedException, IOException {
+        File eventsFile = File.createTempFile(Test.class.getSimpleName(), "data");
+        
+        // RUN SENDER+ECHOER WITH EVENTS COMING IN TO ECHOER BEING RECORDED
+        {
+            System.out.println("RECORD RUN");
+            
+            CountDownLatch latch = new CountDownLatch(1);
+
+            Coroutine sender = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+                String dstAddr = ctx.getIncomingMessage();
+
+                for (int i = 0; i < 10; i++) {
+                    ctx.addOutgoingMessage(dstAddr, i);
+                    cnt.suspend();
+                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
+                }
+
+                latch.countDown();
+            };
+
+            Coroutine echoer = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+
+                while (true) {
+                    String src = ctx.getSource();
+                    Object msg = ctx.getIncomingMessage();
+                    ctx.addOutgoingMessage(src, msg);
+                    System.out.println(msg);
+                    cnt.suspend();
+                }
+            };
+
+            // Create actor threads
+            ActorThread echoerThread = ActorThread.create("echoer");
+            ActorThread senderThread = ActorThread.create("sender");
+
+            // Create recorder that records events coming to echoer and then passes it along to echoer
+            RecorderGateway echoRecorderGateway = RecorderGateway.record(
+                    "recorder",
+                    echoerThread.getIncomingShuttle(),
+                    "echoer:echoer",
+                    eventsFile,
+                    new SimpleSerializer());
+            Shuttle echoRecorderShuttle = echoRecorderGateway.getIncomingShuttle();
+
+
+            // Wire sender to send to echoerRecorder instead of echoer
+            senderThread.addOutgoingShuttle(echoRecorderShuttle);
+
+            // Wire echoer to send back directly to recorder
+            echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+
+            // Add coroutines
+            echoerThread.addCoroutineActor("echoer", echoer);
+            senderThread.addCoroutineActor("sender", sender, "recorder");
+
+            latch.await();
+            Thread.sleep(1000L); // make sure call to close() has actually closed down the file
+            echoRecorderGateway.close();
+        }
+        
+        
+        // RUN ECHOER WITH EVENTS COMING IN FROM SAVED EVENTS BEING REPLAYED
+        {
+            System.out.println("REPLAY RUN");
+            
+            Coroutine echoer = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+
+                while (true) {
+                    String src = ctx.getSource();
+                    Object msg = ctx.getIncomingMessage();
+                    ctx.addOutgoingMessage(src, msg);
+                    System.out.println(msg);
+                    cnt.suspend();
+                }
+            };
+            
+            ActorThread echoerThread = ActorThread.create("echoer");
+            
+            // Wire echoer to send back to null
+            echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
+            
+            // Add coroutines
+            echoerThread.addCoroutineActor("echoer", echoer);
+            
+            // Create replayer that mocks out sender and replays previous events to echoer
+            ReplayerGateway replayerGateway = ReplayerGateway.replay(
+                    echoerThread.getIncomingShuttle(),
+                    "echoer:echoer",
+                    eventsFile,
+                    new SimpleSerializer());
+        }
+        
+        Thread.sleep(1000L); // make sure call to close() has actually closed down the file
     }
 }

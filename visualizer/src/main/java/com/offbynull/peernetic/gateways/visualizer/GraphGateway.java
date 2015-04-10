@@ -1,14 +1,12 @@
 package com.offbynull.peernetic.gateways.visualizer;
 
 import com.offbynull.peernetic.core.Shuttle;
-import com.offbynull.peernetic.core.gateway.Gateway;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.offbynull.peernetic.core.gateway.InputGateway;
 import javafx.application.Application;
 import javafx.application.Platform;
 import org.apache.commons.lang3.Validate;
 
-public final class GraphGateway implements Gateway {
+public final class GraphGateway implements InputGateway {
 
     private GraphShuttle graphShuttle;
 

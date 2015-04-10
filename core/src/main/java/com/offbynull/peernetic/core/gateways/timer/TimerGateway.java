@@ -1,7 +1,8 @@
 package com.offbynull.peernetic.core.gateways.timer;
 
 import com.offbynull.peernetic.core.Shuttle;
-import com.offbynull.peernetic.core.gateway.Gateway;
+import com.offbynull.peernetic.core.gateway.InputGateway;
+import com.offbynull.peernetic.core.gateway.OutputGateway;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -9,7 +10,7 @@ import java.util.concurrent.ThreadFactory;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
-public final class TimerGateway implements Gateway {
+public final class TimerGateway implements InputGateway, OutputGateway {
 
     private final ScheduledExecutorService service;
     private final ConcurrentHashMap<String, Shuttle> outgoingShuttles;
@@ -31,15 +32,17 @@ public final class TimerGateway implements Gateway {
         return shuttle;
     }
 
+    @Override
     public void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
         Shuttle oldShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
         Validate.isTrue(oldShuttle == null);
     }
 
-    public void removeShuttle(String prefix) {
-        Validate.notNull(prefix);
-        Shuttle oldShuttle = outgoingShuttles.remove(prefix);
+    @Override
+    public void removeOutgoingShuttle(String shuttlePrefix) {
+        Validate.notNull(shuttlePrefix);
+        Shuttle oldShuttle = outgoingShuttles.remove(shuttlePrefix);
         Validate.isTrue(oldShuttle == null);
     }
 

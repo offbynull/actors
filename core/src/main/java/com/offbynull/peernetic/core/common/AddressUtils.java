@@ -35,13 +35,11 @@ public final class AddressUtils {
     public static final String relativize(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(absoluteAddress);
-        Validate.isTrue(absoluteAddress.startsWith(parentAddress));
+        Validate.isTrue(absoluteAddress.startsWith(parentAddress), "%s is not a child of %s", absoluteAddress, parentAddress);
         
         String ret = absoluteAddress.substring(parentAddress.length());
         if (ret.startsWith(SEPARATOR)) {
             ret = ret.substring(1);
-        } else if (ret.isEmpty()) {
-            ret = null;
         }
         
         return ret;

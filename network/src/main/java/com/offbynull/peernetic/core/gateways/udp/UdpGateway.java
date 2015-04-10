@@ -1,9 +1,8 @@
 package com.offbynull.peernetic.core.gateways.udp;
 
-import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.Shuttle;
-import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.common.Serializer;
+import com.offbynull.peernetic.core.gateway.InputGateway;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -14,7 +13,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
-public final class UdpGateway implements Gateway {
+public final class UdpGateway implements InputGateway {
 
     private final String prefix;
     private final Shuttle srcShuttle;

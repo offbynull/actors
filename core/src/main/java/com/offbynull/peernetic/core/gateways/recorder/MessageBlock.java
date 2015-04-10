@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.gateways.recorder;
 
-import com.offbynull.peernetic.core.Message;
+import com.offbynull.peernetic.core.shuttle.Message;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;

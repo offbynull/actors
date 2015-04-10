@@ -1,5 +1,7 @@
 package com.offbynull.peernetic.core;
 
+import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;

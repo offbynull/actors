@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
-import com.offbynull.peernetic.core.Message;
+import com.offbynull.peernetic.core.shuttle.Message;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;

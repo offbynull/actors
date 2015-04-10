@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.gateways.visualizer;
 
-import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import javafx.application.Application;
 import javafx.application.Platform;

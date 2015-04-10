@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.peernetic.core.common.AddressUtils;
-import com.offbynull.peernetic.core.Shuttle;
-import com.offbynull.peernetic.core.Message;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Message;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

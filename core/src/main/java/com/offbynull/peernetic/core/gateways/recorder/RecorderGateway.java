@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.gateways.recorder;
 
-import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateway.InputGateway;

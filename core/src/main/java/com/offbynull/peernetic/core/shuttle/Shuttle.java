@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core;
+package com.offbynull.peernetic.core.shuttle;
 
 import java.util.Collection;
 

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core;
+package com.offbynull.peernetic.core.shuttle;
 
 import org.apache.commons.lang3.Validate;
 

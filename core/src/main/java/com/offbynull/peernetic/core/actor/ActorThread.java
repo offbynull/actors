@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.Message;
-import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
 import com.offbynull.peernetic.core.actor.ActorRunnable.AddShuttleMessage;
 import java.util.Collections;

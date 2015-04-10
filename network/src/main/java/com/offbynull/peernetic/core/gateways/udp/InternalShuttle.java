@@ -1,8 +1,8 @@
 package com.offbynull.peernetic.core.gateways.udp;
 
 import com.offbynull.peernetic.core.common.AddressUtils;
-import com.offbynull.peernetic.core.Shuttle;
-import com.offbynull.peernetic.core.Message;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Message;
 import io.netty.channel.Channel;
 import io.netty.channel.DefaultAddressedEnvelope;
 import java.net.InetAddress;

@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.gateways.visualizer;
 
-import com.offbynull.peernetic.core.Message;
-import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.Collections;
 
 public final class Test {

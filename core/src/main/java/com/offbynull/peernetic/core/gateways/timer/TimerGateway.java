@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.gateways.timer;
 
-import com.offbynull.peernetic.core.Shuttle;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.gateway.OutputGateway;
 import java.util.concurrent.ConcurrentHashMap;

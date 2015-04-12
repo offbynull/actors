@@ -37,6 +37,7 @@ final class OutgoingLinkCoroutine implements Coroutine {
     @Override
     public void run(Continuation cnt) throws Exception {
         mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf(), address, "-fx-stroke: yellow"));
+        boolean lineIsGreen = false;
         
         while (true) {
             LinkRequest req = new LinkRequest(idGenerator.generateId());
@@ -46,7 +47,10 @@ final class OutgoingLinkCoroutine implements Coroutine {
             
             LinkResponse resp = mainCtx.getIncomingMessage();
             lastResponseTime = mainCtx.getTime();
-            mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf(), address, "-fx-stroke: green"));
+            if (!lineIsGreen) {
+                mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf(), address, "-fx-stroke: green"));
+                lineIsGreen = true;
+            }
         }
     }
     

@@ -16,6 +16,8 @@ import javafx.scene.SceneAntialiasing;
 import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
+import javafx.scene.transform.Scale;
+import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.MultiMap;
@@ -62,12 +64,9 @@ public final class GraphApplication extends Application {
         InvalidationListener invalidationListener = (x) -> {
             double scaleX = scene.getWidth() / graph.getLayoutBounds().getWidth();
             double scaleY = scene.getHeight() / graph.getLayoutBounds().getHeight();
-            double layoutX = (scene.getWidth() / 2.0) - (graph.getLayoutBounds().getWidth() / 2.0);
-            double layoutY = (scene.getHeight() / 2.0) - (graph.getLayoutBounds().getHeight() / 2.0);
-            graph.setScaleX(scaleX);
-            graph.setScaleY(scaleY);
-            graph.setLayoutX(layoutX);
-            graph.setLayoutY(layoutY);
+            graph.getTransforms().clear();
+            graph.getTransforms().add(new Scale(scaleX, scaleY, 0.0, 0.0));
+            graph.getTransforms().add(new Translate(-graph.getLayoutBounds().getMinX(), -graph.getLayoutBounds().getMinY()));
         };
         
         graph.layoutBoundsProperty().addListener(invalidationListener);

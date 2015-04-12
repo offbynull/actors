@@ -1,0 +1,215 @@
+package com.offbynull.peernetic.unstructuredmesh;
+
+import com.offbynull.peernetic.unstructuredmesh.externalmessages.QueryResponse;
+import com.offbynull.peernetic.unstructuredmesh.externalmessages.LinkResponse;
+import com.offbynull.peernetic.unstructuredmesh.externalmessages.LinkRequest;
+import com.offbynull.peernetic.unstructuredmesh.externalmessages.QueryRequest;
+import com.offbynull.peernetic.unstructuredmesh.internalmessages.Check;
+import com.offbynull.peernetic.unstructuredmesh.internalmessages.Start;
+import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.coroutines.user.CoroutineRunner;
+import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.common.AddressUtils;
+import com.offbynull.peernetic.gateways.visualizer.AddEdge;
+import com.offbynull.peernetic.gateways.visualizer.AddNode;
+import com.offbynull.peernetic.gateways.visualizer.RemoveEdge;
+import com.offbynull.peernetic.unstructuredmesh.AddressCache.RetentionMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
+import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
+public final class UnstructuredClientCoroutine implements Coroutine {
+
+    private static final int MAX_OUTGOING_LINKS = 3;
+    private static final int MAX_INCOMING_LINKS = 3;
+    private static final Duration CHECK_DURATION = Duration.ofSeconds(1L);
+    private static final Duration INCOMING_TIMEOUT = Duration.ofSeconds(10L);
+    private static final Duration OUTGOING_TIMEOUT = Duration.ofSeconds(10L);
+    private IdGenerator idGenerator;
+    private AddressCache addressCache;
+    private String timerAddressPrefix;
+    private String graphAddress;
+    private Map<String, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>> outgoingLinks;
+    private Map<String, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>> incomingLinks;
+    private Map<Class<?>, Consumer<Object>> handlerMap;
+    
+    private Context mainCtx;
+    
+    @Override
+    public void run(Continuation cnt) throws Exception {
+        mainCtx = (Context) cnt.getContext();
+        
+        Start start = mainCtx.getIncomingMessage();
+        timerAddressPrefix = start.getTimerPrefix();
+        graphAddress = start.getGraphAddress();
+        
+        idGenerator = new IdGenerator(start.getRandom());
+        addressCache = new AddressCache(256, start.getBootstrapAddresses(), RetentionMode.RETAIN_NEWEST);
+        outgoingLinks = new HashMap<>();
+        incomingLinks = new HashMap<>();
+        
+        handlerMap = new HashMap<>();
+        handlerMap.put(Check.class, this::handleCheckFromTimer);
+        handlerMap.put(LinkRequest.class, this::handleLinkRequest);
+        handlerMap.put(LinkResponse.class, this::handleLinkResposne);
+        handlerMap.put(QueryRequest.class, this::handleQueryRequest);
+        handlerMap.put(QueryResponse.class, this::handleQueryResponse);
+        
+        mainCtx.addOutgoingMessage(
+                AddressUtils.parentize(timerAddressPrefix, "" + CHECK_DURATION.toMillis()),
+                new Check());
+        mainCtx.addOutgoingMessage(graphAddress,
+                new AddNode(
+                        mainCtx.getSelf(),
+                        start.getRandom().nextInt(700),
+                        start.getRandom().nextInt(700)));
+        
+        while (true) {
+            cnt.suspend();
+
+            Object msg = mainCtx.getIncomingMessage();
+            Consumer<Object> consumer = handlerMap.get(msg.getClass());
+            
+            if (consumer != null) {
+                consumer.accept(msg);
+            } else {
+                // TODO log error here
+            }
+        }
+    }
+
+    private void handleCheckFromTimer(Object msg) {
+        Validate.isTrue(msg instanceof Check);
+        
+        Instant currentTime = mainCtx.getTime();
+        
+        // Remove outgoing links that have timed out
+        Iterator<Entry<String, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>>> outIt = outgoingLinks.entrySet().iterator();
+        while (outIt.hasNext()) {
+            Entry<String, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>> entry = outIt.next();
+            Instant sendTime = entry.getValue().getValue().getLastResponseTime();
+            Duration duration = Duration.between(sendTime, currentTime);
+
+            if (duration.compareTo(OUTGOING_TIMEOUT) > 0) {
+                outIt.remove();
+                mainCtx.addOutgoingMessage(graphAddress, new RemoveEdge(mainCtx.getSelf(), entry.getKey()));
+            }
+        }
+        
+        // Remove incoming links that have timed out
+        Iterator<Entry<String, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>>> inIt = incomingLinks.entrySet().iterator();
+        while(inIt.hasNext()) {
+            Entry<String, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>> entry = inIt.next();
+            Instant sendTime = entry.getValue().getValue().getLastRequestTime();
+            Duration duration = Duration.between(sendTime, currentTime);
+            
+            if (duration.compareTo(INCOMING_TIMEOUT) > 0) {
+                inIt.remove();
+            }
+        }
+
+        // Reschedule check message
+        mainCtx.addOutgoingMessage(
+                AddressUtils.parentize(timerAddressPrefix, "" + CHECK_DURATION.toMillis()),
+                msg);
+
+        // Add new outgoing links (if we have room available to do so)
+        int newOutLinkSize = MAX_OUTGOING_LINKS - outgoingLinks.size();
+        for (int i = 0; i < newOutLinkSize; i++) {
+            String address = addressCache.next();
+
+            // If no more addresses in address cache, break out of loop
+            if (address == null) {
+                break;
+            }
+            
+            // If we're already linked to the address in the cache, ignore
+            if (outgoingLinks.containsKey(address) || incomingLinks.containsKey(address)) {
+                continue;
+            }
+
+            OutgoingLinkCoroutine coroutine = new OutgoingLinkCoroutine(mainCtx, idGenerator, address, currentTime);
+            CoroutineRunner runner = new CoroutineRunner(coroutine);
+            boolean stillRunning = runner.execute();
+            Validate.isTrue(stillRunning);
+            outgoingLinks.put(address, new ImmutablePair<>(runner, coroutine));
+            
+            mainCtx.addOutgoingMessage(graphAddress, new AddEdge(mainCtx.getSelf(), address));
+        }
+    }
+    
+    private void handleLinkRequest(Object msg) {
+        Validate.isTrue(msg instanceof LinkRequest);
+        
+        String sourceAddress = mainCtx.getSource();
+        
+        ImmutablePair<CoroutineRunner, IncomingLinkCoroutine> entry = incomingLinks.get(sourceAddress);
+        CoroutineRunner runner;
+        if (entry == null) {
+            // new incoming link
+            if (incomingLinks.size() >= MAX_INCOMING_LINKS) {
+                return;
+            }
+            IncomingLinkCoroutine coroutine = new IncomingLinkCoroutine(mainCtx, sourceAddress);
+            runner = new CoroutineRunner(coroutine);
+            incomingLinks.put(sourceAddress, new ImmutablePair<>(runner, coroutine));
+        } else {
+            // maintaining existing incoming link
+            runner = entry.getKey();
+        }
+
+        boolean stillRunning = runner.execute();
+        Validate.isTrue(stillRunning);
+    }
+    
+    private void handleLinkResposne(Object msg) {
+        Validate.isTrue(msg instanceof LinkResponse);
+        
+        // A response to an outgoing link request
+        String sourceAddress = mainCtx.getSource();
+
+        ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine> coroutine = outgoingLinks.get(sourceAddress);
+        if (coroutine == null) {
+            return;
+        }
+
+        boolean stillRunning = coroutine.getKey().execute();
+        Validate.isTrue(stillRunning);
+    }
+    
+    private void handleQueryRequest(Object msg) {
+        Validate.isTrue(msg instanceof QueryRequest);
+        
+        // Incoming query request
+        String sourceAddress = mainCtx.getSource();
+
+        QueryRequest req = (QueryRequest) msg;
+        long id = req.getId();
+
+        ArrayList<String> links = new ArrayList<>(MAX_INCOMING_LINKS + MAX_OUTGOING_LINKS);
+        links.addAll(incomingLinks.keySet());
+        links.addAll(outgoingLinks.keySet());
+        QueryResponse resp = new QueryResponse(id, links);
+
+        mainCtx.addOutgoingMessage(sourceAddress, resp);
+    }
+    
+    private void handleQueryResponse(Object msg) {
+        Validate.isTrue(msg instanceof QueryResponse);
+        
+        // A response to an outgoing query request
+        QueryResponse resp = (QueryResponse) msg;
+        List<String> addresses = new ArrayList<>(resp.getLinks());
+
+        addressCache.addAll(addresses);
+    }
+}

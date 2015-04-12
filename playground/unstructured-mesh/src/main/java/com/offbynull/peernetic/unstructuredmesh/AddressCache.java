@@ -1,26 +1,26 @@
-package com.offbynull.peernetic.playground.unstructuredmesh;
+package com.offbynull.peernetic.unstructuredmesh;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
-final class AddressCache<A> {
+final class AddressCache {
     private final int maxCacheItems;
     private final int minCacheItems;
-    private final HashSet<A> cacheSet;
-    private final LinkedList<A> cacheList;
+    private final HashSet<String> cacheSet;
+    private final LinkedList<String> cacheList;
     private final RetentionMode retentionMode;
     
-    public AddressCache(int max, Collection<A> initial) {
+    public AddressCache(int max, Collection<String> initial) {
         this(initial.size(), max, initial, RetentionMode.RETAIN_NEWEST);
     }
 
-    public AddressCache(int max, Collection<A> initial, RetentionMode retentionMode) {
+    public AddressCache(int max, Collection<String> initial, RetentionMode retentionMode) {
         this(initial.size(), max, initial, retentionMode);
     }
 
-    public AddressCache(int min, int max, Collection<A> initial, RetentionMode retentionMode) {
+    public AddressCache(int min, int max, Collection<String> initial, RetentionMode retentionMode) {
         Validate.noNullElements(initial);
         Validate.isTrue(min >= 0 && max >= 0, "Min/max size must be >= 0");
         Validate.isTrue(initial.size() >= min, "Not enough initial elements to satisfy min size limit");
@@ -34,7 +34,7 @@ final class AddressCache<A> {
         this.retentionMode = retentionMode;
     }
     
-    public void add(A address) {
+    public void add(String address) {
         Validate.notNull(address);
         if (cacheSet.contains(address)) {
             return;
@@ -43,7 +43,7 @@ final class AddressCache<A> {
         switch (retentionMode) {
             case RETAIN_NEWEST:
                 if (cacheList.size() == maxCacheItems) { // remove isn't available, remove oldest
-                    A oldest = cacheList.removeFirst();
+                    String oldest = cacheList.removeFirst();
                     cacheSet.remove(oldest);
                 }
                 cacheList.add(address);
@@ -60,17 +60,17 @@ final class AddressCache<A> {
         }
     }
 
-    public void addAll(Collection<A> addresses) {
+    public void addAll(Collection<String> addresses) {
         Validate.noNullElements(addresses);
         addresses.forEach(x -> add(x));
     }
 
-    public A next() {
+    public String next() {
         if (cacheList.isEmpty()) {
             return null;
         }
         
-        A addr = null;
+        String addr = null;
         switch (retentionMode) {
             case RETAIN_NEWEST:
                 addr = cacheList.getFirst();
@@ -78,7 +78,7 @@ final class AddressCache<A> {
                     cacheList.removeFirst();
                     cacheSet.remove(addr);
                 } else if (!cacheList.isEmpty()) { // if num of items is <= min, cycle item, so it won't appear next time next() is called
-                    A existingAddr = cacheList.removeFirst();
+                    String existingAddr = cacheList.removeFirst();
                     cacheList.addLast(existingAddr);
                 }
                 break;
@@ -88,7 +88,7 @@ final class AddressCache<A> {
                     cacheList.removeLast();
                     cacheSet.remove(addr);
                 } else if (!cacheList.isEmpty()) { // if num of items is <= min, cycle item, so it won't appear next time next() is called
-                    A existingAddr = cacheList.removeLast();
+                    String existingAddr = cacheList.removeLast();
                     cacheList.addFirst(existingAddr);
                 }
                 break;

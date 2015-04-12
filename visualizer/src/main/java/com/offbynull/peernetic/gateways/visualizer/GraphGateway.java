@@ -33,7 +33,15 @@ public final class GraphGateway implements InputGateway {
         thread.start();
         
         try {
-            GraphApplication.awaitInstance(); // wait until application started
+            GraphApplication.awaitStarted();
+        } catch (InterruptedException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public static void awaitShutdown() {
+        try {
+            GraphApplication.awaitStopped();
         } catch (InterruptedException ex) {
             throw new IllegalStateException(ex);
         }

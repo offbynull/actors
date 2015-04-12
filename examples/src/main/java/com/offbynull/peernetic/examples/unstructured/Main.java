@@ -27,6 +27,6 @@ public final class Main {
         actorThread.addCoroutineActor("6", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
         actorThread.addCoroutineActor("7", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
         
-        actorThread.getThread().join();
+        GraphGateway.awaitShutdown();
     }
 }

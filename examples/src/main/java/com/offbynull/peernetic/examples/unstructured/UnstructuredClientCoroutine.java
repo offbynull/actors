@@ -30,7 +30,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 public final class UnstructuredClientCoroutine implements Coroutine {
 
     private static final int MAX_OUTGOING_LINKS = 3;
-    private static final int MAX_INCOMING_LINKS = 3;
+    private static final int MAX_INCOMING_LINKS = 4;
     private static final Duration CHECK_DURATION = Duration.ofSeconds(1L);
     private static final Duration INCOMING_TIMEOUT = Duration.ofSeconds(10L);
     private static final Duration OUTGOING_TIMEOUT = Duration.ofSeconds(10L);
@@ -137,13 +137,18 @@ public final class UnstructuredClientCoroutine implements Coroutine {
                 continue;
             }
 
-            OutgoingLinkCoroutine coroutine = new OutgoingLinkCoroutine(mainCtx, idGenerator, address, currentTime);
+                // Add edge to graph
+            mainCtx.addOutgoingMessage(graphAddress, new AddEdge(mainCtx.getSelf(), address));
+            
+                // Start coroutine to attempt a link
+            OutgoingLinkCoroutine coroutine = new OutgoingLinkCoroutine(mainCtx, idGenerator, graphAddress, address, currentTime);
             CoroutineRunner runner = new CoroutineRunner(coroutine);
             boolean stillRunning = runner.execute();
             Validate.isTrue(stillRunning);
             outgoingLinks.put(address, new ImmutablePair<>(runner, coroutine));
             
-            mainCtx.addOutgoingMessage(graphAddress, new AddEdge(mainCtx.getSelf(), address));
+                // Send a query request
+            mainCtx.addOutgoingMessage(address, new QueryRequest(idGenerator.generateId())); // send query 
         }
     }
     

@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.gateways.visualizer;
 
 import java.util.Collection;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -28,9 +27,10 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class GraphApplication extends Application {
 
-    private static GraphApplication instance;
-    private static final Lock readyLock = new ReentrantLock();
-    private static final Condition readyCondition = readyLock.newCondition();
+    private static volatile GraphApplication instance;
+    private static final Lock lock = new ReentrantLock();
+    private static final Condition startedCondition = lock.newCondition();
+    private static final Condition stoppedCondition = lock.newCondition();
     
     private final BidiMap<String, Label> nodes = new DualHashBidiMap<>();
     private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
@@ -39,12 +39,14 @@ public final class GraphApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        readyLock.lock();
+        Platform.setImplicitExit(true);
+        
+        lock.lock();
         try {
             instance = this;
-            readyCondition.signal();
+            startedCondition.signalAll();
         } finally {
-            readyLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -55,9 +57,13 @@ public final class GraphApplication extends Application {
         stage.setTitle("Graph");
         stage.setWidth(700);
         stage.setHeight(700);
+        
+        // We have to do this because in some cases JavaFX threads won't shut down when the last stage closes, even if implicitExit is set
+        // http://stackoverflow.com/questions/15808063/how-to-stop-javafx-application-thread/22997736#22997736
+        stage.setOnCloseRequest(x -> Platform.exit());
 
 
-        Scene scene = new Scene(graph, 1.0, 1.0, true, SceneAntialiasing.BALANCED);
+        Scene scene = new Scene(graph, 1.0, 1.0, true, SceneAntialiasing.DISABLED);
         scene.setFill(Color.WHITESMOKE);
         stage.setScene(scene);
         
@@ -78,32 +84,44 @@ public final class GraphApplication extends Application {
 
     @Override
     public void stop() throws Exception {
-        readyLock.lock();
+        lock.lock();
         try {
             instance = null;
+            stoppedCondition.signalAll();
         } finally {
-            readyLock.unlock();
+            lock.unlock();
         }
     }
 
     public static GraphApplication getInstance() {
-        readyLock.lock();
+        lock.lock();
         try {
             return instance;
         } finally {
-            readyLock.unlock();
+            lock.unlock();
         }
     }
     
-    public static GraphApplication awaitInstance() throws InterruptedException {
-        readyLock.lock();
+    public static GraphApplication awaitStarted() throws InterruptedException {
+        lock.lock();
         try {
             if (instance == null) {
-                readyCondition.await();
+                startedCondition.await();
             }
             return instance;
         } finally {
-            readyLock.unlock();
+            lock.unlock();
+        }
+    }
+
+    public static void awaitStopped() throws InterruptedException {
+        lock.lock();
+        try {
+            if (instance != null) {
+                stoppedCondition.await();
+            }
+        } finally {
+            lock.unlock();
         }
     }
     
@@ -179,15 +197,6 @@ public final class GraphApplication extends Application {
 
             Validate.notNull(fromLabel);
             Validate.notNull(toLabel);
-
-            DoubleBinding fromCenterXBinding = doubleExpression(doubleExpression(fromLabel.widthProperty().divide(2.0).negate()))
-                    .add(fromLabel.layoutXProperty());
-            DoubleBinding fromCenterYBinding = doubleExpression(doubleExpression(fromLabel.heightProperty().divide(2.0).negate()))
-                    .add(fromLabel.layoutYProperty());
-            DoubleBinding toCenterXBinding = doubleExpression(doubleExpression(toLabel.widthProperty().divide(2.0).negate()))
-                    .add(toLabel.layoutXProperty());
-            DoubleBinding toCenterYBinding = doubleExpression(doubleExpression(toLabel.heightProperty().divide(2.0).negate()))
-                    .add(toLabel.layoutYProperty());
             
             Line line = new Line();
             DoubleBinding fromXBinding = doubleExpression(fromLabel.layoutXProperty())
@@ -203,7 +212,8 @@ public final class GraphApplication extends Application {
             line.endXProperty().bind(toXBinding);
             line.endYProperty().bind(toYBinding);
 
-            Line existingLine = edges.putIfAbsent(new ImmutablePair<>(fromId, toId), line);
+            ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
+            Line existingLine = edges.putIfAbsent(key, line);
             Validate.isTrue(existingLine == null);
 
             anchors.put(fromLabel, line);
@@ -218,7 +228,8 @@ public final class GraphApplication extends Application {
         Validate.notNull(toId);
 
         Platform.runLater(() -> {
-            Line line = edges.remove(new ImmutablePair<>(fromId, toId));
+            ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
+            Line line = edges.get(key);
             Validate.isTrue(line != null);
 
             line.setStyle(style); // null is implicitly converted to an empty string
@@ -236,7 +247,8 @@ public final class GraphApplication extends Application {
             Validate.notNull(fromLabel);
             Validate.notNull(toLabel);
 
-            Line line = edges.remove(new ImmutablePair<>(fromId, toId));
+            ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
+            Line line = edges.remove(key);
             Validate.isTrue(line != null);
             
             anchors.removeMapping(fromLabel, line);

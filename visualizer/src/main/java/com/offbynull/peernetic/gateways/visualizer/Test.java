@@ -11,7 +11,7 @@ public final class Test {
         
         GraphGateway.startApplication();
         
-//        shuttle.send(Collections.singleton(new Message("test", "graph", new AddNode("node1", 0.0, 0.0, "-fx-background-color: linear-gradient(to bottom, #f2f2f2, #d4d4d4);"))));
+        shuttle.send(Collections.singleton(new Message("test", "graph", new AddNode("node1", 0.0, 0.0, "-fx-background-color: linear-gradient(to bottom, #f2f2f2, #d4d4d4);"))));
         shuttle.send(Collections.singleton(new Message("test", "graph", new AddNode("node2", 300.0, 200.0, "-fx-background-color: blue"))));
         shuttle.send(Collections.singleton(new Message("test", "graph", new AddNode("node3", 200.0, 300.0, "-fx-background-color: red"))));
         shuttle.send(Collections.singleton(new Message("test", "graph", new AddNode("node4", 500.0, 50.0, "-fx-background-color: green"))));
@@ -20,6 +20,6 @@ public final class Test {
         shuttle.send(Collections.singleton(new Message("test", "graph", new AddEdge("node3", "node4"))));
         shuttle.send(Collections.singleton(new Message("test", "graph", new AddEdge("node4", "node1"))));
         
-        Thread.sleep(100000L);
+        GraphGateway.awaitShutdown();
     }
 }

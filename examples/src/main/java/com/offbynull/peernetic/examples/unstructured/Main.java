@@ -19,13 +19,10 @@ public final class Main {
         actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
         
         
-        actorThread.addCoroutineActor("1", new UnstructuredClientCoroutine(), new Start(new Random(), "timer", "graph"));
-        actorThread.addCoroutineActor("2", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
-        actorThread.addCoroutineActor("3", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
-        actorThread.addCoroutineActor("4", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
-        actorThread.addCoroutineActor("5", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
-        actorThread.addCoroutineActor("6", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
-        actorThread.addCoroutineActor("7", new UnstructuredClientCoroutine(), new Start("actor:1", new Random(), "timer", "graph"));
+        actorThread.addCoroutineActor("0", new UnstructuredClientCoroutine(), new Start(new Random(), "timer", "graph"));
+        for (int i = 1; i < 64; i++) {
+            actorThread.addCoroutineActor("" + i, new UnstructuredClientCoroutine(), new Start("actor:0", new Random(), "timer", "graph"));
+        }
         
         GraphGateway.awaitShutdown();
     }

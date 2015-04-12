@@ -29,7 +29,7 @@ final class IncomingLinkCoroutine implements Coroutine {
         while (true) {
             LinkRequest req = mainCtx.getIncomingMessage();
             lastRequestTime = mainCtx.getTime();
-            LinkResponse resp = new LinkResponse(req.getId());
+            LinkResponse resp = new LinkResponse(req.getId(), true);
             mainCtx.addOutgoingMessage(address, resp);
             cnt.suspend();
         }

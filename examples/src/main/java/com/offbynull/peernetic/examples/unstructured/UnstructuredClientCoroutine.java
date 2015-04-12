@@ -154,6 +154,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
     
     private void handleLinkRequest(Object msg) {
         Validate.isTrue(msg instanceof LinkRequest);
+        LinkRequest req = (LinkRequest) msg;
         
         String sourceAddress = mainCtx.getSource();
         
@@ -162,6 +163,8 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         if (entry == null) {
             // new incoming link
             if (incomingLinks.size() >= MAX_INCOMING_LINKS) {
+                LinkResponse resp = new LinkResponse(req.getId(), false);
+                mainCtx.addOutgoingMessage(sourceAddress, resp);
                 return;
             }
             IncomingLinkCoroutine coroutine = new IncomingLinkCoroutine(mainCtx, sourceAddress);
@@ -188,7 +191,10 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         }
 
         boolean stillRunning = coroutine.getKey().execute();
-        Validate.isTrue(stillRunning);
+        if (!stillRunning) {
+            outgoingLinks.remove(sourceAddress);
+            mainCtx.addOutgoingMessage(graphAddress, new RemoveEdge(mainCtx.getSelf(), sourceAddress));
+        }
     }
     
     private void handleQueryRequest(Object msg) {

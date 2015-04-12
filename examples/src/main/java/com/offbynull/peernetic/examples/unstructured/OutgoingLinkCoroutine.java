@@ -46,6 +46,10 @@ final class OutgoingLinkCoroutine implements Coroutine {
             cnt.suspend();
             
             LinkResponse resp = mainCtx.getIncomingMessage();
+            if (!resp.isSuccessful()) {
+                return;
+            }
+            
             lastResponseTime = mainCtx.getTime();
             if (!lineIsGreen) {
                 mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf(), address, "-fx-stroke: green"));

@@ -1,10 +1,10 @@
-package com.offbynull.peernetic.unstructuredmesh;
+package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.LinkRequest;
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.LinkResponse;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkResponse;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 

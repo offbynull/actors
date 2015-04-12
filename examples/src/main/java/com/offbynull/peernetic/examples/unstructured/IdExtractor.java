@@ -1,6 +1,6 @@
-package com.offbynull.peernetic.unstructuredmesh;
+package com.offbynull.peernetic.examples.unstructured;
 
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.ExternalMessage;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.ExternalMessage;
 import org.apache.commons.lang3.Validate;
 
 public final class IdExtractor implements com.offbynull.peernetic.core.actors.retry.IdExtractor {

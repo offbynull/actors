@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.unstructuredmesh.externalmessages;
+package com.offbynull.peernetic.examples.unstructured.externalmessages;
 
 import java.util.ArrayList;
 import java.util.List;

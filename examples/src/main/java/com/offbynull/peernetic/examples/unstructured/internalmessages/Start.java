@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.unstructuredmesh.internalmessages;
+package com.offbynull.peernetic.examples.unstructured.internalmessages;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;

@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.unstructuredmesh;
+package com.offbynull.peernetic.examples.unstructured;
 
 import java.util.Random;
 import org.apache.commons.lang3.Validate;

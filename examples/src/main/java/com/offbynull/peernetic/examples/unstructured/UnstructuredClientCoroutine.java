@@ -1,11 +1,11 @@
-package com.offbynull.peernetic.unstructuredmesh;
+package com.offbynull.peernetic.examples.unstructured;
 
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.QueryResponse;
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.LinkResponse;
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.LinkRequest;
-import com.offbynull.peernetic.unstructuredmesh.externalmessages.QueryRequest;
-import com.offbynull.peernetic.unstructuredmesh.internalmessages.Check;
-import com.offbynull.peernetic.unstructuredmesh.internalmessages.Start;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkResponse;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
+import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
+import com.offbynull.peernetic.examples.unstructured.internalmessages.Check;
+import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
@@ -14,7 +14,7 @@ import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.gateways.visualizer.AddEdge;
 import com.offbynull.peernetic.gateways.visualizer.AddNode;
 import com.offbynull.peernetic.gateways.visualizer.RemoveEdge;
-import com.offbynull.peernetic.unstructuredmesh.AddressCache.RetentionMode;
+import com.offbynull.peernetic.examples.unstructured.AddressCache.RetentionMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;

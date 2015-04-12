@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.unstructuredmesh;
+package com.offbynull.peernetic.examples.unstructured;
 
 import java.util.Collection;
 import java.util.HashSet;

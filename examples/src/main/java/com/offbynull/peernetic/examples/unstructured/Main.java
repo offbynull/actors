@@ -1,9 +1,9 @@
-package com.offbynull.peernetic.unstructuredmesh;
+package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.gateways.visualizer.GraphGateway;
-import com.offbynull.peernetic.unstructuredmesh.internalmessages.Start;
+import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import java.util.Random;
 
 public final class Main {

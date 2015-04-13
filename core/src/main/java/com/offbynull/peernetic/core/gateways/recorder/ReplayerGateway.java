@@ -39,7 +39,7 @@ public final class ReplayerGateway implements Gateway {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         readThread.interrupt();
     }
 

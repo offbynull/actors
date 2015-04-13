@@ -28,13 +28,13 @@ public class Test {
 
     public static void main(String[] args) throws Exception {
 //        basicTest();
-//        basicTimer();
+        basicTimer();
 //        basicUdp();
 //        basicUnreliable();
 //        basicRetry();
 //        testEnvironmentTimer();
 //        testEnvironmentEcho();
-        testRecordAndReplay();
+//        testRecordAndReplay();
     }
 
     private static void basicTest() throws InterruptedException {
@@ -176,8 +176,10 @@ public class Test {
             Context ctx = (Context) cnt.getContext();
 
             String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
+            ctx.addOutgoingMessage("fromid", timerPrefix + ":2000:extra", 0);
+            System.out.println("ADDED TRIGGER FOR FOR 2 SECOND");
             cnt.suspend();
+            System.out.println("TRIGGERED FROM " + ctx.getSource()+ " TO " + ctx.getDestination()+ " WITH " + ctx.getIncomingMessage());
 
             latch.countDown();
         };

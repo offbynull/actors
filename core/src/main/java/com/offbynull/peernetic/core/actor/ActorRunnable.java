@@ -4,14 +4,13 @@ import com.offbynull.peernetic.core.common.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
-import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_PREFIX;
 import static com.offbynull.peernetic.core.common.AddressUtils.getAddress;
 import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
 import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.shuttles.simple.Bus;
+import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,19 +26,17 @@ final class ActorRunnable implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ActorRunnable.class);
 
     private final String prefix;
-    private final InternalBus bus;
-    private final Shuttle incomingShuttle;
+    private final Bus bus;
+    private final SimpleShuttle incomingShuttle;
 
-    ActorRunnable(String prefix, InternalBus bus) {
+    ActorRunnable(String prefix, Bus bus) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
         Validate.notEmpty(prefix);
-        
-        Validate.isTrue(!MANAGEMENT_PREFIX.equals(prefix)); // management prefix is a special case
 
         this.prefix = prefix;
         this.bus = bus;
-        incomingShuttle = new InternalShuttle(prefix, bus);
+        incomingShuttle = new SimpleShuttle(prefix, bus);
     }
 
     @Override
@@ -49,18 +46,20 @@ final class ActorRunnable implements Runnable {
             Map<String, LoadedActor> actors = new HashMap<>(); // id -> actor
 
             while (true) {
-                List<Message> incomingMessages = bus.pull();
+                List<Object> incomingObjects = bus.pull();
                 List<Message> outgoingMessages = new LinkedList<>(); // outgoing messages destined for destinations not in here
 
-                for (Message incomingMessage : incomingMessages) {
-                    Object msg = incomingMessage.getMessage();
-                    String src = incomingMessage.getSourceAddress();
-                    String dst = incomingMessage.getDestinationAddress();
+                for (Object incomingObject : incomingObjects) {
+                    if (incomingObject instanceof Message) {
+                        Message incomingMessage = (Message) incomingObject;
+                        
+                        Object msg = incomingMessage.getMessage();
+                        String src = incomingMessage.getSourceAddress();
+                        String dst = incomingMessage.getDestinationAddress();
 
-                    if (MANAGEMENT_ADDRESS.equals(src)) {
-                        processManagementMessage(msg, actors, outgoingMessages, outgoingShuttles);
-                    } else {
                         processNormalMessage(msg, src, dst, actors, outgoingMessages);
+                    } else {
+                        processManagementMessage(incomingObject, actors, outgoingMessages, outgoingShuttles);
                     }
                 }
 
@@ -195,7 +194,7 @@ final class ActorRunnable implements Runnable {
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
         AddActorMessage aam = new AddActorMessage(id, actor, primingMessages);
-        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, aam)));
+        bus.add(aam);
     }
 
     void addCoroutineActor(String id, Coroutine coroutine, Object ... primingMessages) {
@@ -204,25 +203,25 @@ final class ActorRunnable implements Runnable {
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
         AddActorMessage aam = new AddActorMessage(id, new CoroutineActor(coroutine), primingMessages);
-        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, aam)));
+        bus.add(aam);
     }
 
     void removeActor(String id) {
         Validate.notNull(id);
         RemoveActorMessage ram = new RemoveActorMessage(id);
-        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, ram)));
+        bus.add(ram);
     }
 
     void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
         AddShuttleMessage asm = new AddShuttleMessage(shuttle);
-        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, asm)));
+        bus.add(asm);
     }
 
     void removeShuttle(String prefix) {
         Validate.notNull(prefix);
         RemoveShuttleMessage rsm = new RemoveShuttleMessage(prefix);
-        bus.add(Collections.singletonList(new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, rsm)));
+        bus.add(rsm);
     }
     
     private static final class LoadedActor {

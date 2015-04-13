@@ -2,8 +2,6 @@ package com.offbynull.peernetic.core.test;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
-import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
-import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_PREFIX;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.common.AddressUtils;
@@ -144,7 +142,7 @@ public final class TestHarness {
         actors.put(address, newBundle); // won't overwrite because validateActorAddress above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessage(MANAGEMENT_ADDRESS, address, message, Duration.ZERO);
+            queueMessage(address, address, message, Duration.ZERO);
         }
     }
     
@@ -162,9 +160,6 @@ public final class TestHarness {
         Validate.isTrue(
                 !AddressUtils.isParent(timerPrefix, address),
                 "Actor address {} conflicts with timer address {}", address, timerPrefix);
-        Validate.isTrue(
-                !AddressUtils.isParent(MANAGEMENT_PREFIX, address),
-                "Actor address {} conflicts with management address {}", address, MANAGEMENT_PREFIX);
         ActorBundle conflictingActor = findActor(address);
         Validate.isTrue(conflictingActor == null,
                 "Actor address {} conflicts with existing actor address {}", address, conflictingActor);
@@ -195,13 +190,11 @@ public final class TestHarness {
         Validate.notNull(message);
         Validate.notNull(scheduledDuration);
         
-        // Source must exist or be management address.
-        Validate.isTrue(MANAGEMENT_ADDRESS.equals(source) || findActor(source) != null);
-        
+        // Source must exist.
+        //
         // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
-        // to existance exist by the time the message arrives. Also, do a sanity check to make sure destination address isn't set to the
-        // special internal management address value
-        Validate.isTrue(!AddressUtils.isParent(MANAGEMENT_ADDRESS, destination));
+        // to existance exist by the time the message arrives.
+        Validate.isTrue(findActor(source) != null);
         
         Instant arriveTime = currentTime;
         

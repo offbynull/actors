@@ -27,14 +27,14 @@ import org.apache.commons.lang3.Validate;
 public class Test {
 
     public static void main(String[] args) throws Exception {
-//        basicTest();
+        basicTest();
         basicTimer();
 //        basicUdp();
-//        basicUnreliable();
-//        basicRetry();
-//        testEnvironmentTimer();
-//        testEnvironmentEcho();
-//        testRecordAndReplay();
+        basicUnreliable();
+        basicRetry();
+        testEnvironmentTimer();
+        testEnvironmentEcho();
+        testRecordAndReplay();
     }
 
     private static void basicTest() throws InterruptedException {

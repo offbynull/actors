@@ -1,11 +1,9 @@
 package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import static com.offbynull.peernetic.core.actor.Actor.MANAGEMENT_ADDRESS;
 import com.offbynull.peernetic.core.actor.ActorRunnable.AddShuttleMessage;
-import java.util.Collections;
+import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import org.apache.commons.lang3.Validate;
 
 public final class ActorThread {
@@ -21,14 +19,13 @@ public final class ActorThread {
     
     public static ActorThread create(String prefix) {
         // create runnable
-        InternalBus internalBus = new InternalBus();
-        ActorRunnable runnable = new ActorRunnable(prefix, internalBus);
+        Bus bus = new Bus();
+        ActorRunnable runnable = new ActorRunnable(prefix, bus);
         
         Shuttle selfShuttle = runnable.getIncomingShuttle();
 
         // add in our own shuttle as well so we can send msgs to ourselves
-        Message messages = new Message(MANAGEMENT_ADDRESS, MANAGEMENT_ADDRESS, new AddShuttleMessage(selfShuttle));
-        internalBus.add(Collections.singletonList(messages));
+        bus.add(new AddShuttleMessage(selfShuttle));
 
         // start thread
         Thread thread = new Thread(runnable);

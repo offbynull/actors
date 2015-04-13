@@ -5,6 +5,9 @@ import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.application.Platform;
+import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +37,13 @@ final class GraphRunnable implements Runnable {
                     return;
                 }
 
-                List<Object> payloads = new ArrayList<>(incomingObjects.size());
+                MultiMap<String, Object> payloads = new MultiValueMap<>();
                 for (Object incomingObject : incomingObjects) {
                     Message msg = (Message) incomingObject;
                     
+                    String dst = msg.getDestinationAddress();
                     Object payload = msg.getMessage();
-                    payloads.add(payload);
+                    payloads.put(dst, payload);
                 }
                 
                 graph.execute(payloads);

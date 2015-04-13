@@ -20,7 +20,7 @@ public final class Main {
         
         
         actorThread.addCoroutineActor("0", new UnstructuredClientCoroutine(), new Start(new Random(), "timer", "graph"));
-        for (int i = 1; i < 256; i++) {
+        for (int i = 1; i < 1024; i++) {
             actorThread.addCoroutineActor("" + i, new UnstructuredClientCoroutine(), new Start("actor:0", new Random(), "timer", "graph"));
         }
         

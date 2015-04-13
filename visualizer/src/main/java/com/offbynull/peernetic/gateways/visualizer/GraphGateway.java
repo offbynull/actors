@@ -2,27 +2,39 @@ package com.offbynull.peernetic.gateways.visualizer;
 
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
+import com.offbynull.peernetic.core.shuttles.simple.Bus;
+import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import javafx.application.Application;
 import javafx.application.Platform;
 import org.apache.commons.lang3.Validate;
 
 public final class GraphGateway implements InputGateway {
 
-    private GraphShuttle graphShuttle;
+    private final Thread thread;
+    private final Bus bus;
+    
+    private final SimpleShuttle shuttle;
 
     public GraphGateway(String prefix) {
         Validate.notNull(prefix);
-        graphShuttle = new GraphShuttle(prefix);
+
+        bus = new Bus();
+        shuttle = new SimpleShuttle(prefix, bus);
+        thread = new Thread(new GraphRunnable(bus));
+        thread.setDaemon(true);
+        thread.setName(getClass().getSimpleName() + "-" + prefix);
+        thread.start();
     }
 
     @Override
     public Shuttle getIncomingShuttle() {
-        return graphShuttle;
+        return shuttle;
     }
 
     @Override
     public void close() {
-        Platform.exit();
+        thread.interrupt();
+        exitApplication();
     }
 
     public static void startApplication() {

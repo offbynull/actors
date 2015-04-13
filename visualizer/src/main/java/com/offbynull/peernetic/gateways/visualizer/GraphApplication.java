@@ -1,9 +1,14 @@
 package com.offbynull.peernetic.gateways.visualizer;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -22,6 +27,7 @@ import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
+import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
@@ -36,6 +42,22 @@ public final class GraphApplication extends Application {
     private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
     private final MultiMap<Label, Line> anchors = new MultiValueMap<>();
     private Group graph;
+    
+    private final UnmodifiableMap<Class<?>, Function<Object, Runnable>> runnableGenerators;
+
+    public GraphApplication() {
+        Map<Class<?>, Function<Object, Runnable>> generators = new HashMap<>();
+        
+        generators.put(AddNode.class, this::generateAddNodeCode);
+        generators.put(MoveNode.class, this::generateMoveNodeCode);
+        generators.put(StyleNode.class, this::generateStyleNodeCode);
+        generators.put(RemoveNode.class, this::generateRemoveNodeCode);
+        generators.put(AddEdge.class, this::generateAddEdgeCode);
+        generators.put(StyleEdge.class, this::generateStyleEdgeCode);
+        generators.put(RemoveEdge.class, this::generateRemoveEdgeCode);
+        
+        runnableGenerators = (UnmodifiableMap<Class<?>, Function<Object, Runnable>>) UnmodifiableMap.unmodifiableMap(generators);
+    }
 
     @Override
     public void init() throws Exception {
@@ -125,13 +147,43 @@ public final class GraphApplication extends Application {
         }
     }
     
-    public void addNode(String id, double x, double y, String style) {
-        Validate.notNull(id);
-        Validate.isTrue(Double.isFinite(x));
-        Validate.isTrue(Double.isFinite(y));
-        Validate.notNull(style);
-
+    void execute(Collection<Object> commands) {
+        Validate.notNull(commands);
+        Validate.noNullElements(commands);
+        
+        List<Runnable> runnables = new ArrayList<>(commands.size());
+        for (Object command : commands) {
+            Function<Object, Runnable> func = runnableGenerators.get(command.getClass());
+            if (func != null) {
+                Runnable runnable = func.apply(command);
+                runnables.add(runnable);
+            } else {
+                // TODO log here
+                continue;
+            }
+        }
+        
         Platform.runLater(() -> {
+            for (Runnable runnable : runnables) {
+                try {
+                    runnable.run();
+                } catch (RuntimeException re) {
+                    // TODO log here
+                }
+            }
+        });
+    }
+    
+    private Runnable generateAddNodeCode(Object msg) {
+        Validate.notNull(msg);
+        AddNode addNode = (AddNode) msg;
+        
+        String id = addNode.getId();
+        double x = addNode.getX();
+        double y = addNode.getY();
+        String style = addNode.getStyle();
+
+        return () -> {
             Label label = new Label(id);
 
             label.layoutXProperty().set(x);
@@ -142,39 +194,48 @@ public final class GraphApplication extends Application {
             Validate.isTrue(existingLabel == null);
 
             graph.getChildren().add(label);
-        });
+        };
     }
 
-    public void moveNode(String id, double x, double y) {
-        Validate.notNull(id);
-        Validate.isTrue(Double.isFinite(x));
-        Validate.isTrue(Double.isFinite(y));
+    private Runnable generateMoveNodeCode(Object msg) {
+        Validate.notNull(msg);
+        MoveNode moveNode = (MoveNode) msg;
+        
+        String id = moveNode.getId();
+        double x = moveNode.getX();
+        double y = moveNode.getY();
 
-        Platform.runLater(() -> {
+        return () -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null);
             label.layoutXProperty().set(x);
             label.layoutYProperty().set(y);
-        });
+        };
     }
     
-    public void styleNode(String id, String style) {
-        Validate.notNull(id);
-        Validate.notNull(style);
+    private Runnable generateStyleNodeCode(Object msg) {
+        Validate.notNull(msg);
+        StyleNode styleNode = (StyleNode) msg;
+        
+        String id = styleNode.getId();
+        String style = styleNode.getStyle();
 
-        Platform.runLater(() -> {
+        return () -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null);
             
             label.setStyle(style);
-        });
+        };
     }
 
     @SuppressWarnings("unchecked")
-    public void removeNode(String id) {
-        Validate.notNull(id);
+    private Runnable generateRemoveNodeCode(Object msg) {
+        Validate.notNull(msg);
+        RemoveNode removeNode = (RemoveNode) msg;
+        
+        String id = removeNode.getId();
 
-        Platform.runLater(() -> {
+        return () -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null);
             graph.getChildren().remove(label);
@@ -184,14 +245,17 @@ public final class GraphApplication extends Application {
                 edges.removeValue(line);
                 graph.getChildren().remove(line);
             }
-        });
+        };
     }
 
-    public void addEdge(String fromId, String toId) {
-        Validate.notNull(fromId);
-        Validate.notNull(toId);
+    private Runnable generateAddEdgeCode(Object msg) {
+        Validate.notNull(msg);
+        AddEdge addEdge = (AddEdge) msg;
+        
+        String fromId = addEdge.getFromId();
+        String toId = addEdge.getToId();
 
-        Platform.runLater(() -> {
+        return () -> {
             Label fromLabel = nodes.get(fromId);
             Label toLabel = nodes.get(toId);
 
@@ -220,27 +284,34 @@ public final class GraphApplication extends Application {
             anchors.put(toLabel, line);
 
             graph.getChildren().add(0, line);
-        });
+        };
     }
 
-    public void styleEdge(String fromId, String toId, String style) {
-        Validate.notNull(fromId);
-        Validate.notNull(toId);
+    private Runnable generateStyleEdgeCode(Object msg) {
+        Validate.notNull(msg);
+        StyleEdge styleEdge = (StyleEdge) msg;
+        
+        String fromId = styleEdge.getFromId();
+        String toId = styleEdge.getToId();
+        String style = styleEdge.getStyle();
 
-        Platform.runLater(() -> {
+        return () -> {
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
             Line line = edges.get(key);
             Validate.isTrue(line != null);
 
             line.setStyle(style); // null is implicitly converted to an empty string
-        });
+        };
     }
     
-    public void removeEdge(String fromId, String toId) {
-        Validate.notNull(fromId);
-        Validate.notNull(toId);
+    private Runnable generateRemoveEdgeCode(Object msg) {
+        Validate.notNull(msg);
+        RemoveEdge removeEdge = (RemoveEdge) msg;
+        
+        String fromId = removeEdge.getFromId();
+        String toId = removeEdge.getToId();
 
-        Platform.runLater(() -> {
+        return () -> {
             Label fromLabel = nodes.get(fromId);
             Label toLabel = nodes.get(toId);
 
@@ -255,6 +326,6 @@ public final class GraphApplication extends Application {
             anchors.removeMapping(toLabel, line);
 
             graph.getChildren().remove(line);
-        });
+        };
     }
 }

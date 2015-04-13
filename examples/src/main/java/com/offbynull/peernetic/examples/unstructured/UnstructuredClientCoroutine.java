@@ -29,8 +29,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class UnstructuredClientCoroutine implements Coroutine {
 
-    private static final int MAX_OUTGOING_LINKS = 15;
-    private static final int MAX_INCOMING_LINKS = 16;
+    private static final int MAX_OUTGOING_LINKS = 3;
+    private static final int MAX_INCOMING_LINKS = 4;
     private static final Duration CHECK_DURATION = Duration.ofSeconds(1L);
     private static final Duration INCOMING_TIMEOUT = Duration.ofSeconds(10L);
     private static final Duration OUTGOING_TIMEOUT = Duration.ofSeconds(10L);

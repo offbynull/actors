@@ -8,7 +8,7 @@ import java.time.Duration;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
 
-public final class SendRequestCoroutine implements Coroutine {
+public final class RequestCoroutine implements Coroutine {
     private final String sourceId;
     private final String destinationAddress;
     private final ExternalMessage request;
@@ -17,7 +17,7 @@ public final class SendRequestCoroutine implements Coroutine {
     private final Class<? extends ExternalMessage> expectedResponseType;
     private ExternalMessage response;
 
-    public SendRequestCoroutine(String sourceId, String destinationAddress, ExternalMessage request, String timerAddressPrefix,
+    public RequestCoroutine(String sourceId, String destinationAddress, ExternalMessage request, String timerAddressPrefix,
             Duration timeoutDuration, Class<? extends ExternalMessage> expectedResponseType) {
         Validate.notNull(sourceId);
         Validate.notNull(destinationAddress);

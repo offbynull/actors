@@ -4,12 +4,15 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
-import com.offbynull.peernetic.examples.common.coroutines.SendRequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -33,11 +36,9 @@ final class CheckPredecessorTask implements Coroutine {
     public void run(Continuation cnt) throws Exception {
         
         Context ctx = (Context) cnt.getContext();
-        ParentCoroutine parentCoroutine = new ParentCoroutine(sourceId, state.getTimerPrefix(), ctx);
         
         while (true) {
-            parentCoroutine.addSleep(Duration.ofSeconds(1L));
-            parentCoroutine.run(cnt);
+            funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
                         
             ExternalPointer predecessor = state.getPredecessor();
             if (predecessor == null) {
@@ -48,17 +49,12 @@ final class CheckPredecessorTask implements Coroutine {
             // ask for our predecessor's id
             GetIdResponse gir;
             try {
-                long msgId;
-                SendRequestCoroutine sendRequestCoroutine;
-                
-                msgId = state.generateExternalMessageId();
-                sendRequestCoroutine = parentCoroutine.addSendRequest(
+                gir = funnelToRequestCoroutine(
+                        cnt,
                         predecessor.getAddress(),
-                        new GetIdRequest(msgId),
+                        new GetIdRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetIdResponse.class);
-                parentCoroutine.run(cnt);
-                gir = sendRequestCoroutine.getResponse();
             } catch (RuntimeException re) {
                 // predecessor didn't respond -- clear our predecessor
                 state.clearPredecessor();
@@ -72,5 +68,33 @@ final class CheckPredecessorTask implements Coroutine {
                 state.clearPredecessor();
             }
         }
+    }
+    
+    private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(duration);
+        Validate.isTrue(!duration.isNegative());
+        
+        SleepCoroutine sleepCoroutine = new SleepCoroutine(state.getTimerPrefix(), duration);
+        sleepCoroutine.run(cnt);
+    }
+
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        Validate.notNull(timeoutDuration);
+        Validate.isTrue(!timeoutDuration.isNegative());
+        
+        RequestCoroutine requestCoroutine = new RequestCoroutine(
+                AddressUtils.parentize(sourceId, "" + message.getId()),
+                destination,
+                message,
+                state.getTimerPrefix(),
+                timeoutDuration,
+                expectedResponseClass);
+        requestCoroutine.run(cnt);
+        return requestCoroutine.getResponse();
     }
 }

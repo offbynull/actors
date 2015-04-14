@@ -9,6 +9,9 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
+import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -31,38 +34,27 @@ final class FixFingerTableTask implements Coroutine {
     @Override
     public void run(Continuation cnt) throws Exception {
         
-        Context ctx = (Context) cnt.getContext();
-        ParentCoroutine parentCoroutine = new ParentCoroutine(sourceId, state.getTimerPrefix(), ctx);
-        
         int len = state.getFingerTableLength();
 
         while (true) {
             for (int i = 1; i < len; i++) { // this task starts from 1, not 0 ... fixing of the 0 / successor is done in stabilize
                 LOG.info("{}: Fixing finger {}", state.getSelfId(), i);
-                fixFinger(cnt, parentCoroutine, 0);
-                fixFinger(cnt, parentCoroutine, i);
+                fixFinger(cnt, 0);
+                fixFinger(cnt, i);
             }
 
-            parentCoroutine.addSleep(Duration.ofSeconds(1L));
-            parentCoroutine.run(cnt);
+            funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
         }
     }
     
-    private void fixFinger(Continuation cnt, ParentCoroutine parentCoroutine, int i) throws Exception {
+    private void fixFinger(Continuation cnt, int i) throws Exception {
         // get expected id of entry in finger table
         NodeId findId = state.getExpectedFingerId(i);
 
         // route to id
         Pointer foundFinger;
         try {
-            String idSuffix = "" + state.generateExternalMessageId();
-            RouteToTask routeToTask = new RouteToTask(
-                    AddressUtils.parentize(sourceId, idSuffix),
-                    state,
-                    findId);
-            parentCoroutine.add(idSuffix, routeToTask);
-            parentCoroutine.run(cnt);
-            foundFinger = routeToTask.getResult();
+            foundFinger = funnelToRouteToCoroutine(cnt, findId);
         } catch (RuntimeException re) {
             LOG.warn("Unable to find finger for index {}", i);
             return;
@@ -81,5 +73,27 @@ final class FixFingerTableTask implements Coroutine {
         } else {
             throw new IllegalStateException();
         }
+    }
+    
+    private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(duration);
+        Validate.isTrue(!duration.isNegative());
+        
+        SleepCoroutine sleepCoroutine = new SleepCoroutine(state.getTimerPrefix(), duration);
+        sleepCoroutine.run(cnt);
+    }
+
+    private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId findId) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(findId);
+        
+        String idSuffix = "" + state.generateExternalMessageId();
+        RouteToTask innerCoroutine = new RouteToTask(
+                AddressUtils.parentize(sourceId, idSuffix),
+                state,
+                findId);
+        innerCoroutine.run(cnt);
+        return innerCoroutine.getResult();
     }
 }

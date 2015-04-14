@@ -12,7 +12,7 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
-import com.offbynull.peernetic.examples.common.coroutines.SendRequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -74,7 +74,7 @@ final class RouteToPredecessorTask implements Coroutine {
             while (true) {
                 LOG.debug("Querying successor of {}.", currentNode.getId());
                 long msgId;
-                SendRequestCoroutine sendRequestCoroutine;
+                RequestCoroutine sendRequestCoroutine;
                 
                 msgId = state.generateExternalMessageId();
                 sendRequestCoroutine = parentCoroutine.addSendRequest(

@@ -11,13 +11,13 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRespo
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse.InternalSuccessorEntry;
 import com.offbynull.peernetic.examples.chord.externalmessages.NotifyRequest;
-import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
-import com.offbynull.peernetic.examples.common.coroutines.SendRequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
+import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +44,9 @@ final class StabilizeTask implements Coroutine {
         NodeId selfId = state.getSelfId();
         
         Context ctx = (Context) cnt.getContext();
-        ParentCoroutine parentCoroutine = new ParentCoroutine(sourceId, state.getTimerPrefix(), ctx);
         
         while (true) {
-            parentCoroutine.addSleep(Duration.ofSeconds(1L));
-            parentCoroutine.run(cnt);
+            funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
             
             try {
                 Pointer successor = state.getSuccessor();
@@ -59,17 +57,12 @@ final class StabilizeTask implements Coroutine {
                 // ask for successor's pred
                 String successorAddress = ((ExternalPointer) successor).getAddress();
                 
-                long msgId;
-                SendRequestCoroutine sendRequestCoroutine;
-                
-                msgId = state.generateExternalMessageId();
-                sendRequestCoroutine = parentCoroutine.addSendRequest(
+                GetPredecessorResponse gpr = funnelToRequestCoroutine(
+                        cnt,
                         successorAddress,
-                        new GetPredecessorRequest(msgId),
+                        new GetPredecessorRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetPredecessorResponse.class);
-                parentCoroutine.run(cnt);
-                GetPredecessorResponse gpr = sendRequestCoroutine.getResponse();
 
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
@@ -82,11 +75,10 @@ final class StabilizeTask implements Coroutine {
                         ExternalPointer newSuccessor = new ExternalPointer(potentiallyNewSuccessorId, address);
                         state.setSuccessor(newSuccessor);
                         
-                        msgId = state.generateExternalMessageId();
-                        ctx.addOutgoingMessage(
-                                AddressUtils.parentize(sourceId, "" + msgId),
+                        addOutgoingExternalMessage(
+                                ctx,
                                 newSuccessor.getAddress(),
-                                new NotifyRequest(msgId, selfId.getValueAsByteArray()));
+                                new NotifyRequest(state.generateExternalMessageId(), selfId.getValueAsByteArray()));
                         
                         successor = newSuccessor;
                         successorAddress = newSuccessor.getAddress();
@@ -95,14 +87,12 @@ final class StabilizeTask implements Coroutine {
 
                 // successor may have been updated by block above
                 // ask successor for its successors
-                msgId = state.generateExternalMessageId();
-                sendRequestCoroutine = parentCoroutine.addSendRequest(
+                GetSuccessorResponse gsr = funnelToRequestCoroutine(
+                        cnt,
                         successorAddress,
-                        new GetSuccessorRequest(msgId),
+                        new GetSuccessorRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetSuccessorResponse.class);
-                parentCoroutine.run(cnt);
-                GetSuccessorResponse gsr = sendRequestCoroutine.getResponse();
 
                 List<Pointer> subsequentSuccessors = new ArrayList<>();
                 gsr.getEntries().stream().map(x -> {
@@ -123,5 +113,44 @@ final class StabilizeTask implements Coroutine {
                 LOG.warn("Failed to stabilize", re);
             }
         }
+    }
+    
+    private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(duration);
+        Validate.isTrue(!duration.isNegative());
+        
+        SleepCoroutine sleepCoroutine = new SleepCoroutine(state.getTimerPrefix(), duration);
+        sleepCoroutine.run(cnt);
+    }
+
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        Validate.notNull(timeoutDuration);
+        Validate.isTrue(!timeoutDuration.isNegative());
+        
+        RequestCoroutine requestCoroutine = new RequestCoroutine(
+                AddressUtils.parentize(sourceId, "" + message.getId()),
+                destination,
+                message,
+                state.getTimerPrefix(),
+                timeoutDuration,
+                expectedResponseClass);
+        requestCoroutine.run(cnt);
+        return requestCoroutine.getResponse();
+    }
+    
+    private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {
+        Validate.notNull(ctx);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        
+        ctx.addOutgoingMessage(
+                AddressUtils.parentize(sourceId, "" + message.getId()),
+                destination,
+                message);
     }
 }

@@ -26,8 +26,8 @@ final class JoinTask implements Coroutine {
         try {
             // initialize state
             String initialAddress = state.getBootstrapAddress();
-            FingerTable<String> fingerTable = new FingerTable<>(state.getSelfPointer());
-            SuccessorTable<String> successorTable = new SuccessorTable<>(state.getSelfPointer());
+            FingerTable fingerTable = new FingerTable(state.getSelfPointer());
+            SuccessorTable successorTable = new SuccessorTable(state.getSelfPointer());
 
             // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
             if (initialAddress == null) {
@@ -47,7 +47,7 @@ final class JoinTask implements Coroutine {
 
             // notify our fingers that we're here, we don't need to wait until finished
             chordHelper.fireUpdateOthersTask();
-        } catch (ChordOperationException coe) {
+        } catch (RuntimeException coe) {
             // this is a critical operation. if any of the tasks/io fail, then send up the chain
             throw new IllegalStateException("Join failed.", coe);
         }

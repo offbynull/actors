@@ -37,10 +37,10 @@ public final class ParentCoroutine implements Coroutine {
         Validate.isTrue(existing == null);
     }
 
-    public SendRequestCoroutine addSendRequest(String destinationAddress, ExternalMessage request, Duration timeoutDuration,
+    public RequestCoroutine addSendRequest(String destinationAddress, ExternalMessage request, Duration timeoutDuration,
             Class<? extends ExternalMessage> expectedResponseType) {
         String suffix = "" + request.getId();
-        SendRequestCoroutine coroutine = new SendRequestCoroutine(prefix, destinationAddress, request, timerAddressPrefix, timeoutDuration,
+        RequestCoroutine coroutine = new RequestCoroutine(prefix, destinationAddress, request, timerAddressPrefix, timeoutDuration,
                 expectedResponseType);
         add(suffix, coroutine);
         return coroutine;

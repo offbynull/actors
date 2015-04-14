@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -10,7 +11,8 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
-import com.offbynull.peernetic.examples.common.coroutines.SendRequestCoroutine;
+import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
+import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -41,9 +43,6 @@ final class RouteToTask implements Coroutine {
     @Override
     public void run(Continuation cnt) throws Exception {
         
-        Context ctx = (Context) cnt.getContext();
-        ParentCoroutine parentCoroutine = new ParentCoroutine(sourceId, state.getTimerPrefix(), ctx);
-        
         Pointer initialPointer = state.getClosestFinger(findId);
         if (initialPointer instanceof InternalPointer) {
             // our finger table may be corrupt/incomplete, try with maximum non-base finger
@@ -64,17 +63,14 @@ final class RouteToTask implements Coroutine {
 
             GetClosestFingerResponse gcpfr;
             try {
-                long msgId;
-                SendRequestCoroutine sendRequestCoroutine;
-                
-                msgId = state.generateExternalMessageId();
-                sendRequestCoroutine = parentCoroutine.addSendRequest(
+                gcpfr = funnelToRequestCoroutine(cnt,
                         currentNode.getAddress(),
-                        new GetClosestFingerRequest(msgId, findId.getValueAsByteArray(), skipId.getValueAsByteArray()),
+                        new GetClosestFingerRequest(
+                                state.generateExternalMessageId(),
+                                findId.getValueAsByteArray(),
+                                skipId.getValueAsByteArray()),
                         Duration.ofSeconds(10L),
                         GetClosestFingerResponse.class);
-                parentCoroutine.run(cnt);
-                gcpfr = sendRequestCoroutine.getResponse();
             } catch (RuntimeException re) {
                 LOG.warn("Routing failed -- failed to get closest finger from {}", currentNode);
                 return;
@@ -110,5 +106,24 @@ final class RouteToTask implements Coroutine {
         }
         
         return new ExternalPointer(foundId, foundAddress);
+    }
+    
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        Validate.notNull(timeoutDuration);
+        Validate.isTrue(!timeoutDuration.isNegative());
+        
+        RequestCoroutine requestCoroutine = new RequestCoroutine(
+                AddressUtils.parentize(sourceId, "" + message.getId()),
+                destination,
+                message,
+                state.getTimerPrefix(),
+                timeoutDuration,
+                expectedResponseClass);
+        requestCoroutine.run(cnt);
+        return requestCoroutine.getResponse();
     }
 }

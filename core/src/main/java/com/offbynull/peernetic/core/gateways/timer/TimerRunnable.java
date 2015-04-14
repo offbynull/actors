@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.gateways.timer;
 
-import com.offbynull.peernetic.core.common.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;

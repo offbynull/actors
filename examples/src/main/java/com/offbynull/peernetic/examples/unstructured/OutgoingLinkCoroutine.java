@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured;
 
+import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerator;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
@@ -11,12 +12,12 @@ import org.apache.commons.lang3.Validate;
 
 final class OutgoingLinkCoroutine implements Coroutine {
     private final Context mainCtx;
-    private final IdGenerator idGenerator;
+    private final ExternalMessageIdGenerator idGenerator;
     private final String graphAddress;
     private final String address;
     private Instant lastResponseTime;
 
-    public OutgoingLinkCoroutine(Context mainCtx, IdGenerator idGenerator, String graphAddress, String address, Instant currentTime) {
+    public OutgoingLinkCoroutine(Context mainCtx, ExternalMessageIdGenerator idGenerator, String graphAddress, String address, Instant currentTime) {
         Validate.notNull(mainCtx);
         Validate.notNull(idGenerator);
         Validate.notNull(address);

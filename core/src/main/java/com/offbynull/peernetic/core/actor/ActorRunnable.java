@@ -1,12 +1,12 @@
 package com.offbynull.peernetic.core.actor;
 
-import com.offbynull.peernetic.core.common.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.peernetic.core.common.AddressUtils.getAddress;
+import static com.offbynull.peernetic.core.shuttle.AddressUtils.getAddress;
 import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
-import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
+import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import java.time.Instant;

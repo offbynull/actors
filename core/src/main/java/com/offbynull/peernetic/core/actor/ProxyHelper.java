@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.actor;
 
-import com.offbynull.peernetic.core.common.AddressUtils;
-import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import org.apache.commons.lang3.Validate;
 
 public final class ProxyHelper {

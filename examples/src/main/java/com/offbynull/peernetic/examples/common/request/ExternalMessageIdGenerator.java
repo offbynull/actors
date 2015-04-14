@@ -1,14 +1,14 @@
-package com.offbynull.peernetic.examples.unstructured;
+package com.offbynull.peernetic.examples.common.request;
 
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-final class IdGenerator {
+public final class ExternalMessageIdGenerator {
     private final Random random;
     private final MutableInt seqNum;
 
-    public IdGenerator(Random random) {
+    public ExternalMessageIdGenerator(Random random) {
         Validate.notNull(random);
         this.random = random;
         this.seqNum = new MutableInt(random.nextInt());

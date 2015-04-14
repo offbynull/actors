@@ -4,7 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ProxyHelper;
 import com.offbynull.peernetic.core.actor.ProxyHelper.ForwardInformation;
-import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
+import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.actor.Context;
 import java.time.Instant;
 

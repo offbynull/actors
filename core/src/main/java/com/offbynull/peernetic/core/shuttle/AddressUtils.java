@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.core.common;
+package com.offbynull.peernetic.core.shuttle;
 
 import java.util.Arrays;
 import java.util.LinkedList;

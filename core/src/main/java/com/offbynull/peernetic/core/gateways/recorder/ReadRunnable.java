@@ -2,7 +2,7 @@ package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.common.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
 import java.io.DataInputStream;
 import java.io.EOFException;

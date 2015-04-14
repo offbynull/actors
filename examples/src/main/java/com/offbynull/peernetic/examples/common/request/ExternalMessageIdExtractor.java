@@ -1,9 +1,9 @@
-package com.offbynull.peernetic.examples.unstructured;
+package com.offbynull.peernetic.examples.common.request;
 
-import com.offbynull.peernetic.examples.unstructured.externalmessages.ExternalMessage;
+import com.offbynull.peernetic.core.actors.retry.IdExtractor;
 import org.apache.commons.lang3.Validate;
 
-public final class IdExtractor implements com.offbynull.peernetic.core.actors.retry.IdExtractor {
+public final class ExternalMessageIdExtractor implements IdExtractor {
 
     @Override
     public String getId(Object msg) {

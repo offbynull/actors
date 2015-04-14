@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured;
 
+import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerator;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
@@ -10,7 +11,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.common.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.gateways.visualizer.AddEdge;
 import com.offbynull.peernetic.gateways.visualizer.AddNode;
 import com.offbynull.peernetic.gateways.visualizer.RemoveEdge;
@@ -34,7 +35,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
     private static final Duration CHECK_DURATION = Duration.ofSeconds(1L);
     private static final Duration INCOMING_TIMEOUT = Duration.ofSeconds(10L);
     private static final Duration OUTGOING_TIMEOUT = Duration.ofSeconds(10L);
-    private IdGenerator idGenerator;
+    private ExternalMessageIdGenerator idGenerator;
     private AddressCache addressCache;
     private String timerAddressPrefix;
     private String graphAddress;
@@ -52,7 +53,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         timerAddressPrefix = start.getTimerPrefix();
         graphAddress = start.getGraphAddress();
         
-        idGenerator = new IdGenerator(start.getRandom());
+        idGenerator = new ExternalMessageIdGenerator(start.getRandom());
         addressCache = new AddressCache(256, start.getBootstrapAddresses(), RetentionMode.RETAIN_NEWEST);
         outgoingLinks = new HashMap<>();
         incomingLinks = new HashMap<>();

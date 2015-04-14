@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.examples.unstructured.externalmessages;
+package com.offbynull.peernetic.examples.common.request;
 
 public abstract class ExternalMessage {
     private long id;

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured.externalmessages;
 
+import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;

@@ -2,7 +2,7 @@ package com.offbynull.peernetic.core.gateways.udp;
 
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import static com.offbynull.peernetic.core.common.AddressUtils.SEPARATOR;
+import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import io.netty.channel.AddressedEnvelope;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultAddressedEnvelope;

@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.shuttles.simple;
 
-import com.offbynull.peernetic.core.common.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.ArrayList;

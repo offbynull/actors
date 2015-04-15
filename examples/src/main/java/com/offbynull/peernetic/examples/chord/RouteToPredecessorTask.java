@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -13,6 +14,7 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
+import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -45,7 +47,6 @@ final class RouteToPredecessorTask implements Coroutine {
         NodeId selfId = state.getSelfId();
 
         Context ctx = (Context) cnt.getContext();
-        ParentCoroutine parentCoroutine = new ParentCoroutine(sourceId, state.getTimerPrefix(), ctx);
         
         LOG.debug("Routing to predecessor of {}", findId);
 
@@ -73,17 +74,13 @@ final class RouteToPredecessorTask implements Coroutine {
             // move forward until you can't move forward anymore
             while (true) {
                 LOG.debug("Querying successor of {}.", currentNode.getId());
-                long msgId;
-                RequestCoroutine sendRequestCoroutine;
                 
-                msgId = state.generateExternalMessageId();
-                sendRequestCoroutine = parentCoroutine.addSendRequest(
+                GetSuccessorResponse gsr = funnelToRequestCoroutine(
+                        cnt,
                         currentNode.getAddress(),
-                        new GetSuccessorRequest(msgId),
+                        new GetSuccessorRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetSuccessorResponse.class);
-                parentCoroutine.run(cnt);
-                GetSuccessorResponse gsr = sendRequestCoroutine.getResponse();
                 NodeId succId = state.toId(gsr.getEntries().get(0).getChordId());
 
                 LOG.debug("Successor of {} is {}.", currentNode.getId(), succId);
@@ -92,14 +89,12 @@ final class RouteToPredecessorTask implements Coroutine {
                     break;
                 }
 
-                msgId = state.generateExternalMessageId();
-                sendRequestCoroutine = parentCoroutine.addSendRequest(
+                GetClosestPrecedingFingerResponse gcpfr = funnelToRequestCoroutine(
+                        cnt,
                         currentNode.getAddress(),
-                        new GetClosestPrecedingFingerRequest(msgId, findId.getValueAsByteArray()),
+                        new GetClosestPrecedingFingerRequest(state.generateExternalMessageId(), findId.getValueAsByteArray()),
                         Duration.ofSeconds(10L),
                         GetClosestPrecedingFingerResponse.class);
-                parentCoroutine.run(cnt);
-                GetClosestPrecedingFingerResponse gcpfr = sendRequestCoroutine.getResponse();
                 String address = gcpfr.getAddress();
                 NodeId id = state.toId(gcpfr.getChordId());
 
@@ -133,5 +128,24 @@ final class RouteToPredecessorTask implements Coroutine {
         }
 
         return new ExternalPointer(foundId, foundAddress);
+    }
+    
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        Validate.notNull(timeoutDuration);
+        Validate.isTrue(!timeoutDuration.isNegative());
+        
+        RequestCoroutine requestCoroutine = new RequestCoroutine(
+                AddressUtils.parentize(sourceId, "" + message.getId()),
+                destination,
+                message,
+                state.getTimerPrefix(),
+                timeoutDuration,
+                expectedResponseClass);
+        requestCoroutine.run(cnt);
+        return requestCoroutine.getResponse();
     }
 }

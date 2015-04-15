@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.examples.common.nodeid;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
@@ -24,7 +25,8 @@ import org.apache.commons.lang3.Validate;
  * An ID between 0 and some pre-defined limit.
  * @author Kasra Faghihi
  */
-public final class NodeId {
+public final class NodeId implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private BigInteger data;
     private BigInteger limit;

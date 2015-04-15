@@ -2,28 +2,23 @@ package com.offbynull.peernetic.examples.common.coroutines;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
 import org.apache.commons.lang3.Validate;
 
-public final class ParentCoroutine implements Coroutine {
+public final class ParentCoroutine {
 
     private final String prefix;
-    private final String timerAddressPrefix;
     private final Context context;
-    private final Map<String, Coroutine> suffixMap;
+    private final Map<String, CoroutineRunner> suffixMap;
 
-    public ParentCoroutine(String prefix, String timerAddressPrefix, Context context) {
+    public ParentCoroutine(String prefix, Context context) {
         Validate.notNull(prefix);
-        Validate.notNull(timerAddressPrefix);
         Validate.notNull(context);
         this.prefix = prefix;
-        this.timerAddressPrefix = timerAddressPrefix;
         this.context = context;
         suffixMap = new HashMap<>();
     }
@@ -33,29 +28,16 @@ public final class ParentCoroutine implements Coroutine {
         Validate.notNull(coroutine);
         Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
 
-        Coroutine existing = suffixMap.putIfAbsent(suffix, coroutine);
+        CoroutineRunner newRunner = new CoroutineRunner(coroutine);
+        newRunner.setContext(context);
+        CoroutineRunner existing = suffixMap.putIfAbsent(suffix, newRunner);
         Validate.isTrue(existing == null);
-    }
-
-    public RequestCoroutine addSendRequest(String destinationAddress, ExternalMessage request, Duration timeoutDuration,
-            Class<? extends ExternalMessage> expectedResponseType) {
-        String suffix = "" + request.getId();
-        RequestCoroutine coroutine = new RequestCoroutine(prefix, destinationAddress, request, timerAddressPrefix, timeoutDuration,
-                expectedResponseType);
-        add(suffix, coroutine);
-        return coroutine;
-    }
-
-    public SleepCoroutine addSleep(Duration timeoutDuration) {
-        SleepCoroutine coroutine = new SleepCoroutine(timerAddressPrefix, timeoutDuration);
-        add("", coroutine);
-        return coroutine;
     }
 
     public void remove(String suffix) {
         Validate.notNull(suffix);
         Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
-        Coroutine old = suffixMap.remove(suffix);
+        CoroutineRunner old = suffixMap.remove(suffix);
         Validate.isTrue(old == null);
     }
 
@@ -73,24 +55,44 @@ public final class ParentCoroutine implements Coroutine {
         return suffixMap.containsKey(suffix);
     }
 
-    @Override
-    public void run(Continuation cnt) throws Exception {
+    public void runUntilFinished(Continuation cnt) throws Exception {
         Validate.notNull(cnt);
         while (true) {
             String id = AddressUtils.relativize(prefix, context.getSource());
 
             String key = AddressUtils.getFirstAddressElement(id);
-            Coroutine coroutine = suffixMap.get(key);
+            CoroutineRunner runner = suffixMap.get(key);
 
-            if (coroutine != null) {
-                coroutine.run(cnt);
+            if (runner != null) {
+                boolean running = runner.execute();
+                if (!running) {
+                    suffixMap.remove(key);
+                }
             }
             
-            if (!isEmpty()) {
-                cnt.suspend();
+            if (suffixMap.isEmpty()) {
+                return;
             }
+            
+            cnt.suspend();
+        }
+    }
+
+    public boolean forward() throws Exception {
+        String id = AddressUtils.relativize(prefix, context.getSource());
+
+        String key = AddressUtils.getFirstAddressElement(id);
+        CoroutineRunner runner = suffixMap.get(key);
+
+        boolean forwarded = false;
+        if (runner != null) {
+            boolean running = runner.execute();
+            if (!running) {
+                suffixMap.remove(key);
+            }
+            forwarded = true;
         }
         
-        
+        return forwarded;
     }
 }

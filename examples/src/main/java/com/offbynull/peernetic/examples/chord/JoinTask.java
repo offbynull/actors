@@ -59,9 +59,6 @@ final class JoinTask implements Coroutine {
             // init finger table, successor table, etc...
             ExternalPointer bootstrapPointer = new ExternalPointer(initialId, initialAddress);
             funnelToInitFingerTableCoroutine(cnt, bootstrapPointer);
-
-            // notify our fingers that we're here, we don't need to wait until finished
-            chordHelper.fireUpdateOthersTask();
         } catch (RuntimeException coe) {
             // this is a critical operation. if any of the tasks/io fail, then send up the chain
             throw new IllegalStateException("Join failed.", coe);

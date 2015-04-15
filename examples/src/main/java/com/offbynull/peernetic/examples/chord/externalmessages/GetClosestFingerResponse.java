@@ -18,8 +18,11 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import java.io.Serializable;
 
-public final class GetClosestFingerResponse extends ExternalMessage {
+public final class GetClosestFingerResponse extends ExternalMessage implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private NodeId chordId;
     private String address;
 

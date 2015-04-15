@@ -18,8 +18,11 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import java.io.Serializable;
 
-public final class NotifyRequest extends ExternalMessage {
+public final class NotifyRequest extends ExternalMessage implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private NodeId chordId;
 
     public NotifyRequest(long id, NodeId chordId) {

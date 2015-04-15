@@ -17,8 +17,10 @@
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import java.io.Serializable;
 
-public final class GetSuccessorRequest extends ExternalMessage {
+public final class GetSuccessorRequest extends ExternalMessage implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public GetSuccessorRequest(long id) {
         super(id);

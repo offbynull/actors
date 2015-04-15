@@ -21,12 +21,14 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
-public final class GetSuccessorResponse extends ExternalMessage {
+public final class GetSuccessorResponse extends ExternalMessage implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private UnmodifiableList<SuccessorEntry> entries;
 

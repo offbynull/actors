@@ -48,7 +48,7 @@ final class InitFingerTableTask implements Coroutine {
         FindSuccessorResponse fsr = funnelToRequestCoroutine(
                 cnt,
                 bootstrapNode.getAddress(),
-                new FindSuccessorRequest(state.generateExternalMessageId(), expectedSuccesorId.getValueAsByteArray()),
+                new FindSuccessorRequest(state.generateExternalMessageId(), expectedSuccesorId),
                 Duration.ofSeconds(10L),
                 FindSuccessorResponse.class);
         state.failIfSelf(fsr);
@@ -81,7 +81,7 @@ final class InitFingerTableTask implements Coroutine {
                 fsr = funnelToRequestCoroutine(
                         cnt,
                         bootstrapNode.getAddress(),
-                        new FindSuccessorRequest(state.generateExternalMessageId(), findId.getValueAsByteArray()),
+                        new FindSuccessorRequest(state.generateExternalMessageId(), findId),
                         Duration.ofSeconds(10L),
                         FindSuccessorResponse.class);
             } catch (RuntimeException coe) {

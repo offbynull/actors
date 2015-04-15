@@ -12,7 +12,6 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
@@ -135,7 +134,7 @@ final class State {
 
     public Pointer getClosestFinger(GetClosestFingerRequest req) {
         Validate.notNull(req);
-        return getFingerTable().findClosest(toId(req.getChordId()), toId(req.getSkipChordId()));
+        return getFingerTable().findClosest(req.getChordId(), req.getSkipChordId());
     }
 
     public Pointer getClosestFinger(NodeId id, NodeId ... skipIds) {
@@ -146,7 +145,7 @@ final class State {
 
     public Pointer getClosestPrecedingFinger(GetClosestPrecedingFingerRequest req) {
         Validate.notNull(req);
-        return getFingerTable().findClosestPreceding(toId(req.getChordId()));
+        return getFingerTable().findClosestPreceding(req.getChordId());
     }
 
     public Pointer getClosestPrecedingFinger(NodeId id) {
@@ -251,15 +250,15 @@ final class State {
         return toExternalPointer(resp.getChordId(), resp.getAddress(), resp.getAddress());
     }
     
-    private ExternalPointer toExternalPointer(byte[] idData, String address, String defaultAddress) {
+    private ExternalPointer toExternalPointer(NodeId idData, String address, String defaultAddress) {
         Validate.notNull(idData);
         Validate.notNull(defaultAddress);
         // address can be null
 
         if (address != null) {
-            return new ExternalPointer(toId(idData), address);
+            return new ExternalPointer(idData, address);
         } else {
-            return new ExternalPointer(toId(idData), defaultAddress);
+            return new ExternalPointer(idData, defaultAddress);
         }
     }
 

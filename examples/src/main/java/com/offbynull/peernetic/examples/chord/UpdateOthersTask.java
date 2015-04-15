@@ -53,7 +53,7 @@ final class UpdateOthersTask implements Coroutine {
                 addOutgoingExternalMessage(
                         ctx,
                         ptr.getAddress(),
-                        new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId.getValueAsByteArray()));
+                        new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
             } else {
                 int maxIdx = state.getFingerTableLength(); // bit length of ring
                 for (int i = 0; i < maxIdx; i++) {
@@ -71,7 +71,7 @@ final class UpdateOthersTask implements Coroutine {
                     if (foundRouter instanceof ExternalPointer) {
                         addOutgoingExternalMessage(ctx,
                                 ((ExternalPointer) foundRouter).getAddress(),
-                                new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId.getValueAsByteArray()));
+                                new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
                     }
                 }
             }

@@ -8,7 +8,6 @@ import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
-import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
 import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
@@ -61,7 +60,7 @@ final class CheckPredecessorTask implements Coroutine {
                 continue;
             }
             
-            NodeId id = state.toId(gir.getChordId());
+            NodeId id = gir.getChordId();
             // TODO: Is it worth checking to see if this new id is between the old id and the us? if it is, set it as the new pred???
             if (!id.equals(predecessor.getId())) {
                 // predecessor responded with unexpected id -- clear our predecessor

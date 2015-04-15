@@ -16,22 +16,22 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.util.Arrays;
 
 public final class NotifyResponse extends ExternalMessage {
-    private byte[] chordId;
+    private NodeId chordId;
     private String address;
 
-    public NotifyResponse(long id, byte[] chordId, String address) {
+    public NotifyResponse(long id, NodeId chordId, String address) {
         super(id);
-        this.chordId = Arrays.copyOf(chordId, chordId.length);
+        this.chordId = chordId;
         this.address = address;
 //        validate();
     }
 
-    public byte[] getChordId() {
-        return chordId != null ? Arrays.copyOf(chordId, chordId.length) : null;
+    public NodeId getChordId() {
+        return chordId;
     }
 
     public String getAddress() {

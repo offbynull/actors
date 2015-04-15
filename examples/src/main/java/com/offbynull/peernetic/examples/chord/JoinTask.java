@@ -54,7 +54,7 @@ final class JoinTask implements Coroutine {
                     new GetIdRequest(state.generateExternalMessageId()),
                     Duration.ofSeconds(10L),
                     GetIdResponse.class);
-            NodeId initialId = state.toId(gir.getChordId());
+            NodeId initialId = gir.getChordId();
 
             // init finger table, successor table, etc...
             ExternalPointer bootstrapPointer = new ExternalPointer(initialId, initialAddress);

@@ -16,22 +16,22 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.util.Arrays;
 
 public final class FindSuccessorResponse extends ExternalMessage {
-    private byte[] chordId;
+    private NodeId chordId;
     private String address;
 
-    public FindSuccessorResponse(long id, byte[] chordId, String address) {
+    public FindSuccessorResponse(long id, NodeId chordId, String address) {
         super(id);
-        this.chordId = chordId != null ? Arrays.copyOf(chordId, chordId.length) : null;
+        this.chordId = chordId;
         this.address = address;
 //        validate();
     }
 
-    public byte[] getChordId() {
-        return chordId != null ? Arrays.copyOf(chordId, chordId.length) : null;
+    public NodeId getChordId() {
+        return chordId;
     }
 
     public String getAddress() {

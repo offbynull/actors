@@ -73,7 +73,7 @@ public final class ChordClientCoroutine implements Coroutine {
                 GetIdRequest extMsg = (GetIdRequest) msg;
                 addOutgoingExternalMessage(ctx,
                         fromAddress,
-                        new GetIdResponse(extMsg.getId(), state.getSelfId().getValueAsByteArray()));
+                        new GetIdResponse(extMsg.getId(), state.getSelfId()));
             } else if (msg instanceof GetClosestFingerRequest) {
                 GetClosestFingerRequest extMsg = (GetClosestFingerRequest) msg;
                 
@@ -83,7 +83,7 @@ public final class ChordClientCoroutine implements Coroutine {
                 
                 addOutgoingExternalMessage(ctx,
                         fromAddress,
-                        new GetClosestFingerResponse(extMsg.getId(), id.getValueAsByteArray(), address));
+                        new GetClosestFingerResponse(extMsg.getId(), id, address));
             } else if (msg instanceof GetClosestPrecedingFingerRequest) {
                 GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
                 
@@ -93,7 +93,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
                 addOutgoingExternalMessage(ctx,
                         fromAddress,
-                        new GetClosestPrecedingFingerResponse(extMsg.getId(), id.getValueAsByteArray(), address));
+                        new GetClosestPrecedingFingerResponse(extMsg.getId(), id, address));
             } else if (msg instanceof GetPredecessorRequest) {
                 GetPredecessorRequest extMsg = (GetPredecessorRequest) msg;
 
@@ -103,7 +103,7 @@ public final class ChordClientCoroutine implements Coroutine {
                 
                 addOutgoingExternalMessage(ctx,
                         fromAddress,
-                        new GetPredecessorResponse(extMsg.getId(), id.getValueAsByteArray(), address));
+                        new GetPredecessorResponse(extMsg.getId(), id, address));
             } else if (msg instanceof GetSuccessorRequest) {
                 GetSuccessorRequest extMsg = (GetSuccessorRequest) msg;
                 
@@ -115,7 +115,7 @@ public final class ChordClientCoroutine implements Coroutine {
             } else if (msg instanceof NotifyRequest) {
                 NotifyRequest extMsg = (NotifyRequest) msg;
 
-                NodeId requesterId = state.toId(extMsg.getChordId());
+                NodeId requesterId = extMsg.getChordId();
 
                 ExternalPointer newPredecessor = new ExternalPointer(requesterId, fromAddress);
                 ExternalPointer existingPredecessor = state.getPredecessor();
@@ -129,10 +129,10 @@ public final class ChordClientCoroutine implements Coroutine {
                 
                 addOutgoingExternalMessage(ctx,
                         fromAddress,
-                        new NotifyResponse(extMsg.getId(), id.getValueAsByteArray(), address));
+                        new NotifyResponse(extMsg.getId(), id, address));
             } else if (msg instanceof UpdateFingerTableRequest) {
                 UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
-                NodeId id = state.toId(extMsg.getChordId());
+                NodeId id = extMsg.getChordId();
                 ExternalPointer newFinger = new ExternalPointer(id, fromAddress);
 
                 if (!state.isSelfId(id)) {
@@ -141,7 +141,7 @@ public final class ChordClientCoroutine implements Coroutine {
                     if (replaced && pred != null) {
                         addOutgoingExternalMessage(ctx,
                                 pred.getAddress(),
-                                new UpdateFingerTableRequest(state.generateExternalMessageId(), id.getValueAsByteArray()));
+                                new UpdateFingerTableRequest(state.generateExternalMessageId(), id));
                     }
                 }
 
@@ -150,7 +150,7 @@ public final class ChordClientCoroutine implements Coroutine {
                         new UpdateFingerTableResponse(state.generateExternalMessageId()));
             } else if (msg instanceof FindSuccessorRequest) {
                 FindSuccessorRequest extMsg = (FindSuccessorRequest) msg;
-                NodeId id = state.toId(extMsg.getChordId());
+                NodeId id = extMsg.getChordId();
                 
                 String suffix = "routeTo" + state.generateExternalMessageId();
                 parentCoroutine.add(suffix, new RouteToTask(suffix, state, id));

@@ -81,7 +81,7 @@ final class RouteToPredecessorTask implements Coroutine {
                         new GetSuccessorRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetSuccessorResponse.class);
-                NodeId succId = state.toId(gsr.getEntries().get(0).getChordId());
+                NodeId succId = gsr.getEntries().get(0).getChordId();
 
                 LOG.debug("Successor of {} is {}.", currentNode.getId(), succId);
                 if (findId.isWithin(currentNode.getId(), false, succId, true)) {
@@ -92,11 +92,11 @@ final class RouteToPredecessorTask implements Coroutine {
                 GetClosestPrecedingFingerResponse gcpfr = funnelToRequestCoroutine(
                         cnt,
                         currentNode.getAddress(),
-                        new GetClosestPrecedingFingerRequest(state.generateExternalMessageId(), findId.getValueAsByteArray()),
+                        new GetClosestPrecedingFingerRequest(state.generateExternalMessageId(), findId),
                         Duration.ofSeconds(10L),
                         GetClosestPrecedingFingerResponse.class);
                 String address = gcpfr.getAddress();
-                NodeId id = state.toId(gcpfr.getChordId());
+                NodeId id = gcpfr.getChordId();
 
                 if (address == null) {
                     currentNode = new ExternalPointer(id, currentNode.getAddress());

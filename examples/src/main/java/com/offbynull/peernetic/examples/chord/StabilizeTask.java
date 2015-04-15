@@ -67,7 +67,7 @@ final class StabilizeTask implements Coroutine {
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
                     String address = gpr.getAddress();
-                    NodeId potentiallyNewSuccessorId = state.toId(gpr.getChordId());
+                    NodeId potentiallyNewSuccessorId = gpr.getChordId();
                     NodeId existingSuccessorId = ((ExternalPointer) successor).getId();
 
                     if (potentiallyNewSuccessorId.isWithin(selfId, false, existingSuccessorId, false)) {
@@ -78,7 +78,7 @@ final class StabilizeTask implements Coroutine {
                         addOutgoingExternalMessage(
                                 ctx,
                                 newSuccessor.getAddress(),
-                                new NotifyRequest(state.generateExternalMessageId(), selfId.getValueAsByteArray()));
+                                new NotifyRequest(state.generateExternalMessageId(), selfId));
                         
                         successor = newSuccessor;
                         successorAddress = newSuccessor.getAddress();
@@ -96,7 +96,7 @@ final class StabilizeTask implements Coroutine {
 
                 List<Pointer> subsequentSuccessors = new ArrayList<>();
                 gsr.getEntries().stream().map(x -> {
-                    NodeId id = state.toId(x.getChordId());
+                    NodeId id = x.getChordId();
 
                     if (x instanceof InternalSuccessorEntry) {
                         return new InternalPointer(id);

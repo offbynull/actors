@@ -107,7 +107,7 @@ final class RemoteRouteToTask implements Coroutine {
                         new GetIdRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetIdResponse.class);
-                foundId = state.toId(gir.getChordId());
+                foundId = gir.getChordId();
                 foundAddress = ctx.getSource();
             } catch (RuntimeException coe) {
                 LOG.warn("Unable to get successor of node routed to.");
@@ -118,7 +118,7 @@ final class RemoteRouteToTask implements Coroutine {
         }
 
         addOutgoingExternalMessage(ctx, originalSource,
-                new FindSuccessorResponse(originalRequest.getId(), foundId.getValueAsByteArray(), foundAddress));
+                new FindSuccessorResponse(originalRequest.getId(), foundId, foundAddress));
     }
     
     private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId findId) throws Exception {

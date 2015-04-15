@@ -16,26 +16,26 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.util.Arrays;
 
 public final class GetClosestFingerRequest extends ExternalMessage {
-    private byte[] chordId;
-    private byte[] skipChordId; //get closest that isn't skipChordId
+    private NodeId chordId;
+    private NodeId skipChordId; //get closest that isn't skipChordId
 
-    public GetClosestFingerRequest(long id, byte[] chordId, byte[] skipChordId) {
+    public GetClosestFingerRequest(long id, NodeId chordId, NodeId skipChordId) {
         super(id);
-        this.chordId = Arrays.copyOf(chordId, chordId.length);
-        this.skipChordId = Arrays.copyOf(skipChordId, skipChordId.length);
+        this.chordId = chordId;
+        this.skipChordId = skipChordId;
 //        validate();
     }
 
-    public byte[] getChordId() {
-        return Arrays.copyOf(chordId, chordId.length);
+    public NodeId getChordId() {
+        return chordId;
     }
 
-    public byte[] getSkipChordId() {
-        return Arrays.copyOf(skipChordId, skipChordId.length);
+    public NodeId getSkipChordId() {
+        return skipChordId;
     }
     
 //    @Override

@@ -16,22 +16,22 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.util.Arrays;
 
 public final class GetClosestFingerResponse extends ExternalMessage {
-    private byte[] chordId;
+    private NodeId chordId;
     private String address;
 
-    public GetClosestFingerResponse(long id, byte[] chordId, String address) {
+    public GetClosestFingerResponse(long id, NodeId chordId, String address) {
         super(id);
-        this.chordId = Arrays.copyOf(chordId, chordId.length);
+        this.chordId = chordId;
         this.address = address;
 //        validate();
     }
 
-    public byte[] getChordId() {
-        return Arrays.copyOf(chordId, chordId.length);
+    public NodeId getChordId() {
+        return chordId;
     }
 
     public String getAddress() {

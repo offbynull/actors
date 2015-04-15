@@ -19,9 +19,9 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
@@ -38,9 +38,9 @@ public final class GetSuccessorResponse extends ExternalMessage {
         List<SuccessorEntry> entries = new ArrayList<>(pointers.size());
         pointers.stream().map(x -> {
             if (x instanceof InternalPointer) {
-                return new InternalSuccessorEntry(x.getId().getValueAsByteArray());
+                return new InternalSuccessorEntry(x.getId());
             } else if (x instanceof ExternalPointer) {
-                return new ExternalSuccessorEntry(x.getId().getValueAsByteArray(), ((ExternalPointer) x).getAddress());
+                return new ExternalSuccessorEntry(x.getId(), ((ExternalPointer) x).getAddress());
             } else {
                 throw new IllegalArgumentException();
             }
@@ -62,22 +62,22 @@ public final class GetSuccessorResponse extends ExternalMessage {
 
     public static abstract class SuccessorEntry {
 
-        private byte[] chordId;
+        private NodeId chordId;
 
-        protected SuccessorEntry(byte[] chordId) {
+        protected SuccessorEntry(NodeId chordId) {
             Validate.notNull(chordId);
-            this.chordId = Arrays.copyOf(chordId, chordId.length);
+            this.chordId = chordId;
         }
 
-        public byte[] getChordId() {
-            return Arrays.copyOf(chordId, chordId.length);
+        public NodeId getChordId() {
+            return chordId;
         }
 
     }
 
     public static final class InternalSuccessorEntry extends SuccessorEntry {
 
-        public InternalSuccessorEntry(byte[] chordId) {
+        public InternalSuccessorEntry(NodeId chordId) {
             super(chordId);
         }
     }
@@ -86,7 +86,7 @@ public final class GetSuccessorResponse extends ExternalMessage {
 
         private String address;
 
-        public ExternalSuccessorEntry(byte[] chordId, String address) {
+        public ExternalSuccessorEntry(NodeId chordId, String address) {
             super(chordId);
             Validate.notNull(address);
             this.address = address;

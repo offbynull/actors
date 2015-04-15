@@ -2,7 +2,6 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerResponse;
@@ -10,7 +9,6 @@ import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
@@ -67,8 +65,8 @@ final class RouteToTask implements Coroutine {
                         currentNode.getAddress(),
                         new GetClosestFingerRequest(
                                 state.generateExternalMessageId(),
-                                findId.getValueAsByteArray(),
-                                skipId.getValueAsByteArray()),
+                                findId,
+                                skipId),
                         Duration.ofSeconds(10L),
                         GetClosestFingerResponse.class);
             } catch (RuntimeException re) {
@@ -77,7 +75,7 @@ final class RouteToTask implements Coroutine {
             }
 
             String address = gcpfr.getAddress();
-            NodeId id = state.toId(gcpfr.getChordId());
+            NodeId id = gcpfr.getChordId();
 
             if (address == null) {
                 currentNode = new ExternalPointer(id, currentNode.getAddress());

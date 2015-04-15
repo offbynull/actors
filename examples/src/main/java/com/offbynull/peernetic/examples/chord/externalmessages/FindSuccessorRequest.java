@@ -18,23 +18,18 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import java.util.Arrays;
 
 public final class FindSuccessorRequest extends ExternalMessage {
-    private byte[] chordId;
+    private NodeId chordId;
 
     public FindSuccessorRequest(long id, NodeId chordId) {
-        this(id, chordId.getValueAsByteArray());
-    }
-
-    public FindSuccessorRequest(long id, byte[] chordId) {
         super(id);
-        this.chordId = Arrays.copyOf(chordId, chordId.length);
+        this.chordId = chordId;
 //        validate();
     }
 
-    public byte[] getChordId() {
-        return Arrays.copyOf(chordId, chordId.length);
+    public NodeId getChordId() {
+        return chordId;
     }
 
 //    @Override

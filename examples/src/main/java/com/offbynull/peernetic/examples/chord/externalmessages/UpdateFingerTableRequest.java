@@ -16,21 +16,21 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.util.Arrays;
 
 public final class UpdateFingerTableRequest extends ExternalMessage {
 
-    private byte[] chordId;
+    private NodeId chordId;
 
-    public UpdateFingerTableRequest(long id, byte[] chordId) {
+    public UpdateFingerTableRequest(long id, NodeId chordId) {
         super(id);
-        this.chordId = Arrays.copyOf(chordId, chordId.length);
+        this.chordId = chordId;
 //        validate();
     }
 
-    public byte[] getChordId() {
-        return Arrays.copyOf(chordId, chordId.length);
+    public NodeId getChordId() {
+        return chordId;
     }
     
 //    @Override

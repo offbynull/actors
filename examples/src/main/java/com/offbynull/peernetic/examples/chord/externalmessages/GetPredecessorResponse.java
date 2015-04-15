@@ -30,7 +30,6 @@ public final class GetPredecessorResponse extends ExternalMessage implements Ser
         super(id);
         this.chordId = chordId;
         this.address = address;
-//        validate();
     }
 
     public NodeId getChordId() {
@@ -40,11 +39,4 @@ public final class GetPredecessorResponse extends ExternalMessage implements Ser
     public String getAddress() {
         return address;
     }
-    
-//    @Override
-//    protected void innerValidate() {
-//        if (chordId != null) {
-//            Validate.isTrue(chordId.length > 0);
-//        }
-//    }
 }

@@ -19,6 +19,7 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.io.Serializable;
+import org.apache.commons.lang3.Validate;
 
 public final class FindSuccessorRequest extends ExternalMessage implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -27,16 +28,11 @@ public final class FindSuccessorRequest extends ExternalMessage implements Seria
 
     public FindSuccessorRequest(long id, NodeId chordId) {
         super(id);
+        Validate.notNull(chordId);
         this.chordId = chordId;
-//        validate();
     }
 
     public NodeId getChordId() {
         return chordId;
     }
-
-//    @Override
-//    protected void innerValidate() {
-//        Validate.isTrue(chordId.length > 0);
-//    }
 }

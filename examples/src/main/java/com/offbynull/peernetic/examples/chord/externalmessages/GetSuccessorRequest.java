@@ -24,11 +24,5 @@ public final class GetSuccessorRequest extends ExternalMessage implements Serial
 
     public GetSuccessorRequest(long id) {
         super(id);
-//        validate();
     }
-
-//    @Override
-//    protected void innerValidate() {
-//        // does nothing
-//    }
 }

@@ -19,6 +19,7 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
+import org.apache.commons.lang3.Validate;
 
 public final class UpdateFingerTableRequest extends ExternalMessage implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -27,17 +28,11 @@ public final class UpdateFingerTableRequest extends ExternalMessage implements S
 
     public UpdateFingerTableRequest(long id, NodeId chordId) {
         super(id);
+        Validate.notNull(chordId);
         this.chordId = chordId;
-//        validate();
     }
 
     public NodeId getChordId() {
         return chordId;
     }
-    
-//    @Override
-//    protected void innerValidate() {
-//        Validate.notNull(chordId);
-//        Validate.isTrue(chordId.length > 0);
-//    }
 }

@@ -25,8 +25,4 @@ public final class UpdateFingerTableResponse extends ExternalMessage implements 
     public UpdateFingerTableResponse(long id) {
         super(id);
     }
-
-//    @Override
-//    protected void innerValidate() {
-//    }
 }

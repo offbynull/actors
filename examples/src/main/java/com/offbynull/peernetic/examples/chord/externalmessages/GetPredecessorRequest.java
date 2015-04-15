@@ -24,11 +24,5 @@ public final class GetPredecessorRequest extends ExternalMessage implements Seri
 
     public GetPredecessorRequest(long id) {
         super(id);
-//        validate();
     }
-
-//    @Override
-//    protected void innerValidate() {
-//        // does nothing
-//    }
 }

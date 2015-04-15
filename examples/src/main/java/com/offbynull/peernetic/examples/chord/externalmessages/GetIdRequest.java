@@ -25,11 +25,5 @@ public final class GetIdRequest extends ExternalMessage implements Serializable 
 
     public GetIdRequest(long id) {
         super(id);
-//        validate();
     }
-
-//    @Override
-//    protected void innerValidate() {
-//        // does nothing
-//    }
 }

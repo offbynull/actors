@@ -19,6 +19,7 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
+import org.apache.commons.lang3.Validate;
 
 public final class GetClosestFingerRequest extends ExternalMessage implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -28,9 +29,10 @@ public final class GetClosestFingerRequest extends ExternalMessage implements Se
 
     public GetClosestFingerRequest(long id, NodeId chordId, NodeId skipChordId) {
         super(id);
+        Validate.notNull(chordId);
+        Validate.notNull(skipChordId);
         this.chordId = chordId;
         this.skipChordId = skipChordId;
-//        validate();
     }
 
     public NodeId getChordId() {
@@ -40,12 +42,4 @@ public final class GetClosestFingerRequest extends ExternalMessage implements Se
     public NodeId getSkipChordId() {
         return skipChordId;
     }
-    
-//    @Override
-//    protected void innerValidate() {
-//        Validate.notNull(chordId);
-//        Validate.notNull(skipChordId);
-//        Validate.isTrue(chordId.length > 0);
-//        Validate.isTrue(skipChordId.length > 0);
-//    }
 }

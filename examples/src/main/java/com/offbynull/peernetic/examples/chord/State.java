@@ -29,9 +29,12 @@ final class State {
     private NodeId selfId;
     private String bootstrapAddress;
     
-    public State(String timerPrefix) {
+    public State(String timerPrefix, NodeId selfId, String bootstrapAddress) {
         Validate.notNull(timerPrefix);
+        Validate.notNull(selfId);
         this.timerPrefix = timerPrefix;
+        this.selfId = selfId;
+        this.bootstrapAddress = bootstrapAddress;
     }
 
     public String getTimerPrefix() {
@@ -44,14 +47,6 @@ final class State {
 
     public String getBootstrapAddress() {
         return bootstrapAddress;
-    }
-
-    public void setSelfId(NodeId selfId) {
-        this.selfId = selfId;
-    }
-
-    public void setBootstrapAddress(String bootstrapAddress) {
-        this.bootstrapAddress = bootstrapAddress;
     }
 
     public FingerTable getFingerTable() {

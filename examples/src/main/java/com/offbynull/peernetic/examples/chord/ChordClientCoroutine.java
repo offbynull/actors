@@ -24,6 +24,13 @@ import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import com.offbynull.peernetic.gateways.visualizer.AddNode;
+import com.offbynull.peernetic.gateways.visualizer.MoveNode;
+import com.offbynull.peernetic.gateways.visualizer.PositionUtils;
+import com.offbynull.peernetic.gateways.visualizer.StyleNode;
+import java.awt.Point;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -39,13 +46,26 @@ public final class ChordClientCoroutine implements Coroutine {
         
         Start start = ctx.getIncomingMessage();
         String timerPrefix = start.getTimerPrefix();
+        String graphAddress = start.getGraphAddress();
+        NodeId selfId = start.getNodeId();
+        String bootstrapAddress = start.getBootstrapAddress();
         
-        State state = new State(timerPrefix);
+        BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
+        BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
+        double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
+        Point newPoint = PositionUtils.pointOnCircle(200, percentage);
+        ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY()));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: yellow"));
+        
+        State state = new State(timerPrefix, selfId, bootstrapAddress);
         ParentCoroutine parentCoroutine = new ParentCoroutine("", ctx);
         
         // JOIN (or just initialize if no bootstrap node is set)
         parentCoroutine.add("join", new JoinTask("join", state));
         parentCoroutine.runUntilFinished(cnt); // run until all added coroutines are finished and removed
+        
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: green"));
         
         // RUN
         parentCoroutine.add("updateothers", new UpdateOthersTask("updateothers", state)); // notify our fingers that we're here (finite)

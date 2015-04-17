@@ -32,7 +32,7 @@ public final class NodeId implements Serializable {
     private BigInteger limit;
 
     /**
-     * Constructs a {@link Id} from {@link BigInteger}s.
+     * Constructs a {@link NodeId} from {@link BigInteger}s.
      * @param data id value
      * @param limit limit value
      * @throws NullPointerException if any argument is {@code null}
@@ -48,7 +48,7 @@ public final class NodeId implements Serializable {
     }
 
     /**
-     * Constructs a {@link Id} from byte arrays. It's assumed that the byte arrays contain unsigned values and are aligned to byte
+     * Constructs a {@link NodeId} from byte arrays. It's assumed that the byte arrays contain unsigned values and are aligned to byte
      * boundaries (e.g. if you want to use the 6 bits instead of a whole byte (8 bits), make sure the 2 top-most bits are 0).
      * @param data id value
      * @param limit limit value
@@ -60,7 +60,7 @@ public final class NodeId implements Serializable {
     }
 
     /**
-     * Constructs a {@link Id} with the limit set to {@code 2^n-1} (a limit where the bits are all 1).
+     * Constructs a {@link NodeId} with the limit set to {@code 2^n-1} (a limit where the bits are all 1).
      * @param data id value
      * @param exp number of bits in limit, such that the limit will be {@code 2^n-1}.
      * @throws NullPointerException if any argument is {@code null}
@@ -68,6 +68,19 @@ public final class NodeId implements Serializable {
      */
     public NodeId(byte[] data, int exp) {
         this(data, generatePowerOfTwoLimit(exp)); 
+    }
+    
+    /**
+     * Constructs a small (31-bit or less) {@link NodeId} with the limit set to {@code 2^n-1} (a limit where the bits are all 1).
+     * @param data id value
+     * @param exp number of bits in limit, such that the limit will be {@code 2^n-1}.
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code data > 2^exp-1 || data <= 0}, or if {@code exp <= 0}
+     */
+    public NodeId(int data, int exp) {
+        this(new BigInteger("" + data).toByteArray(), exp); 
+        Validate.isTrue(data >= 0);
+        Validate.isTrue(exp <= 31);
     }
     
     /**

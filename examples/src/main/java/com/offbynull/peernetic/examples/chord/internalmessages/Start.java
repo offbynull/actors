@@ -1,39 +1,41 @@
 package com.offbynull.peernetic.examples.chord.internalmessages;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
+import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Random;
-import java.util.Set;
-import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
 
-    private final UnmodifiableSet<String> bootstrapAddresses;
+    private final String bootstrapAddress;
+    private final NodeId nodeId;
     private final Random random;
     private final String timerPrefix;
     private final String graphAddress;
 
-    public Start(Random random, String timerPrefix, String graphAddress) {
-        this(Collections.emptySet(), random, timerPrefix, graphAddress);
+    public Start(NodeId nodeId, Random random, String timerPrefix, String graphAddress) {
+        this(null, nodeId, random, timerPrefix, graphAddress);
     }
     
-    public Start(String bootstrapAddress, Random random, String timerPrefix, String graphAddress) {
-        this(Collections.singleton(bootstrapAddress), random, timerPrefix, graphAddress);
-    }
-    
-    public Start(Set<String> bootstrapAddresses, Random random, String timerPrefix, String graphAddress) {
-        Validate.notNull(bootstrapAddresses);
+    public Start(String bootstrapAddress, NodeId nodeId, Random random, String timerPrefix, String graphAddress) {
+        // bootstrapAddress can be null
+        Validate.notNull(nodeId);
         Validate.notNull(random);
-        Validate.noNullElements(bootstrapAddresses);
-        this.bootstrapAddresses = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new LinkedHashSet<String>(bootstrapAddresses));
+        Validate.notNull(timerPrefix);
+        Validate.notNull(graphAddress);
+        
+        this.bootstrapAddress = bootstrapAddress;
+        this.nodeId = nodeId;
         this.random = random;
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;
     }
 
-    public UnmodifiableSet<String> getBootstrapAddresses() {
-        return bootstrapAddresses;
+    public String getBootstrapAddress() {
+        return bootstrapAddress;
+    }
+
+    public NodeId getNodeId() {
+        return nodeId;
     }
 
     public Random getRandom() {

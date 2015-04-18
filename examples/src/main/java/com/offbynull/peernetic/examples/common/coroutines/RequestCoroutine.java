@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.common.coroutines;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.ClassUtils;
@@ -41,20 +42,22 @@ public final class RequestCoroutine implements Coroutine {
         Object timeoutMarker = new Object();
         
         ctx.addOutgoingMessage(sourceId, destinationAddress, request);
-        ctx.addOutgoingMessage(timerAddressPrefix + ":" + timeoutDuration.toMillis(), timeoutMarker);
-        cnt.suspend();
+        ctx.addOutgoingMessage(sourceId, timerAddressPrefix + ":" + timeoutDuration.toMillis(), timeoutMarker);
+        do {
+            cnt.suspend();
+        } while (!AddressUtils.relativize(ctx.getSelf(), ctx.getDestination()).equals(sourceId));
+        
         Object incomingMessage = ctx.getIncomingMessage();
         
         if (incomingMessage == timeoutMarker) {
             throw new IllegalStateException("No response");
         }
         
+        response = (ExternalMessage) incomingMessage;
+        
         if (!ClassUtils.isAssignable(response.getClass(), expectedResponseType)) {
             throw new IllegalStateException("Bad response type");
-            
         }
-        
-        response = (ExternalMessage) incomingMessage;
     }
 
     @SuppressWarnings("unchecked")

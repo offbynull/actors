@@ -21,14 +21,13 @@ public final class Main {
         
         
         
-        int bits = 2;
+        int bits = 1;
         int count = (1 << bits) - 1;
         
         
         actorThread.addCoroutineActor("0", new ChordClientCoroutine(), new Start(new NodeId(0, bits), new Random(0), "timer", "graph"));
         for (int i = 1; i <= count; i++) {
             String id = Integer.toString(i);
-            
             actorThread.addCoroutineActor(id, new ChordClientCoroutine(),
                     new Start("actor:0", new NodeId(i, bits), new Random(i), "timer", "graph"));
             

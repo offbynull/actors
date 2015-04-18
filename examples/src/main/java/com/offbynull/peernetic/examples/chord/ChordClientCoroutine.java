@@ -24,14 +24,19 @@ import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import com.offbynull.peernetic.gateways.visualizer.AddEdge;
 import com.offbynull.peernetic.gateways.visualizer.AddNode;
 import com.offbynull.peernetic.gateways.visualizer.MoveNode;
 import com.offbynull.peernetic.gateways.visualizer.PositionUtils;
+import com.offbynull.peernetic.gateways.visualizer.RemoveEdge;
 import com.offbynull.peernetic.gateways.visualizer.StyleNode;
 import java.awt.Point;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,128 +55,155 @@ public final class ChordClientCoroutine implements Coroutine {
         NodeId selfId = start.getNodeId();
         String bootstrapAddress = start.getBootstrapAddress();
 
+        Set<Pointer> lastNotifiedPointers = new HashSet<>();
         try {
             addToGraph(ctx, selfId, graphAddress);
 
             State state = new State(timerPrefix, selfId, bootstrapAddress);
-            ParentCoroutine parentCoroutine = new ParentCoroutine("", ctx);
 
-            // JOIN (or just initialize if no bootstrap node is set)
+            
+            // Join (or just initialize if no bootstrap node is set)
             JoinTask joinTask = new JoinTask("join", state);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
 
-            // RUN
+            
+            // Create parent coroutine and add maintenance tasks to it
+            ParentCoroutine parentCoroutine = new ParentCoroutine("", ctx);
+            
             parentCoroutine.add("updateothers", new UpdateOthersTask("updateothers", state)); // notify our fingers that we're here (finite)
+            parentCoroutine.forceForward("updateothers", false);
+            
             parentCoroutine.add("fixfinger", new FixFingerTableTask("fixfinger", state));
-            parentCoroutine.add("stabilize", new StabilizeTask("fixfinger", state));
+            parentCoroutine.forceForward("fixfinger", true);
+            
+            parentCoroutine.add("stabilize", new StabilizeTask("stabilize", state));
+            parentCoroutine.forceForward("stabilize", true);
+            
             parentCoroutine.add("checkpred", new CheckPredecessorTask("checkpred", state));
+            parentCoroutine.forceForward("checkpred", true);
+            
 
             while (true) {
                 cnt.suspend();
 
 
-                boolean forwarded = parentCoroutine.forward(); // run until all added coroutines are finished and removed
-                if (forwarded) {
-                    continue;
-                }
+                // Forward message to maintenance task. If the message wasn't for a maintenance task, try to handle it.
+                boolean forwarded = parentCoroutine.forward();
+                if (!forwarded) {
+                    Object msg = ctx.getIncomingMessage();
+                    String fromAddress = ctx.getSource();
 
+                    LOG.debug("Incoming request {}", msg.getClass());
 
+                    if (msg instanceof GetIdRequest) {
+                        GetIdRequest extMsg = (GetIdRequest) msg;
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new GetIdResponse(extMsg.getId(), state.getSelfId()));
+                    } else if (msg instanceof GetClosestFingerRequest) {
+                        GetClosestFingerRequest extMsg = (GetClosestFingerRequest) msg;
 
-                Object msg = ctx.getIncomingMessage();
-                String fromAddress = ctx.getSource();
+                        Pointer pointer = state.getClosestFinger(extMsg);
+                        NodeId id = pointer.getId();
+                        String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
 
-                LOG.debug("Incoming request {}", msg.getClass());
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new GetClosestFingerResponse(extMsg.getId(), id, address));
+                    } else if (msg instanceof GetClosestPrecedingFingerRequest) {
+                        GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
 
-                if (msg instanceof GetIdRequest) {
-                    GetIdRequest extMsg = (GetIdRequest) msg;
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new GetIdResponse(extMsg.getId(), state.getSelfId()));
-                } else if (msg instanceof GetClosestFingerRequest) {
-                    GetClosestFingerRequest extMsg = (GetClosestFingerRequest) msg;
+                        Pointer pointer = state.getClosestPrecedingFinger(extMsg);
+                        NodeId id = pointer.getId();
+                        String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
 
-                    Pointer pointer = state.getClosestFinger(extMsg);
-                    NodeId id = pointer.getId();
-                    String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new GetClosestPrecedingFingerResponse(extMsg.getId(), id, address));
+                    } else if (msg instanceof GetPredecessorRequest) {
+                        GetPredecessorRequest extMsg = (GetPredecessorRequest) msg;
 
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new GetClosestFingerResponse(extMsg.getId(), id, address));
-                } else if (msg instanceof GetClosestPrecedingFingerRequest) {
-                    GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
+                        ExternalPointer pointer = state.getPredecessor();
+                        NodeId id = pointer == null ? null : pointer.getId();
+                        String address = pointer == null ? null : pointer.getAddress();
 
-                    Pointer pointer = state.getClosestPrecedingFinger(extMsg);
-                    NodeId id = pointer.getId();
-                    String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new GetPredecessorResponse(extMsg.getId(), id, address));
+                    } else if (msg instanceof GetSuccessorRequest) {
+                        GetSuccessorRequest extMsg = (GetSuccessorRequest) msg;
 
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new GetClosestPrecedingFingerResponse(extMsg.getId(), id, address));
-                } else if (msg instanceof GetPredecessorRequest) {
-                    GetPredecessorRequest extMsg = (GetPredecessorRequest) msg;
+                        List<Pointer> successors = state.getSuccessors();
 
-                    ExternalPointer pointer = state.getPredecessor();
-                    NodeId id = pointer == null ? null : pointer.getId();
-                    String address = pointer == null ? null : pointer.getAddress();
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new GetSuccessorResponse(extMsg.getId(),successors));
+                    } else if (msg instanceof NotifyRequest) {
+                        NotifyRequest extMsg = (NotifyRequest) msg;
 
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new GetPredecessorResponse(extMsg.getId(), id, address));
-                } else if (msg instanceof GetSuccessorRequest) {
-                    GetSuccessorRequest extMsg = (GetSuccessorRequest) msg;
+                        NodeId requesterId = extMsg.getChordId();
 
-                    List<Pointer> successors = state.getSuccessors();
-
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new GetSuccessorResponse(extMsg.getId(),successors));
-                } else if (msg instanceof NotifyRequest) {
-                    NotifyRequest extMsg = (NotifyRequest) msg;
-
-                    NodeId requesterId = extMsg.getChordId();
-
-                    ExternalPointer newPredecessor = new ExternalPointer(requesterId, fromAddress);
-                    ExternalPointer existingPredecessor = state.getPredecessor();
-                    if (existingPredecessor == null || requesterId.isWithin(existingPredecessor.getId(), true, state.getSelfId(), false)) {
-                        state.setPredecessor(newPredecessor);
-                    }
-
-                    ExternalPointer pointer = state.getPredecessor();
-                    NodeId id = pointer.getId();
-                    String address = pointer.getAddress();
-
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new NotifyResponse(extMsg.getId(), id, address));
-                } else if (msg instanceof UpdateFingerTableRequest) {
-                    UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
-                    NodeId id = extMsg.getChordId();
-                    ExternalPointer newFinger = new ExternalPointer(id, fromAddress);
-
-                    if (!state.isSelfId(id)) {
-                        boolean replaced = state.replaceFinger(newFinger);
-                        ExternalPointer pred = state.getPredecessor();
-                        if (replaced && pred != null) {
-                            addOutgoingExternalMessage(ctx,
-                                    pred.getAddress(),
-                                    new UpdateFingerTableRequest(state.generateExternalMessageId(), id));
+                        ExternalPointer newPredecessor = new ExternalPointer(requesterId, fromAddress);
+                        ExternalPointer existingPredecessor = state.getPredecessor();
+                        if (existingPredecessor == null || requesterId.isWithin(existingPredecessor.getId(), true, state.getSelfId(), false)) {
+                            state.setPredecessor(newPredecessor);
                         }
+
+                        ExternalPointer pointer = state.getPredecessor();
+                        NodeId id = pointer.getId();
+                        String address = pointer.getAddress();
+
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new NotifyResponse(extMsg.getId(), id, address));
+                    } else if (msg instanceof UpdateFingerTableRequest) {
+                        UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
+                        NodeId id = extMsg.getChordId();
+                        ExternalPointer newFinger = new ExternalPointer(id, fromAddress);
+
+                        if (!state.isSelfId(id)) {
+                            boolean replaced = state.replaceFinger(newFinger);
+                            ExternalPointer pred = state.getPredecessor();
+                            if (replaced && pred != null) {
+                                addOutgoingExternalMessage(ctx,
+                                        pred.getAddress(),
+                                        new UpdateFingerTableRequest(state.generateExternalMessageId(), id));
+                            }
+                        }
+
+                        addOutgoingExternalMessage(ctx,
+                                fromAddress,
+                                new UpdateFingerTableResponse(state.generateExternalMessageId()));
+                    } else if (msg instanceof FindSuccessorRequest) {
+                        FindSuccessorRequest extMsg = (FindSuccessorRequest) msg;
+                        NodeId id = extMsg.getChordId();
+
+                        String suffix = "remoteRouteTo" + state.generateExternalMessageId();
+                        RemoteRouteToTask remoteRouteToTask = new RemoteRouteToTask(suffix, state, id, extMsg, ctx.getSource());
+                        parentCoroutine.add(suffix, remoteRouteToTask);
+                        parentCoroutine.forceForward(suffix, false);
                     }
-
-                    addOutgoingExternalMessage(ctx,
-                            fromAddress,
-                            new UpdateFingerTableResponse(state.generateExternalMessageId()));
-                } else if (msg instanceof FindSuccessorRequest) {
-                    FindSuccessorRequest extMsg = (FindSuccessorRequest) msg;
-                    NodeId id = extMsg.getChordId();
-
-                    String suffix = "remoteRouteTo" + state.generateExternalMessageId();
-                    RemoteRouteToTask remoteRouteToTask = new RemoteRouteToTask(suffix, state, id, extMsg, ctx.getSource());
-                    parentCoroutine.add(suffix, remoteRouteToTask);
-                    parentCoroutine.forceForward(suffix, false);
                 }
+                
+                
+                // Send link changes to graph
+                Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
+                        state.getFingerTable().dump().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
+                if (state.getPredecessor() != null) {
+                    newPointers.add(state.getPredecessor());
+                }
+
+                Set<Pointer> addedPointers = new HashSet<>(newPointers);
+                addedPointers.removeAll(lastNotifiedPointers);
+                addedPointers.forEach(x -> connectOnGraph(ctx, selfId, x.getId(), graphAddress));
+
+                Set<Pointer> removedPointers = new HashSet<>(lastNotifiedPointers);
+                removedPointers.removeAll(newPointers);
+                removedPointers.forEach(x -> disconnectOnGraph(ctx, selfId, x.getId(), graphAddress));
+
+                lastNotifiedPointers = newPointers;
             }
         } catch (Exception e) {
             switchToErrorOnGraph(ctx, selfId, graphAddress);
@@ -195,6 +227,14 @@ public final class ChordClientCoroutine implements Coroutine {
 
     private void switchToErrorOnGraph(Context ctx, NodeId selfId, String graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: red"));
+    }
+    
+    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String graphAddress) {
+        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
+    }
+
+    private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String graphAddress) {
+        ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
     }
     
     private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {

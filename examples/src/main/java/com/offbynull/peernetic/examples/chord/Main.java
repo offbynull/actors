@@ -21,7 +21,7 @@ public final class Main {
         
         
         
-        int bits = 1;
+        int bits = 2;
         int count = (1 << bits) - 1;
         
         
@@ -30,8 +30,6 @@ public final class Main {
             String id = Integer.toString(i);
             actorThread.addCoroutineActor(id, new ChordClientCoroutine(),
                     new Start("actor:0", new NodeId(i, bits), new Random(i), "timer", "graph"));
-            
-            Thread.sleep(1000L);
         }
         
         GraphGateway.awaitShutdown();

@@ -96,7 +96,7 @@ public final class ParentCoroutine {
         return forwarded;
     }
 
-    public boolean forceForward(String suffix, boolean exceptionOnFinish) throws Exception {
+    public boolean forceForward(String suffix, boolean mustNotFinish) throws Exception {
         Validate.notNull(suffix);
         
         CoroutineRunner runner = suffixMap.get(suffix);
@@ -105,7 +105,7 @@ public final class ParentCoroutine {
         if (runner != null) {
             boolean running = runner.execute();
             if (!running) {
-                Validate.validState(!exceptionOnFinish, "Runner pointed to by suffix was not suppose to finish");
+                Validate.validState(!mustNotFinish, "Runner pointed to by suffix was not suppose to finish");
                 suffixMap.remove(suffix);
             }
             forwarded = true;

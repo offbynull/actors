@@ -30,6 +30,8 @@ public final class Main {
             String id = Integer.toString(i);
             actorThread.addCoroutineActor(id, new ChordClientCoroutine(),
                     new Start("actor:0", new NodeId(i, bits), new Random(i), "timer", "graph"));
+            
+            Thread.sleep(1000L);
         }
         
         GraphGateway.awaitShutdown();

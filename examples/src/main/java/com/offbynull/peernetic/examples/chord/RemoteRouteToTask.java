@@ -53,6 +53,8 @@ final class RemoteRouteToTask implements Coroutine {
     public void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
+        LOG.debug("{} {} - Starting remote route to {}", state.getSelfId(), sourceId, findId);
+        
         Pointer foundSucc;
         try {
             foundSucc = funnelToRouteToCoroutine(cnt, findId);
@@ -60,6 +62,8 @@ final class RemoteRouteToTask implements Coroutine {
             LOG.warn("Unable to route to node");
             return;
         }
+        
+        LOG.debug("{} {} - Routed to {}", state.getSelfId(), sourceId, foundSucc);
 
         NodeId foundId;
         String foundAddress = null;

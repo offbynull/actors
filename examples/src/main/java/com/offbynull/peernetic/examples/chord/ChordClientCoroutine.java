@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerResponse;
@@ -161,7 +162,8 @@ public final class ChordClientCoroutine implements Coroutine {
                     } else if (msg instanceof UpdateFingerTableRequest) {
                         UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
                         NodeId id = extMsg.getChordId();
-                        ExternalPointer newFinger = new ExternalPointer(id, fromAddress);
+                        String address = AddressUtils.removeSuffix(fromAddress, 2);
+                        ExternalPointer newFinger = new ExternalPointer(id, address);
 
                         if (!state.isSelfId(id)) {
                             boolean replaced = state.replaceFinger(newFinger);
@@ -175,7 +177,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
                         addOutgoingExternalMessage(ctx,
                                 fromAddress,
-                                new UpdateFingerTableResponse(state.generateExternalMessageId()));
+                                new UpdateFingerTableResponse(extMsg.getId()));
                     } else if (msg instanceof FindSuccessorRequest) {
                         FindSuccessorRequest extMsg = (FindSuccessorRequest) msg;
                         NodeId id = extMsg.getChordId();

@@ -41,6 +41,8 @@ final class RouteToTask implements Coroutine {
     @Override
     public void run(Continuation cnt) throws Exception {
         
+        LOG.debug("{} {} - Routing to {}", state.getSelfId(), sourceId, findId);
+        
         Pointer initialPointer = state.getClosestFinger(findId);
         if (initialPointer instanceof InternalPointer) {
             // our finger table may be corrupt/incomplete, try with maximum non-base finger
@@ -48,6 +50,7 @@ final class RouteToTask implements Coroutine {
             if (initialPointer == null) {
                 // we don't have a maximum non-base, at this point we're fucked so just give back self
                 foundId = state.getSelfId();
+                LOG.debug("{} {} - Routing resulted in self {}", state.getSelfId(), sourceId, findId);
                 return;
             }
         }
@@ -59,6 +62,8 @@ final class RouteToTask implements Coroutine {
         while (true) {
             NodeId oldCurrentNodeId = currentNode.getId();
 
+            LOG.debug("{} {} - Requesting closest finger to {} from {}", state.getSelfId(), sourceId, findId, currentNode);
+            
             GetClosestFingerResponse gcpfr;
             try {
                 gcpfr = funnelToRequestCoroutine(cnt,
@@ -70,13 +75,15 @@ final class RouteToTask implements Coroutine {
                         Duration.ofSeconds(10L),
                         GetClosestFingerResponse.class);
             } catch (RuntimeException re) {
-                LOG.warn("Routing failed -- failed to get closest finger from {}", currentNode);
+                LOG.warn("{} {} - Routing failed -- failed to get closest finger from {}", state.getSelfId(), sourceId, currentNode);
                 return;
             }
 
             String address = gcpfr.getAddress();
             NodeId id = gcpfr.getChordId();
 
+            LOG.debug("{} {} - {} reported that its closest finger to {} is {}", state.getSelfId(), sourceId, currentNode, findId, id);
+            
             if (address == null) {
                 currentNode = new ExternalPointer(id, currentNode.getAddress());
             } else {
@@ -87,11 +94,13 @@ final class RouteToTask implements Coroutine {
                 break;
             }
         }
-
+        
         foundId = currentNode.getId();
         if (!currentNode.getId().equals(skipId)) {
             foundAddress = currentNode.getAddress();
         }
+        
+        LOG.debug("{} {} - {} routed to {} at address {}", state.getSelfId(), sourceId, currentNode, findId, foundId, foundAddress);
     }
 
     public Pointer getResult() {

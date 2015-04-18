@@ -52,11 +52,16 @@ public final class AddressUtils {
         return parentAddress + SEPARATOR + relativeAddress;
     }
 
-    public static String removePrefix(String address, int fromIdx) {
-        Validate.isTrue(fromIdx >= 1); // must be >= 1, if 0 you wont' be removing anything
+    public static String removePrefix(String address, int removeCount) {
         String[] elements = splitAddress(address);
-        Validate.validIndex(elements, fromIdx);
-        return getAddress(Arrays.asList(elements).subList(fromIdx, elements.length));
+        Validate.validIndex(elements, removeCount);
+        return getAddress(Arrays.asList(elements).subList(removeCount, elements.length));
+    }
+
+    public static String removeSuffix(String address, int removeCount) {
+        String[] elements = splitAddress(address);
+        Validate.validIndex(elements, removeCount);
+        return getAddress(Arrays.asList(elements).subList(0, elements.length - removeCount));
     }
     
     public static String getAddressElement(String address, int idx) {

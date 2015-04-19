@@ -36,14 +36,6 @@
             <plugin>
                 <groupId>com.offbynull.coroutines</groupId>
                 <artifactId>maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>instrument</goal>
-                            <goal>test-instrument</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

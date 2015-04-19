@@ -1,8 +1,11 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import java.util.Collections;
 import java.util.Random;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -51,7 +54,7 @@ final class ControllerStage extends Stage {
         vbox.getChildren().add(removeHbox);
         removeButton.setOnAction((x) -> {
             String text = removeTextField.getText();
-            actorThread.removeActor(text);
+            actorThread.getIncomingShuttle().send(Collections.singleton(new Message("", "actor:" + text, new Kill())));
 //            removeTextField.setText("");
         });
 

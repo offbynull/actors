@@ -19,6 +19,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.NotifyRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.NotifyResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableResponse;
+import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
@@ -26,15 +27,9 @@ import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import com.offbynull.peernetic.gateways.visualizer.AddEdge;
-import com.offbynull.peernetic.gateways.visualizer.AddNode;
-import com.offbynull.peernetic.gateways.visualizer.MoveNode;
-import com.offbynull.peernetic.gateways.visualizer.PositionUtils;
 import com.offbynull.peernetic.gateways.visualizer.RemoveEdge;
 import com.offbynull.peernetic.gateways.visualizer.StyleEdge;
 import com.offbynull.peernetic.gateways.visualizer.StyleNode;
-import java.awt.Point;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -59,8 +54,6 @@ public final class ChordClientCoroutine implements Coroutine {
 
         Set<Pointer> lastNotifiedPointers = new HashSet<>();
         try {
-            addToGraph(ctx, selfId, graphAddress);
-
             State state = new State(timerPrefix, selfId, bootstrapAddress);
 
             
@@ -188,6 +181,8 @@ public final class ChordClientCoroutine implements Coroutine {
                         RemoteRouteToTask remoteRouteToTask = new RemoteRouteToTask(suffix, state, id, extMsg, ctx.getSource());
                         parentCoroutine.add(suffix, remoteRouteToTask);
                         parentCoroutine.forceForward(suffix, false);
+                    } else if (msg instanceof Kill) {
+                        return;
                     }
                 }
                 
@@ -210,26 +205,20 @@ public final class ChordClientCoroutine implements Coroutine {
                 lastNotifiedPointers = newPointers;
             }
         } catch (Exception e) {
-            switchToErrorOnGraph(ctx, selfId, graphAddress);
             e.printStackTrace();
+        } finally {
+            for (Pointer ptr : lastNotifiedPointers) {
+                disconnectOnGraph(ctx, selfId, ptr.getId(), graphAddress);
+            }
+            switchToDeadOnGraph(ctx, selfId, graphAddress);
         }
-    }
-
-    private void addToGraph(Context ctx, NodeId selfId, String graphAddress) {
-        BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
-        BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
-        double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
-        Point newPoint = PositionUtils.pointOnCircle(1000, percentage);
-        ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
-        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY()));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: yellow"));
     }
 
     private void switchToReadyOnGraph(Context ctx, NodeId selfId, String graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: green"));
     }
 
-    private void switchToErrorOnGraph(Context ctx, NodeId selfId, String graphAddress) {
+    private void switchToDeadOnGraph(Context ctx, NodeId selfId, String graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: red"));
     }
     

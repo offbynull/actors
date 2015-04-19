@@ -4,8 +4,10 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
+import java.util.function.Supplier;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.stage.Stage;
 import org.apache.commons.lang3.Validate;
 
 public final class GraphGateway implements InputGateway {
@@ -49,6 +51,11 @@ public final class GraphGateway implements InputGateway {
         } catch (InterruptedException ex) {
             throw new IllegalStateException(ex);
         }
+    }
+    
+    public void addStage(Supplier<? extends Stage> factory) {
+        Validate.notNull(factory);
+        bus.add(new CreateStage(factory));
     }
 
     public static void awaitShutdown() {

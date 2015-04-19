@@ -28,7 +28,7 @@ public final class GraphApplication extends Application {
     private static final Lock lock = new ReentrantLock();
     private static final Condition startedCondition = lock.newCondition();
     private static final Condition stoppedCondition = lock.newCondition();
-    
+
     private ListView<String> listView;
     private ObservableList<String> listItems;
     private Map<String, GraphStage> graphStages;
@@ -43,18 +43,18 @@ public final class GraphApplication extends Application {
     public void start(Stage stage) {
         listItems = FXCollections.observableArrayList();
         listView = new ListView<>(listItems);
-        
+
         listView.setOnMouseClicked((MouseEvent click) -> {
             if (click.getClickCount() == 2) {
                 String name = listView.getSelectionModel().getSelectedItem();
                 graphStages.get(name).show();
             }
         });
-        
+
         stage.setTitle("Graph Selection");
         stage.setWidth(150);
         stage.setHeight(400);
-        
+
         // We have to do this because in some cases JavaFX threads won't shut down when the last stage closes, even if implicitExit is set
         // http://stackoverflow.com/questions/15808063/how-to-stop-javafx-application-thread/22997736#22997736
         stage.setOnCloseRequest(x -> Platform.exit());
@@ -62,9 +62,9 @@ public final class GraphApplication extends Application {
         Scene scene = new Scene(listView, 1.0, 1.0, true, SceneAntialiasing.DISABLED);
         scene.setFill(Color.WHITESMOKE);
         stage.setScene(scene);
-        
+
         stage.show();
-        
+
         lock.lock();
         try {
             instance = this;
@@ -85,7 +85,7 @@ public final class GraphApplication extends Application {
         }
     }
 
-    public static GraphApplication getInstance() {
+    static GraphApplication getInstance() {
         lock.lock();
         try {
             return instance;
@@ -93,8 +93,8 @@ public final class GraphApplication extends Application {
             lock.unlock();
         }
     }
-    
-    public static GraphApplication awaitStarted() throws InterruptedException {
+
+    static GraphApplication awaitStarted() throws InterruptedException {
         lock.lock();
         try {
             if (instance == null) {
@@ -106,7 +106,7 @@ public final class GraphApplication extends Application {
         }
     }
 
-    public static void awaitStopped() throws InterruptedException {
+    static void awaitStopped() throws InterruptedException {
         lock.lock();
         try {
             if (instance != null) {
@@ -116,10 +116,10 @@ public final class GraphApplication extends Application {
             lock.unlock();
         }
     }
-    
+
     void execute(MultiMap<String, Object> commands) {
         Validate.notNull(commands);
-        
+
         Platform.runLater(() -> {
             for (Entry<String, Object> entry : commands.entrySet()) {
                 String fromAddress = entry.getKey();
@@ -128,7 +128,7 @@ public final class GraphApplication extends Application {
                     graphStage = new GraphStage();
                     graphStages.put(fromAddress, graphStage);
                     listItems.add(fromAddress);
-                    
+
                     if (listItems.size() == 1) { // if this is the first graph, show it
                         graphStage.show();
                     }
@@ -146,6 +146,16 @@ public final class GraphApplication extends Application {
                     }
                 }
             }
+        });
+    }
+
+    void execute(CreateStage createStage) {
+        Validate.notNull(createStage);
+
+        Platform.runLater(() -> {
+            Stage stage = createStage.getFactory().get();
+            stage.setOnCloseRequest(x -> stage.close()); // override close behaviour
+            stage.show();
         });
     }
 }

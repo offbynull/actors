@@ -3,9 +3,8 @@ package com.offbynull.peernetic.gateways.visualizer;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import javafx.application.Platform;
+import javafx.stage.Stage;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
@@ -39,14 +38,20 @@ final class GraphRunnable implements Runnable {
 
                 MultiMap<String, Object> payloads = new MultiValueMap<>();
                 for (Object incomingObject : incomingObjects) {
-                    Message msg = (Message) incomingObject;
-                    
-                    String dst = msg.getDestinationAddress();
-                    Object payload = msg.getMessage();
-                    payloads.put(dst, payload);
+                    if (incomingObject instanceof Message) {
+                        Message msg = (Message) incomingObject;
+
+                        String dst = msg.getDestinationAddress();
+                        Object payload = msg.getMessage();
+                        payloads.put(dst, payload);
+                        
+                        graph.execute(payloads);
+                    } else if (incomingObject instanceof CreateStage) {
+                        graph.execute((CreateStage) incomingObject);
+                    } else {
+                        throw new IllegalStateException("Unexpected message type: " + incomingObject);
+                    }
                 }
-                
-                graph.execute(payloads);
             }
         } catch (InterruptedException ie) {
             bus.close(); // just in case

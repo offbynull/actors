@@ -63,11 +63,19 @@ final class FixFingerTableTask implements Coroutine {
         try {
             foundFinger = funnelToRouteToCoroutine(cnt, findId);
         } catch (RuntimeException re) {
-            LOG.warn("{} {} - Unable to find finger for index {}", state.getSelfId(), sourceId, i);
+            LOG.error("{} {} - Error while finding index for {}", state.getSelfId(), sourceId, i);
             return;
         }
-
-        LOG.debug("{} {} - Finger for index {} set to {}", state.getSelfId(), sourceId, i, foundFinger);
+        
+        if (foundFinger == null) {
+            // Routing failed, so set found finger as 'self', which will cause the finger at this index to be removed in the if/else block
+            // just after this
+            foundFinger = new InternalPointer(state.getSelfId());
+            LOG.debug("{} {} - Unable to find index for {}", state.getSelfId(), sourceId, i);
+        } else {
+            LOG.debug("{} {} - Finger for index {} set to {}", state.getSelfId(), sourceId, i, foundFinger);
+        }
+        
         
         if (foundFinger instanceof InternalPointer) {
             // get existing finger in that slot... if it's not self, remove it... removing it should automatically shift the next finger in

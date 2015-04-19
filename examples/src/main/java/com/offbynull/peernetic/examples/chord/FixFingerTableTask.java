@@ -34,15 +34,22 @@ final class FixFingerTableTask implements Coroutine {
     @Override
     public void run(Continuation cnt) throws Exception {
         
+        LOG.debug("{} {} - Starting fix finger task", state.getSelfId(), sourceId);
+        
         int len = state.getFingerTableLength();
 
         while (true) {
-            for (int i = 1; i < len; i++) { // this task starts from 1, not 0 ... fixing of the 0 / successor is done in stabilize
-                LOG.info("{}: Fixing finger {}", state.getSelfId(), i);
+            for (int i = 0; i < len; i++) {
+                // Fix successor (finger idx 0) and the finger at i. If i == 0, this will fix the successor twice, which is not really
+                // required but it doesn't hurt.
+                
+                LOG.debug("{} {} - Fixing finger 0", state.getSelfId(), sourceId);
                 fixFinger(cnt, 0);
+                LOG.debug("{} {} - Fixing finger {}", state.getSelfId(), sourceId, i);
                 fixFinger(cnt, i);
             }
 
+            LOG.debug("{} {} - Sleeping", state.getSelfId(), sourceId);
             funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
         }
     }
@@ -56,10 +63,12 @@ final class FixFingerTableTask implements Coroutine {
         try {
             foundFinger = funnelToRouteToCoroutine(cnt, findId);
         } catch (RuntimeException re) {
-            LOG.warn("Unable to find finger for index {}", i);
+            LOG.warn("{} {} - Unable to find finger for index {}", state.getSelfId(), sourceId, i);
             return;
         }
 
+        LOG.debug("{} {} - Finger for index {} set to {}", state.getSelfId(), sourceId, i, foundFinger);
+        
         if (foundFinger instanceof InternalPointer) {
             // get existing finger in that slot... if it's not self, remove it... removing it should automatically shift the next finger in
             // to its place
@@ -69,7 +78,6 @@ final class FixFingerTableTask implements Coroutine {
             }
         } else if (foundFinger instanceof ExternalPointer) {
             state.putFinger((ExternalPointer) foundFinger);
-            LOG.debug("{}: Finger for index {} set to {}", state.getSelfId(), i, foundFinger);
         } else {
             throw new IllegalStateException();
         }
@@ -80,7 +88,7 @@ final class FixFingerTableTask implements Coroutine {
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
         
-        SleepCoroutine sleepCoroutine = new SleepCoroutine(state.getTimerPrefix(), duration);
+        SleepCoroutine sleepCoroutine = new SleepCoroutine(sourceId, state.getTimerPrefix(), duration);
         sleepCoroutine.run(cnt);
     }
 

@@ -30,6 +30,7 @@ import com.offbynull.peernetic.gateways.visualizer.AddNode;
 import com.offbynull.peernetic.gateways.visualizer.MoveNode;
 import com.offbynull.peernetic.gateways.visualizer.PositionUtils;
 import com.offbynull.peernetic.gateways.visualizer.RemoveEdge;
+import com.offbynull.peernetic.gateways.visualizer.StyleEdge;
 import com.offbynull.peernetic.gateways.visualizer.StyleNode;
 import java.awt.Point;
 import java.math.BigDecimal;
@@ -96,7 +97,8 @@ public final class ChordClientCoroutine implements Coroutine {
                     Object msg = ctx.getIncomingMessage();
                     String fromAddress = ctx.getSource();
 
-                    LOG.debug("Incoming request {}", msg.getClass());
+                    LOG.debug("{} {} - Processing {} from {} to {}", state.getSelfId(), "", msg.getClass(), fromAddress,
+                            ctx.getDestination());
 
                     if (msg instanceof GetIdRequest) {
                         GetIdRequest extMsg = (GetIdRequest) msg;
@@ -217,7 +219,7 @@ public final class ChordClientCoroutine implements Coroutine {
         BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
         BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
         double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
-        Point newPoint = PositionUtils.pointOnCircle(200, percentage);
+        Point newPoint = PositionUtils.pointOnCircle(1000, percentage);
         ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
         ctx.addOutgoingMessage(graphAddress, new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY()));
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: yellow"));
@@ -233,6 +235,8 @@ public final class ChordClientCoroutine implements Coroutine {
     
     private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
+        ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(),
+                "-fx-stroke: rgba(0, 0, 0, .5); -fx-stroke-width: 3;"));
     }
 
     private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String graphAddress) {

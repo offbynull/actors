@@ -55,32 +55,9 @@ public final class ParentCoroutine {
         return suffixMap.containsKey(suffix);
     }
 
-    public void runUntilFinished(Continuation cnt) throws Exception {
-        Validate.notNull(cnt);
-        while (true) {
-            String id = AddressUtils.relativize(prefix, context.getSource());
-
-            String key = AddressUtils.getFirstAddressElement(id);
-            CoroutineRunner runner = suffixMap.get(key);
-
-            if (runner != null) {
-                boolean running = runner.execute();
-                if (!running) {
-                    suffixMap.remove(key);
-                }
-            }
-            
-            if (suffixMap.isEmpty()) {
-                return;
-            }
-            
-            cnt.suspend();
-        }
-    }
-
     public boolean forward() throws Exception {
-        String id = AddressUtils.relativize(prefix, context.getSource());
-
+        String id = AddressUtils.relativize(context.getSelf(), context.getDestination());
+        
         String key = AddressUtils.getFirstAddressElement(id);
         CoroutineRunner runner = suffixMap.get(key);
 

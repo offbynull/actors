@@ -3,19 +3,20 @@ package com.offbynull.peernetic.examples.common.coroutines;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
-import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
 
 public final class SleepCoroutine implements Coroutine {
+    private final String sourceId;
     private final String timerAddressPrefix;
     private final Duration timeoutDuration;
 
-    public SleepCoroutine(String timerAddressPrefix, Duration timeoutDuration) {
+    public SleepCoroutine(String sourceId, String timerAddressPrefix, Duration timeoutDuration) {
+        Validate.notNull(sourceId);
         Validate.notNull(timerAddressPrefix);
         Validate.notNull(timeoutDuration);
         Validate.isTrue(!timeoutDuration.isNegative());
+        this.sourceId = sourceId;
         this.timerAddressPrefix = timerAddressPrefix;
         this.timeoutDuration = timeoutDuration;
     }
@@ -26,14 +27,12 @@ public final class SleepCoroutine implements Coroutine {
         
         Object timeoutMarker = new Object();
         
-        ctx.addOutgoingMessage(timerAddressPrefix + ":" + timeoutDuration.toMillis(), timeoutMarker);
-        cnt.suspend();
-        Object incomingMessage = ctx.getIncomingMessage();
+        ctx.addOutgoingMessage(sourceId, timerAddressPrefix + ":" + timeoutDuration.toMillis(), timeoutMarker);
         
-        if (incomingMessage == timeoutMarker) {
-            return;
-        }
-
-        throw new IllegalStateException("Unexpected message");
+        Object incomingMessage;
+        do {
+            cnt.suspend();
+            incomingMessage = ctx.getIncomingMessage();
+        } while (incomingMessage != timeoutMarker);
     }
 }

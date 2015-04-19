@@ -79,7 +79,6 @@ public final class AddressUtils {
         Validate.notNull(address);
         
         String[] elements = splitAddress(address);
-        Validate.isTrue(elements.length > 0);
         
         return elements[0];
     }
@@ -88,7 +87,6 @@ public final class AddressUtils {
         Validate.notNull(address);
         
         String[] elements = splitAddress(address);
-        Validate.isTrue(elements.length > 0);
         
         return elements[elements.length - 1];
     }
@@ -139,6 +137,10 @@ public final class AddressUtils {
         if (startIdx < address.length()) {
             String element = address.substring(startIdx);
             elements.add(element);
+        }
+        
+        if (elements.isEmpty()) {
+            elements.add("");
         }
 
         return elements.toArray(new String[elements.size()]);

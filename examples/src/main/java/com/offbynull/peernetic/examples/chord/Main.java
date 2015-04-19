@@ -30,9 +30,7 @@ public final class Main {
         
         
         
-        Random mainRandom = new Random(0L);
-        
-        int bits = 2;
+        int bits = 4;
         int count = (1 << bits) - 1;
         
         for (int i = 0; i <= count; i++) {
@@ -51,7 +49,7 @@ public final class Main {
         graphGateway.addStage(() -> new ControllerStage(actorThread, bits));
         
         
-        actorThread.addCoroutineActor("0", new ChordClientCoroutine(), new Start(new NodeId(0, bits), new Random(0), "timer", "graph"));
+//        actorThread.addCoroutineActor("0", new ChordClientCoroutine(), new Start(new NodeId(0, bits), new Random(0), "timer", "graph"));
 //        for (int i = 1; i <= count; i++) {
 //            String id = Integer.toString(i);
 //            actorThread.addCoroutineActor(id, new ChordClientCoroutine(),

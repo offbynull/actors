@@ -109,6 +109,7 @@ final class StabilizeTask implements Coroutine {
 
                 // mark it as our new successor
                 state.updateSuccessor((ExternalPointer) successor, subsequentSuccessors);
+                LOG.debug("{} {} - Successors after stabilization are {}", state.getSelfId(), sourceId, state.getSuccessors());
             } catch (RuntimeException re) {
                 LOG.warn("Failed to stabilize", re);
             }

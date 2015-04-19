@@ -49,7 +49,7 @@ final class FixFingerTableTask implements Coroutine {
                 fixFinger(cnt, i);
             }
 
-            LOG.debug("{} {} - Sleeping", state.getSelfId(), sourceId);
+            LOG.debug("{} {} - Fingers after fix are {}", state.getSelfId(), sourceId, state.getFingers());
             funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
         }
     }

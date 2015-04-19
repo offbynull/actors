@@ -7,6 +7,8 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Collections;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
@@ -21,6 +23,8 @@ import org.apache.commons.lang3.Validate;
 
 final class ControllerStage extends Stage {
 
+    private static final Pattern ADD_PATTERN = Pattern.compile("\\s*(\\d+)-(\\d+)\\s*(\\d*)\\s*");
+    private static final Pattern REMOVE_PATTERN = Pattern.compile("\\s*(\\d+)-(\\d+)\\s*");
     public ControllerStage(ActorThread actorThread, int bits) {
         Validate.notNull(actorThread);
 
@@ -29,38 +33,57 @@ final class ControllerStage extends Stage {
         vbox.setSpacing(8);
 
         
-        Button addButton = new Button("Add");
-        TextField addTextField = new TextField();
-        HBox addHbox = new HBox(2.0, addTextField, addButton);
-        VBox.setMargin(addHbox, new Insets(0, 0, 0, 8));
-        vbox.getChildren().add(new Label("<id> <connect_to_id>"));
-        vbox.getChildren().add(addHbox);
+        Button addButton = new Button("Create");
+        TextField addStartTextField = new TextField();
+        TextField addEndTextField = new TextField();
+        TextField addConnTextField = new TextField();
+        addStartTextField.setPromptText("Start id");
+        addEndTextField.setPromptText("End id");
+        addConnTextField.setPromptText("Conn id (optional)");
+        vbox.getChildren().add(addStartTextField);
+        vbox.getChildren().add(addEndTextField);
+        vbox.getChildren().add(addConnTextField);
+        vbox.getChildren().add(addButton);
         addButton.setOnAction((x) -> {
-            String text = addTextField.getText();
-            String[] splitText = text.split("\\s+");
-            int id = Integer.parseInt(splitText[0]);
-            int connId = Integer.parseInt(splitText[1]);
-            actorThread.addCoroutineActor("" + id, new ChordClientCoroutine(),
-                    new Start("actor:" + connId, new NodeId(id, bits), new Random(id), "timer", "graph"));
-//            addTextField.setText("");
+                int startId = Integer.parseInt(addStartTextField.getText());
+                int endId = Integer.parseInt(addEndTextField.getText());
+                
+                String connIdStr = addConnTextField.getText();
+                if (connIdStr.isEmpty()) {
+                    connIdStr = null;
+                } else {
+                    connIdStr = "actor:" + connIdStr;
+                }
+                
+                for (int id = startId; id <= endId; id++) {
+                    actorThread.addCoroutineActor("" + id, new ChordClientCoroutine(),
+                            new Start(connIdStr, new NodeId(id, bits), new Random(id), "timer", "graph"));
+                }
         });
         
         
-        Button removeButton = new Button("Remove");
-        TextField removeTextField = new TextField();
-        HBox removeHbox = new HBox(2.0, removeTextField, removeButton);
-        VBox.setMargin(removeHbox, new Insets(0, 0, 0, 8));
-        vbox.getChildren().add(new Label("<id>"));
-        vbox.getChildren().add(removeHbox);
+        Button removeButton = new Button("Kill");
+        TextField removeStartTextField = new TextField();
+        TextField removeEndTextField = new TextField();
+        removeStartTextField.setPromptText("Start id");
+        removeEndTextField.setPromptText("End id");
+        vbox.getChildren().add(removeStartTextField);
+        vbox.getChildren().add(removeEndTextField);
+        vbox.getChildren().add(removeButton);
         removeButton.setOnAction((x) -> {
-            String text = removeTextField.getText();
-            actorThread.getIncomingShuttle().send(Collections.singleton(new Message("", "actor:" + text, new Kill())));
-//            removeTextField.setText("");
+            int startId = Integer.parseInt(removeStartTextField.getText());
+            int endId = Integer.parseInt(removeEndTextField.getText());
+
+            for (int id = startId; id <= endId; id++) {
+                actorThread.getIncomingShuttle().send(Collections.singleton(new Message("", "actor:" + id, new Kill())));
+            }
         });
+        
+        vbox.requestFocus();
 
         setTitle("Controller");
         setWidth(300);
-        setHeight(200);
+        setHeight(400);
 
         setOnCloseRequest(x -> hide());
 

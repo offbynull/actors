@@ -52,6 +52,8 @@ public final class ChordClientCoroutine implements Coroutine {
         NodeId selfId = start.getNodeId();
         String bootstrapAddress = start.getBootstrapAddress();
 
+        switchToStartedOnGraph(ctx, selfId, graphAddress);
+        
         Set<Pointer> lastNotifiedPointers = new HashSet<>();
         try {
             State state = new State(timerPrefix, selfId, bootstrapAddress);
@@ -212,6 +214,10 @@ public final class ChordClientCoroutine implements Coroutine {
             }
             switchToDeadOnGraph(ctx, selfId, graphAddress);
         }
+    }
+
+    private void switchToStartedOnGraph(Context ctx, NodeId selfId, String graphAddress) {
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: yellow"));
     }
 
     private void switchToReadyOnGraph(Context ctx, NodeId selfId, String graphAddress) {

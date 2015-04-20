@@ -131,8 +131,9 @@ public final class ChordClientCoroutine implements Coroutine {
                         NotifyRequest extMsg = (NotifyRequest) msg;
 
                         NodeId requesterId = extMsg.getChordId();
+                        String requesterAddress = AddressUtils.removeSuffix(fromAddress, 2);
 
-                        ExternalPointer newPredecessor = new ExternalPointer(requesterId, fromAddress);
+                        ExternalPointer newPredecessor = new ExternalPointer(requesterId, requesterAddress);
                         ExternalPointer existingPredecessor = state.getPredecessor();
                         if (existingPredecessor == null || requesterId.isWithin(existingPredecessor.getId(), true, state.getSelfId(), false)) {
                             state.setPredecessor(newPredecessor);
@@ -157,13 +158,13 @@ public final class ChordClientCoroutine implements Coroutine {
                             List<Pointer> newFingers = state.getFingers();
                             LOG.debug("{} {} - Update finger with {}\nBefore: {}\nAfter: {}", state.getSelfId(), "",
                                     newFinger, oldFingers, newFingers);
-                            ExternalPointer pred = state.getPredecessor();
-                            if (replaced && pred != null) {
-                                ctx.addOutgoingMessage(
-                                        "ignore:ignore", // add 2 fake levels, because whoever gets this does a removeSuffix(2) (see above)
-                                        pred.getAddress(),
-                                        new UpdateFingerTableRequest(state.generateExternalMessageId(), id));
-                            }
+//                            ExternalPointer pred = state.getPredecessor();
+//                            if (replaced && pred != null) {
+//                                ctx.addOutgoingMessage(
+//                                        "ignore:ignore", // add 2 fake levels, because whoever gets this does a removeSuffix(2) (see above)
+//                                        pred.getAddress(),
+//                                        new UpdateFingerTableRequest(state.generateExternalMessageId(), id));
+//                            }
                         }
 
                         addOutgoingExternalMessage(ctx,

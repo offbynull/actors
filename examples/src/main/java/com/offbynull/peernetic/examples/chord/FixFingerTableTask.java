@@ -38,11 +38,6 @@ final class FixFingerTableTask implements Coroutine {
         while (true) {
             List<Pointer> oldFingers = state.getFingers();
             for (int i = 1; i < len; i++) {
-//                // Fix successor (finger idx 0) and the finger at i. If i == 0, this will fix the successor twice, which is not really
-//                // required but it doesn't hurt.
-//                
-                LOG.debug("{} {} - Fixing successor", state.getSelfId(), sourceId);
-                fixSuccessor(cnt);
                 LOG.debug("{} {} - Fixing finger {}", state.getSelfId(), sourceId, i);
                 fixFinger(cnt, i);
             }
@@ -88,40 +83,6 @@ final class FixFingerTableTask implements Coroutine {
         LOG.debug("{} {} - Finger index {} updated\nExpected: {}\nBefore: {}\nAfter: {}", state.getSelfId(), sourceId, i, findId, oldFinger,
                 foundFinger);
     }
-
-    private void fixSuccessor(Continuation cnt) throws Exception {
-        // get expected id of entry in finger table
-        NodeId findId = state.getExpectedFingerId(0);
-
-        // route to id
-        Pointer foundFinger;
-        try {
-            // Use init route to successor because it doesn't take self in to account when doing route. Assume that our successor is an
-            // external pointer. If it isn't (if our successor is ourself) a classcast exception will be thrown and caught and subsequent
-            // processing should be correct
-            foundFinger = funnelToSkipRouteToSuccessorCoroutine(cnt, (ExternalPointer) state.getSuccessor(), findId);
-        } catch (RuntimeException re) {
-            LOG.error("{} {} - Error routing to successor, removing successor", state.getSelfId(), sourceId);
-            foundFinger = null;
-        }
-        
-        Pointer oldSuccessor = state.getSuccessor();
-        if (foundFinger == null) {
-            // Routing failed. Since we're dealing with our successor, simply shift to the next successor in the successor table.
-            state.moveToNextSuccessor();
-        } else {
-            if (foundFinger instanceof InternalPointer) {
-                state.moveToNextSuccessor();
-            } else if (foundFinger instanceof ExternalPointer) {
-                state.putFinger((ExternalPointer) foundFinger);
-            } else {
-                throw new IllegalStateException();
-            }
-        }
-        
-        LOG.debug("{} {} - Finger index 0 (successor) updated\nExpected: {}\nBefore: {}\nAfter: {}", state.getSelfId(), sourceId, findId,
-                oldSuccessor, foundFinger);
-    }
     
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         Validate.notNull(cnt);
@@ -141,21 +102,6 @@ final class FixFingerTableTask implements Coroutine {
                 AddressUtils.parentize(sourceId, idSuffix),
                 state,
                 findId);
-        innerCoroutine.run(cnt);
-        return innerCoroutine.getResult();
-    }
-    
-    private Pointer funnelToSkipRouteToSuccessorCoroutine(Continuation cnt, ExternalPointer bootstrapNode, NodeId findId) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(findId);
-        
-        String idSuffix = "skiproutetosucc" + state.generateExternalMessageId();
-        SkipRouteToSuccessorTask innerCoroutine = new SkipRouteToSuccessorTask(
-                AddressUtils.parentize(sourceId, idSuffix),
-                state,
-                bootstrapNode,
-                findId,
-                state.getSelfId());
         innerCoroutine.run(cnt);
         return innerCoroutine.getResult();
     }

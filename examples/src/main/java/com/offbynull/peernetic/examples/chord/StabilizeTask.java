@@ -57,12 +57,16 @@ final class StabilizeTask implements Coroutine {
                 // ask for successor's pred
                 String successorAddress = ((ExternalPointer) successor).getAddress();
                 
+                LOG.debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), sourceId, successor);
+                
                 GetPredecessorResponse gpr = funnelToRequestCoroutine(
                         cnt,
                         successorAddress,
                         new GetPredecessorRequest(state.generateExternalMessageId()),
                         Duration.ofSeconds(10L),
                         GetPredecessorResponse.class);
+                
+                LOG.debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId());
 
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
@@ -71,15 +75,10 @@ final class StabilizeTask implements Coroutine {
                     NodeId existingSuccessorId = ((ExternalPointer) successor).getId();
 
                     if (potentiallyNewSuccessorId.isWithin(selfId, false, existingSuccessorId, false)) {
-                        // it is between us and our successor, so set it and notify it that we are its predecessor
+                        // it is between us and our successor, so update
                         ExternalPointer newSuccessor = new ExternalPointer(potentiallyNewSuccessorId, address);
                         state.setSuccessor(newSuccessor);
-                        
-                        addOutgoingExternalMessage(
-                                ctx,
-                                newSuccessor.getAddress(),
-                                new NotifyRequest(state.generateExternalMessageId(), selfId));
-                        
+
                         successor = newSuccessor;
                         successorAddress = newSuccessor.getAddress();
                     }
@@ -87,6 +86,7 @@ final class StabilizeTask implements Coroutine {
 
                 // successor may have been updated by block above
                 // ask successor for its successors
+                LOG.debug("{} {} - Requesting successor's ({}) successor", state.getSelfId(), sourceId, successor);
                 GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
                         successorAddress,
@@ -106,10 +106,20 @@ final class StabilizeTask implements Coroutine {
                         throw new IllegalStateException();
                     }
                 }).forEachOrdered(x -> subsequentSuccessors.add(x));
+                
+                LOG.debug("{} {} - Successor's ({}) successor is {}", state.getSelfId(), sourceId, successor, subsequentSuccessors);
 
                 // mark it as our new successor
                 state.updateSuccessor((ExternalPointer) successor, subsequentSuccessors);
                 LOG.debug("{} {} - Successors after stabilization are {}", state.getSelfId(), sourceId, state.getSuccessors());
+                
+                
+                // notify it that we're its predecessor
+                addOutgoingExternalMessage(
+                        ctx,
+                        successorAddress,
+                        new NotifyRequest(state.generateExternalMessageId(), selfId));
+                LOG.debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor());
             } catch (RuntimeException re) {
                 LOG.warn("Failed to stabilize", re);
             }

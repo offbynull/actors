@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorResponse;
-import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -49,20 +48,20 @@ final class State {
         return bootstrapAddress;
     }
 
-    public FingerTable getFingerTable() {
+    private FingerTable getFingerTable() {
         return fingerTable;
     }
 
     public void setFingerTable(FingerTable fingerTable) {
-        this.fingerTable = fingerTable;
+        this.fingerTable = fingerTable; // should really be copying these in
     }
 
-    public SuccessorTable getSuccessorTable() {
+    private SuccessorTable getSuccessorTable() {
         return successorTable;
     }
 
     public void setSuccessorTable(SuccessorTable successorTable) {
-        this.successorTable = successorTable;
+        this.successorTable = successorTable; // should really be copying these in
     }
 
     public ExternalPointer getPredecessor() {
@@ -127,25 +126,9 @@ final class State {
         return getFingerTable().get(idx);
     }
 
-    public Pointer getClosestFinger(GetClosestFingerRequest req) {
-        Validate.notNull(req);
-        return getFingerTable().findClosest(req.getChordId(), req.getSkipChordId());
-    }
-
-    public Pointer getClosestFinger(NodeId id, NodeId ... skipIds) {
+    public Pointer getClosestPrecedingFinger(NodeId id, NodeId ... ignoreIds) {
         Validate.notNull(id);
-        Validate.noNullElements(skipIds);
-        return getFingerTable().findClosest(id, skipIds);
-    }
-
-    public Pointer getClosestPrecedingFinger(GetClosestPrecedingFingerRequest req) {
-        Validate.notNull(req);
-        return getFingerTable().findClosestPreceding(req.getChordId());
-    }
-
-    public Pointer getClosestPrecedingFinger(NodeId id) {
-        Validate.notNull(id);
-        return getFingerTable().findClosestPreceding(id);
+        return getFingerTable().findClosestPreceding(id, ignoreIds);
     }
 
     public NodeId getExpectedFingerId(int idx) {
@@ -177,12 +160,26 @@ final class State {
     
     public boolean replaceFinger(ExternalPointer ptr) {
         Validate.notNull(ptr);
-        return getFingerTable().replace(ptr);
+        boolean replaced = getFingerTable().replace(ptr);
+        
+        if (replaced && getFingerTable().get(0).equals(ptr)) {
+            getSuccessorTable().updateTrim(ptr);
+        }
+        
+        return replaced;
     }
     
     public void removeFinger(ExternalPointer ptr) {
         Validate.notNull(ptr);
-        getFingerTable().remove(ptr);
+        if (getFingerTable().get(0).equals(ptr)) {
+            successorTable.moveToNextSucessor();
+            getFingerTable().remove(ptr);
+            if (!successorTable.isPointingToBase()) {
+                getFingerTable().put((ExternalPointer) successorTable.getSuccessor());
+            }
+        } else {
+            getFingerTable().remove(ptr);
+        }
     }
     
     public void updateSuccessor(ExternalPointer successor, List<Pointer> subsequentSuccessors) {
@@ -245,7 +242,7 @@ final class State {
         return toExternalPointer(resp.getChordId(), resp.getAddress(), resp.getAddress());
     }
     
-    private ExternalPointer toExternalPointer(NodeId idData, String address, String defaultAddress) {
+    public ExternalPointer toExternalPointer(NodeId idData, String address, String defaultAddress) {
         Validate.notNull(idData);
         Validate.notNull(defaultAddress);
         // address can be null
@@ -255,6 +252,35 @@ final class State {
         } else {
             return new ExternalPointer(idData, defaultAddress);
         }
+    }
+    
+    public Pointer toPointer(NodeId idData, String address) {
+        Validate.notNull(idData);
+        Validate.isTrue(idData.getLimitAsBigInteger().equals(selfId.getLimitAsBigInteger()));
+        // address can be null
+
+        Pointer ret;
+        if (address == null) {
+            ret = new InternalPointer(idData);
+        } else {
+            Validate.isTrue(!idData.equals(selfId));
+            ret = new ExternalPointer(idData, address);
+        }
+        
+        return ret;
+    }
+
+    public ExternalPointer toExternalPointer(NodeId idData, String address) {
+        Validate.notNull(idData);
+        Pointer ret = toPointer(idData, address);
+        Validate.isTrue(ret instanceof ExternalPointer);
+        
+        return (ExternalPointer) ret;
+    }
+    
+    public void validateExternalId(Pointer ptr) {
+        Validate.notNull(ptr);
+        Validate.isTrue(!isSelfId(ptr.getId()));
     }
 
     public long generateExternalMessageId() {

@@ -195,11 +195,10 @@ public final class SuccessorTable {
      * successor table
      */
     public void moveToNextSucessor() {
-        if (table.size() == 1) {
-            throw new IllegalStateException();
-        }
-        
         table.removeFirst();
+        if (table.isEmpty()) {
+            table.add(basePtr);
+        }
     }
     
     /**

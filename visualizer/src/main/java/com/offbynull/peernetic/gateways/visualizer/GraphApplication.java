@@ -20,6 +20,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
 public final class GraphApplication extends Application {
@@ -120,6 +121,8 @@ public final class GraphApplication extends Application {
     void execute(MultiMap<String, Object> commands) {
         Validate.notNull(commands);
 
+//        MultiMap<String, Object> commandsCopy = new MultiValueMap<>();
+//        commandsCopy.putAll(commands);
         Platform.runLater(() -> {
             for (Entry<String, Object> entry : commands.entrySet()) {
                 String fromAddress = entry.getKey();

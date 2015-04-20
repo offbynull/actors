@@ -2,13 +2,13 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
-import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorRequest;
-import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorResponse;
-import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorRequest;
-import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
+import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
+import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
+import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
@@ -22,84 +22,59 @@ final class InitFingerTableTask implements Coroutine {
     
     private static final Logger LOG = LoggerFactory.getLogger(InitFingerTableTask.class);
 
-    private final ExternalPointer bootstrapNode;
+    private final String bootstrapAddress;
     private final String sourceId;
     private final State state;
 
-    public InitFingerTableTask(String sourceId, State state, ExternalPointer bootstrapNode) {
+    public InitFingerTableTask(String sourceId, State state, String bootstrapAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
-        Validate.notNull(bootstrapNode);
+        Validate.notNull(bootstrapAddress);
         this.sourceId = sourceId;
         this.state = state;
-        this.bootstrapNode = bootstrapNode;
+        this.bootstrapAddress = bootstrapAddress;
     }
 
     @Override
     public void run(Continuation cnt) throws Exception {
-        int len = state.getFingerTableLength();
-
-        // NOTE: everything up until the populate finger loop is an essential operation... if a failure occurs, joining has to fail
+        Context ctx = (Context) cnt.getContext();
         
-        // create fingertable -- find our successor from the bootstrap node and store it in the fingertable
+        // NOTE: everything up until the populate finger loop is an essential operation... if a failure occurs, joining has to fail
         FingerTable fingerTable = new FingerTable(state.getSelfPointer());
-        NodeId expectedSuccesorId = fingerTable.getExpectedId(0);
-
-        FindSuccessorResponse fsr = funnelToRequestCoroutine(
+        SuccessorTable successorTable = new SuccessorTable(state.getSelfPointer());
+        
+        GetIdResponse gir = funnelToRequestCoroutine(
                 cnt,
-                bootstrapNode.getAddress(),
-                new FindSuccessorRequest(state.generateExternalMessageId(), expectedSuccesorId),
+                bootstrapAddress,
+                new GetIdRequest(state.generateExternalMessageId()),
                 Duration.ofSeconds(10L),
-                FindSuccessorResponse.class);
-        state.failIfSelf(fsr);
-        ExternalPointer successor = state.toExternalPointer(fsr, bootstrapNode.getAddress());
-        fingerTable.put(successor);
-
-        // get our successor's pred 
-        GetPredecessorResponse gpr = funnelToRequestCoroutine(
-                cnt,
-                successor.getAddress(),
-                new GetPredecessorRequest(state.generateExternalMessageId()),
-                Duration.ofSeconds(10L),
-                GetPredecessorResponse.class);
-        state.failIfSelf(gpr);
+                GetIdResponse.class);
+        ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapAddress); // fails if id == self
+        
+        LOG.debug("{} {} - Bootstrap node details: {}", state.getSelfId(), sourceId, bootstrapNode);
+        
+        fingerTable.put(bootstrapNode);
+        successorTable.updateTrim(bootstrapNode);
+        
+        state.setTables(fingerTable, successorTable);
+        state.setPredecessor(bootstrapNode);
+        
+        
 
         // populate fingertable
-        for (int i = 1; i < len; i++) {
-            // successor may extend multiple slots in to the fingertable... if it does, skip this entry and go to the next
-            if (fingerTable.get(i) instanceof ExternalPointer) {
-                LOG.warn("No need to find finger for index {}", i);
-                continue;
-            }
-
-            // get expected id of entry in finger table
-            NodeId findId = fingerTable.getExpectedId(i);
-
-            // route to id if possible... if failed to route, skip this entry and go to the next (this will repair eventually once this node
-            // is up)
-            try {
-                fsr = funnelToRequestCoroutine(
-                        cnt,
-                        bootstrapNode.getAddress(),
-                        new FindSuccessorRequest(state.generateExternalMessageId(), findId),
-                        Duration.ofSeconds(10L),
-                        FindSuccessorResponse.class);
-            } catch (RuntimeException coe) {
-                LOG.warn("Unable to find finger for index {}", i);
-                continue;
-            }
+        int len = state.getFingerTableLength();
+        for (int i = 0; i < len; i++) {
+            NodeId findId = state.getExpectedFingerId(i);
+            Pointer foundFinger = funnelToInitRouteToSuccessorCoroutine(cnt, bootstrapNode, findId);
 
             // set in to finger table
-            ExternalPointer foundFinger = state.toExternalPointer(fsr, bootstrapNode.getAddress());
-            fingerTable.put(foundFinger);
+            state.validateExternalId(foundFinger);
+            fingerTable.put((ExternalPointer) foundFinger);
+            
+            LOG.debug("{} {} - Found finger at index {} is {}", state.getSelfId(), sourceId, i, foundFinger);
         }
-
-        // create successor table and sync to finger table
-        SuccessorTable successorTable = new SuccessorTable(state.getSelfPointer());
-        successorTable.updateTrim(fingerTable.get(0));
-
-        state.setTables(fingerTable, successorTable);
-        state.setPredecessor(gpr);
+        
+        LOG.debug("{} {} - Initialization of finger table is complete: {}", state.getSelfId(), sourceId, state.getFingers());
     }
     
     private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
@@ -119,5 +94,19 @@ final class InitFingerTableTask implements Coroutine {
                 expectedResponseClass);
         requestCoroutine.run(cnt);
         return requestCoroutine.getResponse();
+    }
+    
+    private Pointer funnelToInitRouteToSuccessorCoroutine(Continuation cnt, ExternalPointer bootstrapNode, NodeId findId) throws Exception {
+        Validate.notNull(cnt);
+        Validate.notNull(findId);
+        
+        String idSuffix = "" + state.generateExternalMessageId();
+        InitRouteToSuccessorTask innerCoroutine = new InitRouteToSuccessorTask(
+                AddressUtils.parentize(sourceId, idSuffix),
+                state,
+                bootstrapNode,
+                findId);
+        innerCoroutine.run(cnt);
+        return innerCoroutine.getResult();
     }
 }

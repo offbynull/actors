@@ -5,8 +5,6 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorRequest;
-import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerRequest;
-import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
@@ -64,6 +62,7 @@ public final class ChordClientCoroutine implements Coroutine {
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
+            lastNotifiedPointers = updateOutgoingLinksOnGraph(state, lastNotifiedPointers, ctx, selfId, graphAddress);
 
             
             // Create parent coroutine and add maintenance tasks to it
@@ -100,20 +99,10 @@ public final class ChordClientCoroutine implements Coroutine {
                         addOutgoingExternalMessage(ctx,
                                 fromAddress,
                                 new GetIdResponse(extMsg.getId(), state.getSelfId()));
-                    } else if (msg instanceof GetClosestFingerRequest) {
-                        GetClosestFingerRequest extMsg = (GetClosestFingerRequest) msg;
-
-                        Pointer pointer = state.getClosestFinger(extMsg);
-                        NodeId id = pointer.getId();
-                        String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
-
-                        addOutgoingExternalMessage(ctx,
-                                fromAddress,
-                                new GetClosestFingerResponse(extMsg.getId(), id, address));
                     } else if (msg instanceof GetClosestPrecedingFingerRequest) {
                         GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
 
-                        Pointer pointer = state.getClosestPrecedingFinger(extMsg);
+                        Pointer pointer = state.getClosestPrecedingFinger(extMsg.getChordId(), extMsg.getIgnoreIds());
                         NodeId id = pointer.getId();
                         String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
 
@@ -163,10 +152,15 @@ public final class ChordClientCoroutine implements Coroutine {
                         ExternalPointer newFinger = new ExternalPointer(id, address);
 
                         if (!state.isSelfId(id)) {
+                            List<Pointer> oldFingers = state.getFingers();
                             boolean replaced = state.replaceFinger(newFinger);
+                            List<Pointer> newFingers = state.getFingers();
+                            LOG.debug("{} {} - Update finger with {}\nBefore: {}\nAfter: {}", state.getSelfId(), "",
+                                    newFinger, oldFingers, newFingers);
                             ExternalPointer pred = state.getPredecessor();
                             if (replaced && pred != null) {
-                                addOutgoingExternalMessage(ctx,
+                                ctx.addOutgoingMessage(
+                                        "ignore:ignore", // add 2 fake levels, because whoever gets this does a removeSuffix(2) (see above)
                                         pred.getAddress(),
                                         new UpdateFingerTableRequest(state.generateExternalMessageId(), id));
                             }
@@ -189,22 +183,7 @@ public final class ChordClientCoroutine implements Coroutine {
                 }
                 
                 
-                // Send link changes to graph
-                Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
-                        state.getFingerTable().dump().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
-                if (state.getPredecessor() != null) {
-                    newPointers.add(state.getPredecessor());
-                }
-
-                Set<Pointer> addedPointers = new HashSet<>(newPointers);
-                addedPointers.removeAll(lastNotifiedPointers);
-                addedPointers.forEach(x -> connectOnGraph(ctx, selfId, x.getId(), graphAddress));
-
-                Set<Pointer> removedPointers = new HashSet<>(lastNotifiedPointers);
-                removedPointers.removeAll(newPointers);
-                removedPointers.forEach(x -> disconnectOnGraph(ctx, selfId, x.getId(), graphAddress));
-
-                lastNotifiedPointers = newPointers;
+                lastNotifiedPointers = updateOutgoingLinksOnGraph(state, lastNotifiedPointers, ctx, selfId, graphAddress);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -214,6 +193,26 @@ public final class ChordClientCoroutine implements Coroutine {
             }
             switchToDeadOnGraph(ctx, selfId, graphAddress);
         }
+    }
+
+    private Set<Pointer> updateOutgoingLinksOnGraph(State state, Set<Pointer> lastNotifiedPointers, Context ctx, NodeId selfId, String graphAddress) {
+        // Send link changes to graph
+        Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
+                state.getFingers().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
+        if (state.getPredecessor() != null) {
+            newPointers.add(state.getPredecessor());
+        }
+        
+        Set<Pointer> addedPointers = new HashSet<>(newPointers);
+        addedPointers.removeAll(lastNotifiedPointers);
+        addedPointers.forEach(x -> connectOnGraph(ctx, selfId, x.getId(), graphAddress));
+        
+        Set<Pointer> removedPointers = new HashSet<>(lastNotifiedPointers);
+        removedPointers.removeAll(newPointers);
+        removedPointers.forEach(x -> disconnectOnGraph(ctx, selfId, x.getId(), graphAddress));
+        
+        lastNotifiedPointers = newPointers;
+        return lastNotifiedPointers;
     }
 
     private void switchToStartedOnGraph(Context ctx, NodeId selfId, String graphAddress) {

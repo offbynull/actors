@@ -145,23 +145,33 @@ public final class FingerTable {
      * Searches the finger table for the closest to the id being searched for (closest in terms of being {@code <}).
      *
      * @param id id being searched for
-     * @return closest preceding pointer
+     * @return closest preceding pointer, or maximum non-base if {@code id} is base id
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code id}'s has a different limit bit size than base pointer's id
      */
-    public Pointer findClosestPreceding(NodeId id) {
+    public Pointer findClosestPreceding(NodeId id, NodeId ... ignoreIds) {
         Validate.notNull(id);
+        Validate.noNullElements(ignoreIds);
         Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
 
+        List<NodeId> skipIdList = Arrays.asList(ignoreIds);
         NodeId selfId = basePtr.getId();
+        
+        if (selfId.equals(id)) {
+            return getMaximumNonBase(); // returns null if fingertable is empty (all fingers set to base)
+        }
 
         InternalEntry foundEntry = null;
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
         while (lit.hasPrevious()) {
             InternalEntry ie = lit.previous();
+            NodeId fingerId = ie.pointer.getId();
+            // if finger should be skipped, ignore it
+            if (skipIdList.contains(fingerId)) {
+                continue;
+            }
             // if finger[i] exists between n (exclusive) and id (exclusive)
             // then return it
-            NodeId fingerId = ie.pointer.getId();
             if (fingerId.isWithin(selfId, false, id, false)) {
                 foundEntry = ie;
                 break;
@@ -192,44 +202,6 @@ public final class FingerTable {
             // if finger[i] exists between n (exclusive) and id (exclusive)
             // then return it
             NodeId fingerId = ie.pointer.getId();
-            if (fingerId.isWithin(selfId, false, id, true)) {
-                foundEntry = ie;
-                break;
-            }
-        }
-
-        return foundEntry == null ? basePtr : foundEntry.pointer;
-    }
-
-    /**
-     * Searches the finger table for the closest id to the id being searched for (closest in terms of being {@code <=} to), but skips
-     * certain ids.
-     *
-     * @param id id being searched for
-     * @param skipIds ids being skipped
-     * @return closest pointer (closest in terms of being {@code <=} to)
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code id}'s has a different limit bit size than base pointer's id
-     */
-    public Pointer findClosest(NodeId id, NodeId ... skipIds) {
-        Validate.notNull(id);
-        Validate.noNullElements(skipIds);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
-
-        List<NodeId> skipIdList = Arrays.asList(skipIds);
-        NodeId selfId = basePtr.getId();
-
-        InternalEntry foundEntry = null;
-        ListIterator<InternalEntry> lit = table.listIterator(table.size());
-        while (lit.hasPrevious()) {
-            InternalEntry ie = lit.previous();
-            NodeId fingerId = ie.pointer.getId();
-            // if finger should be skipped, ignore it
-            if (skipIdList.contains(fingerId)) {
-                continue;
-            }
-            // if finger[i] exists between n (exclusive) and id (exclusive)
-            // then return it
             if (fingerId.isWithin(selfId, false, id, true)) {
                 foundEntry = ie;
                 break;

@@ -44,36 +44,23 @@ final class JoinTask implements Coroutine {
                 return;
             }
 
-            // ask for bootstrap node's id
-              // retry this req lots of time if it fails -- this is an important step, because it's required for the init finger table task to
-              // work properly. it's okay if the init finger table task only resolves some fingers, but it won't be able to resolve any if we
-              // don't have our bootstrap's id.
-            GetIdResponse gir = funnelToRequestCoroutine(
-                    cnt,
-                    initialAddress,
-                    new GetIdRequest(state.generateExternalMessageId()),
-                    Duration.ofSeconds(10L),
-                    GetIdResponse.class);
-            NodeId initialId = gir.getChordId();
 
-            // init finger table, successor table, etc...
-            ExternalPointer bootstrapPointer = new ExternalPointer(initialId, initialAddress);
-            funnelToInitFingerTableCoroutine(cnt, bootstrapPointer);
+            funnelToInitFingerTableCoroutine(cnt, initialAddress);
         } catch (RuntimeException coe) {
             // this is a critical operation. if any of the tasks/io fail, then send up the chain
             throw new IllegalStateException("Join failed.", coe);
         }
     }
 
-    private void funnelToInitFingerTableCoroutine(Continuation cnt, ExternalPointer bootstrapPointer) throws Exception {
+    private void funnelToInitFingerTableCoroutine(Continuation cnt, String initialAddress) throws Exception {
         Validate.notNull(cnt);
-        Validate.notNull(bootstrapPointer);
+        Validate.notNull(initialAddress);
         
         String idSuffix = "" + state.generateExternalMessageId();
         InitFingerTableTask innerCoroutine = new InitFingerTableTask(
                 AddressUtils.parentize(sourceId, idSuffix),
                 state,
-                bootstrapPointer);
+                initialAddress);
         innerCoroutine.run(cnt);
     }
     

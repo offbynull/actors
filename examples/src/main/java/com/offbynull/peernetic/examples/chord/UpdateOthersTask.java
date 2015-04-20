@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
+import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
@@ -32,81 +33,83 @@ final class UpdateOthersTask implements Coroutine {
     @Override
     public void run(Continuation cnt) throws Exception {
         NodeId selfId = state.getSelfId();
-        
+
         Context ctx = (Context) cnt.getContext();
 
+        int maxIdx = state.getFingerTableLength(); // bit length of ring
+        
         while (true) {
-            long uniqueExtPtrCount = state.getFingers().stream()
-                    .distinct()
-                    .filter(x -> x instanceof ExternalPointer)
-                    .count();
-            if (uniqueExtPtrCount == 0L) {
-                // nothing to update here
-                return;
-            } else if (uniqueExtPtrCount == 1L) {
-                // special case not handled in chord paper's pseudo code
-                //
-                // if connecting to a overlay of size 1, find_predecessor() will always return yourself, so the node in the overlay will
-                // never get your request to update its finger table and you will never be recognized
-                ExternalPointer ptr = (ExternalPointer) state.getSuccessor();
+            for (int i = 0; i < maxIdx; i++) {
+                // get id of node that should have us in its finger table at index i
+                NodeId routerId = state.getIdThatShouldHaveThisNodeAsFinger(i);
+                
+                LOG.debug("{} {} - Attempting to find {} and inform it that we are one if it's fingers ({}}", state.getSelfId(), sourceId,
+                        routerId, i);
 
-                addOutgoingExternalMessage(
-                        ctx,
-                        ptr.getAddress(),
-                        new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
-            } else {
-                int maxIdx = state.getFingerTableLength(); // bit length of ring
-                for (int i = 0; i < maxIdx; i++) {
-                    // get id of node that should have us in its finger table at index i
-                    NodeId routerId = state.getIdThatShouldHaveThisNodeAsFinger(i);
+                Pointer foundRouter;
+                try {
+                    foundRouter = funnelToRouteToCoroutine(cnt, routerId);
+                } catch (RuntimeException re) {
+                    LOG.warn("{} {} - Unable to route to predecessor: {}", state.getSelfId(), sourceId, re);
+                    continue;
+                }
+                
+                if (foundRouter == null) {
+                    LOG.warn("{} {} - Route to predecessor failed", state.getSelfId(), sourceId);
+                    continue;
+                }
 
-                    Pointer foundRouter;
-                    try{
-                        foundRouter = funnelToRouteToPredecessorCoroutine(cnt, routerId);
-                    } catch (RuntimeException re) {
-                        LOG.warn("Unable to route to predecessor", re);
-                        continue;
-                    }
-
-                    if (foundRouter instanceof ExternalPointer) {
+                if (foundRouter instanceof ExternalPointer) {
+                    LOG.debug("{} {} - Asking {} to put us in to its finger table", state.getSelfId(), sourceId, foundRouter);
+                    addOutgoingExternalMessage(ctx,
+                            ((ExternalPointer) foundRouter).getAddress(),
+                            new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
+                } else if (foundRouter instanceof InternalPointer) {
+                    ExternalPointer pred = state.getPredecessor();
+                    if (pred != null) {
+                        LOG.debug("{} {} - {} routed to self, notifying predecessor {}", state.getSelfId(), sourceId, pred);
                         addOutgoingExternalMessage(ctx,
-                                ((ExternalPointer) foundRouter).getAddress(),
+                                pred.getAddress(),
                                 new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
+                    } else {
+                        LOG.debug("{} {} - {} routed to self, but no predecessor to notify, so skipping", state.getSelfId(), sourceId);
                     }
+                } else {
+                    throw new IllegalStateException();
                 }
             }
 
             funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
         }
     }
-    
-    private Pointer funnelToRouteToPredecessorCoroutine(Continuation cnt, NodeId routerId) throws Exception {
+
+    private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId routerId) throws Exception {
         Validate.notNull(cnt);
         Validate.notNull(routerId);
-        
-        String idSuffix = "" + state.generateExternalMessageId();
-        RouteToPredecessorTask innerCoroutine = new RouteToPredecessorTask(
+
+        String idSuffix = "routeto" + state.generateExternalMessageId();
+        RouteToTask innerCoroutine = new RouteToTask(
                 AddressUtils.parentize(sourceId, idSuffix),
                 state,
                 routerId);
         innerCoroutine.run(cnt);
         return innerCoroutine.getResult();
     }
-    
+
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         Validate.notNull(cnt);
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
-        
+
         SleepCoroutine sleepCoroutine = new SleepCoroutine(sourceId, state.getTimerPrefix(), duration);
         sleepCoroutine.run(cnt);
     }
-    
+
     private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {
         Validate.notNull(ctx);
         Validate.notNull(destination);
         Validate.notNull(message);
-        
+
         ctx.addOutgoingMessage(
                 AddressUtils.parentize(sourceId, "" + message.getId()),
                 destination,

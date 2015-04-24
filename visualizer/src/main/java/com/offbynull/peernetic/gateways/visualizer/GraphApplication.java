@@ -121,10 +121,10 @@ public final class GraphApplication extends Application {
     void execute(MultiMap<String, Object> commands) {
         Validate.notNull(commands);
 
-//        MultiMap<String, Object> commandsCopy = new MultiValueMap<>();
-//        commandsCopy.putAll(commands);
+        MultiMap<String, Object> commandsCopy = new MultiValueMap<>();
+        commandsCopy.putAll(commands);
         Platform.runLater(() -> {
-            for (Entry<String, Object> entry : commands.entrySet()) {
+            for (Entry<String, Object> entry : commandsCopy.entrySet()) {
                 String fromAddress = entry.getKey();
                 GraphStage graphStage = graphStages.get(fromAddress);
                 if (graphStage == null) {

@@ -54,7 +54,7 @@ public final class SubcoroutineRouter {
     }
     
     public final class Controller {
-        public void add(Subcoroutine subcoroutine, AddBehaviour addBehaviour) throws Exception {
+        public void add(Subcoroutine<?> subcoroutine, AddBehaviour addBehaviour) throws Exception {
             Validate.notNull(subcoroutine);
             Validate.notNull(addBehaviour);
 

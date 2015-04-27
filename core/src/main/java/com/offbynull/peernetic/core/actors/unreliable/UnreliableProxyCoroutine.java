@@ -2,8 +2,8 @@ package com.offbynull.peernetic.core.actors.unreliable;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ProxyHelper;
-import com.offbynull.peernetic.core.actor.ProxyHelper.ForwardInformation;
+import com.offbynull.peernetic.core.actor.helpers.ProxyHelper;
+import com.offbynull.peernetic.core.actor.helpers.ProxyHelper.ForwardInformation;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.actor.Context;
 import java.time.Instant;

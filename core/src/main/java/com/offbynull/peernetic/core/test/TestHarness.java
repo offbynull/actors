@@ -6,15 +6,18 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
 import org.apache.commons.collections4.list.UnmodifiableList;
@@ -25,7 +28,9 @@ public final class TestHarness {
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
     private final String timerPrefix;
-    private final Map<String, ActorBundle> actors;
+    private final Map<String, ActorHolder> actors;
+    private final Set<MessageSink> sinks;
+    private final Set<MessageSource> sources;
     private final ActorBehaviourDriver actorDurationCalculator;
     private final MessageBehaviourDriver messageDurationCalculator;
     private Instant currentTime;
@@ -42,7 +47,10 @@ public final class TestHarness {
         this(startTime, timerPrefix, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
     }
     
-    public TestHarness(Instant startTime, String timerPrefix, ActorBehaviourDriver actorDurationCalculator,
+    public TestHarness(
+            Instant startTime,
+            String timerPrefix,
+            ActorBehaviourDriver actorDurationCalculator,
             MessageBehaviourDriver messageDurationCalculator) {
         Validate.notNull(startTime);
         Validate.notNull(timerPrefix);
@@ -64,6 +72,37 @@ public final class TestHarness {
                 (UnmodifiableMap<Class<? extends Event>, Consumer<Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
         this.actorDurationCalculator = actorDurationCalculator;
         this.messageDurationCalculator = messageDurationCalculator;
+        
+        this.sinks = new HashSet<>();
+        this.sources = new HashSet<>();
+    }
+    
+    public void addMessageSink(MessageSink sink, Instant when) {
+        Validate.notNull(sink);
+        Validate.isTrue(!sinks.contains(sink));
+        
+        events.add(new AddMessageSinkEvent(sink, when, nextSequenceNumber++));
+    }
+
+    public void addMessageSource(MessageSource source, Instant when) {
+        Validate.notNull(source);
+        Validate.isTrue(!sources.contains(source));
+        
+        events.add(new AddMessageSourceEvent(source, when, nextSequenceNumber++));
+    }
+    
+    public void removeSink(MessageSink sink, Instant when) {
+        Validate.notNull(sink);
+        Validate.isTrue(!sinks.contains(sink));
+        
+        events.add(new RemoveMessageSinkEvent(sink, when, nextSequenceNumber++));
+    }
+
+    public void removeSource(MessageSource source, Instant when) {
+        Validate.notNull(source);
+        Validate.isTrue(!sources.contains(source));
+        
+        events.add(new RemoveMessageSourceEvent(source, when, nextSequenceNumber++));
     }
 
     public void addCoroutineActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
@@ -114,6 +153,10 @@ public final class TestHarness {
         Validate.validState(eventHandler != null);
         eventHandler.accept(event);
         
+        CREATE AND ADD HANDLERS TO EVENTHANDLER;
+        REMOVESINK() AND REMOVEACTOR() SHOULD HAVE AN EXTRA BOOLEAN WHERE YOU CAN SPECIFY IF YOU WANT TO CLOSE WHEN YOU REMOVE;
+        MESSAGESOURCE SHOULD GIVE BACK RELATIVE TIME, NOT THE ABSOLUTE TIME IT HAS STORED;
+        
         return currentTime;
     }
     
@@ -138,8 +181,8 @@ public final class TestHarness {
 
         validateActorAddressDoesNotConflict(address);
 
-        ActorBundle newBundle = new ActorBundle(address, actor, timeOffset, currentTime);
-        actors.put(address, newBundle); // won't overwrite because validateActorAddress above will throw exception if it does
+        ActorHolder newHolder = new ActorHolder(address, actor, timeOffset, currentTime);
+        actors.put(address, newHolder); // won't overwrite because validateActorAddress above will throw exception if it does
 
         for (Object message : primingMessages) {
             queueMessage(address, address, message, Duration.ZERO);
@@ -151,8 +194,8 @@ public final class TestHarness {
 
         String address = leaveEvent.getAddress();
 
-        ActorBundle bundle = actors.remove(address);
-        Validate.isTrue(bundle != null, "Actor identifier does not exist");
+        ActorHolder holder = actors.remove(address);
+        Validate.isTrue(holder != null, "Actor identifier does not exist");
     }
     
     private void validateActorAddressDoesNotConflict(String address) {
@@ -160,12 +203,12 @@ public final class TestHarness {
         Validate.isTrue(
                 !AddressUtils.isPrefix(timerPrefix, address),
                 "Actor address {} conflicts with timer address {}", address, timerPrefix);
-        ActorBundle conflictingActor = findActor(address);
-        Validate.isTrue(conflictingActor == null,
-                "Actor address {} conflicts with existing actor address {}", address, conflictingActor);
+        ActorHolder conflictingActorHolder = findActor(address);
+        Validate.isTrue(conflictingActorHolder == null,
+                "Actor address {} conflicts with existing actor address {}", address, conflictingActorHolder);
     }
 
-    private ActorBundle findActor(String address) {
+    private ActorHolder findActor(String address) {
         Validate.notNull(address);
 
         List<String> splitAddress = Arrays.asList(AddressUtils.splitAddress(address));
@@ -175,9 +218,9 @@ public final class TestHarness {
             splitAddress.subList(0, i).forEach(x -> joiner.add(x));
             
             String testAddress = joiner.toString();
-            ActorBundle actorBundle = actors.get(testAddress);
-            if (actorBundle != null) {
-                return actorBundle;
+            ActorHolder actorHolder = actors.get(testAddress);
+            if (actorHolder != null) {
+                return actorHolder;
             }
         }
         
@@ -212,9 +255,9 @@ public final class TestHarness {
         // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
         // (technically). It makes sense no sense to have a message arrive at that actor before then. So, we make sure here that it doesn't
         // arrive before then.
-        ActorBundle destBundle = findActor(destination);
-        if (destBundle != null) { //destBundle may be null, see comment above about destination not having to exist
-            Instant nextAvailableStepTime = destBundle.getEarliestPossibleOnStepTime();
+        ActorHolder destHolder = findActor(destination);
+        if (destHolder != null) { //destHolder may be null, see comment above about destination not having to exist
+            Instant nextAvailableStepTime = destHolder.getEarliestPossibleOnStepTime();
             if (arriveTime.isBefore(nextAvailableStepTime)) {
                 arriveTime = nextAvailableStepTime;
             }
@@ -248,12 +291,12 @@ public final class TestHarness {
         
         
         // Get destination
-        ActorBundle destBundle = findActor(destination);
+        ActorHolder destHolder = findActor(destination);
         
         // If destination doesn't exist, log a warning and move on. In the real world if the destination doesn't exist or is otherwise
         // unreachable, the same thing happens -- message is sent to some destination but the system doesn't really care if it arrives or
         // not.
-        if (destBundle == null) {
+        if (destHolder == null) {
             // TODO log here
             return;
         }
@@ -261,17 +304,17 @@ public final class TestHarness {
         // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. That is,
         // the message being processed must be >= to the earliest possible step time. Otherwise, something has gone wrong. This is a sanity
         // check.
-        Instant minTime = destBundle.getEarliestPossibleOnStepTime();
+        Instant minTime = destHolder.getEarliestPossibleOnStepTime();
         Validate.isTrue(!currentTime.isBefore(minTime));
         
         
         // Set up values for calling onStep, and then call onStep. If onStep throws an exception, then log and remove the actor from the
         // test harness. In the real world, if an actor throws an exception, it'll get removed from the list of actors assigned to that
         // ActorThread/ActorRunnable and no more execution is done on it.
-        Actor actor = destBundle.getActor();
-        String address = destBundle.getAddress();
-        Context context = destBundle.getContext();
-        Instant localActorTime = currentTime.plus(destBundle.getTimeOffset()); // This is the time as it appears to the actor. Clocks
+        Actor actor = destHolder.getActor();
+        String address = destHolder.getAddress();
+        Context context = destHolder.getContext();
+        Instant localActorTime = currentTime.plus(destHolder.getTimeOffset()); // This is the time as it appears to the actor. Clocks
                                                                                // between different machines are never going to be entirely
                                                                                // in sync. So, one actor may technically have a different
                                                                                // local time than another (because they may be running on
@@ -283,14 +326,27 @@ public final class TestHarness {
         context.setSelf(address);
         context.setIncomingMessage(message);
         
+        for (MessageSink sink : sinks) {
+            try {
+                sink.writeNextMessage(source, destination, localActorTime, message);
+            } catch (IOException ioe) {
+                throw new IllegalStateException(ioe);
+            }
+        }
+        
         Duration realExecDuration;
+        boolean stopped;
+        Instant execStartTime = Instant.now();
         try {
-            Instant execStartTime = Instant.now();
-            actor.onStep(context);
-            Instant execEndTime = Instant.now();
-            realExecDuration = Duration.between(execStartTime, execEndTime);
+            stopped = !actor.onStep(context);
         } catch (Exception e) {
-            // Actor crashed. Remove it from the list of actors and stop processing.
+            stopped = true;
+        }
+        Instant execEndTime = Instant.now();
+        realExecDuration = Duration.between(execStartTime, execEndTime);
+        
+        if (stopped) {
+            // Actor stopped or crashed. Remove it from the list of actors and stop processing.
             actors.remove(address);
             return;
         }
@@ -308,7 +364,7 @@ public final class TestHarness {
         Validate.isTrue(!execDuration.isNegative()); // sanity check here, make sure calculated duration it isn't negative
         
         Instant earliestPossibleOnStepTime = currentTime.plus(execDuration);
-        destBundle.setEarliestPossibleOnStepTime(earliestPossibleOnStepTime);
+        destHolder.setEarliestPossibleOnStepTime(earliestPossibleOnStepTime);
         
         // Go through any messages queued to arrive at this actor before earliest possible onstep time. Reschedule each of those messages
         // such that they arrive at earliest possible on step time. Like the comment above says, it wouldn't make sense to call onStep()

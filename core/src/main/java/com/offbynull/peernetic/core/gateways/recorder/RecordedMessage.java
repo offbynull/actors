@@ -3,7 +3,8 @@ package com.offbynull.peernetic.core.gateways.recorder;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
-final class RecordedMessage implements Serializable {
+// public because other tools may want to read out recorded data
+public final class RecordedMessage implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private String srcAddress;

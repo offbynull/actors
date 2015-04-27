@@ -1,5 +1,6 @@
-package com.offbynull.peernetic.core.actor;
+package com.offbynull.peernetic.core.actor.helpers;
 
+import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import org.apache.commons.lang3.Validate;

@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-final class ActorBundle {
+final class ActorHolder {
     private final String address;
     private final Actor actor;
     private final Duration timeOffset;
@@ -14,7 +14,7 @@ final class ActorBundle {
     
     private Instant earliestPossibleOnStepTime;
 
-    public ActorBundle(String address, Actor actor, Duration timeOffset, Instant earliestPossibleOnStepTime) {
+    public ActorHolder(String address, Actor actor, Duration timeOffset, Instant earliestPossibleOnStepTime) {
         Validate.notNull(address);
         Validate.notNull(actor);
         Validate.notNull(timeOffset);
@@ -38,6 +38,7 @@ final class ActorBundle {
     public String getAddress() {
         return address;
     }
+
 
     public Context getContext() {
         return context;

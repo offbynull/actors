@@ -7,7 +7,8 @@ import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
-final class RecordedBlock implements Serializable {
+// public because other tools may want to read out recorded data
+public final class RecordedBlock implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private final UnmodifiableList<RecordedMessage> messages;

@@ -14,7 +14,7 @@ public final class AddressUtils {
         // do nothing
     }
     
-    public static final boolean isParent(String parentAddress, String otherAddress) {
+    public static final boolean isPrefix(String parentAddress, String otherAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(otherAddress);
         

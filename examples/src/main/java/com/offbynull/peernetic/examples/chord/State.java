@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorResponse;
-import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;

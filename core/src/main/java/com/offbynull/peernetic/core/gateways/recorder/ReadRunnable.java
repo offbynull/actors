@@ -29,7 +29,7 @@ final class ReadRunnable implements Runnable {
         Validate.notNull(dstShuttle);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        Validate.isTrue(AddressUtils.isParent(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
         this.dstShuttle = dstShuttle;
         this.file = file;
         this.dstAddress = dstAddress;

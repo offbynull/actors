@@ -16,7 +16,7 @@ public final class ReplayerGateway implements Gateway {
         Validate.notNull(dstAddress);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        Validate.isTrue(AddressUtils.isParent(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
         
         ReadRunnable readRunnable = new ReadRunnable(dstShuttle, dstAddress, file, serializer);
         Thread readThread = new Thread(readRunnable);

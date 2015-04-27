@@ -1,22 +1,22 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class UpdateOthersTask implements Coroutine {
+final class UpdateOthersTask implements Subcoroutine<Void> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateOthersTask.class);
 
@@ -31,7 +31,7 @@ final class UpdateOthersTask implements Coroutine {
     }
 
     @Override
-    public void run(Continuation cnt) throws Exception {
+    public Void run(Continuation cnt) throws Exception {
         NodeId selfId = state.getSelfId();
 
         Context ctx = (Context) cnt.getContext();
@@ -83,6 +83,11 @@ final class UpdateOthersTask implements Coroutine {
         }
     }
 
+    @Override
+    public String getSourceId() {
+        return sourceId;
+    }
+    
     private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId routerId) throws Exception {
         Validate.notNull(cnt);
         Validate.notNull(routerId);
@@ -92,8 +97,7 @@ final class UpdateOthersTask implements Coroutine {
                 AddressUtils.parentize(sourceId, idSuffix),
                 state,
                 routerId);
-        innerCoroutine.run(cnt);
-        return innerCoroutine.getResult();
+        return innerCoroutine.run(cnt);
     }
 
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
@@ -101,8 +105,12 @@ final class UpdateOthersTask implements Coroutine {
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
 
-        SleepCoroutine sleepCoroutine = new SleepCoroutine(sourceId, state.getTimerPrefix(), duration);
-        sleepCoroutine.run(cnt);
+        new SleepSubcoroutine.Builder()
+                .sourceId(sourceId)
+                .timeoutDuration(duration)
+                .timerAddressPrefix(state.getTimerPrefix())
+                .build()
+                .run(cnt);
     }
 
     private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {

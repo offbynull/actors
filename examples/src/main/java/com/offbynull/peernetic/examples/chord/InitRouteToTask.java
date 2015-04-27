@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
@@ -9,9 +10,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorReque
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,6 @@ final class InitRouteToTask implements Coroutine {
                             cnt,
                             currentNode.getAddress(),
                             new GetSuccessorRequest(state.generateExternalMessageId()),
-                            Duration.ofSeconds(10L),
                             GetSuccessorResponse.class);
                 successorId = gsr.getEntries().get(0).getChordId();
             } catch (RuntimeException re) {
@@ -75,7 +73,6 @@ final class InitRouteToTask implements Coroutine {
                         new GetClosestPrecedingFingerRequest(
                                 state.generateExternalMessageId(),
                                 findId),
-                        Duration.ofSeconds(10L),
                         GetClosestPrecedingFingerResponse.class);
             } catch (RuntimeException re) {
                 LOG.warn("{} {} - Routing failed -- failed to get closest finger from {}", state.getSelfId(), sourceId, currentNode);
@@ -102,21 +99,14 @@ final class InitRouteToTask implements Coroutine {
     }
     
     private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
-            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        Validate.notNull(timeoutDuration);
-        Validate.isTrue(!timeoutDuration.isNegative());
-        
-        RequestCoroutine requestCoroutine = new RequestCoroutine(
-                AddressUtils.parentize(sourceId, "" + message.getId()),
-                destination,
-                message,
-                state.getTimerPrefix(),
-                timeoutDuration,
-                expectedResponseClass);
-        requestCoroutine.run(cnt);
-        return requestCoroutine.getResponse();
+            Class<T> expectedResponseClass) throws Exception {
+        RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
+                .sourceId(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .destinationAddress(destination)
+                .request(message)
+                .timerAddressPrefix(state.getTimerPrefix())
+                .addExpectedResponseType(expectedResponseClass)
+                .build();
+        return requestSubcoroutine.run(cnt);
     }
 }

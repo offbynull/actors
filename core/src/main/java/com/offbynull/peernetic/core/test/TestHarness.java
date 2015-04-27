@@ -158,7 +158,7 @@ public final class TestHarness {
     private void validateActorAddressDoesNotConflict(String address) {
         Validate.notNull(address);
         Validate.isTrue(
-                !AddressUtils.isParent(timerPrefix, address),
+                !AddressUtils.isPrefix(timerPrefix, address),
                 "Actor address {} conflicts with timer address {}", address, timerPrefix);
         ActorBundle conflictingActor = findActor(address);
         Validate.isTrue(conflictingActor == null,
@@ -231,7 +231,7 @@ public final class TestHarness {
         Object message = messageEvent.getMessage();
         
         // Special case: If this is a timer messages, bounce it back to the source -- scheduled to arrive after the specified duration
-        if (AddressUtils.isParent(timerPrefix, destination)) {
+        if (AddressUtils.isPrefix(timerPrefix, destination)) {
             Duration timerDuration;
             try {
                 String durationStr = AddressUtils.getAddressElement(destination, 1);

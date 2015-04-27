@@ -1,8 +1,9 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
@@ -14,15 +15,13 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRespo
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class RouteToSuccessorTask implements Coroutine {
+final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
     
     private static final Logger LOG = LoggerFactory.getLogger(RouteToSuccessorTask.class);
 
@@ -43,14 +42,14 @@ final class RouteToSuccessorTask implements Coroutine {
     }
     
     @Override
-    public void run(Continuation cnt) throws Exception {
+    public Pointer run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
         LOG.debug("{} {} - Routing to predecessor of {}", state.getSelfId(), sourceId, findId);
         Pointer pointer = funnelToRouteToCoroutine(cnt, findId);
         if (pointer == null) {
             LOG.debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), sourceId, findId);
-            return;
+            return null;
         }
         LOG.debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer);
         
@@ -64,7 +63,6 @@ final class RouteToSuccessorTask implements Coroutine {
                         cnt,
                         ((ExternalPointer) successor).getAddress(),
                         new GetIdRequest(state.generateExternalMessageId()),
-                        Duration.ofSeconds(10L),
                         GetIdResponse.class);
                 found = successor;
             } else if (successor instanceof InternalPointer) {
@@ -79,7 +77,6 @@ final class RouteToSuccessorTask implements Coroutine {
                         cnt,
                         ptrAddress,
                         new GetSuccessorRequest(state.generateExternalMessageId()),
-                        Duration.ofSeconds(10L),
                         GetSuccessorResponse.class);
             
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
@@ -98,7 +95,6 @@ final class RouteToSuccessorTask implements Coroutine {
                     cnt,
                     succAddress,
                     new GetIdRequest(state.generateExternalMessageId()),
-                    Duration.ofSeconds(10L),
                     GetIdResponse.class);
             found = state.toPointer(gir.getChordId(), succAddress);
         } else {
@@ -106,10 +102,12 @@ final class RouteToSuccessorTask implements Coroutine {
         }
         
         LOG.debug("{} {} - Successor of {} routed to {}", state.getSelfId(), sourceId, findId, found);
+        return found;
     }
     
-    public Pointer getResult() {
-        return found;
+    @Override
+    public String getSourceId() {
+        return sourceId;
     }
     
     private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId findId) throws Exception {
@@ -121,26 +119,18 @@ final class RouteToSuccessorTask implements Coroutine {
                 AddressUtils.parentize(sourceId, idSuffix),
                 state,
                 findId);
-        innerCoroutine.run(cnt);
-        return innerCoroutine.getResult();
+        return innerCoroutine.run(cnt);
     }
     
     private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
-            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        Validate.notNull(timeoutDuration);
-        Validate.isTrue(!timeoutDuration.isNegative());
-        
-        RequestCoroutine requestCoroutine = new RequestCoroutine(
-                AddressUtils.parentize(sourceId, "" + message.getId()),
-                destination,
-                message,
-                state.getTimerPrefix(),
-                timeoutDuration,
-                expectedResponseClass);
-        requestCoroutine.run(cnt);
-        return requestCoroutine.getResponse();
+            Class<T> expectedResponseClass) throws Exception {
+        RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
+                .sourceId(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .destinationAddress(destination)
+                .request(message)
+                .timerAddressPrefix(state.getTimerPrefix())
+                .addExpectedResponseType(expectedResponseClass)
+                .build();
+        return requestSubcoroutine.run(cnt);
     }
 }

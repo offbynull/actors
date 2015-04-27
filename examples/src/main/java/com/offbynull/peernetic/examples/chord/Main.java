@@ -3,7 +3,6 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Message;
-import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.gateways.visualizer.AddNode;
 import com.offbynull.peernetic.gateways.visualizer.GraphGateway;
@@ -14,7 +13,6 @@ import java.awt.Point;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
-import java.util.Random;
 
 public final class Main {
     public static void main(String[] args) throws Exception {

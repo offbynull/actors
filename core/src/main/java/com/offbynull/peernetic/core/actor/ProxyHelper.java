@@ -70,7 +70,7 @@ public final class ProxyHelper {
     
     public boolean isMessageFrom(String addressPrefix) {
         Validate.notNull(addressPrefix);
-        return AddressUtils.isParent(addressPrefix, context.getSource());
+        return AddressUtils.isPrefix(addressPrefix, context.getSource());
     }
     
     public static final class ForwardInformation {

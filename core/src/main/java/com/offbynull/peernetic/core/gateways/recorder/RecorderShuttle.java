@@ -21,7 +21,7 @@ final class RecorderShuttle implements Shuttle {
         Validate.notNull(internalBus);
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
-        Validate.isTrue(AddressUtils.isParent(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
 
         this.prefix = prefix;
         this.internalBus = internalBus;

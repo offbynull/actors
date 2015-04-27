@@ -76,7 +76,7 @@ final class WriteRunnable implements Runnable {
         UnmodifiableList<Message> messages = messageBlock.getMessages();
 
         List<RecordedMessage> recordedMessages = messages.stream()
-                .filter(x -> AddressUtils.isParent(selfPrefix, x.getDestinationAddress())) // only msgs that are destined for output
+                .filter(x -> AddressUtils.isPrefix(selfPrefix, x.getDestinationAddress())) // only msgs that are destined for output
                 .map(x -> {
                     return new RecordedMessage(
                             x.getSourceAddress(),

@@ -1,8 +1,10 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
@@ -15,8 +17,6 @@ import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.RequestCoroutine;
-import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class StabilizeTask implements Coroutine {
+final class StabilizeTask implements Subcoroutine<Void> {
     
     private static final Logger LOG = LoggerFactory.getLogger(StabilizeTask.class);
     
@@ -40,7 +40,7 @@ final class StabilizeTask implements Coroutine {
     }
 
     @Override
-    public void run(Continuation cnt) throws Exception {
+    public Void run(Continuation cnt) throws Exception {
         NodeId selfId = state.getSelfId();
         
         Context ctx = (Context) cnt.getContext();
@@ -63,7 +63,6 @@ final class StabilizeTask implements Coroutine {
                         cnt,
                         successorAddress,
                         new GetPredecessorRequest(state.generateExternalMessageId()),
-                        Duration.ofSeconds(10L),
                         GetPredecessorResponse.class);
                 
                 LOG.debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId());
@@ -91,7 +90,6 @@ final class StabilizeTask implements Coroutine {
                         cnt,
                         successorAddress,
                         new GetSuccessorRequest(state.generateExternalMessageId()),
-                        Duration.ofSeconds(10L),
                         GetSuccessorResponse.class);
 
                 List<Pointer> subsequentSuccessors = new ArrayList<>();
@@ -126,39 +124,33 @@ final class StabilizeTask implements Coroutine {
         }
     }
     
+    @Override
+    public String getSourceId() {
+        return sourceId;
+    }
+
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(duration);
-        Validate.isTrue(!duration.isNegative());
-        
-        SleepCoroutine sleepCoroutine = new SleepCoroutine(sourceId, state.getTimerPrefix(), duration);
-        sleepCoroutine.run(cnt);
+        new SleepSubcoroutine.Builder()
+                .sourceId(sourceId)
+                .timeoutDuration(duration)
+                .timerAddressPrefix(state.getTimerPrefix())
+                .build()
+                .run(cnt);
     }
 
     private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
-            Duration timeoutDuration, Class<T> expectedResponseClass) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        Validate.notNull(timeoutDuration);
-        Validate.isTrue(!timeoutDuration.isNegative());
-        
-        RequestCoroutine requestCoroutine = new RequestCoroutine(
-                AddressUtils.parentize(sourceId, "" + message.getId()),
-                destination,
-                message,
-                state.getTimerPrefix(),
-                timeoutDuration,
-                expectedResponseClass);
-        requestCoroutine.run(cnt);
-        return requestCoroutine.getResponse();
+            Class<T> expectedResponseClass) throws Exception {
+        RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
+                .sourceId(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .destinationAddress(destination)
+                .request(message)
+                .timerAddressPrefix(state.getTimerPrefix())
+                .addExpectedResponseType(expectedResponseClass)
+                .build();
+        return requestSubcoroutine.run(cnt);
     }
     
     private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {
-        Validate.notNull(ctx);
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        
         ctx.addOutgoingMessage(
                 AddressUtils.parentize(sourceId, "" + message.getId()),
                 destination,

@@ -18,7 +18,7 @@ public final class RecorderGateway implements InputGateway {
         Validate.notNull(dstAddress);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        Validate.isTrue(AddressUtils.isParent(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
         
         WriteRunnable writeRunnable = new WriteRunnable(file, prefix, serializer);
         WriteBus writeBus = writeRunnable.getBus();

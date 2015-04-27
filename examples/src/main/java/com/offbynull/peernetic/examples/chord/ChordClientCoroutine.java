@@ -3,8 +3,10 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
-import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
@@ -21,7 +23,6 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.ParentCoroutine;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import com.offbynull.peernetic.gateways.visualizer.AddEdge;
@@ -66,19 +67,15 @@ public final class ChordClientCoroutine implements Coroutine {
 
             
             // Create parent coroutine and add maintenance tasks to it
-            ParentCoroutine parentCoroutine = new ParentCoroutine("", ctx);
+            String mainSourceId = "main";
             
-            parentCoroutine.add("updateothers", new UpdateOthersTask("updateothers", state)); // notify our fingers that we're here (finite)
-            parentCoroutine.forceForward("updateothers", false);
+            SubcoroutineRouter router = new SubcoroutineRouter(mainSourceId, ctx);
+            Controller controller = router.getController();
             
-            parentCoroutine.add("fixfinger", new FixFingerTableTask("fixfinger", state));
-            parentCoroutine.forceForward("fixfinger", true);
-            
-            parentCoroutine.add("stabilize", new StabilizeTask("stabilize", state));
-            parentCoroutine.forceForward("stabilize", true);
-            
-            parentCoroutine.add("checkpred", new CheckPredecessorTask("checkpred", state));
-            parentCoroutine.forceForward("checkpred", true);
+            controller.add(new UpdateOthersTask(mainSourceId + ":updateothers", state), AddBehaviour.ADD_PRIME); // notify our fingers
+            controller.add(new FixFingerTableTask(mainSourceId + ":fixfinger", state), AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(new StabilizeTask(mainSourceId + ":stabilize", state), AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(new CheckPredecessorTask(mainSourceId + ":checkpred", state), AddBehaviour.ADD_PRIME_NO_FINISH);
             
 
             while (true) {
@@ -86,7 +83,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
 
                 // Forward message to maintenance task. If the message wasn't for a maintenance task, try to handle it.
-                boolean forwarded = parentCoroutine.forward();
+                boolean forwarded = router.forward();
                 if (!forwarded) {
                     Object msg = ctx.getIncomingMessage();
                     String fromAddress = ctx.getSource();
@@ -170,14 +167,6 @@ public final class ChordClientCoroutine implements Coroutine {
                         addOutgoingExternalMessage(ctx,
                                 fromAddress,
                                 new UpdateFingerTableResponse(extMsg.getId()));
-                    } else if (msg instanceof FindSuccessorRequest) {
-                        FindSuccessorRequest extMsg = (FindSuccessorRequest) msg;
-                        NodeId id = extMsg.getChordId();
-
-                        String suffix = "remoteRouteTo" + state.generateExternalMessageId();
-                        RemoteRouteToTask remoteRouteToTask = new RemoteRouteToTask(suffix, state, id, extMsg, ctx.getSource());
-                        parentCoroutine.add(suffix, remoteRouteToTask);
-                        parentCoroutine.forceForward(suffix, false);
                     } else if (msg instanceof Kill) {
                         return;
                     }

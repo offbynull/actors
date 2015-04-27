@@ -1,20 +1,20 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.coroutines.SleepCoroutine;
 import java.time.Duration;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class FixFingerTableTask implements Coroutine {
+final class FixFingerTableTask implements Subcoroutine<Void> {
     
     private static final Logger LOG = LoggerFactory.getLogger(FixFingerTableTask.class);
 
@@ -29,7 +29,7 @@ final class FixFingerTableTask implements Coroutine {
     }
 
     @Override
-    public void run(Continuation cnt) throws Exception {
+    public Void run(Continuation cnt) throws Exception {
         
         LOG.debug("{} {} - Starting fix finger task", state.getSelfId(), sourceId);
         
@@ -84,25 +84,26 @@ final class FixFingerTableTask implements Coroutine {
                 foundFinger);
     }
     
+    @Override
+    public String getSourceId() {
+        return sourceId;
+    }
+    
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(duration);
-        Validate.isTrue(!duration.isNegative());
-        
-        SleepCoroutine sleepCoroutine = new SleepCoroutine(sourceId, state.getTimerPrefix(), duration);
-        sleepCoroutine.run(cnt);
+        new SleepSubcoroutine.Builder()
+                .sourceId(sourceId)
+                .timeoutDuration(duration)
+                .timerAddressPrefix(state.getTimerPrefix())
+                .build()
+                .run(cnt);
     }
 
     private Pointer funnelToRouteToSuccessorCoroutine(Continuation cnt, NodeId findId) throws Exception {
-        Validate.notNull(cnt);
-        Validate.notNull(findId);
-        
         String idSuffix = "routetosucc" + state.generateExternalMessageId();
         RouteToSuccessorTask innerCoroutine = new RouteToSuccessorTask(
                 AddressUtils.parentize(sourceId, idSuffix),
                 state,
                 findId);
-        innerCoroutine.run(cnt);
-        return innerCoroutine.getResult();
+        return innerCoroutine.run(cnt);
     }
 }

@@ -43,6 +43,12 @@ final class ReadRunnable implements Runnable {
                 DataInputStream dis = new DataInputStream(fis)) {
             Instant lastTime = null;
             while (true) {
+                boolean hasMore = dis.readBoolean();
+                if (!hasMore) {
+                    LOG.info("Stopping read thread (EOF marker found)");
+                    return;
+                }
+
                 int size = dis.readInt();
                 byte[] data = new byte[size];
                 
@@ -68,14 +74,12 @@ final class ReadRunnable implements Runnable {
                 lastTime = recordedBlock.getTime();
             }
             
+        } catch (EOFException e) {
+            LOG.error("Stopping read thread (unexpected end of file)");
+        } catch (InterruptedException ie) {
+            LOG.error("Stopping read thread (interrupted)");
         } catch (Exception e) {
-            if (e instanceof EOFException) {
-                LOG.info("Stopping read thread (end of file)");
-            } else if (e instanceof InterruptedException) {
-                LOG.info("Stopping read thread (interrupted)");
-            } else {
-                LOG.error("Error in read thread", e);
-            }
+            LOG.error("Error in read thread", e);
         }
     }
 

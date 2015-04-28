@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.test.MessageSource.SourceMessage;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -67,6 +68,11 @@ public final class TestHarness {
         eventHandlers.put(JoinEvent.class, this::handleJoinEvent);
         eventHandlers.put(LeaveEvent.class, this::handleLeaveEvent);
         eventHandlers.put(MessageEvent.class, this::handleMessageEvent);
+        eventHandlers.put(AddMessageSourceEvent.class, this::handleAddMessageSourceEvent);
+        eventHandlers.put(PullFromMessageSourceEvent.class, this::handlePullFromMessageSourceEvent);
+        eventHandlers.put(RemoveMessageSourceEvent.class, this::handleRemoveMessageSourceEvent);
+        eventHandlers.put(AddMessageSinkEvent.class, this::handleAddMessageSinkEvent);
+        eventHandlers.put(RemoveMessageSinkEvent.class, this::handleRemoveMessageSinkEvent);
         
         this.eventHandlers =
                 (UnmodifiableMap<Class<? extends Event>, Consumer<Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
@@ -153,10 +159,6 @@ public final class TestHarness {
         Validate.validState(eventHandler != null);
         eventHandler.accept(event);
         
-        CREATE AND ADD HANDLERS TO EVENTHANDLER;
-        REMOVESINK() AND REMOVEACTOR() SHOULD HAVE AN EXTRA BOOLEAN WHERE YOU CAN SPECIFY IF YOU WANT TO CLOSE WHEN YOU REMOVE;
-        MESSAGESOURCE SHOULD GIVE BACK RELATIVE TIME, NOT THE ABSOLUTE TIME IT HAS STORED;
-        
         return currentTime;
     }
     
@@ -198,6 +200,74 @@ public final class TestHarness {
         Validate.isTrue(holder != null, "Actor identifier does not exist");
     }
     
+    private void handleAddMessageSourceEvent(Event event) {
+        AddMessageSourceEvent addMessageSourceEvent = (AddMessageSourceEvent) event;
+        
+        MessageSource source = addMessageSourceEvent.getMessageSource();
+        Validate.isTrue(sources.contains(source));
+        sources.add(source);
+        
+        // Queue an immediate pull
+        events.add(new PullFromMessageSourceEvent(source, currentTime, nextSequenceNumber++));
+    }
+
+    private void handlePullFromMessageSourceEvent(Event event) {
+        PullFromMessageSourceEvent pullFromMessageSourceEvent = (PullFromMessageSourceEvent) event;
+        
+        MessageSource source = pullFromMessageSourceEvent.getMessageSource();
+        if (!sources.contains(source)) {
+            // The MessageSource was removed, so ignore this pull event.
+            return;
+        }
+        
+        // Read the message from the message source
+        SourceMessage sourceMessage;
+        try {
+            sourceMessage = source.readNextMessage();
+        } catch (IOException ex) {
+            throw new IllegalArgumentException(ex);
+        }
+        
+        if (sourceMessage == null) {
+            // We've reached the end of the message source. Remove the message source and return.
+            sources.remove(source);
+            return;
+        }
+        
+        // Queue message
+        queueMessage(false,
+                sourceMessage.getSource(),
+                sourceMessage.getDestination(),
+                sourceMessage.getMessage(),
+                sourceMessage.getDuration());
+        
+        // Queue another pull (read the next message) once the message arrives
+        Instant nextPullTime = currentTime.plus(sourceMessage.getDuration());
+        events.add(new PullFromMessageSourceEvent(source, nextPullTime, nextSequenceNumber++));
+    }
+    
+    private void handleRemoveMessageSourceEvent(Event event) {
+        RemoveMessageSourceEvent removeMessageSourceEvent = (RemoveMessageSourceEvent) event;
+        
+        MessageSource source = removeMessageSourceEvent.getMessageSource();
+        Validate.isTrue(sources.remove(source));
+    }
+    
+    private void handleAddMessageSinkEvent(Event event) {
+        AddMessageSinkEvent addMessageSinkEvent = (AddMessageSinkEvent) event;
+
+        MessageSink sink = addMessageSinkEvent.getMessageSink();
+        Validate.isTrue(!sinks.contains(sink));
+        sinks.add(sink);
+    }
+    
+    private void handleRemoveMessageSinkEvent(Event event) {
+        RemoveMessageSinkEvent removeMessageSinkEvent = (RemoveMessageSinkEvent) event;
+        
+        MessageSink sink = removeMessageSinkEvent.getMessageSink();
+        Validate.isTrue(sinks.remove(sink));
+    }
+    
     private void validateActorAddressDoesNotConflict(String address) {
         Validate.notNull(address);
         Validate.isTrue(
@@ -228,6 +298,10 @@ public final class TestHarness {
     }
     
     private void queueMessage(String source, String destination, Object message, Duration scheduledDuration) {
+        queueMessage(true, source, destination, message, scheduledDuration);
+    }
+    
+    private void queueMessage(boolean sourceMustExist, String source, String destination, Object message, Duration scheduledDuration) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
@@ -237,7 +311,9 @@ public final class TestHarness {
         //
         // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
         // to existance exist by the time the message arrives.
-        Validate.isTrue(findActor(source) != null);
+        if (sourceMustExist) {
+            Validate.isTrue(findActor(source) != null);
+        }
         
         Instant arriveTime = currentTime;
         

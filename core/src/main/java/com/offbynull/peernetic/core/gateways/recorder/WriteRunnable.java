@@ -63,6 +63,8 @@ final class WriteRunnable implements Runnable {
                         LOG.error("Error in write thread while flushing", ioe);
                     }
                 });
+                
+                writeTermination(dos);
             }
         } catch (Exception e) {
             LOG.error("Error in write thread", e);
@@ -88,8 +90,14 @@ final class WriteRunnable implements Runnable {
         RecordedBlock recordedBlock = new RecordedBlock(recordedMessages, time);
 
         byte[] data = serializer.serialize(recordedBlock);
+        dos.writeBoolean(true);
         dos.writeInt(data.length);
         IOUtils.write(data, dos);
+        dos.flush();
+    }
+
+    private void writeTermination(final DataOutputStream dos) throws IOException {
+        dos.writeBoolean(false);
         dos.flush();
     }
 

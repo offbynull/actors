@@ -12,6 +12,10 @@ import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
+import com.offbynull.peernetic.core.test.MessageSink;
+import com.offbynull.peernetic.core.test.MessageSource;
+import com.offbynull.peernetic.core.test.RecordMessageSink;
+import com.offbynull.peernetic.core.test.ReplayMessageSource;
 import com.offbynull.peernetic.core.test.TestHarness;
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +34,8 @@ public class Test {
 //        basicRetry();
         testEnvironmentTimer();
         testEnvironmentEcho();
-        //testRecordAndReplay();
+        testEnvironmentRecordAndReplay();
+//        testRecordAndReplay();
     }
 
     private static void basicTest() throws InterruptedException {
@@ -301,6 +306,73 @@ public class Test {
         
         while (testHarness.hasMore()) {
             testHarness.process();
+        }
+    }
+    
+    private static void testEnvironmentRecordAndReplay() throws Exception {
+        File recordFile = File.createTempFile("recordtest", ".data");
+        
+        System.out.println("RECORDING ECHO");
+        {
+            Coroutine sender = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+                String dstAddr = ctx.getIncomingMessage();
+
+                for (int i = 0; i < 10; i++) {
+                    ctx.addOutgoingMessage(dstAddr, i);
+                    cnt.suspend();
+                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
+                    System.out.println("Got " + i);
+                }
+            };
+
+            Coroutine echoer = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+
+                while (true) {
+                    String src = ctx.getSource();
+                    Object msg = ctx.getIncomingMessage();
+                    ctx.addOutgoingMessage(src, msg);
+                    cnt.suspend();
+                }
+            };
+
+            try (MessageSink sink = new RecordMessageSink("local:echoer", recordFile, new SimpleSerializer())) {
+                TestHarness testHarness = new TestHarness("timer");
+                testHarness.addMessageSink(sink, Instant.ofEpochMilli(0L));
+                testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
+                testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+
+                while (testHarness.hasMore()) {
+                    testHarness.process();
+                }
+            }
+        }
+        
+        
+        System.out.println("REPLAYING RECORDING OF ECHO");
+        {
+            Coroutine sender = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+                String dstAddr = ctx.getIncomingMessage();
+
+                for (int i = 0; i < 10; i++) {
+                    ctx.addOutgoingMessage(dstAddr, i);
+                    cnt.suspend();
+                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
+                    System.out.println("Got " + i);
+                }
+            };
+
+            try (MessageSource source = new ReplayMessageSource("local:sender", recordFile, new SimpleSerializer())) {
+                TestHarness testHarness = new TestHarness("timer");
+                testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
+                testHarness.addMessageSource(source, Instant.ofEpochMilli(0L));
+
+                while (testHarness.hasMore()) {
+                    testHarness.process();
+                }
+            }
         }
     }
     

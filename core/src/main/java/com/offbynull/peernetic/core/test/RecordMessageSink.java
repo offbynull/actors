@@ -40,12 +40,14 @@ public final class RecordMessageSink implements MessageSink {
         RecordedBlock recordedBlock = new RecordedBlock(Collections.singletonList(recordedMessage), time);
 
         byte[] data = serializer.serialize(recordedBlock);
+        dos.writeBoolean(true);
         dos.writeInt(data.length);
         IOUtils.write(data, dos);
     }
 
     @Override
     public void close() throws Exception {
+        dos.writeBoolean(false);
         IOUtils.closeQuietly(dos);
     }
     

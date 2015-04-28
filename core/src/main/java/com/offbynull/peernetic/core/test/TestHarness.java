@@ -3,6 +3,7 @@ package com.offbynull.peernetic.core.test;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
@@ -187,7 +188,7 @@ public final class TestHarness {
         actors.put(address, newHolder); // won't overwrite because validateActorAddress above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessage(address, address, message, Duration.ZERO);
+            queueMessage(address, address, message);
         }
     }
     
@@ -204,7 +205,7 @@ public final class TestHarness {
         AddMessageSourceEvent addMessageSourceEvent = (AddMessageSourceEvent) event;
         
         MessageSource source = addMessageSourceEvent.getMessageSource();
-        Validate.isTrue(sources.contains(source));
+        Validate.isTrue(!sources.contains(source));
         sources.add(source);
         
         // Queue an immediate pull
@@ -296,12 +297,16 @@ public final class TestHarness {
         
         return null;
     }
-    
+
+    private void queueMessage(String source, String destination, Object message) {
+        queueMessage(source, destination, message, Duration.ZERO);
+    }
+
     private void queueMessage(String source, String destination, Object message, Duration scheduledDuration) {
         queueMessage(true, source, destination, message, scheduledDuration);
     }
     
-    private void queueMessage(boolean sourceMustExist, String source, String destination, Object message, Duration scheduledDuration) {
+    private void queueMessage(boolean sourceMustExistFlag, String source, String destination, Object message, Duration scheduledDuration) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
@@ -311,7 +316,8 @@ public final class TestHarness {
         //
         // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
         // to existance exist by the time the message arrives.
-        if (sourceMustExist) {
+        if (sourceMustExistFlag && !AddressUtils.isPrefix(timerPrefix, source)) {
+            // Only check to see if source actor exists if we the flag is set to do so + the source isn't the actor
             Validate.isTrue(findActor(source) != null);
         }
         
@@ -425,6 +431,14 @@ public final class TestHarness {
             // Actor stopped or crashed. Remove it from the list of actors and stop processing.
             actors.remove(address);
             return;
+        }
+        
+        for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
+            String outSrc = batchedOutMsg.getSourceId() == null ? address : AddressUtils.parentize(address, batchedOutMsg.getSourceId());
+            queueMessage(
+                    outSrc,
+                    batchedOutMsg.getDestination(),
+                    batchedOutMsg.getMessage());
         }
         
         // We've finished calling onStep(). Next, add the amount of time it took to do the processing of the message by onStep. This is a

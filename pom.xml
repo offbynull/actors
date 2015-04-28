@@ -96,7 +96,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.12.1</version>
+                    <version>2.15</version>
                     <executions>
                         <execution>
                             <phase>process-sources</phase>
@@ -111,6 +111,12 @@
                             <artifactId>build-tools</artifactId>
                             <version>${project.version}</version>
                         </dependency>
+                        <dependency>
+                            <!-- This dep is required because the versino of checkstyle used by 2.14 doesn't support Java 8 -->
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>6.4.1</version>
+                        </dependency>
                     </dependencies>
                     <configuration>
                         <consoleOutput>true</consoleOutput>
@@ -121,7 +127,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-pmd-plugin</artifactId>
-                    <version>3.1</version>
+                    <version>3.4</version>
                     <executions>
                         <execution>
                             <phase>process-sources</phase>
@@ -132,6 +138,9 @@
                     </executions>
                     <configuration>
                         <printFailingErrors>true</printFailingErrors>
+                        <rulesets>
+                            <ruleset>../build-tools/src/main/resources/build-tools/ruleset.xml</ruleset>
+                        </rulesets>
                     </configuration>
                 </plugin>
                 <plugin>

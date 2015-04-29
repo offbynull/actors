@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.shuttle;
 
-import java.util.Collection;
-
-public interface Shuttle {
-    String getPrefix();
-    void send(Collection<Message> messages);
-}
+/**
+ * Provides classes and interfaces for defining and executing actors.
+ * 
+ * @author Kasra Faghihi
+ */
+package com.offbynull.peernetic.core.actor;

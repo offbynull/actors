@@ -18,8 +18,8 @@ package com.offbynull.peernetic.core.test;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
-import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
+import com.offbynull.peernetic.core.actor.SourceContext;
+import com.offbynull.peernetic.core.actor.SourceContext.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
@@ -411,7 +411,7 @@ public final class TestHarness {
         // ActorThread/ActorRunnable and no more execution is done on it.
         Actor actor = destHolder.getActor();
         String address = destHolder.getAddress();
-        Context context = destHolder.getContext();
+        SourceContext context = destHolder.getContext();
         Instant localActorTime = currentTime.plus(destHolder.getTimeOffset()); // This is the time as it appears to the actor. Clocks
                                                                                // between different machines are never going to be entirely
                                                                                // in sync. So, one actor may technically have a different
@@ -436,7 +436,7 @@ public final class TestHarness {
         boolean stopped;
         Instant execStartTime = Instant.now();
         try {
-            stopped = !actor.onStep(context);
+            stopped = !actor.onStep(context.toNormalContext());
         } catch (Exception e) {
             stopped = true;
         }

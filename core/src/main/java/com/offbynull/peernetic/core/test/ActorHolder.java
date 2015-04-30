@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.core.test;
 
 import com.offbynull.peernetic.core.actor.Actor;
-import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.SourceContext;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
@@ -26,7 +26,7 @@ final class ActorHolder {
     private final String address;
     private final Actor actor;
     private final Duration timeOffset;
-    private final Context context;
+    private final SourceContext context;
     
     private Instant earliestPossibleOnStepTime;
 
@@ -39,7 +39,7 @@ final class ActorHolder {
         this.address = address;
         this.actor = actor;
         this.timeOffset = timeOffset;
-        this.context = new Context();
+        this.context = new SourceContext();
         this.earliestPossibleOnStepTime = earliestPossibleOnStepTime;
     }
 
@@ -55,8 +55,7 @@ final class ActorHolder {
         return address;
     }
 
-
-    public Context getContext() {
+    public SourceContext getContext() {
         return context;
     }
 

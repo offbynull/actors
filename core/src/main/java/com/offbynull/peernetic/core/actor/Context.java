@@ -17,111 +17,69 @@
 package com.offbynull.peernetic.core.actor;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import org.apache.commons.lang3.Validate;
 
-public final class Context {
-    private String self;
-    private Instant time;
-    private String source;
-    private String destination;
-    private Object incomingMessage;
-    private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
+/**
+ * Context of an actor. An actor's context is passed in to an actor each time a new incoming message arrives. It contains ...
+ * <ul>
+ * <li>the address of the actor.</li>
+ * <li>the time which the actor was triggered.</li>
+ * <li>the incoming message that caused the actor to be triggered.</li>
+ * <li>the outgoing messages that this actor is sending out.</li>
+ * </ul>
+ * 
+ * @author Kasra Faghihi
+ */
+public interface Context {
 
-    public String getSelf() {
-        return self;
-    }
+    /**
+     * Equivalent to calling {@code addOutgoingMessage(null, destination, message)}. 
+     * @param destination destination address
+     * @param message outgoing message
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    void addOutgoingMessage(String destination, Object message);
 
-    public void setSelf(String self) {
-        Validate.notNull(self);
-        Validate.notEmpty(self);
-        this.self = self;
-    }
+    /**
+     * Queue up an outgoing message.
+     * @param sourceId id which this message is from. In this case, id refers to the suffix of the source address which the outgoing message
+     * is sent from. So for example, if {@link #getSelf() } returns "actor:1" and this is set to "id1:id2", the source address for the
+     * outgoing message being sent will be "actor:1:id1:id2".
+     * @param destination destination address
+     * @param message outgoing message
+     * @throws NullPointerException if any argument other than {@code sourceId} is {@code null}
+     */
+    void addOutgoingMessage(String sourceId, String destination, Object message);
 
-    public Instant getTime() {
-        return time;
-    }
+    /**
+     * Get the address the incoming message was sent to.
+     * @return destination address of incoming message
+     */
+    String getDestination();
 
-    public void setTime(Instant time) {
-        Validate.notNull(time);
-        this.time = time;
-    }
+    /**
+     * Get the incoming message.
+     * @param <T> message type
+     * @return incoming message
+     */
+    @SuppressWarnings(value = "unchecked")
+    <T> T getIncomingMessage();
 
-    public String getSource() {
-        return source;
-    }
+    /**
+     * Get the address of the actor that this context is for.
+     * @return address of actor
+     */
+    String getSelf();
 
-    public void setSource(String source) {
-        Validate.notNull(source);
-        this.source = source;
-    }
+    /**
+     * Get the address the incoming message was sent from.
+     * @return source address of incoming message
+     */
+    String getSource();
 
-    public String getDestination() {
-        return destination;
-    }
-
-    public void setDestination(String destination) {
-        Validate.notNull(destination);
-        this.destination = destination;
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getIncomingMessage() {
-        return (T) incomingMessage;
-    }
-
-    public void setIncomingMessage(Object incomingMessage) {
-        Validate.notNull(incomingMessage);
-        this.incomingMessage = incomingMessage;
-    }
-
-    public void addOutgoingMessage(String destination, Object message) {
-        addOutgoingMessage(null, destination, message);
-    }
-
-    public void addOutgoingMessage(String sourceId, String destination, Object message) {
-        // sourceId can be null
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        outgoingMessages.add(new BatchedOutgoingMessage(sourceId, destination, message));
-    }
-    
-    public List<BatchedOutgoingMessage> copyAndClearOutgoingMessages() {
-        List<BatchedOutgoingMessage> ret = new ArrayList<>(outgoingMessages);
-        outgoingMessages.clear();
-        
-        return ret;
-    }
-    
-    public static final class BatchedOutgoingMessage {
-        private final String sourceId;
-        private final String destination;
-        private final Object message;
-
-        public BatchedOutgoingMessage(String sourceId, String destination, Object message) {
-            // sourceId may be null
-            Validate.notNull(destination);
-            Validate.notNull(message);
-            Validate.notEmpty(destination);
-            
-            this.sourceId = sourceId;
-            this.destination = destination;
-            this.message = message;
-        }
-
-        public String getSourceId() {
-            return sourceId;
-        }
-
-        public String getDestination() {
-            return destination;
-        }
-
-        public Object getMessage() {
-            return message;
-        }        
-    }
+    /**
+     * Get the current time. This may not be exact, it is essentially just the time when the actor was triggered with new incoming message.
+     * @return current time
+     */
+    Instant getTime();
     
 }

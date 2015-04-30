@@ -21,7 +21,7 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.getAddress;
-import com.offbynull.peernetic.core.actor.Context.BatchedOutgoingMessage;
+import com.offbynull.peernetic.core.actor.SourceContext.BatchedOutgoingMessage;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
@@ -92,7 +92,7 @@ final class ActorRunnable implements Runnable {
             Map<String, Shuttle> outgoingShuttles) {
         if (msg instanceof AddActorMessage) {
             AddActorMessage aam = (AddActorMessage) msg;
-            actors.put(aam.id, new LoadedActor(aam.actor, new Context()));
+            actors.put(aam.id, new LoadedActor(aam.actor, new SourceContext()));
             List<Message> initialMessages = new LinkedList<>();
             for (Object primingMessage : aam.primingMessages) {
                 String dstAddr = getAddress(prefix, aam.id);
@@ -134,7 +134,7 @@ final class ActorRunnable implements Runnable {
         }
 
         Actor actor = loadedActor.actor;
-        Context context = loadedActor.context;
+        SourceContext context = loadedActor.context;
         context.setSelf(dstPrefix + SEPARATOR + dstImmediateId);
         context.setIncomingMessage(msg);
         context.setSource(src);
@@ -144,7 +144,7 @@ final class ActorRunnable implements Runnable {
         // Pass to actor, shut down if returns false or throws exception
         boolean shutdown = false;
         try {
-            if (!actor.onStep(context)) {
+            if (!actor.onStep(context.toNormalContext())) {
                 shutdown = true;
             }
         } catch (Exception e) {
@@ -242,9 +242,9 @@ final class ActorRunnable implements Runnable {
     
     private static final class LoadedActor {
         private final Actor actor;
-        private final Context context;
+        private final SourceContext context;
 
-        public LoadedActor(Actor actor, Context context) {
+        public LoadedActor(Actor actor, SourceContext context) {
             Validate.notNull(actor);
             Validate.notNull(context);
             this.actor = actor;

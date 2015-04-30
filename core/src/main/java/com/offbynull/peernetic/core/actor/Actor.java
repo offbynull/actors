@@ -17,47 +17,58 @@
 package com.offbynull.peernetic.core.actor;
 
 /**
- * An actor is an object that only ever accesses/changes its own internal state, doesn't expose any of it's internal state to the outside
- * world, and only ever communicates with the outside world (e.g. other actors and outside objects) through asynchronous message-passing.
- * In other words, outside of receiving messages and sending messages, actors must be fully isolated. This isolation helps with concurrency
- * (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if an actor is remote or
- * local).
- * 
- * Implementations of this interface ...
+ * Interface for an actor. There's a good deal of information available on the theoretical concept of actors and their role in
+ * concurrent/distributed computing on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>. In terms of
+ * Peernetic's implementation of actors, implementations of this interface should ...
  * 
  * <ol>
- * <li>
- * must not have any setters, getters, public fields, or any other direct mechanism for exposing it's state. If another actor or outside
- * component wants to know or change the internal state of an actor, it must request it by sending that actor a message.
- * </li>
- * <li>
- * must not share any references with other actors or outside objects, unless those references are to immutable objects. For example, an 
- * actor shouldn't have a reference to a ConcurrentHashMap that's being shared with other actors. Communication between actors or other
- * outside components must be done via message passing.
- * </li>
- * <li>
- * must not perform any threading-related operations (e.g. synchronizing or atomic variables). It wouldn't make sense to perform any
- * threading-related operations given that an actor isn't sharing state (see rules above).
- * </li>
- * <li>
- * must not perform any I/O (e.g. reading/writing a file). I/O in particularly should be done by passing a message to some other component
- * that performs the actual I/O operation(s). It's possible for multiple actors to be running in the same Java thread. That means that if an
- * actor blocks while it tries to perform one or more I/O operations, it may deprive other actors of processing their own messages in a
- * timely manner. In addition to that, directly doing I/O may cause complications should you ever try to serialize an actor.
- * </li>
- * <li>
- * must not perform long running operations. The reasoning is the same as the reasoning for not doing I/O in the actor... It's possible
- * for multiple actors to be running in the same Java thread. That means that if an actor spends a long time doing some calculation, it may
- * deprive other actors of processing their own messages in a timely manner.
- * </li>
+ * <li><b>not expose any of their own internal state to the outside.</b> Meaning that implementations should not have any setters, getters,
+ * public fields, or any other direct mechanism for exposing their state. If another actor or outside component wants to know or change the
+ * internal state of an actor, it should request it by sending that actor a message.</li>
+ * <li><b>only ever directly access/change their own internal state.</b> Meaning that implementations should not share any references with
+ * other actors or outside objects, unless those references are to immutable objects. For example, an actor shouldn't have a reference to a
+ * ConcurrentHashMap that's being shared with other actors. Communication between actors or other outside components should be done via
+ * message-passing.</li>
+ * <li><b>avoid blocking, whether it's blocking from I/O, a long running operation, thread synchronization, or otherwise.</b> It's possible
+ * for multiple actors to be running in the same Java thread. That means that if an actor blocks for any reason, it may deprive other actors
+ * of processing their own messages in a timely manner. In addition to that, directly doing I/O may cause complications should you ever try
+ * to serialize an actor.</li>
+ * <li><b>only ever communicates with the outside world (e.g. other actors and outside objects) through asynchronous message-passing.</b>
+ * Since implementations avoid sharing and exposing state, there needs be some mechanism to communicate interface with the outside.
+ * Message-passing is that mechanism.</li>
  * </ol>
  * 
- * There's a good deal of information available on the theoretical concept of actors and their role in concurrent/distributed computing on
- * <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>. The general idea is to abstract 
+ * Following the above implementation rules means that, outside of receiving messages and sending messages, an actor is fully isolated. This
+ * isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't
+ * matter if you're passing messages to a component that's remote or local, the underlying message-passing should make it transparent).
  * 
  * @author Kasra Faghihi
  */
 public interface Actor {
-    DOCUMENTME;
+    /**
+     * Called when an actor receives a new message. Each time this method is invoked, a {@code context} is supplied. That context
+     * contains ...
+     * <ul>
+     * <li>the address of this actor.</li>
+     * <li>the incoming message that triggered the invocation of this method.</li>
+     * <li>the address the incoming message was sent from.</li>
+     * <li>the address the incoming message was sent to.</li>
+     * <li>a queue of outgoing messages (add messages to this queue and once this method returns those messages will get sent).</li>
+     * <li>the current time (always use this if you need the current time as opposed to directly accessing the time via Java's APIs like
+     * {@code Instant.now()} or {@code System.getCurrentTimeMillis()}).
+     * </ul>
+     * <p>
+     * Remember that both incoming and outgoing messages must be ...
+     * <ol>
+     * <li>immutable -- cannot change once created.</li>
+     * <li>serializable -- can be written out to a byte stream and read back in.</li>
+     * <li>deterministic -- serializing a message then deserializing it must always result in the same object.</li>
+     * </ol>
+     * @param context context for this actor. The same {@link Context} object is passed in to this method on every invocation for the entire
+     * life of the actor.
+     * @return {@code true} if the actor hasn't finished, {@code false} if it has finished
+     * @throws Exception when any unhandled error occurs -- if an exception is thrown it means that this actor has had an unrecoverable
+     * error and should stop executing
+     */
     boolean onStep(Context context) throws Exception;
 }

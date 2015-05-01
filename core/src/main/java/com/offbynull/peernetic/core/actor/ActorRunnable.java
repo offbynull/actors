@@ -234,7 +234,7 @@ final class ActorRunnable implements Runnable {
         bus.add(asm);
     }
 
-    void removeShuttle(String prefix) {
+    void removeOutgoingShuttle(String prefix) {
         Validate.notNull(prefix);
         RemoveShuttleMessage rsm = new RemoveShuttleMessage(prefix);
         bus.add(rsm);

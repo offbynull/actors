@@ -46,7 +46,7 @@ package com.offbynull.peernetic.core.actor;
  */
 public interface Actor {
     /**
-     * Called when an actor receives a new message. Each time this method is invoked, a {@code context} is supplied. That context
+     * Called when this actor receives a new message. Each time this method is invoked, a {@code context} is supplied. That context
      * contains ...
      * <ul>
      * <li>the address of this actor.</li>

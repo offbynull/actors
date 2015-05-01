@@ -22,14 +22,12 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * An actor implementation that delegates to a coroutine. Nearly all actor implementations, except for the most rudimentary, will end up
- * requiring some sort of complex state machine logic to be written by hand. Writing your actor logic as a coroutine avoids the need for
- * these state machines.
+ * requiring some sort of complex state machine logic. Writing your actor as a coroutine avoids the need to write out this state machine
+ * logic by hand.
  * <p>
- * For example... imagine the following scenario. We're expecting 10 messages to come in. Once a message comes in, if that message has a
- * certain flag set, it means that we expect more messages of a different type to immediately follow it. If that flag isn't set, we process
- * the message and wait for the next one.
- * <p>
- * Implemented as a coroutine, the logic would look like this:
+ * For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message
+ * has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine,
+ * the logic would be written similar to this:
  * <pre>
  * for (int i = 0; i &lt; 10; i++) {
  *    cnt.suspend();
@@ -45,7 +43,7 @@ import org.apache.commons.lang3.Validate;
  *    }
  * }
  * </pre>
- * Implemented as a normal actor, the logic would look similar to this:
+ * However, if it were implemented as a normal actor, the logic would have to be written in a much more convoluted manner:
  * <pre>
  * //
  * // Keep in mind that, due to the need to retain state between calls to onStep(), all variables have essentially become fields.
@@ -79,8 +77,6 @@ import org.apache.commons.lang3.Validate;
  *         return;
  * }
  * </pre>
- * Even though they technically perform the same set of steps, one is way easier to follow/change than the other. For more information, see
- * <a href='https://github.com/offbynull/coroutines'>https://github.com/offbynull/coroutines</a>.
  * @author Kasra Faghihi
  */
 public final class CoroutineActor implements Actor {

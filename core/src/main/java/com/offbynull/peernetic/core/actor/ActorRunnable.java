@@ -21,7 +21,7 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.getAddress;
-import com.offbynull.peernetic.core.actor.SourceContext.BatchedOutgoingMessage;
+import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;

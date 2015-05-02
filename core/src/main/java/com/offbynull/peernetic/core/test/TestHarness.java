@@ -19,7 +19,7 @@ package com.offbynull.peernetic.core.test;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.SourceContext;
-import com.offbynull.peernetic.core.actor.SourceContext.BatchedOutgoingMessage;
+import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;

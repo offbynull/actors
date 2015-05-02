@@ -18,6 +18,7 @@ package com.offbynull.peernetic.core.actor;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
@@ -127,6 +128,11 @@ public final class SourceContext implements Context {
         outgoingMessages.add(new BatchedOutgoingMessage(sourceId, destination, message));
     }
     
+    @Override
+    public List<BatchedOutgoingMessage> viewOutgoingMessages() {
+        return Collections.unmodifiableList(outgoingMessages);
+    }
+    
     /**
      * Get a copy of the outgoing message queue and clear the original.
      * @return list of queued outgoing messages
@@ -155,6 +161,11 @@ public final class SourceContext implements Context {
             public void addOutgoingMessage(String sourceId, String destination, Object message) {
                 SourceContext.this.addOutgoingMessage(sourceId, destination, message);
             }
+            
+            @Override
+            public List<BatchedOutgoingMessage> viewOutgoingMessages() {
+                return SourceContext.this.viewOutgoingMessages();
+            }
 
             @Override
             public String getDestination() {
@@ -182,49 +193,4 @@ public final class SourceContext implements Context {
             }
         };
     }
-    
-    /**
-     * A queued outgoing message.
-     */
-    public static final class BatchedOutgoingMessage {
-        private final String sourceId;
-        private final String destination;
-        private final Object message;
-
-        BatchedOutgoingMessage(String sourceId, String destination, Object message) {
-            // sourceId may be null
-            Validate.notNull(destination);
-            Validate.notNull(message);
-            Validate.notEmpty(destination);
-            
-            this.sourceId = sourceId;
-            this.destination = destination;
-            this.message = message;
-        }
-
-        /**
-         * Source id of the outgoing message.
-         * @return source id
-         */
-        public String getSourceId() {
-            return sourceId;
-        }
-
-        /**
-         * Destination address of the outgoing message.
-         * @return destination address
-         */
-        public String getDestination() {
-            return destination;
-        }
-
-        /**
-         * Outgoing message.
-         * @return outgoing message
-         */
-        public Object getMessage() {
-            return message;
-        }        
-    }
-    
 }

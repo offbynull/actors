@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.core.actor;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Context of an actor. An actor's context is passed in to an actor each time a new incoming message arrives. It contains ...
@@ -49,6 +50,12 @@ public interface Context {
      * @throws NullPointerException if any argument other than {@code sourceId} is {@code null}
      */
     void addOutgoingMessage(String sourceId, String destination, Object message);
+    
+    /**
+     * Returns an unmodifiable list of outgoing messages. This list stays in sync as more outgoing messages are added.
+     * @return unmodifiable list of outgoing messages
+     */
+    List<BatchedOutgoingMessage> viewOutgoingMessages();
 
     /**
      * Get the address the incoming message was sent to.

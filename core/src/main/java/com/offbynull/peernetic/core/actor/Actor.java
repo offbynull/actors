@@ -17,23 +17,25 @@
 package com.offbynull.peernetic.core.actor;
 
 /**
- * Interface for an actor. There's a good deal of information available on the theoretical concept of actors and their role in
- * concurrent/distributed computing on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>. In terms of
- * Peernetic's implementation of actors, implementations of this interface should ...
+ * An actor is an isolated "computational unit" who's only method of communicating with the outside world (other actors or components) is
+ * through message-passing. If you aren't familiar with concept of actors and their role in concurrent/distributed computing, there's a good
+ * introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
+ * 
+ * Implementations of this interface should adhere to the following constraints:
  * 
  * <ol>
- * <li><b>not expose any of their own internal state to the outside.</b> Meaning that implementations should not have any setters, getters,
- * public fields, or any other direct mechanism for exposing their state. If another actor or outside component wants to know or change the
- * internal state of an actor, it should request it by sending that actor a message.</li>
- * <li><b>only ever directly access/change their own internal state.</b> Meaning that implementations should not share any references with
+ * <li><b>Do not expose any internal state.</b> Unlike traditional objects that communicate by invoking methods on each other,
+ * actors should not provide any setters, getters, public fields, or any other direct mechanism for exposing their state. If another actor
+ * or outside component needs to know or change the internal state of this actor, it must request it via a message.</li>
+ * <li><b>Do not share state.</b> Only ever directly access/change your own internal state. An actor should not share any references with
  * other actors or outside objects, unless those references are to immutable objects. For example, an actor shouldn't have a reference to a
- * ConcurrentHashMap that's being shared with other actors. Communication between actors or other outside components should be done via
- * message-passing.</li>
- * <li><b>avoid blocking, whether it's blocking from I/O, a long running operation, thread synchronization, or otherwise.</b> It's possible
- * for multiple actors to be running in the same Java thread. That means that if an actor blocks for any reason, it may deprive other actors
- * of processing their own messages in a timely manner. In addition to that, directly doing I/O may cause complications should you ever try
- * to serialize an actor.</li>
- * <li><b>only ever communicates with the outside world (e.g. other actors and outside objects) through asynchronous message-passing.</b>
+ * ConcurrentHashMap that's being shared with other actors or components. Communication between actors or other outside components must be
+ * done via message-passing.</li>
+ * <li><b>Avoid blocking, whether it's for I/O, a long running operation, thread synchronization, or otherwise.</b> Multiple actors may be
+ * running in the same Java thread, therefore, if an actor were to block for any reason, it may prevent other actors from processing
+ * messages in a timely manner. In addition, any actors that directly perform I/O may be incapable of being serialized.
+ * </li>
+ * <li><b>Only ever communicate with the outside world (e.g. other actors and components) through asynchronous message-passing.</b>
  * Since implementations avoid sharing and exposing state, there needs be some mechanism to communicate interface with the outside.
  * Message-passing is that mechanism.</li>
  * </ol>
@@ -46,7 +48,7 @@ package com.offbynull.peernetic.core.actor;
  */
 public interface Actor {
     /**
-     * Called when this actor receives a new message. Each time this method is invoked, a {@code context} is supplied. That context
+     * Called when this actor receives a new message. Each time this method is invoked, a {@link Context} is supplied. That context
      * contains ...
      * <ul>
      * <li>the address of this actor.</li>

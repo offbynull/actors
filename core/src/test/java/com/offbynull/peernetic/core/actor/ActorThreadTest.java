@@ -1,5 +1,8 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.peernetic.core.shuttles.test.CaptureShuttle;
+import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -78,6 +81,63 @@ public class ActorThreadTest {
             boolean processed = latch.await(5L, TimeUnit.SECONDS);
             assertTrue(processed);
         }
+    }
+    
+    @Test
+    public void mustRejectAddingOutgoingShuttleWithSameName() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        
+        NullShuttle shuttle = new NullShuttle("local");
+        // Queue outgoing shuttle with prefix as ourselves ("local") be added. We won't be notified of rejection here, but the add will be
+        // rejected once its attempted. As such, we can test to see if the add failed if "local" still refers to fixture.
+        fixture.addOutgoingShuttle(shuttle);
+        
+        fixture.addCoroutineActor(
+                "test",
+                cnt -> {
+                    Context ctx = (Context) cnt.getContext();
+                    ctx.addOutgoingMessage("local:test", "hi");
+                    
+                    cnt.suspend();
+                    
+                    assertEquals(ctx.getIncomingMessage(), "hi");
+                    latch.countDown();
+                },
+                new Object());
+        
+        boolean processed = latch.await(5L, TimeUnit.SECONDS);
+        assertTrue(processed);
+    }
+
+    @Test
+    public void mustRejectAddingConflictingOutgoingShuttle() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        
+        // Should get added
+        CaptureShuttle captureShuttle = new CaptureShuttle("fake");
+        fixture.addOutgoingShuttle(captureShuttle);
+        
+        // Should get ignored
+        NullShuttle nullShuttle = new NullShuttle("fake");
+        fixture.addOutgoingShuttle(nullShuttle);
+        
+        
+        fixture.addCoroutineActor(
+                "test",
+                cnt -> {
+                    Context ctx = (Context) cnt.getContext();
+                    ctx.addOutgoingMessage("fake", "hi");
+                    latch.countDown();
+                },
+                new Object());
+        
+        boolean processed = latch.await(5L, TimeUnit.SECONDS);
+        assertTrue(processed);
+        
+        Message message = captureShuttle.takeNextMessage();
+        assertEquals("fake", message.getDestinationAddress());
+        assertEquals("local:test", message.getDestinationAddress());
+        assertEquals("hi", message.getMessage());
     }
 
 }

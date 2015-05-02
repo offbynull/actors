@@ -53,4 +53,8 @@ public final class CaptureShuttle implements Shuttle {
         queuedMessages.drainTo(ret);
         return ret;
     }
+
+    public Message takeNextMessage() throws InterruptedException{
+        return queuedMessages.take();
+    }
 }

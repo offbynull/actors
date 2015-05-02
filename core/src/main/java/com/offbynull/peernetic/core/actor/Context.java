@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Context of an actor. An actor's context is passed in to an actor each time a new incoming message arrives. It contains ...
+ * Context of an actor. An actor's context is passed in to an actor each time an incoming message arrives. It contains ...
  * <ul>
  * <li>the address of the actor.</li>
  * <li>the time which the actor was triggered.</li>
@@ -84,7 +84,7 @@ public interface Context {
     String getSource();
 
     /**
-     * Get the current time. This may not be exact, it is essentially just the time when the actor was triggered with new incoming message.
+     * Get the current time. This may not be exact, it is the time the actor was invoked.
      * @return current time
      */
     Instant getTime();

@@ -25,8 +25,8 @@ import org.apache.commons.lang3.Validate;
 /**
  * Container used to execute {@link Actor}s.
  * <p>
- * The following usage example creates an {@link ActorThread}, adds a normal {@link Actor} and a coroutine-based {@link Actor} to it, and
- * then shuts it down.
+ * The following usage example creates an instance of {@link ActorThread}, adds a normal {@link Actor} and a coroutine-based {@link Actor}
+ * to it, and then shuts it down.
  * <pre>
  * // Create an ActorThread. The address of all actors added will be prefixed with "local"
  * ActorThread actorThread = ActorThread.create("local");
@@ -50,12 +50,12 @@ import org.apache.commons.lang3.Validate;
  * actorThread.shutdown();
  * </pre>
  * 
- * All actors assigned to this {@link ActorThread} can send messages to eachother without any additional setup.
- * 
- * If you want outside components (e.g. other actors that are assigned to a different {@link ActorThread}) to be able to send messages to
+ * All actors assigned to this {@link ActorThread} can send messages to each other without any additional setup.
+ * <p>
+ * If you want outside components (e.g. other actors that are assigned to a different {@link ActorThread}s) to be able to send messages to
  * actors assigned to this {@link ActorThread}, you'll need to pass those outside components a reference to the {@link Shuttle} returned by
  * {@link #getIncomingShuttle() }.
- * 
+ * <p>
  * Similarly, if actors assigned to this {@link ActorThread} are going to send messages to outside components, the {@link Shuttle}s for
  * those outgoing components need to be added to this {@link ActorThread} using
  * {@link #addOutgoingShuttle(com.offbynull.peernetic.core.shuttle.Shuttle) }.
@@ -64,7 +64,7 @@ import org.apache.commons.lang3.Validate;
  * 
  * @author Kasra Faghihi
  */
-public final class ActorThread {
+public final class ActorThread implements AutoCloseable {
     private final Thread thread;
     private final ActorRunnable actorRunnable;
     private final Bus bus;
@@ -110,8 +110,14 @@ public final class ActorThread {
      * Shuts down this {@link ActorThread}. Blocks until the internal thread that executes actors terminates before returning.
      * @throws InterruptedException if interrupted while waiting for shutdown
      */
-    public void shutdown() throws InterruptedException {
-        bus.close();
+    @Override
+    public void close() throws InterruptedException {
+        try {
+            bus.close();
+        } catch (Exception e) {
+            // do nothing
+        }
+        
         thread.interrupt();
         thread.join();
     }

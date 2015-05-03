@@ -112,7 +112,7 @@ final class ActorRunnable implements Runnable {
             RemoveShuttleMessage rsm = (RemoveShuttleMessage) msg;
             Shuttle existingShuttle = outgoingShuttles.remove(rsm.prefix);
             
-            Validate.isTrue(existingShuttle == null); // unable to remove a shuttle prefix that doesnt exist
+            Validate.isTrue(existingShuttle != null); // unable to remove a shuttle prefix that doesnt exist
         } else {
             LOGGER.warn("Unprocessed management message: {}", msg);
         }
@@ -191,8 +191,11 @@ final class ActorRunnable implements Runnable {
         // Send outgoing messaged by prefix
         for (Entry<String, List<Message>> entry : outgoingMap.entrySet()) {
             Shuttle shuttle = outgoingShuttles.get(entry.getKey());
-            Validate.isTrue(shuttle != null);
-            shuttle.send(entry.getValue());
+            if (shuttle != null) {
+                shuttle.send(entry.getValue());
+            } else {
+                // TODO: Log warning here saying shuttle doesn't exist
+            }
         }
     }
 

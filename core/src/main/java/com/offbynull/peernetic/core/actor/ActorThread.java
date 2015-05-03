@@ -141,7 +141,7 @@ public final class ActorThread implements AutoCloseable {
     /**
      * Queue an actor to be added. Note that this method queues an actor to be added rather than adding it right away. As such, this
      * method will likely return before the actor in question is added and any error during encountered during adding will not be
-     * known to the caller. For example, if you try to use an id that has already been added, the exception won't be relayed to the caller.
+     * known to the caller. On error (e.g. actor with same id already exists), this {@link ActorThread} terminates.
      * <p>
      * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
      * @param id id to use for {@code actor}
@@ -160,8 +160,6 @@ public final class ActorThread implements AutoCloseable {
     /**
      * Queue a coroutine-based actor to be added. Equivalent to calling
      * {@code addActor(id, new CoroutineActor(coroutine), primingMessages)}.
-     * <p>
-     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
      * @param id id to use for actor being added
      * @param coroutine coroutine for actor being added
      * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
@@ -178,7 +176,7 @@ public final class ActorThread implements AutoCloseable {
     /**
      * Queue an actor to be remove. Note that this method queues an actor to be removed rather than removing it right away. As such, this
      * method will likely return before the actor in question is removed and any error during encountered during removal will not be
-     * known to the caller.
+     * known to the caller. On error (e.g. actor with id doesn't exist), this {@link ActorThread} terminates.
      * <p>
      * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
      * <p>
@@ -196,7 +194,8 @@ public final class ActorThread implements AutoCloseable {
      * shuttle (based on the prefix of the destination address). If no outgoing shuttle is found, the message is silently discarded.
      * <p>
      * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes and any error encountered during the operation will not be known to the caller.
+     * return before the add operation completes and any error encountered during the operation will not be known to the caller. On error
+     * (e.g. outgoing shuttle with same prefix already exists), this {@link ActorThread} terminates.
      * <p>
      * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
      * <p>
@@ -214,7 +213,8 @@ public final class ActorThread implements AutoCloseable {
      * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
      * return before the add operation completes and any error encountered during the operation will not be known to the caller.
      * <p>
-     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
+     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing. On error (e.g. outgoing shuttle
+     * with prefix doesn't exist), this {@link ActorThread} terminates.
      * <p>
      * @param prefix address prefix for shuttle to remove
      * @throws NullPointerException if any argument is {@code null}

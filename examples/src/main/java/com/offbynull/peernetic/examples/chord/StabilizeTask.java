@@ -125,14 +125,14 @@ final class StabilizeTask implements Subcoroutine<Void> {
     }
     
     @Override
-    public String getSourceId() {
+    public String getId() {
         return sourceId;
     }
 
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         new SleepSubcoroutine.Builder()
-                .sourceId(sourceId)
-                .timeoutDuration(duration)
+                .id(sourceId)
+                .duration(duration)
                 .timerAddressPrefix(state.getTimerPrefix())
                 .build()
                 .run(cnt);
@@ -141,7 +141,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
     private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .sourceId(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())

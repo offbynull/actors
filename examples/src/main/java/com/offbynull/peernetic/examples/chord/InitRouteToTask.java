@@ -101,7 +101,7 @@ final class InitRouteToTask implements Coroutine {
     private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .sourceId(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())

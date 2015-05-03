@@ -23,32 +23,59 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Forwards an incoming message to a {@link Subcoroutine} based on the destination id of that incoming message.
+ * <p>
+ * For example, imagine this router has the id "myrouter" and is owned by an {@link Actor} with the address "local:myactor". This router has
+ * one {@link Subcoroutine} assigned to it with the id "child1". A message arrives with the destination address
+ * "local:myactor:myrouter:child1". The actor should forward that message to this router, and this router should forward that message to the
+ * {@link Subcoroutine} with the id "child1".
+ * @author Kasra Faghihi
+ */
 public final class SubcoroutineRouter {
 
-    private final String sourceId;
+    private final String id;
     private final Context context;
     private final Map<String, CoroutineRunner> suffixMap;
     private final Controller controller;
 
-    public SubcoroutineRouter(String sourceId, Context context) {
-        Validate.notNull(sourceId);
+    /**
+     * Constructs a {@link SubcoroutineRouter}.
+     * @param id of this router -- incoming messages destined for this id should trigger this router
+     * @param context actor context
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public SubcoroutineRouter(String id, Context context) {
+        Validate.notNull(id);
         Validate.notNull(context);
-        this.sourceId = sourceId;
+        this.id = id;
         this.context = context;
         suffixMap = new HashMap<>();
         controller = new Controller();
     }
 
+    /**
+     * Get the controller for this router. The controller allows you to add {@link Subcoroutine}s to and remove {@link Subcoroutine}s from
+     * this router. It is safe to use this class to add/remove {@link Subcoroutines} even if doing so from within a {@link Subcoroutine}
+     * invoked by the router that owns this controller.
+     * @return controller for this router
+     */
     public Controller getController() {
         return controller;
     }
 
+    /**
+     * Route the current incoming message to the appropriate {@link Subcoroutine}. If id of the incoming message doesn't map to any
+     * {@link Subcoroutine} assigned to this router, this method returns without throwing an exception.
+     * @return {@code true} if the forward was routed to a {@link Subcoroutine}, {@code false} otherwise
+     * @throws Exception if the {@link Subcoroutine} forwarded to threw an exception
+     */
     public boolean forward() throws Exception {
-        String id = AddressUtils.relativize(context.getSelf(), context.getDestination());
-        if (!AddressUtils.isPrefix(sourceId, id)) {
+        String incomingId = AddressUtils.relativize(context.getSelf(), context.getDestination());
+        if (!AddressUtils.isPrefix(id, incomingId)) {
             return false;
         }
-        String innerId = AddressUtils.relativize(sourceId, id);
+        String innerId = AddressUtils.relativize(this.id, incomingId);
         
         String key = AddressUtils.getFirstAddressElement(innerId);
         CoroutineRunner runner = suffixMap.get(key);
@@ -65,16 +92,40 @@ public final class SubcoroutineRouter {
         return forwarded;
     }
 
-    public String getSourceId() {
-        return sourceId;
+    /**
+     * Get the id of this router. Incoming messages destined for this id should trigger this router to run. The id returned must be an
+     * absolute id, not a relative id. Meaning that if there's a hierarchy, each one should return the full id, not the id relative to its
+     * parent.
+     * @return id
+     */
+    public String getId() {
+        return id;
     }
     
+    /**
+     * Controller to add {@link Subcoroutine}s to and remove {@link Subcoroutine}s from a router. It is safe to use this class to add/remove
+     * {@link Subcoroutines} even if doing so from within a {@link Subcoroutine} invoked by the router that owns this controller.
+     */
     public final class Controller {
+        /**
+         * Add a {@link Subcoroutine} to the router that owns this controller. If you choose to prime the {@link Subcoroutine} that's being
+         * added (by choosing either {@link AddBehaviour#ADD_PRIME} or {@link AddBehaviour#ADD_PRIME_NO_FINISH} for {@code addBehaviour}),
+         * this method will forward the current incoming message to it.
+         * @param subcoroutine subcoroutine to add
+         * @param addBehaviour add behaviour
+         * @throws NullPointerException if any argument is {@code null}
+         * @throws IllegalArgumentException if a subcoroutine with this id already assigned to the owning router, or if the id of
+         * {@code subcoroutine} isn't a <b>direct</b> child of the owning router
+         * @throws IllegalStateException if {@code addBehaviour} was set to {@link AddBehaviour#ADD_PRIME_NO_FINISH}, but
+         * {@code subcoroutine} finished after priming
+         * @throws Exception if {@code subcoroutine} threw an exception while priming ({@code addBehaviour} has to be set to either
+         * {@link AddBehaviour#ADD_PRIME} or {@link AddBehaviour#ADD_PRIME_NO_FINISH} for this to be possible)
+         */
         public void add(Subcoroutine<?> subcoroutine, AddBehaviour addBehaviour) throws Exception {
             Validate.notNull(subcoroutine);
             Validate.notNull(addBehaviour);
 
-            String suffix = AddressUtils.relativize(sourceId, subcoroutine.getSourceId());
+            String suffix = AddressUtils.relativize(id, subcoroutine.getId());
             Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
 
             CoroutineRunner newRunner = new CoroutineRunner(x -> subcoroutine.run(x));
@@ -91,30 +142,23 @@ public final class SubcoroutineRouter {
                 case ADD_PRIME_NO_FINISH:
                     forceForward(suffix, true);
                     break;
+                default:
+                    throw new IllegalStateException(); // should never happen
             }
         }
         
-        public void remove(String suffix) {
-            Validate.notNull(suffix);
-            Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
-            CoroutineRunner old = suffixMap.remove(suffix);
+        /**
+         * Removes a {@link Subcoroutine} from the router that owns this controller.
+         * @param id id of subcoroutine to remove
+         * @throws NullPointerException if any argument is {@code null}
+         * @throws IllegalArgumentException if a subcoroutine with this id is not assigned to the owning router
+         */
+        public void remove(String id) {
+            Validate.notNull(id);
+            CoroutineRunner old = suffixMap.remove(id);
             Validate.isTrue(old == null);
         }
-        
-        public int size() {
-            return suffixMap.size();
-        }
 
-        public boolean isEmpty() {
-            return suffixMap.isEmpty();
-        }
-
-        public boolean contains(String suffix) {
-            Validate.notNull(suffix);
-            Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
-            return suffixMap.containsKey(suffix);
-        }
-        
         private boolean forceForward(String suffix, boolean mustNotFinish) throws Exception {
             Validate.notNull(suffix);
 
@@ -134,9 +178,23 @@ public final class SubcoroutineRouter {
         }
     }
     
+    /**
+     * Behaviour when adding a subcoroutine via {@link Controller#add(com.offbynull.peernetic.core.actor.helpers.Subcoroutine,
+     * com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour) }
+     */
     public enum AddBehaviour {
+        /**
+         * Add the {@link Subcoroutine} to {@link SubcoroutineRouter}.
+         */
         ADD,
+        /**
+         * Add the {@link Subcoroutine} to {@link SubcoroutineRouter}, and prime it with the current incoming message.
+         */
         ADD_PRIME,
+        /**
+         * Add the {@link Subcoroutine} to {@link SubcoroutineRouter}, prime it with the current incoming message, and make sure it doesn't
+         * finish after priming.
+         */
         ADD_PRIME_NO_FINISH;
     }
 }

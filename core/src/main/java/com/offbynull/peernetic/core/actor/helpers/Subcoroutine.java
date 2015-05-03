@@ -17,8 +17,28 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.peernetic.core.actor.Actor;
 
+/**
+ * Interface for a child coroutine, intended to be run as part of an {@link Actor}.
+ * <p>
+ * @see SubcoroutineRouter
+ * @author Kasra Faghihi
+ * @param <T> result type
+ */
 public interface Subcoroutine<T> {
-    String getSourceId();
+    /**
+     * Get the id of this subcoroutine. Incoming messages destined for this id should trigger this subcoroutine to run. The id returned must
+     * be an absolute id, not a relative id. Meaning that if there's a hierarchy, each invocation in the chain one should return the full
+     * id, not the id relative to its parent.
+     * @return id
+     */
+    String getId();
+    /**
+     * Entry point of subcoroutine.
+     * @param cnt used to suspend/yield this subcoroutine
+     * @return result of this subcoroutine
+     * @throws Exception if a problem occurs
+     */
     T run(Continuation cnt) throws Exception;
 }

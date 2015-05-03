@@ -84,7 +84,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
     }
 
     @Override
-    public String getSourceId() {
+    public String getId() {
         return sourceId;
     }
     
@@ -106,8 +106,8 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
         Validate.isTrue(!duration.isNegative());
 
         new SleepSubcoroutine.Builder()
-                .sourceId(sourceId)
-                .timeoutDuration(duration)
+                .id(sourceId)
+                .duration(duration)
                 .timerAddressPrefix(state.getTimerPrefix())
                 .build()
                 .run(cnt);

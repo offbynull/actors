@@ -18,21 +18,29 @@ package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A subcoroutine that "sleeps" for a duration of time.
+ * <p>
+ * Works by requesting a timer to send a message after a certain duration of time. Use this for situations when you want to create an
+ * artificial pause in your coroutine, such as when you want to avoid hammering out messages.
+ * @author Kasra Faghihi
+ */
 public final class SleepSubcoroutine implements Subcoroutine<Void> {
-    private final String sourceId;
+    private final String id;
     private final String timerAddressPrefix;
     private final Duration timeoutDuration;
 
-    private SleepSubcoroutine(String sourceId, String timerAddressPrefix, Duration timeoutDuration) {
-        Validate.notNull(sourceId);
+    private SleepSubcoroutine(String id, String timerAddressPrefix, Duration timeoutDuration) {
+        Validate.notNull(id);
         Validate.notNull(timerAddressPrefix);
         Validate.notNull(timeoutDuration);
         Validate.isTrue(!timeoutDuration.isNegative());
-        this.sourceId = sourceId;
+        this.id = id;
         this.timerAddressPrefix = timerAddressPrefix;
         this.timeoutDuration = timeoutDuration;
     }
@@ -44,7 +52,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         Object timeoutMarker = new Object();
         
         ctx.addOutgoingMessage(
-                sourceId,
+                id,
                 AddressUtils.parentize(timerAddressPrefix, "" + timeoutDuration.toMillis()),
                 timeoutMarker);
         
@@ -58,36 +66,56 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
     }
 
     @Override
-    public String getSourceId() {
-        return sourceId;
+    public String getId() {
+        return id;
     }
     
+    /**
+     * {@link SleepSubcoroutine} builder. All validation is done in {@link #build() }.
+     */
     public static final class Builder {
-        private String sourceId;
+        private String id;
         private String timerAddressPrefix;
-        private Duration timeoutDuration;
+        private Duration duration;
 
-        public Builder sourceId(String sourceId) {
-            this.sourceId = sourceId;
+        /**
+         * Set the id. Defaults to {@code null}.
+         * @param id id
+         * @return this builder
+         */
+        public Builder id(String id) {
+            this.id = id;
             return this;
         }
 
+        /**
+         * Set the address to {@link TimerGateway}. Defaults to {@code null}.
+         * @param timerAddressPrefix timer gateway address
+         * @return this builder
+         */
         public Builder timerAddressPrefix(String timerAddressPrefix) {
             this.timerAddressPrefix = timerAddressPrefix;
             return this;
         }
 
-        public Builder timeoutDuration(Duration timeoutDuration) {
-            this.timeoutDuration = timeoutDuration;
+        /**
+         * Set the sleep duration. Defaults to {@code null}.
+         * @param duration sleep duration
+         * @return this builder
+         */
+        public Builder duration(Duration duration) {
+            this.duration = duration;
             return this;
         }
         
+        /**
+         * Build a {@link SleepSubcoroutine} instance.
+         * @return a new instance of {@link SleepSubcoroutine}
+         * @throws NullPointerException if any parameters are {@code null}
+         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration
+         */
         public SleepSubcoroutine build() {
-            try {
-                return new SleepSubcoroutine(sourceId, timerAddressPrefix, timeoutDuration);
-            } catch (IllegalArgumentException | NullPointerException e) {
-                throw new IllegalStateException(e);
-            }
+            return new SleepSubcoroutine(id, timerAddressPrefix, duration);
         }
         
     }

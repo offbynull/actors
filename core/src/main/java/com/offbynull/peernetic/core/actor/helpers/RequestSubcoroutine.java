@@ -26,8 +26,16 @@ import java.util.Set;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A subcoroutine that sends a request and waits for a response. The request may be attempted multiple times before giving up -- a timer
+ * is used to sleep between resends.
+ * <p>
+ * Response is returned by the subcoroutine.
+ * @author Kasra Faghihi
+ * @param <T> response type
+ */
 public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
-    private final String sourceId;
+    private final String id;
     private final String destinationAddress;
     private final Object request;
     private final String timerAddressPrefix;
@@ -37,7 +45,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
     private final boolean exceptionOnNoResponse;
     private Object response;
     
-    private RequestSubcoroutine(String sourceId,
+    private RequestSubcoroutine(String id,
             String destinationAddress,
             String timerAddressPrefix,
             Object request,
@@ -45,7 +53,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
             Duration attemptInterval,
             Set<Class<?>> expectedResponseTypes,
             boolean exceptionOnNoResponse) {
-        Validate.notNull(sourceId);
+        Validate.notNull(id);
         Validate.notNull(destinationAddress);
         Validate.notNull(request);
         Validate.notNull(timerAddressPrefix);
@@ -53,7 +61,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         Validate.notNull(expectedResponseTypes);
         Validate.isTrue(maxAttempts > 0);
         Validate.isTrue(!attemptInterval.isNegative());
-        this.sourceId = sourceId;
+        this.id = id;
         this.destinationAddress = destinationAddress;
         this.request = request;
         this.timerAddressPrefix = timerAddressPrefix;
@@ -73,11 +81,11 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
             Object timeoutMarker = new Object();
 
             ctx.addOutgoingMessage(
-                    sourceId,
+                    id,
                     destinationAddress,
                     request);
             ctx.addOutgoingMessage(
-                    sourceId,
+                    id,
                     AddressUtils.parentize(timerAddressPrefix, "" + attemptInterval.toMillis()),
                     timeoutMarker);
             
@@ -123,12 +131,16 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
     }
 
     @Override
-    public String getSourceId() {
-        return sourceId;
+    public String getId() {
+        return id;
     }
     
+    /**
+     * {@link RequestSubcoroutine} builder. All validation is done in {@link #build() }.
+     * @param <T> expected return type
+     */
     public static final class Builder<T> {
-        private String sourceId;
+        private String id;
         private String destinationAddress;
         private Object request;
         private String timerAddressPrefix;
@@ -137,58 +149,109 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         private Set<Class<?>> expectedResponseTypes = new HashSet<>();
         private boolean throwExceptionIfNoResponse = true;
 
-        public Builder<T> sourceId(String sourceId) {
-            this.sourceId = sourceId;
+        /**
+         * Set the id. Defaults to {@code null}.
+         * @param id id
+         * @return this builder
+         */
+        public Builder<T> id(String id) {
+            this.id = id;
             return this;
         }
 
+        /**
+         * Set the destination address for the request. Defaults to {@code null}.
+         * @param destinationAddress destination address
+         * @return this builder
+         */
         public Builder<T> destinationAddress(String destinationAddress) {
             this.destinationAddress = destinationAddress;
             return this;
         }
 
+        /**
+         * Set the request. Defaults to {@code null}.
+         * @param request request to send
+         * @return this builder
+         */
         public Builder<T> request(Object request) {
             this.request = request;
             return this;
         }
 
+        /**
+         * Set the address to {@link TimerGateway}. Defaults to {@code null}.
+         * @param timerAddressPrefix timer gateway address
+         * @return this builder
+         */
         public Builder<T> timerAddressPrefix(String timerAddressPrefix) {
             this.timerAddressPrefix = timerAddressPrefix;
             return this;
         }
 
+        /**
+         * Set the maximum number of times to attempt a request. Defaults to {@code 5}.
+         * @param maxAttempts maximum number of times to attempt a request
+         * @return this builder
+         */
         public Builder<T> maxAttempts(int maxAttempts) {
             this.maxAttempts = maxAttempts;
             return this;
         }
 
+        /**
+         * Set the amount of time to wait inbetween attempts. Defaults to 2 seconds.
+         * @param attemptInterval amount of time to wait inbetween attempts
+         * @return this builder
+         */
         public Builder<T> attemptInterval(Duration attemptInterval) {
             this.attemptInterval = attemptInterval;
             return this;
         }
 
+        /**
+         * Set the expected response types. Defaults to empty set.
+         * @param expectedResponseTypes expected response types
+         * @return this builder
+         * @throws NullPointerException if any argument is {@code null}
+         */
         public Builder<T> expectedResponseTypes(Set<Class<?>> expectedResponseTypes) {
             this.expectedResponseTypes = new HashSet<>(expectedResponseTypes);
             return this;
         }
 
+        /**
+         * Add one or more expected response types.
+         * @param expectedResponseType new expected response types to add
+         * @return this builder
+         * @throws NullPointerException if any argument is {@code null}
+         */
         public Builder<T> addExpectedResponseType(Class<?> ... expectedResponseType) {
             expectedResponseTypes.addAll(Arrays.asList(expectedResponseType));
             return this;
         }
-        
+
+        /**
+         * Set "throw exception if no response" flag. Throws an exception if we didn't end up getting a response of type we expect.
+         * Exception is a {@link IllegalStateException}. Defaults to {@code true}.
+         * @param throwExceptionIfNoResponse "throw exception if no response" flag
+         * @return this builder
+         */
         public Builder<T> throwExceptionIfNoResponse(boolean throwExceptionIfNoResponse) {
             this.throwExceptionIfNoResponse = throwExceptionIfNoResponse;
             return this;
         }
         
+        /**
+         * Build a {@link RequestSubcoroutine} instance.
+         * @return a new instance of {@link RequestSubcoroutine}
+         * @throws NullPointerException if any parameters are {@code null}
+         * @throws IllegalArgumentException if {@code attemptInterval} parameter was set to a negative duration, or if {@code maxAttempts}
+         * was set to 0
+         */
         public RequestSubcoroutine<T> build() {
-            try {
-                return new RequestSubcoroutine<T>(sourceId, destinationAddress, timerAddressPrefix, request, maxAttempts, attemptInterval,
-                        expectedResponseTypes, throwExceptionIfNoResponse);
-            } catch (IllegalArgumentException | NullPointerException e) {
-                throw new IllegalStateException(e);
-            }
+            return new RequestSubcoroutine<>(id, destinationAddress, timerAddressPrefix, request, maxAttempts, attemptInterval,
+                    expectedResponseTypes, throwExceptionIfNoResponse);
         }
     }
 }

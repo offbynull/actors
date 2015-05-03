@@ -20,22 +20,31 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import org.apache.commons.lang3.Validate;
 
-// a subcoroutine that wraps a normal coroutine
+/**
+ * A subcoroutine that wraps a normal {@link Coroutine}.
+ * @author Kasra Faghihi
+ */
 public final class CoroutineSubcoroutine implements Subcoroutine<Void> {
 
-    private final String sourceId;
+    private final String id;
     private final Coroutine coroutine;
 
-    public CoroutineSubcoroutine(String sourceId, Coroutine coroutine) {
-        Validate.notNull(sourceId);
+    /**
+     * Constructs a {@link CoroutineSubcoroutine} instance.
+     * @param id id of this subcoroutine
+     * @param coroutine coroutine to wrap
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public CoroutineSubcoroutine(String id, Coroutine coroutine) {
+        Validate.notNull(id);
         Validate.notNull(coroutine);
-        this.sourceId = sourceId;
+        this.id = id;
         this.coroutine = coroutine;
     }
     
     @Override
-    public String getSourceId() {
-        return sourceId;
+    public String getId() {
+        return id;
     }
 
     @Override

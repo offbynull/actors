@@ -85,14 +85,14 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
     }
     
     @Override
-    public String getSourceId() {
+    public String getId() {
         return sourceId;
     }
     
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         new SleepSubcoroutine.Builder()
-                .sourceId(sourceId)
-                .timeoutDuration(duration)
+                .id(sourceId)
+                .duration(duration)
                 .timerAddressPrefix(state.getTimerPrefix())
                 .build()
                 .run(cnt);

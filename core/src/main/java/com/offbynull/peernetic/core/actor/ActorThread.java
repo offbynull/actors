@@ -123,6 +123,14 @@ public final class ActorThread implements AutoCloseable {
     }
 
     /**
+     * Blocks until the internal thread that executes actors terminates.
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public void join() throws InterruptedException {
+        thread.join();
+    }
+    
+    /**
      * Get the shuttle used to receive messages from outside components.
      * @return shuttle for incoming messages to this {@link ActorThread}
      */

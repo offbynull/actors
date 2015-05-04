@@ -22,6 +22,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Interface to serialize objects to / deserialize objects from a byte array.
+ * @author Kasra Faghihi
+ */
 public final class SimpleSerializer implements Serializer {
 
     @Override
@@ -33,19 +37,20 @@ public final class SimpleSerializer implements Serializer {
             oos.writeObject(obj);
             return baos.toByteArray();
         } catch (Exception e) {
-            throw new IllegalArgumentException(e);
+            throw new IllegalStateException(e);
         }
     }
 
     @Override
-    public Object deserialize(byte[] data) {
+    @SuppressWarnings("unchecked")
+    public <T> T deserialize(byte[] data) {
         Validate.notNull(data);
         
         try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
                 ObjectInputStream ois = new ObjectInputStream(bais)) {
-            return ois.readObject();
+            return (T) ois.readObject();
         } catch (Exception e) {
-            throw new IllegalArgumentException(e);
+            throw new IllegalStateException(e);
         }
     }
 

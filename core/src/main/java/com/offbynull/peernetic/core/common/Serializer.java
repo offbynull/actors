@@ -16,7 +16,26 @@
  */
 package com.offbynull.peernetic.core.common;
 
+/**
+ * Interface to serialize objects to a byte array and deserialize objects.
+ * @author Kasra Faghihi
+ */
 public interface Serializer {
+    /**
+     * Serialize an object array in to a byte array.
+     * @param obj object to serialize
+     * @return serialized data
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException on serialization error
+     */
     byte[] serialize(Object obj);
-    Object deserialize(byte[] data);
+    /**
+     * Deserializes an object from a byte array.
+     * @param <T> return type
+     * @param data data to deserialize
+     * @return deserialized object
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException on serialization error
+     */
+    <T> T deserialize(byte[] data);
 }

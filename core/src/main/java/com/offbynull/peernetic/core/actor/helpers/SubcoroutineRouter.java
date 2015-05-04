@@ -36,7 +36,7 @@ public final class SubcoroutineRouter {
 
     private final String id;
     private final Context context;
-    private final Map<String, CoroutineRunner> suffixMap;
+    private final Map<String, CoroutineRunner> idMap;
     private final Controller controller;
 
     /**
@@ -50,7 +50,7 @@ public final class SubcoroutineRouter {
         Validate.notNull(context);
         this.id = id;
         this.context = context;
-        suffixMap = new HashMap<>();
+        idMap = new HashMap<>();
         controller = new Controller();
     }
 
@@ -75,16 +75,14 @@ public final class SubcoroutineRouter {
         if (!AddressUtils.isPrefix(id, incomingId)) {
             return false;
         }
-        String innerId = AddressUtils.relativize(this.id, incomingId);
-        
-        String key = AddressUtils.getFirstAddressElement(innerId);
-        CoroutineRunner runner = suffixMap.get(key);
+
+        CoroutineRunner runner = idMap.get(incomingId);
 
         boolean forwarded = false;
         if (runner != null) {
             boolean running = runner.execute();
             if (!running) {
-                suffixMap.remove(key);
+                idMap.remove(incomingId);
             }
             forwarded = true;
         }
@@ -125,22 +123,23 @@ public final class SubcoroutineRouter {
             Validate.notNull(subcoroutine);
             Validate.notNull(addBehaviour);
 
-            String suffix = AddressUtils.relativize(id, subcoroutine.getId());
+            String subcoroutineId = subcoroutine.getId();
+            String suffix = AddressUtils.relativize(id, subcoroutineId);
             Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
 
             CoroutineRunner newRunner = new CoroutineRunner(x -> subcoroutine.run(x));
             newRunner.setContext(context);
-            CoroutineRunner existing = suffixMap.putIfAbsent(suffix, newRunner);
+            CoroutineRunner existing = idMap.putIfAbsent(subcoroutineId, newRunner);
             Validate.isTrue(existing == null);
 
             switch (addBehaviour) {
                 case ADD:
                     break;
                 case ADD_PRIME:
-                    forceForward(suffix, false);
+                    forceForward(subcoroutineId, false);
                     break;
                 case ADD_PRIME_NO_FINISH:
-                    forceForward(suffix, true);
+                    forceForward(subcoroutineId, true);
                     break;
                 default:
                     throw new IllegalStateException(); // should never happen
@@ -151,25 +150,30 @@ public final class SubcoroutineRouter {
          * Removes a {@link Subcoroutine} from the router that owns this controller.
          * @param id id of subcoroutine to remove
          * @throws NullPointerException if any argument is {@code null}
-         * @throws IllegalArgumentException if a subcoroutine with this id is not assigned to the owning router
+         * @throws IllegalArgumentException if a subcoroutine with this id is not assigned to the owning router, or if {@code id} isn't a
+         * <b>direct</b> child of the owning router
          */
         public void remove(String id) {
             Validate.notNull(id);
-            CoroutineRunner old = suffixMap.remove(id);
-            Validate.isTrue(old == null);
+            
+            String suffix = AddressUtils.relativize(SubcoroutineRouter.this.id, id);
+            Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
+            
+            CoroutineRunner old = idMap.remove(id);
+            Validate.isTrue(old != null);
         }
 
-        private boolean forceForward(String suffix, boolean mustNotFinish) throws Exception {
-            Validate.notNull(suffix);
+        private boolean forceForward(String id, boolean mustNotFinish) throws Exception {
+            Validate.notNull(id);
 
-            CoroutineRunner runner = suffixMap.get(suffix);
+            CoroutineRunner runner = idMap.get(id);
 
             boolean forwarded = false;
             if (runner != null) {
                 boolean running = runner.execute();
                 if (!running) {
                     Validate.validState(!mustNotFinish, "Runner pointed to by suffix was not supposed to finish");
-                    suffixMap.remove(suffix);
+                    idMap.remove(id);
                 }
                 forwarded = true;
             }

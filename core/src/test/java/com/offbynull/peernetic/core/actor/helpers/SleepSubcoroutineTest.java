@@ -12,12 +12,12 @@ public class SleepSubcoroutineTest {
     public void mustSleepFor1Second() throws Exception {
         TestHarness testHarness = new TestHarness("timer");
         testHarness.addCoroutineActor("test", cnt -> {
-                SleepSubcoroutine sleepSubcoroutine = new SleepSubcoroutine.Builder()
+                SleepSubcoroutine fixture = new SleepSubcoroutine.Builder()
                         .id("sleep")
                         .timerAddressPrefix("timer")
                         .duration(Duration.ofSeconds(1L))
                         .build();
-                sleepSubcoroutine.run(cnt);
+                fixture.run(cnt);
             }, Duration.ZERO, Instant.ofEpochMilli(0L), "start");
         
         Instant time = null;

@@ -14,18 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.gateway;
-
-import com.offbynull.peernetic.core.shuttle.Shuttle;
 
 /**
- * A {@link Gateway} that can receive incoming messages.
+ * Provides classes and interfaces for defining and executing actors.
+ * 
  * @author Kasra Faghihi
  */
-public interface InputGateway extends Gateway {
-    /**
-     * Get the shuttle used to receive messages.
-     * @return shuttle for incoming messages to this {@link ActorThread}
-     */
-    Shuttle getIncomingShuttle();
-}
+package com.offbynull.peernetic.core.gateway;

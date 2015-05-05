@@ -131,7 +131,7 @@ public final class ActorThread implements AutoCloseable {
     }
     
     /**
-     * Get the shuttle used to receive messages from outside components.
+     * Get the shuttle used to receive messages.
      * @return shuttle for incoming messages to this {@link ActorThread}
      */
     public Shuttle getIncomingShuttle() {

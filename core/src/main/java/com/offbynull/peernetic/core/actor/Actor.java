@@ -16,10 +16,12 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.gateway.Gateway;
+
 /**
- * An actor is an isolated "computational unit" who's only method of communicating with the outside world (other actors or components) is
- * through message-passing. If you aren't familiar with concept of actors and their role in concurrent/distributed computing, there's a good
- * introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
+ * An {@link Actor} is an isolated "computational unit" who's only method of communicating with the outside world (other {@link Actor}s or
+ * {@link Gateway}s) is through message-passing. If you aren't familiar with concept of actors and their role in concurrent/distributed
+ * computing, there's a good introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
  * 
  * Implementations of this interface should adhere to the following constraints:
  * 

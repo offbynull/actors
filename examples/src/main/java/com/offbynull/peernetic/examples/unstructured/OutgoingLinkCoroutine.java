@@ -6,7 +6,7 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkResponse;
-import com.offbynull.peernetic.gateways.visualizer.StyleEdge;
+import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 

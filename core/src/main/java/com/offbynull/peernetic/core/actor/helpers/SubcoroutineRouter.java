@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.CoroutineRunner;
+import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ public final class SubcoroutineRouter {
 
     /**
      * Get the controller for this router. The controller allows you to add {@link Subcoroutine}s to and remove {@link Subcoroutine}s from
-     * this router. It is safe to use this class to add/remove {@link Subcoroutines} even if doing so from within a {@link Subcoroutine}
+     * this router. It is safe to use this class to add/remove {@link Subcoroutine}s even if doing so from within a {@link Subcoroutine}
      * invoked by the router that owns this controller.
      * @return controller for this router
      */
@@ -102,7 +103,7 @@ public final class SubcoroutineRouter {
     
     /**
      * Controller to add {@link Subcoroutine}s to and remove {@link Subcoroutine}s from a router. It is safe to use this class to add/remove
-     * {@link Subcoroutines} even if doing so from within a {@link Subcoroutine} invoked by the router that owns this controller.
+     * {@link Subcoroutine}s even if doing so from within a {@link Subcoroutine} invoked by the router that owns this controller.
      */
     public final class Controller {
         /**

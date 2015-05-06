@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.recorder;
 
+import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
@@ -23,10 +24,59 @@ import com.offbynull.peernetic.core.gateway.Gateway;
 import java.io.File;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * {@link Gateway} that replays events saved by a {@link RecorderGateway}.
+ * <p>
+ * In the following example, there's a single {@link Actor}: {@code echoer}. A {@link ReplayerGateway} instance (hence forth called
+ * {@code replayer}) is configured to read recorded incoming messages from a file and send them to {@code echoer}. This example essentially
+ * replays the recording performed in the example for {@link RecorderGateway}.
+ * <pre>
+ * Coroutine echoer = (cnt) -&gt; {
+ *     Context ctx = (Context) cnt.getContext();
+ * 
+ *     while (true) {
+ *         String src = ctx.getSource();
+ *         Object msg = ctx.getIncomingMessage();
+ *         ctx.addOutgoingMessage(src, msg);
+ *         System.out.println(msg);
+ *         cnt.suspend();
+ *     }
+ * };
+ * 
+ * ActorThread echoerThread = ActorThread.create("echoer");
+ * 
+ * // Wire echoer to send back to null
+ * echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
+ * 
+ * // Add coroutines
+ * echoerThread.addCoroutineActor("echoer", echoer);
+ * 
+ * // Create replayer that mocks out sender and replays previous events to echoer
+ * ReplayerGateway replayerGateway = ReplayerGateway.replay(
+ *         echoerThread.getIncomingShuttle(),
+ *         "echoer:echoer",
+ *         eventsFile,
+ *         new SimpleSerializer());
+ * replayerGateway.await();
+ * </pre>
+ * @author Kasra Faghihi
+ * @see RecorderGateway
+ */
 public final class ReplayerGateway implements Gateway {
 
     private final Thread readThread;
     
+    /**
+     * Creates a {@link ReplayerGateway} instance that immediately starts replaying events read from a file. Note that there is no
+     * notification mechanism to let you know that this replayer has terminated (whether from an error or from end-of-file).
+     * @param dstShuttle shuttle to replay events to
+     * @param dstAddress address to replay events to
+     * @param file file to read events from
+     * @param serializer serializer used to deserialize events
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code dstAddress} is not a prefix of address returned by {@code dstShuttle}
+     * @return new {@link ReplayerGateway} instance
+     */
     public static ReplayerGateway replay(Shuttle dstShuttle, String dstAddress, File file, Serializer serializer) {
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
@@ -50,6 +100,10 @@ public final class ReplayerGateway implements Gateway {
         this.readThread = readThread;
     }
     
+    /**
+     * Blocks until this {@link ReplayerGateway} terminates.
+     * @throws InterruptedException if interrupted while blocking
+     */
     public void await() throws InterruptedException {
         readThread.join();
     }

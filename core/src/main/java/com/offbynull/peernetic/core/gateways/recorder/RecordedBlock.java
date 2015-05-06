@@ -24,12 +24,23 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 // public because other tools may want to read out recorded data
+/**
+ * A block of recorded message. May contain zero or more {@link RecordedMessage}s and the time in which those messages were sent. Publicly
+ * exposed because other tools may want to read out messages written by {@link RecorderGateway}, or write messages to be read by
+ * {@link ReplayerGateway}.
+ * @author Kasra Faghihi
+ */
 public final class RecordedBlock implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private final UnmodifiableList<RecordedMessage> messages;
     private final Instant time;
 
+    /**
+     * Constructs a {@link RecordedBlock} object.
+     * @param messages messages in block
+     * @param time time which messages in this block were recorded
+     */
     public RecordedBlock(List<RecordedMessage> messages, Instant time) {
         Validate.notNull(messages);
         Validate.notNull(time);
@@ -38,10 +49,18 @@ public final class RecordedBlock implements Serializable {
         this.time = time;
     }
 
+    /**
+     * Get messages within block.
+     * @return messages
+     */
     public UnmodifiableList<RecordedMessage> getMessages() {
         return messages;
     }
 
+    /**
+     * Get time which messages in this block were recorded.
+     * @return time which messages in this block were recorded
+     */
     public Instant getTime() {
         return time;
     }

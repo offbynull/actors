@@ -21,7 +21,6 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.getAddress;
-import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
@@ -82,7 +81,8 @@ final class ActorRunnable implements Runnable {
                 sendOutgoingMessages(outgoingMessages, outgoingShuttles);
             }
         } catch (InterruptedException ie) {
-            throw new RuntimeException(ie); // do nothing
+            //throw new RuntimeException(ie); // do nothing
+            Thread.interrupted();
         } finally {
             bus.close();
         }

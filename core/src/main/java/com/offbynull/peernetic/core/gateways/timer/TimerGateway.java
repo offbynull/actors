@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.core.gateways.timer;
 
+import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.gateway.OutputGateway;
@@ -23,6 +25,35 @@ import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * {@link Gateway} that accepts a message and echoes them back after a certain duration of time.
+ * <p>
+ * In the following example, the {@link Actor} called {@code tester} sends a message to the {@link TimerGateway} called {@code timer} and
+ * requests that message be echo'd back to it after 2000 milliseconds.
+ * <pre>
+ * Coroutine tester = (cnt) -&gt; {
+ *     Context ctx = (Context) cnt.getContext();
+ * 
+ *     String timerPrefix = ctx.getIncomingMessage();
+ *     ctx.addOutgoingMessage("fromid", timerPrefix + ":2000:extra", 0);
+ *     System.out.println("ADDED TRIGGER FOR FOR 2 SECOND");
+ *     cnt.suspend();
+ *     System.out.println("TRIGGERED FROM " + ctx.getSource()+ " TO " + ctx.getDestination()+ " WITH " + ctx.getIncomingMessage());
+ * };
+ * 
+ * TimerGateway timerGateway = new TimerGateway("timer");
+ * Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
+ * 
+ * ActorThread testerThread = ActorThread.create("local");
+ * Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+ * 
+ * testerThread.addOutgoingShuttle(timerInputShuttle);
+ * timerGateway.addOutgoingShuttle(testerInputShuttle);
+ * 
+ * testerThread.addCoroutineActor("tester", tester, "timer");
+ * </pre>
+ * @author Kasra Faghihi
+ */
 public final class TimerGateway implements InputGateway, OutputGateway {
 
     private final Thread thread;
@@ -30,6 +61,11 @@ public final class TimerGateway implements InputGateway, OutputGateway {
     
     private final SimpleShuttle shuttle;
 
+    /**
+     * Constructs a {@link TimerGateway} instance.
+     * @param prefix address prefix for this gateway
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public TimerGateway(String prefix) {
         Validate.notNull(prefix);
 

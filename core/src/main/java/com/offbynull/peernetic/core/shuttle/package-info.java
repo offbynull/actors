@@ -16,8 +16,8 @@
  */
 
 /**
- * Provides classes and interfaces for defining gateways.
+ * Provides classes and interfaces for defining shuttles.
  * 
  * @author Kasra Faghihi
  */
-package com.offbynull.peernetic.core.gateway;
+package com.offbynull.peernetic.core.shuttle;

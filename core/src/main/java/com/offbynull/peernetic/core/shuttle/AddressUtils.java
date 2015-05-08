@@ -22,6 +22,10 @@ import java.util.List;
 import java.util.StringJoiner;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Utility methods for addresses.
+ * @author Kasra Faghihi
+ */
 public final class AddressUtils {
 
     public static final String SEPARATOR = ":";
@@ -30,24 +34,39 @@ public final class AddressUtils {
         // do nothing
     }
     
-    public static final boolean isPrefix(String parentAddress, String otherAddress) {
+    /**
+     * Checks if one address is a prefix of the other.
+     * @param parentAddress address to check against (the prefix)
+     * @param absoluteAddress address to check
+     * @return {@code true} if {@code parentAddress} is a prefix of {@code absoluteAddress}
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static final boolean isPrefix(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
-        Validate.notNull(otherAddress);
+        Validate.notNull(absoluteAddress);
         
         // if address being tested is smaller than parent, fail
-        if (parentAddress.length() > otherAddress.length()) {
+        if (parentAddress.length() > absoluteAddress.length()) {
             return false;
         }
         
         // if address being tested is the same size as parent, make sure strings are equal
-        if (parentAddress.length() == otherAddress.length() && parentAddress.equals(otherAddress)) {
+        if (parentAddress.length() == absoluteAddress.length() && parentAddress.equals(absoluteAddress)) {
             return true;
         }
         
         // otherwise, return true if other starts with parent and has a : right after it
-        return otherAddress.startsWith(parentAddress + SEPARATOR);
+        return absoluteAddress.startsWith(parentAddress + SEPARATOR);
     }
 
+    /**
+     * Strips off the prefix from an address.
+     * @param parentAddress address to check for (the prefix)
+     * @param absoluteAddress address to strip prefix from
+     * @return {@code absoluteAddress} with the prefix {@code parentAddress} stripped off
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code parentAddress} is not a prefix of {@code absoluteAddress}
+     */
     public static final String relativize(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(absoluteAddress);
@@ -61,6 +80,13 @@ public final class AddressUtils {
         return ret;
     }
 
+    /**
+     * Adds a prefix to an address.
+     * @param parentAddress prefix to append
+     * @param relativeAddress address to add prefix to
+     * @return {@code relativeAddress} with {@code parentAddress} prefixed on to it
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public static final String parentize(String parentAddress, String relativeAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(relativeAddress);
@@ -68,18 +94,33 @@ public final class AddressUtils {
         return parentAddress + SEPARATOR + relativeAddress;
     }
 
-    public static String removePrefix(String address, int removeCount) {
-        String[] elements = splitAddress(address);
-        Validate.validIndex(elements, removeCount);
-        return getAddress(Arrays.asList(elements).subList(removeCount, elements.length));
-    }
-
+    /**
+     * Removes a number of address elements from the end of an address. For example, removing {@code 2} address elements from
+     * {@code "test1:test2:test3:test4"} will result in {@code "test1:test2"}.
+     * @param address address to remove address elements from
+     * @param removeCount number of address elements to remove from the bottom
+     * @return {@code address} with the last {@code removeCount} address elements removed
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IndexOutOfBoundsException if the number of address elements in {@code address} is less than {@code removeCount}
+     */
     public static String removeSuffix(String address, int removeCount) {
+        Validate.notNull(address);
+        
         String[] elements = splitAddress(address);
         Validate.validIndex(elements, removeCount);
         return getAddress(Arrays.asList(elements).subList(0, elements.length - removeCount));
     }
     
+    /**
+     * Get the address element at a certain index. For example, getting address element at index {@code 2} from
+     * {@code "test1:test2:test3:test4"} will result in {@code "test3"}.
+     * @param address address
+     * @param idx index of address element
+     * @return {@code address}'s {@code idx} address element
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code idx} is negative
+     * @throws IndexOutOfBoundsException if the number of address elements in {@code address} is less than {@code idx}
+     */
     public static String getAddressElement(String address, int idx) {
         Validate.notNull(address);
         Validate.isTrue(idx >= 0);
@@ -90,33 +131,38 @@ public final class AddressUtils {
         
         return elements[idx];
     }
-
-    public static String getFirstAddressElement(String address) {
-        Validate.notNull(address);
-        
-        String[] elements = splitAddress(address);
-        
-        return elements[0];
-    }
-
-    public static String getLastAddressElement(String address) {
-        Validate.notNull(address);
-        
-        String[] elements = splitAddress(address);
-        
-        return elements[elements.length - 1];
-    }
     
+    /**
+     * Get the number of address elements in an address. For example, getting the number of address elements in
+     * {@code "test1:test2:test3:test4"} will result in {@code 4}
+     * @param address address
+     * @return number of address elements in {@code address}
+     * @throws NullPointerException if any argument is {@code address}
+     */
     public static int getIdElementSize(String address) {
         Validate.notNull(address);
         
         return splitAddress(address).length;
     }
 
+    /**
+     * Generates an address from an array of address elements.
+     * @param ids address elements to concatenate
+     * @return address consisting of elements from {@code ids} for its address elements
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
     public static String getAddress(String ... ids) {
         return getAddress(0, ids);
     }
 
+    /**
+     * Generates an address from an array of address elements.
+     * @param offset offset to begin reading address elements from {@code ids} from
+     * @param ids address elements to concatenate
+     * @return address consisting of elements from {@code ids} for its address elements
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code offset < 0 || offset >= ids.length}
+     */
     public static String getAddress(int offset, String ... ids) {
         Validate.notNull(ids);
         Validate.noNullElements(ids);
@@ -129,7 +175,7 @@ public final class AddressUtils {
         return joiner.toString();
     }
     
-    public static String getAddress(List<String> idElements) {
+    private static String getAddress(List<String> idElements) {
         Validate.notNull(idElements);
         Validate.noNullElements(idElements);
         
@@ -139,7 +185,16 @@ public final class AddressUtils {
         return joiner.toString();
     }
 
+    /**
+     * Splits an address up in to its individual address elements. For example, {@code "test1:test2:test3:test4"} will result in
+     * an array of 4 elements: {@code "test1", "test2", "test3", "test4"}.
+     * @param address address to split
+     * @return individual address elements of {@code address}
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public static String[] splitAddress(String address) {
+        Validate.notNull(address);
+        
         int startIdx = 0;
         int endIdx;
         List<String> elements = new LinkedList<>();

@@ -18,11 +18,22 @@ package com.offbynull.peernetic.core.shuttle;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A message.
+ * @author Kasra Faghihi
+ */
 public final class Message {
     private final String sourceAddress;
     private final String destinationAddress;
     private final Object message;
 
+    /**
+     * Constructs a {@link Message} instance.
+     * @param sourceAddress source address of this message
+     * @param destinationAddress destination address of this message
+     * @param message content of this message
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public Message(String sourceAddress, String destinationAddress, Object message) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
@@ -33,14 +44,26 @@ public final class Message {
         this.message = message;
     }
 
+    /**
+     * Get the source address.
+     * @return source address
+     */
     public String getSourceAddress() {
         return sourceAddress;
     }
 
+    /**
+     * Get the destination address.
+     * @return destination address.
+     */
     public String getDestinationAddress() {
         return destinationAddress;
     }
 
+    /**
+     * Get the message content.
+     * @return content of this message
+     */
     public Object getMessage() {
         return message;
     }

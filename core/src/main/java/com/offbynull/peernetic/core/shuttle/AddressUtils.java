@@ -73,9 +73,8 @@ public final class AddressUtils {
         Validate.isTrue(absoluteAddress.startsWith(parentAddress), "%s is not a child of %s", absoluteAddress, parentAddress);
         
         String ret = absoluteAddress.substring(parentAddress.length());
-        if (ret.startsWith(SEPARATOR)) {
-            ret = ret.substring(1);
-        }
+        Validate.isTrue(ret.startsWith(SEPARATOR), "%s is not a child of %s", absoluteAddress, parentAddress);
+        ret = ret.substring(1);
         
         return ret;
     }
@@ -118,12 +117,10 @@ public final class AddressUtils {
      * @param idx index of address element
      * @return {@code address}'s {@code idx} address element
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code idx} is negative
      * @throws IndexOutOfBoundsException if the number of address elements in {@code address} is less than {@code idx}
      */
-    public static String getAddressElement(String address, int idx) {
+    public static String getElement(String address, int idx) {
         Validate.notNull(address);
-        Validate.isTrue(idx >= 0);
         
         String[] elements = splitAddress(address);
         
@@ -139,7 +136,7 @@ public final class AddressUtils {
      * @return number of address elements in {@code address}
      * @throws NullPointerException if any argument is {@code address}
      */
-    public static int getIdElementSize(String address) {
+    public static int getElementSize(String address) {
         Validate.notNull(address);
         
         return splitAddress(address).length;
@@ -150,6 +147,7 @@ public final class AddressUtils {
      * @param ids address elements to concatenate
      * @return address consisting of elements from {@code ids} for its address elements
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code ids} is empty
      */
     public static String getAddress(String ... ids) {
         return getAddress(0, ids);
@@ -161,7 +159,7 @@ public final class AddressUtils {
      * @param ids address elements to concatenate
      * @return address consisting of elements from {@code ids} for its address elements
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if {@code offset < 0 || offset >= ids.length}
+     * @throws IllegalArgumentException if {@code offset < 0 || offset >= ids.length}, or if an element in {@code ids} contains {@code :}
      */
     public static String getAddress(int offset, String ... ids) {
         Validate.notNull(ids);
@@ -170,7 +168,10 @@ public final class AddressUtils {
         Validate.isTrue(offset < ids.length);
         
         StringJoiner joiner = new StringJoiner(SEPARATOR);
-        Arrays.asList(ids).subList(offset, ids.length).forEach(x -> joiner.add(x));
+        Arrays.asList(ids).subList(offset, ids.length).forEach(x -> {
+            Validate.isTrue(!x.contains(":"));
+            joiner.add(x);
+        });
         
         return joiner.toString();
     }
@@ -205,7 +206,7 @@ public final class AddressUtils {
         }
         
         // add tail element, if it exists
-        if (startIdx < address.length()) {
+        if (startIdx < address.length() || address.endsWith(SEPARATOR)) {
             String element = address.substring(startIdx);
             elements.add(element);
         }

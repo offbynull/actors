@@ -375,7 +375,7 @@ public final class TestHarness {
         if (AddressUtils.isPrefix(timerPrefix, destination)) {
             Duration timerDuration;
             try {
-                String durationStr = AddressUtils.getAddressElement(destination, 1);
+                String durationStr = AddressUtils.getElement(destination, 1);
                 timerDuration = Duration.ofMillis(Long.parseLong(durationStr));
                 Validate.isTrue(!timerDuration.isNegative());
             } catch (Exception e) {

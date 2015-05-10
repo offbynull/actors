@@ -177,7 +177,7 @@ final class ActorRunnable implements Runnable {
         Map<String, List<Message>> outgoingMap = new HashMap<>();
         for (Message outgoingMessage : outgoingMessages) {
             String outDst = outgoingMessage.getDestinationAddress();
-            String outDstPrefix = AddressUtils.getAddressElement(outDst, 0);
+            String outDstPrefix = AddressUtils.getElement(outDst, 0);
 
             List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
             if (batchedMessages == null) {

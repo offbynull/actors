@@ -55,7 +55,7 @@ public final class SimpleShuttle implements Shuttle {
         messages.stream().forEach(x -> {
             try {
                 String dst = x.getDestinationAddress();
-                String dstPrefix = AddressUtils.getAddressElement(dst, 0);
+                String dstPrefix = AddressUtils.getElement(dst, 0);
                 Validate.isTrue(dstPrefix.equals(prefix));
                 
                 filteredMessages.add(x);

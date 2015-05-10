@@ -126,7 +126,7 @@ public final class SubcoroutineRouter {
 
             String subcoroutineId = subcoroutine.getId();
             String suffix = AddressUtils.relativize(id, subcoroutineId);
-            Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
+            Validate.isTrue(AddressUtils.getElementSize(suffix) == 1);
 
             CoroutineRunner newRunner = new CoroutineRunner(x -> subcoroutine.run(x));
             newRunner.setContext(context);
@@ -158,7 +158,7 @@ public final class SubcoroutineRouter {
             Validate.notNull(id);
             
             String suffix = AddressUtils.relativize(SubcoroutineRouter.this.id, id);
-            Validate.isTrue(AddressUtils.getIdElementSize(suffix) == 1);
+            Validate.isTrue(AddressUtils.getElementSize(suffix) == 1);
             
             CoroutineRunner old = idMap.remove(id);
             Validate.isTrue(old != null);

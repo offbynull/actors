@@ -81,7 +81,7 @@ final class TimerRunnable implements Runnable {
                         String dst = message.getDestinationAddress();
                         Object payload = message.getMessage();
 
-                        String delayStr = AddressUtils.getAddressElement(dst, 1);
+                        String delayStr = AddressUtils.getElement(dst, 1);
                         long delay = Long.parseLong(delayStr);
                         Validate.isTrue(delay >= 0L);
                         Instant sendTime = time.plus(delay, ChronoUnit.MILLIS);
@@ -113,7 +113,7 @@ final class TimerRunnable implements Runnable {
                     
                     // Add to outgoingMap by prefix
                     String outDst = pm.getTo();
-                    String outDstPrefix = AddressUtils.getAddressElement(outDst, 0);
+                    String outDstPrefix = AddressUtils.getElement(outDst, 0);
 
                     List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
                     if (batchedMessages == null) {

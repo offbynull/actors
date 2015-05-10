@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.peernetic.core.simulation.TestHarness;
+import com.offbynull.peernetic.core.simulation.Simulator;
 import java.time.Duration;
 import java.time.Instant;
 import static org.junit.Assert.assertEquals;
@@ -10,7 +10,7 @@ public class SleepSubcoroutineTest {
     
     @Test
     public void mustSleepFor1Second() throws Exception {
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("test", cnt -> {
                 SleepSubcoroutine fixture = new SleepSubcoroutine.Builder()
                         .id("sleep")

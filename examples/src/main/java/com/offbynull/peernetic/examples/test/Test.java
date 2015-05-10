@@ -32,7 +32,7 @@ import com.offbynull.peernetic.core.simulation.MessageSink;
 import com.offbynull.peernetic.core.simulation.MessageSource;
 import com.offbynull.peernetic.core.simulation.RecordMessageSink;
 import com.offbynull.peernetic.core.simulation.ReplayMessageSource;
-import com.offbynull.peernetic.core.simulation.TestHarness;
+import com.offbynull.peernetic.core.simulation.Simulator;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
@@ -284,7 +284,7 @@ public class Test {
             System.out.println("Got response at " + ctx.getTime());
         };
 
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
         
         while (testHarness.hasMore()) {
@@ -316,7 +316,7 @@ public class Test {
             }
         };
 
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
         testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
         
@@ -354,7 +354,7 @@ public class Test {
             };
 
             try (MessageSink sink = new RecordMessageSink("local:echoer", recordFile, new SimpleSerializer())) {
-                TestHarness testHarness = new TestHarness("timer");
+                Simulator testHarness = new Simulator("timer");
                 testHarness.addMessageSink(sink, Instant.ofEpochMilli(0L));
                 testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
                 testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
@@ -381,7 +381,7 @@ public class Test {
             };
 
             try (MessageSource source = new ReplayMessageSource("local:sender", recordFile, new SimpleSerializer())) {
-                TestHarness testHarness = new TestHarness("timer");
+                Simulator testHarness = new Simulator("timer");
                 testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
                 testHarness.addMessageSource(source, Instant.ofEpochMilli(0L));
 

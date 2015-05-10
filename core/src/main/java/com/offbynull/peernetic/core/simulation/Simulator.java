@@ -42,7 +42,7 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 
-public final class TestHarness {
+public final class Simulator {
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
     private final String timerPrefix;
@@ -57,15 +57,15 @@ public final class TestHarness {
                                      // that trigger at the same time. That is, if two events trigger at the same time, they'll be returned
                                      // in the order they were added.
     
-    public TestHarness(String timerPrefix) {
+    public Simulator(String timerPrefix) {
         this(Instant.ofEpochMilli(0L), timerPrefix);
     }
     
-    public TestHarness(Instant startTime, String timerPrefix) {
+    public Simulator(Instant startTime, String timerPrefix) {
         this(startTime, timerPrefix, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
     }
     
-    public TestHarness(
+    public Simulator(
             Instant startTime,
             String timerPrefix,
             ActorBehaviourDriver actorDurationCalculator,

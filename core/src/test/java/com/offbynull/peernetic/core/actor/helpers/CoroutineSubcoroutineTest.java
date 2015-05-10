@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.peernetic.core.simulation.TestHarness;
+import com.offbynull.peernetic.core.simulation.Simulator;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -13,7 +13,7 @@ public class CoroutineSubcoroutineTest {
     public void mustFunnelToCoroutine() {
         MutableBoolean flag = new MutableBoolean();
         
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("test", cnt -> {
                 CoroutineSubcoroutine fixture = new CoroutineSubcoroutine("wrapper", x -> flag.setValue(true));
                 fixture.run(cnt);

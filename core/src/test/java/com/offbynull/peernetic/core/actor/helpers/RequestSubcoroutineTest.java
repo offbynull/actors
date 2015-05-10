@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.simulation.TestHarness;
+import com.offbynull.peernetic.core.simulation.Simulator;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class RequestSubcoroutineTest {
         List<String> dstAddresses = new ArrayList<>();
         List<Object> recvdItems = new ArrayList<>();
         
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("rcvr", cnt -> {
             Context ctx = (Context) cnt.getContext();
             srcAddresses.add(ctx.getSource());
@@ -55,7 +55,7 @@ public class RequestSubcoroutineTest {
         List<String> dstAddresses = new ArrayList<>();
         List<Object> recvdItems = new ArrayList<>();
         
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("rcvr", cnt -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {
@@ -92,7 +92,7 @@ public class RequestSubcoroutineTest {
         List<Object> recvdItems = new ArrayList<>();
         MutableObject<String> savedResponse = new MutableObject<>();
         
-        TestHarness testHarness = new TestHarness("timer");
+        Simulator testHarness = new Simulator("timer");
         testHarness.addCoroutineActor("rcvr", cnt -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {

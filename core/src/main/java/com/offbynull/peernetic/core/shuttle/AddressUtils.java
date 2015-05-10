@@ -63,18 +63,26 @@ public final class AddressUtils {
      * Strips off the prefix from an address.
      * @param parentAddress address to check for (the prefix)
      * @param absoluteAddress address to strip prefix from
-     * @return {@code absoluteAddress} with the prefix {@code parentAddress} stripped off
+     * @return {@code absoluteAddress} with the prefix {@code parentAddress} stripped off, or {@code null} if {@code absoluteAddress} and
+     * {@code parentAddress} are equal
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code parentAddress} is not a prefix of {@code absoluteAddress}
      */
     public static final String relativize(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(absoluteAddress);
+        
+        if (parentAddress.equals(absoluteAddress)) {
+            return null;
+        }
+        
         Validate.isTrue(absoluteAddress.startsWith(parentAddress), "%s is not a child of %s", absoluteAddress, parentAddress);
         
         String ret = absoluteAddress.substring(parentAddress.length());
-        Validate.isTrue(ret.startsWith(SEPARATOR), "%s is not a child of %s", absoluteAddress, parentAddress);
-        ret = ret.substring(1);
+        if (!ret.isEmpty()) {
+            Validate.isTrue(ret.startsWith(SEPARATOR), "%s is not a child of %s", absoluteAddress, parentAddress);
+            ret = ret.substring(1);
+        }
         
         return ret;
     }
@@ -83,12 +91,17 @@ public final class AddressUtils {
      * Adds a prefix to an address.
      * @param parentAddress prefix to append
      * @param relativeAddress address to add prefix to
-     * @return {@code relativeAddress} with {@code parentAddress} prefixed on to it
-     * @throws NullPointerException if any argument is {@code null}
+     * @return {@code relativeAddress} with {@code parentAddress} prefixed on to it, or if {@code relativeAddress} is {@code null} then just
+     * {@code parentAddress} is returned
+     * @throws NullPointerException if any argument other than {@code relativeAddress} is {@code null}
      */
     public static final String parentize(String parentAddress, String relativeAddress) {
         Validate.notNull(parentAddress);
-        Validate.notNull(relativeAddress);
+        // relativeAddress can be null
+        
+        if (relativeAddress == null) {
+            return parentAddress;
+        }
         
         return parentAddress + SEPARATOR + relativeAddress;
     }

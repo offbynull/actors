@@ -73,7 +73,7 @@ public final class SubcoroutineRouter {
      */
     public boolean forward() throws Exception {
         String incomingId = AddressUtils.relativize(context.getSelf(), context.getDestination());
-        if (!AddressUtils.isPrefix(id, incomingId)) {
+        if (incomingId == null || !AddressUtils.isPrefix(id, incomingId)) {
             return false;
         }
 
@@ -126,6 +126,7 @@ public final class SubcoroutineRouter {
 
             String subcoroutineId = subcoroutine.getId();
             String suffix = AddressUtils.relativize(id, subcoroutineId);
+            Validate.isTrue(suffix != null);
             Validate.isTrue(AddressUtils.getElementSize(suffix) == 1);
 
             CoroutineRunner newRunner = new CoroutineRunner(x -> subcoroutine.run(x));
@@ -158,6 +159,7 @@ public final class SubcoroutineRouter {
             Validate.notNull(id);
             
             String suffix = AddressUtils.relativize(SubcoroutineRouter.this.id, id);
+            Validate.isTrue(suffix != null);
             Validate.isTrue(AddressUtils.getElementSize(suffix) == 1);
             
             CoroutineRunner old = idMap.remove(id);

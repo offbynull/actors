@@ -1,9 +1,9 @@
 package com.offbynull.peernetic.core.shuttle;
 
-import java.util.Arrays;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
@@ -99,6 +99,12 @@ public class AddressUtilsTest {
     }
 
     @Test
+    public void mustParentizeAddressWithNullRelativeAddress() {
+        String address = AddressUtils.parentize("1:2", null);
+        assertEquals("1:2", address);
+    }
+
+    @Test
     public void mustParentizeAddressWithEmptyParentAddress() {
         String address = AddressUtils.parentize("", "3");
         assertEquals(":3", address);
@@ -114,6 +120,12 @@ public class AddressUtilsTest {
     public void mustRelativizeAddressWithEmptyParent() {
         String address = AddressUtils.relativize("", ":2:3");
         assertEquals("2:3", address);
+    }
+
+    @Test
+    public void mustRelativizeAddressToNullWhenParentsAreTheSame() {
+        String address = AddressUtils.relativize("1:2:3", "1:2:3");
+        assertNull(address);
     }
 
     @Test

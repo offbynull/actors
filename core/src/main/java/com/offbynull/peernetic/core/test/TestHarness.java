@@ -450,7 +450,7 @@ public final class TestHarness {
         }
         
         for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
-            String outSrc = batchedOutMsg.getSourceId() == null ? address : AddressUtils.parentize(address, batchedOutMsg.getSourceId());
+            String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
             queueMessage(
                     outSrc,
                     batchedOutMsg.getDestination(),

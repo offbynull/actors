@@ -21,6 +21,10 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.Collection;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A shuttle implementation that discards all messages sent to it.
+ * @author Kasra Faghihi
+ */
 public final class NullShuttle implements Shuttle {
 
     private final String prefix;

@@ -78,7 +78,7 @@ public final class ReplayMessageSource implements MessageSource {
 
         RecordedMessage recordedMessage = msgIt.next();
         Validate.notNull(recordedMessage.getSrcAddress());
-        Validate.notNull(recordedMessage.getDstSuffix());
+        // recordedMessage.dstsuffix may be null
         Validate.notNull(recordedMessage.getMessage());
         return new SourceMessage(
                 recordedMessage.getSrcAddress(),

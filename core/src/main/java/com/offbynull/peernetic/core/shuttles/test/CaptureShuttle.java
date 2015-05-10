@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.shuttles.test;
 
+import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.ArrayList;
@@ -23,12 +24,25 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * A shuttle implementation that captures messages sent to it. Captured messages can be read out using {@link #takeNextMessage() } and
+ * {@link #drainMessages() }.
+ * @author Kasra Faghihi
+ */
 public final class CaptureShuttle implements Shuttle {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CaptureShuttle.class);
 
     private final String prefix;
     private final LinkedBlockingQueue<Message> queuedMessages;
 
+    /**
+     * Constructs a {@link CaptureShuttle} instance.
+     * @param prefix address prefix of this shuttle
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public CaptureShuttle(String prefix) {
         Validate.notNull(prefix);
         this.prefix = prefix;
@@ -45,15 +59,37 @@ public final class CaptureShuttle implements Shuttle {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         
-        queuedMessages.addAll(messages);
+        List<Message> filteredMessages = new ArrayList<>(messages.size());
+        messages.stream().forEach(x -> {
+            try {
+                String dst = x.getDestinationAddress();
+                String dstPrefix = AddressUtils.getElement(dst, 0);
+                Validate.isTrue(dstPrefix.equals(prefix));
+                
+                filteredMessages.add(x);
+            } catch (Exception e) {
+                LOGGER.error("Error shuttling message: " + x, e);
+            }
+        });
+        
+        queuedMessages.addAll(filteredMessages);
     }
     
+    /**
+     * Removes all captures messages and returns them as a list. This method does not block.
+     * @return all captures messages
+     */
     public List<Message> drainMessages() {
         List<Message> ret = new ArrayList<>();
         queuedMessages.drainTo(ret);
         return ret;
     }
 
+    /**
+     * Removes and returns the next queued captured message, blocking until one becomes available if there are none.
+     * @return next captured message
+     * @throws InterruptedException if thread interrupted
+     */
     public Message takeNextMessage() throws InterruptedException{
         return queuedMessages.take();
     }

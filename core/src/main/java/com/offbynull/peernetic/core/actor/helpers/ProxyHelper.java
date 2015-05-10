@@ -96,6 +96,7 @@ public final class ProxyHelper {
      * </ul>
      * Note how the address suffixes stay intact. If "remote:actor2" wanted to reply, it could do so by sending a message back to
      * "local:proxy:child". The proxy should forward that message to "local:mainactor:child".
+     * @throws IllegalStateException if the incoming message's destination address doesn't contain any forwarding information
      * @return forwarding information
      */
     public ForwardInformation generateOutboundForwardInformation() {
@@ -103,6 +104,7 @@ public final class ProxyHelper {
         String selfAddr = context.getSelf();
         String dstAddr = context.getDestination();
         String proxyToAddress = AddressUtils.relativize(selfAddr, dstAddr); // treat suffix for dst of this msg as address to proxy to
+        Validate.validState(proxyToAddress != null);
 
         // Get suffix for from address
         String srcAddr = context.getSource();

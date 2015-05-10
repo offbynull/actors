@@ -35,13 +35,13 @@ public final class RecordedMessage implements Serializable {
     /**
      * Constructs a {@link RecordedMessage} object.
      * @param srcAddress source address of the recorded message
-     * @param dstSuffix destination address suffix of the recorded message
+     * @param dstSuffix destination address suffix of the recorded message ({@code null} means no suffix}
      * @param message message being recorded
-     * @throws NullPointerException if any argument is {@code null}
+     * @throws NullPointerException if any argument other than {@code dstSuffix} is {@code null}
      */
     public RecordedMessage(String srcAddress, String dstSuffix, Object message) {
         Validate.notNull(srcAddress);
-        Validate.notNull(dstSuffix);
+        // dstSuffix can be null
         Validate.notNull(message);
         this.srcAddress = srcAddress;
         this.dstSuffix = dstSuffix;

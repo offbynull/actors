@@ -39,7 +39,7 @@ public final class SimpleShuttle implements Shuttle {
 
     /**
      * Constructs a {@link SimpleShuttle} instance.
-     * @param prefix prefix for this shuttle
+     * @param prefix address prefix of this shuttle
      * @param bus bus to shuttle to
      * @throws NullPointerException if any arguments are {@code null}
      */

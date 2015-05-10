@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.test;
+package com.offbynull.peernetic.core.simulation;
 
 import java.io.IOException;
 import java.time.Duration;

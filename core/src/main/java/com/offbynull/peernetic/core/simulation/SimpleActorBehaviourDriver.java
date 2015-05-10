@@ -14,22 +14,15 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.test;
+package com.offbynull.peernetic.core.simulation;
 
-import java.time.Instant;
-import org.apache.commons.lang3.Validate;
+import java.time.Duration;
 
-final class AddMessageSinkEvent extends Event {
-    private final MessageSink messageSink;
+public final class SimpleActorBehaviourDriver implements ActorBehaviourDriver {
 
-    public AddMessageSinkEvent(MessageSink messageSink, Instant triggerTime, long sequenceNumber) {
-        super(triggerTime, sequenceNumber);
-        Validate.notNull(messageSink);
-        
-        this.messageSink = messageSink;
+    @Override
+    public Duration calculateDuration(String address, Object message, Duration realDuration) {
+        return Duration.ZERO;
     }
-
-    public MessageSink getMessageSink() {
-        return messageSink;
-    }
+    
 }

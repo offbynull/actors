@@ -14,23 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.test;
+package com.offbynull.peernetic.core.simulation;
 
+import java.io.IOException;
 import java.time.Instant;
-import org.apache.commons.lang3.Validate;
 
-final class RemoveMessageSourceEvent extends Event {
-    private final MessageSource messageSource;
-
-    public RemoveMessageSourceEvent(MessageSource messageSource, Instant triggerTime, long sequenceNumber) {
-        super(triggerTime, sequenceNumber);
-        Validate.notNull(messageSource);
-        
-        this.messageSource = messageSource;
-    }
-
-    public MessageSource getMessageSource() {
-        return messageSource;
-    }
-
+public interface MessageSink extends AutoCloseable {
+    void writeNextMessage(String source, String destination, Instant time, Object message) throws IOException;
 }

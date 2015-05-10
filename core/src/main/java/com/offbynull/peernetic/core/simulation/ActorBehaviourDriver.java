@@ -14,15 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.test;
+package com.offbynull.peernetic.core.simulation;
 
 import java.time.Duration;
 
-public final class SimpleMessageBehaviourDriver implements MessageBehaviourDriver {
-
-    @Override
-    public Duration calculateDuration(String fromAddress, String toAddress, Object message) {
-        return Duration.ZERO;
-    }
-    
+public interface ActorBehaviourDriver {
+    Duration calculateDuration(String address, Object message, Duration realDuration);
 }

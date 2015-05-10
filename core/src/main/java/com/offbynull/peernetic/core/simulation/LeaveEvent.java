@@ -14,36 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.test;
+package com.offbynull.peernetic.core.simulation;
 
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-final class MessageEvent extends Event {
-    final String sourceAddress;
-    final String destinationAddress;
-    final Object message;
+final class LeaveEvent extends Event {
+    final String address;
 
-    public MessageEvent(String sourceAddress, String destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
+    public LeaveEvent(String address, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);
-        Validate.notNull(sourceAddress);
-        Validate.notNull(destinationAddress);
-        Validate.notNull(message);
-        this.sourceAddress = sourceAddress;
-        this.destinationAddress = destinationAddress;
-        this.message = message;
+        Validate.notNull(address);
+        this.address = address;
     }
 
-    public String getSourceAddress() {
-        return sourceAddress;
-    }
-
-    public String getDestinationAddress() {
-        return destinationAddress;
-    }
-
-    public Object getMessage() {
-        return message;
+    public String getAddress() {
+        return address;
     }
     
 }

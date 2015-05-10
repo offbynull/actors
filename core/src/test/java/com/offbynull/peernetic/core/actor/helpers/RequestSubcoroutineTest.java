@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.test.TestHarness;
+import com.offbynull.peernetic.core.simulation.TestHarness;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;

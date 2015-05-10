@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.peernetic.core.test.TestHarness;
+import com.offbynull.peernetic.core.simulation.TestHarness;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.mutable.MutableBoolean;

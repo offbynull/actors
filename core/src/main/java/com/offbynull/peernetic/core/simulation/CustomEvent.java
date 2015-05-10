@@ -14,10 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.test;
+package com.offbynull.peernetic.core.simulation;
 
-import java.time.Duration;
+import java.time.Instant;
+import org.apache.commons.lang3.Validate;
 
-public interface MessageBehaviourDriver {
-    Duration calculateDuration(String fromAddress, String toAddress, Object message);
+final class CustomEvent extends Event {
+    final Runnable runnable;
+
+    public CustomEvent(Runnable runnable, Instant triggerTime, long sequenceNumber) {
+        super(triggerTime, sequenceNumber);
+        Validate.notNull(runnable);
+        this.runnable = runnable;
+    }
+
+    public Runnable getRunnable() {
+        return runnable;
+    }
+    
 }

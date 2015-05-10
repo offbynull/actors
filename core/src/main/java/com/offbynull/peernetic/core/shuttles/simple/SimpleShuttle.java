@@ -26,15 +26,25 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A simple shuttle implementation. This shuttle writes to a {@link Bus}. Another thread can then read from that bus and process messages
+ * process messages that are sent to this shuttle.
+ * @author Kasra Faghihi
+ */
 public final class SimpleShuttle implements Shuttle {
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleShuttle.class);
     
     private final String prefix;
     private final Bus bus;
 
+    /**
+     * Constructs a {@link SimpleShuttle} instance.
+     * @param prefix prefix for this shuttle
+     * @param bus bus to shuttle to
+     * @throws NullPointerException if any arguments are {@code null}
+     */
     public SimpleShuttle(String prefix, Bus bus) {
         Validate.notNull(prefix);
-        Validate.notEmpty(prefix);
         Validate.notNull(bus);
 
         this.prefix = prefix;

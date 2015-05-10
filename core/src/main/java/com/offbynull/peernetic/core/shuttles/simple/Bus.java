@@ -27,6 +27,11 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A {@link Bus} is similar to a {@link LinkedBlockingQueue} in that it allows you to write and read objects in a thread-safe manner. In
+ * addition to that, you can {@link #close() } a bus such that it no longer accepts incoming messages.
+ * @author Kasra Faghihi
+ */
 public final class Bus implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Bus.class);
@@ -39,10 +44,20 @@ public final class Bus implements AutoCloseable {
         closed.set(true);
     }
 
+    /**
+     * Put a single message on to this bus. If this bus has been closed, this method does nothing.
+     * @param message message
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void add(Object message) {
         add(Collections.singleton(message));
     }
     
+    /**
+     * Adds a collection of messages on to this bus. If this bus has been closed, this method does nothing.
+     * @param messages messages to add
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
     public void add(Collection<?> messages) {
         if (closed.get()) {
             LOGGER.debug("Messages incoming to closed bus: {}", messages);
@@ -51,6 +66,14 @@ public final class Bus implements AutoCloseable {
         queue.addAll(messages); // automatically throws NPE if messages contains null, or if messages itself is null
     }
 
+    /**
+     * Reads a message from this bus, blocking for the specified amount of time until a message becomes available. If no message becomes
+     * available in the specified time, this method returns an empty list.
+     * @param timeout how long to wait before giving up, in units of {@code unit} unit
+     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return a list of objects on the bus
+     * @throws InterruptedException if thread is interrupted
+     */
     public List<Object> pull(long timeout, TimeUnit unit) throws InterruptedException {
         Validate.isTrue(timeout >= 0L);
         Validate.notNull(unit);
@@ -65,6 +88,11 @@ public final class Bus implements AutoCloseable {
         return messages;
     }
 
+    /**
+     * Reads a message from this bus, blocking indefinitely until a message becomes available.
+     * @return a list of objects on the bus
+     * @throws InterruptedException if thread is interrupted
+     */
     public List<Object> pull() throws InterruptedException {
         List<Object> messages = new LinkedList<>();
 

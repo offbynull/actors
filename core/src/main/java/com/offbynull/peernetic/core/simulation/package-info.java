@@ -14,24 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
-
-import java.io.IOException;
-import java.time.Instant;
 
 /**
- * Write messages from the simulation to some external source.
+ * Provides classes and interfaces for running simulations with actors.
+ * 
  * @author Kasra Faghihi
  */
-public interface MessageSink extends AutoCloseable {
-    /**
-     * Write the next message.
-     * @param source source address
-     * @param destination destination address
-     * @param time time when message arrived
-     * @param message message
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IOException if an error occurs while writing
-     */
-    void writeNextMessage(String source, String destination, Instant time, Object message) throws IOException;
-}
+package com.offbynull.peernetic.core.simulation;

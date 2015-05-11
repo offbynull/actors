@@ -18,6 +18,22 @@ package com.offbynull.peernetic.core.simulation;
 
 import java.time.Duration;
 
+/**
+ * Used to calculate the amount of time it takes to pass messages between two addresses in a simulation. Use this to simulate conditions on
+ * a system (e.g. a message coming in to an actor that already has a large number of incoming messages buffered will may sit for a period of
+ * time before getting processed by the actor).
+ * @author Kasra Faghihi
+ */
 public interface MessageBehaviourDriver {
-    Duration calculateDuration(String fromAddress, String toAddress, Object message);
+    // NOTE: unlike ActorBehaviourDriver, it doesn't make sense for this method to have a realDuration parameter. The way the simulator
+    // works, we will never have access to an duration value for message passing, as messages are passed "instantly" in the simulator.
+    /**
+     * Used to calculate the amount of time it takes to pass messages between two addresses in a simulation.
+     * @param source source address
+     * @param destination destination address
+     * @param message message being processed
+     * @return amount of time that this message took in the simulation
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    Duration calculateDuration(String source, String destination, Object message);
 }

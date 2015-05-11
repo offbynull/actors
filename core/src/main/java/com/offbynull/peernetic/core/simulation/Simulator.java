@@ -18,11 +18,17 @@ package com.offbynull.peernetic.core.simulation;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.actor.SourceContext;
 import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
+import com.offbynull.peernetic.core.gateway.Gateway;
+import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
+import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
+import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.simulation.MessageSource.SourceMessage;
 import java.io.IOException;
 import java.time.Duration;
@@ -42,6 +48,43 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A simulation environment for {@link Actor}s.
+ * <p>
+ * The main benefit to testing your actor using this class versus using {@link ActorThread} is that this class is designed to run actors
+ * "faster than real-time". That is, most actors tend to spend a majority of their time waiting for messages to arrive. This class exploits
+ * that fact by skipping the actual waiting but giving actors the impression that the waits actually occurred.
+ * <p>
+ * The downside to this is that you cannot interface with any {@link Gateway}s. The reason for this is that gateway implementations may
+ * be executing code that blocks, which means that the logic used by this class to mock-out blocking/waiting no longer applies. Instead,
+ * mock functionality is provided to replace {@link TimerGateway}, {@link RecorderGateway}, and {@link ReplayerGateway}. If your actor
+ * relies on any other gateway implementations, you'll need to mock those out yourself as custom actors.
+ * <p>
+ * The following example creates a simulation environment with a coroutine actor that sends a delayed message to itself.
+ * <pre>
+ * Coroutine tester = (cnt) -&gt; {
+ *     Context ctx = (Context) cnt.getContext();
+ * 
+ *     // Normally actors shouldn't have system.outs in them.
+ *     System.out.println("Sending out at " + ctx.getTime());
+ *     String timerPrefix = ctx.getIncomingMessage();
+ *     ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
+ *     cnt.suspend();
+ *     System.out.println("Got response at " + ctx.getTime());
+ * };
+ * 
+ * Simulator testHarness = new Simulator();
+ * testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+ * testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
+ * 
+ * while (testHarness.hasMore()) {
+ *     testHarness.process();
+ * }
+ * </pre>
+ * Note that there is no explicit binding of {@link Shuttle}s. This class doesn't expose shuttles. All actors and mock gateways in a
+ * simulation environment can pass messages to/from each other as soon as they're added.
+ * @author Kasra Faghihi
+ */
 public final class Simulator {
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
@@ -56,14 +99,32 @@ public final class Simulator {
                                      // that trigger at the same time. That is, if two events trigger at the same time, they'll be returned
                                      // in the order they were added.
     
+    /**
+     * Constructs a {@link Simulator} object which is set to run it's simulation as if it's {@code 1970-01-01T00:00:00Z}. Equivalent to
+     * calling {@code new Simulator(Instant.ofEpochMilli(0L))}.
+     */
     public Simulator() {
         this(Instant.ofEpochMilli(0L));
     }
     
+    /**
+     * Constructs a {@link Simulator} object which is set to run it's simulation as if from some specific point in time. Equivalent to
+     * calling {@code new Simulator(startTime, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver())}.
+     * @param startTime start time of simulation
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public Simulator(Instant startTime) {
         this(startTime, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
     }
-    
+
+    /**
+     * Constructs a {@link Simulator} object which has customized delaying behaviour and is set to run it's simulation as if from some
+     * specific point in time.
+     * @param startTime start time of simulation
+     * @param actorDurationCalculator determines the delay caused by an actor processing a message
+     * @param messageDurationCalculator determines the delay for a message to reach its destination
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public Simulator(
             Instant startTime,
             ActorBehaviourDriver actorDurationCalculator,
@@ -82,6 +143,7 @@ public final class Simulator {
         eventHandlers.put(RemoveActorEvent.class, this::handleRemoveActorEvent);
         eventHandlers.put(AddTimerEvent.class, this::handleAddTimerEvent);
         eventHandlers.put(RemoveTimerEvent.class, this::handleRemoveTimerEvent);
+        eventHandlers.put(TimerTriggerEvent.class, this::handleTimerTriggerEvent);
         eventHandlers.put(MessageEvent.class, this::handleMessageEvent);
         eventHandlers.put(AddMessageSourceEvent.class, this::handleAddMessageSourceEvent);
         eventHandlers.put(PullFromMessageSourceEvent.class, this::handlePullFromMessageSourceEvent);
@@ -98,39 +160,116 @@ public final class Simulator {
         this.sources = new HashSet<>();
     }
     
+    /**
+     * Queue a message sink to be added to this simulation. A {@link MessageSink} can be used to write messages from the simulation to
+     * some external source (e.g. simulate a {@link RecorderGateway} -- see {@link RecordMessageSink}).
+     * <p>
+     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param sink sink to add
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
+     */
     public void addMessageSink(MessageSink sink, Instant when) {
         Validate.notNull(sink);
-        Validate.isTrue(!sinks.contains(sink));
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
         
         events.add(new AddMessageSinkEvent(sink, when, nextSequenceNumber++));
     }
 
+    /**
+     * Queue a message source to be added to this simulation. A {@link MessageSource} can be used to read messages in to the simulation from
+     * some external source (e.g. simulate a {@link ReplayerGateway} -- see {@link ReplayMessageSource}).
+     * <p>
+     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param source source to add
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
+     */
     public void addMessageSource(MessageSource source, Instant when) {
         Validate.notNull(source);
-        Validate.isTrue(!sources.contains(source));
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
         
         events.add(new AddMessageSourceEvent(source, when, nextSequenceNumber++));
     }
-    
+
+    /**
+     * Queue a message sink to be removed from this simulation.
+     * <p>
+     * Note that this method queues a remove. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during removing will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param sink sink to remove
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
+     */
     public void removeSink(MessageSink sink, Instant when) {
         Validate.notNull(sink);
-        Validate.isTrue(!sinks.contains(sink));
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
         
         events.add(new RemoveMessageSinkEvent(sink, when, nextSequenceNumber++));
     }
 
+    /**
+     * Queue a message source to be removed from this simulation.
+     * <p>
+     * Note that this method queues a remove. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during removing will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param source source to remove
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
+     */
     public void removeSource(MessageSource source, Instant when) {
         Validate.notNull(source);
-        Validate.isTrue(!sources.contains(source));
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
         
         events.add(new RemoveMessageSourceEvent(source, when, nextSequenceNumber++));
     }
 
+    /**
+     * Queue a coroutine actor to be added to this simulation. Equivalent to calling
+     * {@code addActor(address, new CoroutineActor(coroutine), timeOffset, when, primingMessages)}.
+     * <p>
+     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param address address of this actor
+     * @param coroutine coroutine actor being added
+     * @param timeOffset time offset of this actor
+     * @param when time in simulation environment when event should take place
+     * @param primingMessages messages to pass in to {@code actor} for priming
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time, or {@code timeOffset} is negative
+     */
     public void addCoroutineActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
         Validate.notNull(coroutine);
         addActor(address, new CoroutineActor(coroutine), timeOffset, when, primingMessages);
     }
 
+    /**
+     * Queue an actor to be added to this simulation. An actor can have a time offset associated with it, meaning that the time passed in to
+     * the actor by this simulator can be offset by some amount. The offset is used to simulate actors running on remote systems -- the
+     * clocks on two systems are likely to be slightly out of sync, even though they're incrementing at the same rate.
+     * <p>
+     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param address address of this actor
+     * @param actor actor being added
+     * @param timeOffset time offset of this actor
+     * @param when time in simulation environment when event should take place
+     * @param primingMessages messages to pass in to {@code actor} for priming
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time, or {@code timeOffset} is negative
+     */
     public void addActor(String address, Actor actor, Duration timeOffset, Instant when, Object... primingMessages) {
         Validate.notNull(address);
         Validate.notNull(actor);
@@ -138,52 +277,108 @@ public final class Simulator {
         Validate.notNull(when);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add actor event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
         Validate.isTrue(!timeOffset.isNegative(), "Negative time offset not allowed");
 
         events.add(new AddActorEvent(address, actor, timeOffset, when, nextSequenceNumber++, primingMessages));
     }
 
+    /**
+     * Queue an actor to be removed from this simulation.
+     * <p>
+     * Note that this method queues a remove. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during removing will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param address address of actor to remove
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
+     */
     public void removeActor(String address, Instant when) {
         Validate.notNull(address);
         Validate.notNull(when);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to remove actor event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
 
         events.add(new RemoveActorEvent(address, when, nextSequenceNumber++));
     }
 
+    /**
+     * Queue a timer to be added to this simulation. This is used to simulate a {@link TimerGateway}. A timer can have a granularity
+     * associated with it, meaning that the triggers from this timer can be made to fire at intervals rather than be exact. This is for
+     * simulating timer granularity on different systems (e.g. on Windows the default timer resolution is around 15 to 16 milliseconds).
+     * <p>
+     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param address address of this actor
+     * @param granularity timer granularity
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void addTimer(String address, long granularity, Instant when) {
         Validate.notNull(address);
         Validate.notNull(when);
         Validate.isTrue(granularity >= 0, "Negative granularity not allowed");
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add timer event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
 
         events.add(new AddTimerEvent(address, granularity, when, nextSequenceNumber++));
     }
 
+    /**
+     * Queue a timer to be removed from this simulation. Timer events that have not yet been fired are removed along with the timer.
+     * <p>
+     * Note that this method queues a remove. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during removing will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param address address of timer to remove
+     * @param when time in simulation environment when event should take place
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
+     */
     public void removeTimer(String address, Instant when) {
         Validate.notNull(address);
         Validate.notNull(when);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to remove timer event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
 
         events.add(new RemoveTimerEvent(address, when, nextSequenceNumber++));
     }
 
+    /**
+     * Queue a custom piece of logic to be run by this simulator. Avoid accessing this simulator from the code being run.
+     * <p>
+     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
+     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
+     * at the event added by this call.
+     * @param runnable runnable to execute
+     * @param when time in simulation environment when execution should take place
+     */
     public void addCustom(Runnable runnable, Instant when) {
         Validate.notNull(runnable);
         Validate.notNull(when);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add custom event prior to current time");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
 
         events.add(new CustomEvent(runnable, when, nextSequenceNumber++));
     }
 
+    /**
+     * Checks to see if this simulation is still running. If this method return {@code true}, it means that events are available for
+     * processing. If this method returns {@code false}, it means that no more events are available for processing (the simulation has
+     * ended).
+     * @return {@code true} if this simulation has another event to process
+     */
     public boolean hasMore() {
         return !events.isEmpty();
     }
     
+    /**
+     * Process the next event. If this simulation has no more events left to process, this method throws an exception. Use
+     * {@link #hasMore() } to determine if this method should be called.
+     * @return the current time in the simulation
+     * @throws IllegalStateException if no more events are left to process
+     */
     public Instant process() {
         Event event = events.poll();
-        Validate.isTrue(event != null, "No events left to process");
+        Validate.validState(event != null, "No events left to process");
 
         currentTime = event.getTriggerTime();
         
@@ -204,6 +399,11 @@ public final class Simulator {
         MessageEvent messageEvent = (MessageEvent) event;        
         processMessage(messageEvent);
     }
+
+    private void handleTimerTriggerEvent(Event event) {
+        TimerTriggerEvent timerTriggerEvent = (TimerTriggerEvent) event;        
+        queueMessage(true, timerTriggerEvent.getSourceAddress(), timerTriggerEvent.getDestinationAddress(), timerTriggerEvent.getMessage());
+    }
     
     private void handleAddActorEvent(Event event) {
         AddActorEvent joinEvent = (AddActorEvent) event;
@@ -219,7 +419,7 @@ public final class Simulator {
         holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessage(true, address, address, message, Duration.ZERO, 0L);
+            queueMessage(true, address, address, message);
         }
     }
     
@@ -267,9 +467,9 @@ public final class Simulator {
         Iterator<Event> eventsIt = events.iterator();
         while (eventsIt.hasNext()) {
             Event pendingEvent = eventsIt.next();
-            if (pendingEvent instanceof MessageEvent) {
-                MessageEvent messageEvent = (MessageEvent) pendingEvent;
-                if (AddressUtils.isPrefix(address, messageEvent.getSourceAddress())) {
+            if (pendingEvent instanceof TimerTriggerEvent) {
+                TimerTriggerEvent timerTriggerEvent = (TimerTriggerEvent) pendingEvent;
+                if (AddressUtils.isPrefix(address, timerTriggerEvent.getSourceAddress())) {
                     eventsIt.remove();
                 }
             }
@@ -301,22 +501,22 @@ public final class Simulator {
         try {
             sourceMessage = source.readNextMessage();
         } catch (IOException ex) {
-            throw new IllegalArgumentException(ex);
+            throw new IllegalArgumentException("Unable to read message from source", ex);
         }
         
         if (sourceMessage == null) {
-            // We've reached the end of the message source. Remove the message source and return.
+            // We've reached the end of the message source. Remove+close the message source and return.
+            try {
+                source.close();
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Unable to close source", ex);
+            }
             sources.remove(source);
             return;
         }
         
         // Queue message
-        queueMessage(false,
-                sourceMessage.getSource(),
-                sourceMessage.getDestination(),
-                sourceMessage.getMessage(),
-                sourceMessage.getDuration(),
-                0L);
+        queueMessage(false, sourceMessage.getSource(), sourceMessage.getDestination(), sourceMessage.getMessage());
         
         // Queue another pull (read the next message) once the message arrives
         Instant nextPullTime = currentTime.plus(sourceMessage.getDuration());
@@ -375,6 +575,49 @@ public final class Simulator {
             boolean sourceMustExistFlag,
             String sourceAddress,
             String destinationAddress,
+            Object message) {
+        Validate.notNull(sourceAddress);
+        Validate.notNull(destinationAddress);
+        Validate.notNull(message);
+        
+        // Source must exist.
+        //
+        // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
+        // to existance exist by the time the message arrives.
+        if (sourceMustExistFlag) {
+            // Only check to see if source actor exists if we the flag is set to do so
+            Validate.isTrue(findHolder(sourceAddress) != null);
+        }
+        
+        Instant arriveTime = currentTime;
+        
+        // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
+        // should be zero (or close to zero).
+        Duration messageDuration = messageDurationCalculator.calculateDuration(sourceAddress, destinationAddress, message);
+        Validate.isTrue(!messageDuration.isNegative()); // sanity check here, make sure it isn't negative
+        
+        arriveTime = arriveTime.plus(messageDuration);
+        
+        // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. Why is
+        // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
+        // (technically). It makes sense no sense to have a message arrive at that actor before then. So, we make sure here that it doesn't
+        // arrive before then.
+        Holder destHolder = findHolder(destinationAddress);
+        if (destHolder != null && destHolder instanceof ActorHolder) { // destHolder may be null, see comment above about destination not
+                                                                       // having to exist
+            Instant nextAvailableStepTime = ((ActorHolder) destHolder).getEarliestPossibleOnStepTime();
+            if (arriveTime.isBefore(nextAvailableStepTime)) {
+                arriveTime = nextAvailableStepTime;
+            }
+        }
+        
+        events.add(new MessageEvent(sourceAddress, destinationAddress, message, arriveTime, nextSequenceNumber++));
+    }
+    
+    private void queueTimerTrigger(
+            boolean sourceMustExistFlag,
+            String sourceAddress,
+            String destinationAddress,
             Object message,
             Duration scheduledDuration,
             long granularity) {
@@ -396,13 +639,6 @@ public final class Simulator {
         }
         
         Instant arriveTime = currentTime;
-        
-        // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
-        // should be zero (or close to zero).
-        Duration messageDuration = messageDurationCalculator.calculateDuration(sourceAddress, destinationAddress, message);
-        Validate.isTrue(!messageDuration.isNegative()); // sanity check here, make sure it isn't negative
-        
-        arriveTime = arriveTime.plus(messageDuration);
         
         // Message may be scheduled by the timer to run at a certain delay. If it is, add that scheduled delay to the arrival time.
         arriveTime = arriveTime.plus(scheduledDuration);
@@ -428,7 +664,7 @@ public final class Simulator {
             }
         }
         
-        events.add(new MessageEvent(sourceAddress, destinationAddress, message, arriveTime, nextSequenceNumber++));
+        events.add(new TimerTriggerEvent(sourceAddress, destinationAddress, message, arriveTime, nextSequenceNumber++));
     }
     
     private void processMessage(MessageEvent messageEvent) {
@@ -469,7 +705,7 @@ public final class Simulator {
             // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
             return;
         }
-        queueMessage(true, destination, source, message, timerDuration, destHolder.getGranularity());
+        queueTimerTrigger(true, destination, source, message, timerDuration, destHolder.getGranularity());
     }
 
     private void processMessageToActor(ActorHolder destHolder, String destination, String source, Object message) {
@@ -502,7 +738,7 @@ public final class Simulator {
             try {
                 sink.writeNextMessage(source, destination, localActorTime, message);
             } catch (IOException ioe) {
-                throw new IllegalStateException(ioe);
+                throw new IllegalStateException("Unable to write to sink", ioe);
             }
         }
 
@@ -525,13 +761,7 @@ public final class Simulator {
 
         for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
             String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
-            queueMessage(
-                    true,
-                    outSrc,
-                    batchedOutMsg.getDestination(),
-                    batchedOutMsg.getMessage(),
-                    Duration.ZERO,
-                    0L);
+            queueMessage(true, outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage());
         }
 
         // We've finished calling onStep(). Next, add the amount of time it took to do the processing of the message by onStep. This is a
@@ -543,7 +773,7 @@ public final class Simulator {
         if (realExecDuration.isNegative()) { // System clock may be wonky, so make sure exec duration doesn't come out as negative!
             realExecDuration = Duration.ZERO;
         }
-        Duration execDuration = actorDurationCalculator.calculateDuration(address, message, realExecDuration);
+        Duration execDuration = actorDurationCalculator.calculateDuration(source, destination, message, realExecDuration);
         Validate.isTrue(!execDuration.isNegative()); // sanity check here, make sure calculated duration it isn't negative
 
         Instant earliestPossibleOnStepTime = currentTime.plus(execDuration);

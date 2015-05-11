@@ -17,11 +17,21 @@
 package com.offbynull.peernetic.core.simulation;
 
 import java.time.Duration;
+import org.apache.commons.lang3.Validate;
 
+/**
+ * A {@link ActorBehaviourDriver} that always returns a {@code 0} duration.
+ * @author Kasra Faghihi
+ */
 public final class SimpleActorBehaviourDriver implements ActorBehaviourDriver {
 
     @Override
-    public Duration calculateDuration(String address, Object message, Duration realDuration) {
+    public Duration calculateDuration(String source, String destination, Object message, Duration realDuration) {
+        Validate.notNull(source);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        Validate.notNull(realDuration);
+        Validate.isTrue(!realDuration.isNegative());
         return Duration.ZERO;
     }
     

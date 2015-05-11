@@ -16,8 +16,25 @@
  */
 package com.offbynull.peernetic.core.simulation;
 
+import com.offbynull.peernetic.core.actor.Actor;
 import java.time.Duration;
 
+/**
+ * Used to calculate the amount of time an {@link Actor} takes to process an incoming message when running in a simulation. Use this to
+ * simulate conditions on a system (e.g. an actor running on a system that's under heavy load will take longer to process incoming
+ * messages).
+ * @author Kasra Faghihi
+ */
 public interface ActorBehaviourDriver {
-    Duration calculateDuration(String address, Object message, Duration realDuration);
+    /**
+     * Calculates the amount of time an {@link Actor} takes to process an incoming message when running in a simulation.
+     * @param source source address
+     * @param destination destination address
+     * @param message message being processed
+     * @param realDuration real amount of time that this message took to process
+     * @return amount of time that this message took in the simulation
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code realDuration} is negative
+     */
+    Duration calculateDuration(String source, String destination, Object message, Duration realDuration);
 }

@@ -19,6 +19,7 @@ package com.offbynull.peernetic.core.actor;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.actor.ActorRunnable.AddShuttleMessage;
+import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import org.apache.commons.lang3.Validate;
 
@@ -52,14 +53,14 @@ import org.apache.commons.lang3.Validate;
  * 
  * All actors assigned to this {@link ActorThread} can send messages to each other without any additional setup.
  * <p>
- * If you want outside components (e.g. other actors that are assigned to a different {@link ActorThread}s) to be able to send messages to
- * actors assigned to this {@link ActorThread}, you'll need to pass those outside components a reference to the {@link Shuttle} returned by
- * {@link #getIncomingShuttle() }.
+ * If you want outside components (e.g. {@link Gateway}s or other actors that are assigned to a different {@link ActorThread}s) to be able
+ * to send messages to actors assigned to this {@link ActorThread}, you'll need to pass those outside components a reference to the
+ * {@link Shuttle} returned by {@link #getIncomingShuttle() }.
  * <p>
  * Similarly, if actors assigned to this {@link ActorThread} are going to send messages to outside components, the {@link Shuttle}s for
  * those outgoing components need to be added to this {@link ActorThread} using
  * {@link #addOutgoingShuttle(com.offbynull.peernetic.core.shuttle.Shuttle) }.
- * 
+ * <p>
  * If an actor tries to send a message to an address for which no outgoing shuttle has been added, that message is silently discarded.
  * 
  * @author Kasra Faghihi

@@ -16,28 +16,22 @@
  */
 package com.offbynull.peernetic.core.simulation;
 
-import java.time.Duration;
+import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-public final class MessageEnvelope {
-    private final Object message;
-    private final String sourceAddress;
-    private final String destinationAddress;
-    private final Duration duration;
+final class TimerTriggerEvent extends Event {
+    final String sourceAddress;
+    final String destinationAddress;
+    final Object message;
 
-    public MessageEnvelope(String sourceAddress, String destinationAddress, Object message, Duration duration) {
+    public TimerTriggerEvent(String sourceAddress, String destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
+        super(triggerTime, sequenceNumber);
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
-        Validate.notNull(duration);
         this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;
         this.message = message;
-        this.duration = duration;
-    }
-
-    public Object getMessage() {
-        return message;
     }
 
     public String getSourceAddress() {
@@ -48,8 +42,8 @@ public final class MessageEnvelope {
         return destinationAddress;
     }
 
-    public Duration getDuration() {
-        return duration;
+    public Object getMessage() {
+        return message;
     }
     
 }

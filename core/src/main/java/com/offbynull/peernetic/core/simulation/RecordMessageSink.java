@@ -19,6 +19,7 @@ package com.offbynull.peernetic.core.simulation;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedBlock;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedMessage;
+import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -29,11 +30,24 @@ import java.util.Collections;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A {@link MessageSink} that records messages to a file. Recorded messages can be read back either via {@link ReplayMessageSource} (for
+ * simulations) or {@link ReplayerGateway} (for real runs).
+ * @author Kasra Faghihi
+ */
 public final class RecordMessageSink implements MessageSink {
     private final String destinationPrefix;
     private final DataOutputStream dos;
     private final Serializer serializer;
 
+    /**
+     * Constructs a {@link RecordMessageSink} object.
+     * @param destinationPrefix destination address prefix for messages to be written
+     * @param file file messages should be written to
+     * @param serializer serializer to use for serializing messages
+     * @throws IOException if {@code file} could not be opened for writing
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public RecordMessageSink(String destinationPrefix, File file, Serializer serializer) throws IOException {
         Validate.notNull(destinationPrefix);
         Validate.notNull(file);
@@ -63,8 +77,13 @@ public final class RecordMessageSink implements MessageSink {
 
     @Override
     public void close() throws Exception {
-        dos.writeBoolean(false);
-        IOUtils.closeQuietly(dos);
+        try {
+            dos.writeBoolean(false);
+        } catch (IOException ioe) {
+            throw ioe;
+        } finally {
+            IOUtils.closeQuietly(dos);
+        }
     }
     
 }

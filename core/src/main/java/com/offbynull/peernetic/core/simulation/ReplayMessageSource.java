@@ -19,6 +19,7 @@ package com.offbynull.peernetic.core.simulation;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedBlock;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedMessage;
+import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import java.io.DataInputStream;
 import java.io.File;
@@ -30,6 +31,11 @@ import java.util.Iterator;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A {@link MessageSource} that replays messages from a file. Replayed messages are recorded via {@link RecordMessageSink} (for simulations)
+ * or {@link RecorderGateway} (for real runs).
+ * @author Kasra Faghihi
+ */
 public final class ReplayMessageSource implements MessageSource {
     private final String destinationPrefix;
     private final DataInputStream dis;
@@ -39,6 +45,14 @@ public final class ReplayMessageSource implements MessageSource {
     private Duration duration;
     private Iterator<RecordedMessage> msgIt;
 
+    /**
+     * Constructs a {@link ReplayMessageSource} object.
+     * @param destinationPrefix destination address prefix read messages should be forwarded to
+     * @param file file messages should be read from
+     * @param serializer serializer to use for deserializing messages
+     * @throws IOException if {@code file} could not be opened for reading
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public ReplayMessageSource(String destinationPrefix, File file, Serializer serializer) throws IOException {
         Validate.notNull(destinationPrefix);
         Validate.notNull(file);
@@ -67,7 +81,7 @@ public final class ReplayMessageSource implements MessageSource {
                 duration = Duration.ZERO;
             } else {
                 duration = Duration.between(lastTime, newLastTime);
-
+                Validate.validState(duration.isNegative(), "Next message from source is sent before previous message from source");
             }
             lastTime = newLastTime;
 

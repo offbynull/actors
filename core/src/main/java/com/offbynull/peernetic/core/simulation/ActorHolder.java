@@ -22,7 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-final class ActorHolder {
+final class ActorHolder implements Holder {
     private final String address;
     private final Actor actor;
     private final Duration timeOffset;

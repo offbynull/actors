@@ -23,13 +23,13 @@ import java.util.Arrays;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
-final class JoinEvent extends Event {
+final class AddActorEvent extends Event {
     private final String address;
     private final Actor actor;
     private final Duration timeOffset;
     private final UnmodifiableList<Object> primingMessages;
 
-    public JoinEvent(String address, Actor actor, Duration timeOffset, Instant triggerTime, long sequenceNumber,
+    public AddActorEvent(String address, Actor actor, Duration timeOffset, Instant triggerTime, long sequenceNumber,
             Object... primingMessages) {
         super(triggerTime, sequenceNumber);
         Validate.notNull(address);

@@ -19,17 +19,26 @@ package com.offbynull.peernetic.core.simulation;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-final class LeaveEvent extends Event {
-    final String address;
+final class AddTimerEvent extends Event {
+    
+    private final String address;
+    private final long granularity;
 
-    public LeaveEvent(String address, Instant triggerTime, long sequenceNumber) {
+    public AddTimerEvent(String address, long granularity, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);
         Validate.notNull(address);
+        Validate.notNull(granularity);
+        Validate.isTrue(granularity >= 0L);
         this.address = address;
+        this.granularity = granularity;
     }
 
     public String getAddress() {
         return address;
+    }
+
+    public long getGranularity() {
+        return granularity;
     }
     
 }

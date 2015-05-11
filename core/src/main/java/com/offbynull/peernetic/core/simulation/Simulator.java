@@ -45,8 +45,7 @@ import org.apache.commons.lang3.Validate;
 public final class Simulator {
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
-    private final String timerPrefix;
-    private final Map<String, ActorHolder> actors;
+    private final Map<String, Holder> holders;
     private final Set<MessageSink> sinks;
     private final Set<MessageSource> sources;
     private final ActorBehaviourDriver actorDurationCalculator;
@@ -57,33 +56,32 @@ public final class Simulator {
                                      // that trigger at the same time. That is, if two events trigger at the same time, they'll be returned
                                      // in the order they were added.
     
-    public Simulator(String timerPrefix) {
-        this(Instant.ofEpochMilli(0L), timerPrefix);
+    public Simulator() {
+        this(Instant.ofEpochMilli(0L));
     }
     
-    public Simulator(Instant startTime, String timerPrefix) {
-        this(startTime, timerPrefix, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
+    public Simulator(Instant startTime) {
+        this(startTime, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
     }
     
     public Simulator(
             Instant startTime,
-            String timerPrefix,
             ActorBehaviourDriver actorDurationCalculator,
             MessageBehaviourDriver messageDurationCalculator) {
         Validate.notNull(startTime);
-        Validate.notNull(timerPrefix);
         Validate.notNull(actorDurationCalculator);
         Validate.notNull(messageDurationCalculator);
 
         this.events = new PriorityQueue<>();
-        this.timerPrefix = timerPrefix;
-        this.actors = new HashMap<>();
+        this.holders = new HashMap<>();
         this.currentTime = startTime;
         
         Map<Class<? extends Event>, Consumer<Event>> eventHandlers = new HashMap<>();
         eventHandlers.put(CustomEvent.class, this::handleCustomEvent);
-        eventHandlers.put(JoinEvent.class, this::handleJoinEvent);
-        eventHandlers.put(LeaveEvent.class, this::handleLeaveEvent);
+        eventHandlers.put(AddActorEvent.class, this::handleAddActorEvent);
+        eventHandlers.put(RemoveActorEvent.class, this::handleRemoveActorEvent);
+        eventHandlers.put(AddTimerEvent.class, this::handleAddTimerEvent);
+        eventHandlers.put(RemoveTimerEvent.class, this::handleRemoveTimerEvent);
         eventHandlers.put(MessageEvent.class, this::handleMessageEvent);
         eventHandlers.put(AddMessageSourceEvent.class, this::handleAddMessageSourceEvent);
         eventHandlers.put(PullFromMessageSourceEvent.class, this::handlePullFromMessageSourceEvent);
@@ -143,7 +141,7 @@ public final class Simulator {
         Validate.isTrue(!when.isBefore(currentTime), "Attempting to add actor event prior to current time");
         Validate.isTrue(!timeOffset.isNegative(), "Negative time offset not allowed");
 
-        events.add(new JoinEvent(address, actor, timeOffset, when, nextSequenceNumber++, primingMessages));
+        events.add(new AddActorEvent(address, actor, timeOffset, when, nextSequenceNumber++, primingMessages));
     }
 
     public void removeActor(String address, Instant when) {
@@ -151,7 +149,24 @@ public final class Simulator {
         Validate.notNull(when);
         Validate.isTrue(!when.isBefore(currentTime), "Attempting to remove actor event prior to current time");
 
-        events.add(new LeaveEvent(address, when, nextSequenceNumber++));
+        events.add(new RemoveActorEvent(address, when, nextSequenceNumber++));
+    }
+
+    public void addTimer(String address, long granularity, Instant when) {
+        Validate.notNull(address);
+        Validate.notNull(when);
+        Validate.isTrue(granularity >= 0, "Negative granularity not allowed");
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add timer event prior to current time");
+
+        events.add(new AddTimerEvent(address, granularity, when, nextSequenceNumber++));
+    }
+
+    public void removeTimer(String address, Instant when) {
+        Validate.notNull(address);
+        Validate.notNull(when);
+        Validate.isTrue(!when.isBefore(currentTime), "Attempting to remove timer event prior to current time");
+
+        events.add(new RemoveTimerEvent(address, when, nextSequenceNumber++));
     }
 
     public void addCustom(Runnable runnable, Instant when) {
@@ -190,31 +205,62 @@ public final class Simulator {
         processMessage(messageEvent);
     }
     
-    private void handleJoinEvent(Event event) {
-        JoinEvent joinEvent = (JoinEvent) event;
+    private void handleAddActorEvent(Event event) {
+        AddActorEvent joinEvent = (AddActorEvent) event;
 
         String address = joinEvent.getAddress();
         Actor actor = joinEvent.getActor();
         Duration timeOffset = joinEvent.getTimeOffset();
         UnmodifiableList<Object> primingMessages = joinEvent.getPrimingMessages();
 
-        validateActorAddressDoesNotConflict(address);
+        validateAddressDoesNotConflict(address);
 
         ActorHolder newHolder = new ActorHolder(address, actor, timeOffset, currentTime);
-        actors.put(address, newHolder); // won't overwrite because validateActorAddress above will throw exception if it does
+        holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessage(address, address, message);
+            queueMessage(true, address, address, message, Duration.ZERO, 0L);
         }
     }
     
-    private void handleLeaveEvent(Event event) {
-        LeaveEvent leaveEvent = (LeaveEvent) event;
+    private void handleRemoveActorEvent(Event event) {
+        RemoveActorEvent removeActorEvent = (RemoveActorEvent) event;
 
-        String address = leaveEvent.getAddress();
+        String address = removeActorEvent.getAddress();
 
-        ActorHolder holder = actors.remove(address);
-        Validate.isTrue(holder != null, "Actor identifier does not exist");
+        Holder holder = holders.remove(address);
+        Validate.isTrue(holder != null, "Address does not exist");
+        if (!(holder instanceof TimerHolder)) {
+            // If the holder removed was not an actor holder, add it back in and throw an exception
+            holders.put(address, holder);
+            throw new IllegalArgumentException("Address not an actor");
+        }
+    }
+
+    private void handleAddTimerEvent(Event event) {
+        AddTimerEvent addTimerEvent = (AddTimerEvent) event;
+
+        String address = addTimerEvent.getAddress();
+        long granularity = addTimerEvent.getGranularity();
+
+        validateAddressDoesNotConflict(address);
+
+        TimerHolder newHolder = new TimerHolder(address, granularity);
+        holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
+    }
+    
+    private void handleRemoveTimerEvent(Event event) {
+        RemoveTimerEvent removeTimerEvent = (RemoveTimerEvent) event;
+
+        String address = removeTimerEvent.getAddress();
+
+        Holder holder = holders.remove(address);
+        Validate.isTrue(holder != null, "Address does not exist");
+        if (!(holder instanceof TimerHolder)) {
+            // If the holder removed was not a timer holder, add it back in and throw an exception
+            holders.put(address, holder);
+            throw new IllegalArgumentException("Address not a timer");
+        }
     }
     
     private void handleAddMessageSourceEvent(Event event) {
@@ -256,7 +302,8 @@ public final class Simulator {
                 sourceMessage.getSource(),
                 sourceMessage.getDestination(),
                 sourceMessage.getMessage(),
-                sourceMessage.getDuration());
+                sourceMessage.getDuration(),
+                0L);
         
         // Queue another pull (read the next message) once the message arrives
         Instant nextPullTime = currentTime.plus(sourceMessage.getDuration());
@@ -285,17 +332,14 @@ public final class Simulator {
         Validate.isTrue(sinks.remove(sink));
     }
     
-    private void validateActorAddressDoesNotConflict(String address) {
+    private void validateAddressDoesNotConflict(String address) {
         Validate.notNull(address);
-        Validate.isTrue(
-                !AddressUtils.isPrefix(timerPrefix, address),
-                "Actor address {} conflicts with timer address {}", address, timerPrefix);
-        ActorHolder conflictingActorHolder = findActor(address);
-        Validate.isTrue(conflictingActorHolder == null,
-                "Actor address {} conflicts with existing actor address {}", address, conflictingActorHolder);
+        Holder conflictingHolder = findHolder(address);
+        Validate.isTrue(conflictingHolder == null,
+                "Address {} conflicts with existing address {}", address, conflictingHolder);
     }
 
-    private ActorHolder findActor(String address) {
+    private Holder findHolder(String address) {
         Validate.notNull(address);
 
         List<String> splitAddress = Arrays.asList(AddressUtils.splitAddress(address));
@@ -305,7 +349,7 @@ public final class Simulator {
             splitAddress.subList(0, i).forEach(x -> joiner.add(x));
             
             String testAddress = joiner.toString();
-            ActorHolder actorHolder = actors.get(testAddress);
+            Holder actorHolder = holders.get(testAddress);
             if (actorHolder != null) {
                 return actorHolder;
             }
@@ -313,28 +357,24 @@ public final class Simulator {
         
         return null;
     }
-
-    private void queueMessage(String source, String destination, Object message) {
-        queueMessage(source, destination, message, Duration.ZERO);
-    }
-
-    private void queueMessage(String source, String destination, Object message, Duration scheduledDuration) {
-        queueMessage(true, source, destination, message, scheduledDuration);
-    }
     
-    private void queueMessage(boolean sourceMustExistFlag, String source, String destination, Object message, Duration scheduledDuration) {
+    private void queueMessage(boolean sourceMustExistFlag, String source, String destination, Object message, Duration scheduledDuration,
+            long granularity) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
         Validate.notNull(scheduledDuration);
+        Validate.notNull(granularity);
+        Validate.isTrue(!scheduledDuration.isNegative());
+        Validate.isTrue(granularity >= 0L);
         
         // Source must exist.
         //
         // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
         // to existance exist by the time the message arrives.
-        if (sourceMustExistFlag && !AddressUtils.isPrefix(timerPrefix, source)) {
-            // Only check to see if source actor exists if we the flag is set to do so + the source isn't the actor
-            Validate.isTrue(findActor(source) != null);
+        if (sourceMustExistFlag) {
+            // Only check to see if source actor exists if we the flag is set to do so
+            Validate.isTrue(findHolder(source) != null);
         }
         
         Instant arriveTime = currentTime;
@@ -349,13 +389,22 @@ public final class Simulator {
         // Message may be scheduled by the timer to run at a certain delay. If it is, add that scheduled delay to the arrival time.
         arriveTime = arriveTime.plus(scheduledDuration);
         
+        // That timer may also be set to run at some time granularity. Apply that granularity here (if applicable).
+        if (granularity != 0L) {
+            long origTime = arriveTime.toEpochMilli();
+            long remaining = arriveTime.toEpochMilli() % granularity;
+            long time = origTime + remaining;
+            arriveTime = Instant.ofEpochMilli(time);
+        }
+        
         // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. Why is
         // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
         // (technically). It makes sense no sense to have a message arrive at that actor before then. So, we make sure here that it doesn't
         // arrive before then.
-        ActorHolder destHolder = findActor(destination);
-        if (destHolder != null) { //destHolder may be null, see comment above about destination not having to exist
-            Instant nextAvailableStepTime = destHolder.getEarliestPossibleOnStepTime();
+        Holder destHolder = findHolder(destination);
+        if (destHolder != null && destHolder instanceof ActorHolder) { // destHolder may be null, see comment above about destination not
+                                                                       // having to exist
+            Instant nextAvailableStepTime = ((ActorHolder) destHolder).getEarliestPossibleOnStepTime();
             if (arriveTime.isBefore(nextAvailableStepTime)) {
                 arriveTime = nextAvailableStepTime;
             }
@@ -371,41 +420,48 @@ public final class Simulator {
         String destination = messageEvent.getDestinationAddress();
         Object message = messageEvent.getMessage();
         
-        // Special case: If this is a timer messages, bounce it back to the source -- scheduled to arrive after the specified duration
-        if (AddressUtils.isPrefix(timerPrefix, destination)) {
-            Duration timerDuration;
-            try {
-                String durationStr = AddressUtils.getElement(destination, 1);
-                timerDuration = Duration.ofMillis(Long.parseLong(durationStr));
-                Validate.isTrue(!timerDuration.isNegative());
-            } catch (Exception e) {
-                // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
-                return;
-            }
-            
-            queueMessage(destination, source, message, timerDuration);
-            return;
-        }
-        
-        
         // Get destination
-        ActorHolder destHolder = findActor(destination);
-        
+        Holder holder = findHolder(destination);
+
         // If destination doesn't exist, log a warning and move on. In the real world if the destination doesn't exist or is otherwise
         // unreachable, the same thing happens -- message is sent to some destination but the system doesn't really care if it arrives or
         // not.
-        if (destHolder == null) {
+        if (holder == null) {
             // TODO log here
             return;
         }
-        
+
+        if (holder instanceof TimerHolder) {
+            processMessageToTimer((TimerHolder) holder, destination, source, message);
+        } else if (holder instanceof ActorHolder) {
+            processMessageToActor((ActorHolder) holder, destination, source, message);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    private void processMessageToTimer(TimerHolder destHolder, String destination, String source, Object message) {
+        // If this is a timer messages, bounce it back to the source -- scheduled to arrive after the specified duration
+        Duration timerDuration;
+        try {
+            String durationStr = AddressUtils.getElement(destination, 1);
+            timerDuration = Duration.ofMillis(Long.parseLong(durationStr));
+            Validate.isTrue(!timerDuration.isNegative());
+        } catch (Exception e) {
+            // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
+            return;
+        }
+        queueMessage(true, destination, source, message, timerDuration, destHolder.getGranularity());
+    }
+
+    private void processMessageToActor(ActorHolder destHolder, String destination, String source, Object message) {
         // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. That is,
         // the message being processed must be >= to the earliest possible step time. Otherwise, something has gone wrong. This is a sanity
         // check.
         Instant minTime = destHolder.getEarliestPossibleOnStepTime();
         Validate.isTrue(!currentTime.isBefore(minTime));
-        
-        
+
+
         // Set up values for calling onStep, and then call onStep. If onStep throws an exception, then log and remove the actor from the
         // test harness. In the real world, if an actor throws an exception, it'll get removed from the list of actors assigned to that
         // ActorThread/ActorRunnable and no more execution is done on it.
@@ -417,13 +473,13 @@ public final class Simulator {
                                                                                // in sync. So, one actor may technically have a different
                                                                                // local time than another (because they may be running on
                                                                                // different machines).
-        
+
         context.setTime(localActorTime);
         context.setSource(source);
         context.setDestination(destination);
         context.setSelf(address);
         context.setIncomingMessage(message);
-        
+
         for (MessageSink sink : sinks) {
             try {
                 sink.writeNextMessage(source, destination, localActorTime, message);
@@ -431,7 +487,7 @@ public final class Simulator {
                 throw new IllegalStateException(ioe);
             }
         }
-        
+
         Duration realExecDuration;
         boolean stopped;
         Instant execStartTime = Instant.now();
@@ -442,21 +498,24 @@ public final class Simulator {
         }
         Instant execEndTime = Instant.now();
         realExecDuration = Duration.between(execStartTime, execEndTime);
-        
+
         if (stopped) {
             // Actor stopped or crashed. Remove it from the list of actors and stop processing.
-            actors.remove(address);
+            holders.remove(address);
             return;
         }
-        
+
         for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
             String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
             queueMessage(
+                    true,
                     outSrc,
                     batchedOutMsg.getDestination(),
-                    batchedOutMsg.getMessage());
+                    batchedOutMsg.getMessage(),
+                    Duration.ZERO,
+                    0L);
         }
-        
+
         // We've finished calling onStep(). Next, add the amount of time it took to do the processing of the message by onStep. This is a
         // calculated value. We have the real execution time, and we pass that in as a hint to the interface that does the calculations, but
         // ultimately the interface can specify whatever duration it wants (provided that it isn't negative).
@@ -468,10 +527,10 @@ public final class Simulator {
         }
         Duration execDuration = actorDurationCalculator.calculateDuration(address, message, realExecDuration);
         Validate.isTrue(!execDuration.isNegative()); // sanity check here, make sure calculated duration it isn't negative
-        
+
         Instant earliestPossibleOnStepTime = currentTime.plus(execDuration);
         destHolder.setEarliestPossibleOnStepTime(earliestPossibleOnStepTime);
-        
+
         // Go through any messages queued to arrive at this actor before earliest possible onstep time. Reschedule each of those messages
         // such that they arrive at earliest possible on step time. Like the comment above says, it wouldn't make sense to call onStep()
         // before this time. We'd be going back in time if we did.
@@ -479,13 +538,13 @@ public final class Simulator {
         Iterator<Event> it = events.iterator();
         while (it.hasNext()) {
             Event event = it.next();
-            
+
             // Events queue is ordered. If the event we're looking at right now is >= to the earliest possible onstep time, it means that
             // this event and all events after it don't need to be rescheduled, so stop checking here.
             if (!earliestPossibleOnStepTime.isBefore(event.getTriggerTime())) {
                 break;
             }
-            
+
             // We only care about MessageEvents because they're the ones that trigger calls to onStep(). If the event is a MessageEvent and
             // the destination of that event is this actor, remove it from the events queue and add it to a temporary collection. All items
             // in this temporary collection are going to be rescheduled such that they trigger at earliestPossibleOnStepTime and re-added
@@ -498,7 +557,7 @@ public final class Simulator {
                 }
             }
         }
-        
+
         for (MessageEvent pendingMessageEvent : messageEventsToReschedule) {
             MessageEvent rescheduledMessageEvent = new MessageEvent(
                     pendingMessageEvent.getSourceAddress(),

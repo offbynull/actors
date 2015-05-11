@@ -17,5 +17,5 @@
 package com.offbynull.peernetic.core.simulation;
 
 interface Holder {
-    
+    String getAddress();
 }

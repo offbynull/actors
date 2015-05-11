@@ -230,7 +230,7 @@ public final class Simulator {
 
         Holder holder = holders.remove(address);
         Validate.isTrue(holder != null, "Address does not exist");
-        if (!(holder instanceof TimerHolder)) {
+        if (!(holder instanceof ActorHolder)) {
             // If the holder removed was not an actor holder, add it back in and throw an exception
             holders.put(address, holder);
             throw new IllegalArgumentException("Address not an actor");
@@ -260,6 +260,19 @@ public final class Simulator {
             // If the holder removed was not a timer holder, add it back in and throw an exception
             holders.put(address, holder);
             throw new IllegalArgumentException("Address not a timer");
+        }
+        
+        // In addition to removing the timer, we need to remove all messages queued by the timer. The timer has been removed, which means
+        // that it'll never get a chance to send these messages out.
+        Iterator<Event> eventsIt = events.iterator();
+        while (eventsIt.hasNext()) {
+            Event pendingEvent = eventsIt.next();
+            if (pendingEvent instanceof MessageEvent) {
+                MessageEvent messageEvent = (MessageEvent) pendingEvent;
+                if (AddressUtils.isPrefix(address, messageEvent.getSourceAddress())) {
+                    eventsIt.remove();
+                }
+            }
         }
     }
     
@@ -358,10 +371,15 @@ public final class Simulator {
         return null;
     }
     
-    private void queueMessage(boolean sourceMustExistFlag, String source, String destination, Object message, Duration scheduledDuration,
+    private void queueMessage(
+            boolean sourceMustExistFlag,
+            String sourceAddress,
+            String destinationAddress,
+            Object message,
+            Duration scheduledDuration,
             long granularity) {
-        Validate.notNull(source);
-        Validate.notNull(destination);
+        Validate.notNull(sourceAddress);
+        Validate.notNull(destinationAddress);
         Validate.notNull(message);
         Validate.notNull(scheduledDuration);
         Validate.notNull(granularity);
@@ -374,14 +392,14 @@ public final class Simulator {
         // to existance exist by the time the message arrives.
         if (sourceMustExistFlag) {
             // Only check to see if source actor exists if we the flag is set to do so
-            Validate.isTrue(findHolder(source) != null);
+            Validate.isTrue(findHolder(sourceAddress) != null);
         }
         
         Instant arriveTime = currentTime;
         
         // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
         // should be zero (or close to zero).
-        Duration messageDuration = messageDurationCalculator.calculateDuration(source, destination, message);
+        Duration messageDuration = messageDurationCalculator.calculateDuration(sourceAddress, destinationAddress, message);
         Validate.isTrue(!messageDuration.isNegative()); // sanity check here, make sure it isn't negative
         
         arriveTime = arriveTime.plus(messageDuration);
@@ -401,7 +419,7 @@ public final class Simulator {
         // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
         // (technically). It makes sense no sense to have a message arrive at that actor before then. So, we make sure here that it doesn't
         // arrive before then.
-        Holder destHolder = findHolder(destination);
+        Holder destHolder = findHolder(destinationAddress);
         if (destHolder != null && destHolder instanceof ActorHolder) { // destHolder may be null, see comment above about destination not
                                                                        // having to exist
             Instant nextAvailableStepTime = ((ActorHolder) destHolder).getEarliestPossibleOnStepTime();
@@ -410,7 +428,7 @@ public final class Simulator {
             }
         }
         
-        events.add(new MessageEvent(source, destination, message, arriveTime, nextSequenceNumber++));
+        events.add(new MessageEvent(sourceAddress, destinationAddress, message, arriveTime, nextSequenceNumber++));
     }
     
     private void processMessage(MessageEvent messageEvent) {

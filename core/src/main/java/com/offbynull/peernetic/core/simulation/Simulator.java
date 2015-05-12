@@ -413,7 +413,10 @@ public final class Simulator {
 
     private void handleTimerTriggerEvent(Event event) {
         TimerTriggerEvent timerTriggerEvent = (TimerTriggerEvent) event;        
-        queueMessage(true, timerTriggerEvent.getSourceAddress(), timerTriggerEvent.getDestinationAddress(), timerTriggerEvent.getMessage(),
+        queueMessageFromActorOrGateway(
+                timerTriggerEvent.getSourceAddress(),
+                timerTriggerEvent.getDestinationAddress(),
+                timerTriggerEvent.getMessage(),
                 Duration.ZERO);
     }
     
@@ -431,7 +434,7 @@ public final class Simulator {
         holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessage(true, address, address, message, Duration.ZERO);
+            queueMessageFromActorOrGateway(address, address, message, Duration.ZERO);
         }
     }
     
@@ -528,7 +531,7 @@ public final class Simulator {
         }
         
         // Queue message
-        queueMessage(false, sourceMessage.getSource(), sourceMessage.getDestination(), sourceMessage.getMessage(), Duration.ZERO);
+        queueMessageFromMessageSource(sourceMessage.getSource(), sourceMessage.getDestination(), sourceMessage.getMessage());
         
         // Queue another pull (read the next message) once the message arrives
         Instant nextPullTime = currentTime.plus(sourceMessage.getDuration());
@@ -583,33 +586,60 @@ public final class Simulator {
         return null;
     }
     
-    private void queueMessage(
-            boolean sourceMustExistFlag,
+    private void queueMessageFromMessageSource(
             String sourceAddress,
             String destinationAddress,
-            Object message,
-            Duration sentDuration) {
+            Object message) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
-        Validate.notNull(sentDuration);
-        Validate.isTrue(!sentDuration.isNegative());
+        
+        Instant arriveTime = currentTime;
+        
+        // Messages generated from message sources don't require any durations to be added to the message or the actual message's source to
+        // exist.
+        
+        // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. Why is
+        // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
+        // (technically). It makes sense no sense to have a message arrive at that actor before then. So, we make sure here that it doesn't
+        // arrive before then.
+        Holder destHolder = findHolder(destinationAddress);
+        if (destHolder != null && destHolder instanceof ActorHolder) { // destHolder may be null, see comment above about destination not
+                                                                       // having to exist
+            Instant nextAvailableStepTime = ((ActorHolder) destHolder).getEarliestPossibleOnStepTime();
+            if (arriveTime.isBefore(nextAvailableStepTime)) {
+                arriveTime = nextAvailableStepTime;
+            }
+        }
+        
+        events.add(new MessageEvent(sourceAddress, destinationAddress, message, arriveTime, nextSequenceNumber++));
+    }
+
+    private void queueMessageFromActorOrGateway(
+            String sourceAddress,
+            String destinationAddress,
+            Object message,
+            Duration actorExecDuration) {
+        Validate.notNull(sourceAddress);
+        Validate.notNull(destinationAddress);
+        Validate.notNull(message);
+        Validate.notNull(actorExecDuration);
+        Validate.isTrue(!actorExecDuration.isNegative());
         
         // Source must exist.
         //
         // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
         // to existance exist by the time the message arrives.
-        if (sourceMustExistFlag) {
-            // Only check to see if source actor exists if we the flag is set to do so
-            Validate.isTrue(findHolder(sourceAddress) != null);
-        }
+        Validate.isTrue(findHolder(sourceAddress) != null);
         
         Instant arriveTime = currentTime;
         
         // Add how far in the future this message is sent. This is here because an actors's onStep() may take some time to execute. Messages
         // sent by that actor are sent after the onStep() completes. As such, we need to make it seem as if this message was sent in the
         // future after onStep()'s completion.
-        arriveTime = arriveTime.plus(sentDuration);
+        //
+        // If not sent by an actor, this value should be Duration.ZERO
+        arriveTime = arriveTime.plus(actorExecDuration);
         
         
         // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
@@ -799,7 +829,7 @@ public final class Simulator {
         // added to it as well.
         for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
             String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
-            queueMessage(true, outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage(), execDuration);
+            queueMessageFromActorOrGateway(outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage(), execDuration);
         }
 
         // Go through any messages queued to arrive at this actor before earliest possible onstep time. Reschedule each of those messages

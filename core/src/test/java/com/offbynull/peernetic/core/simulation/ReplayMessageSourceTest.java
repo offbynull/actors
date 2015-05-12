@@ -84,6 +84,10 @@ public class ReplayMessageSourceTest {
         assertEquals(Duration.ofMillis(0L), msg0.getDuration());
         assertEquals(Duration.ofMillis(1L), msg1.getDuration());
         assertEquals(Duration.ofMillis(1L), msg2.getDuration());
+        
+        // The above expected durations are correct. They're the duration from the previous message to the next. The initial message doesn't
+        // have a previous message to compare against so it's always set to 0.
+        
         assertNull(msg3);
         
         fixture.close();

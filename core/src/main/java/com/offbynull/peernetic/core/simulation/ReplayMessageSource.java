@@ -81,7 +81,7 @@ public final class ReplayMessageSource implements MessageSource {
                 duration = Duration.ZERO;
             } else {
                 duration = Duration.between(lastTime, newLastTime);
-                Validate.validState(duration.isNegative(), "Next message from source is sent before previous message from source");
+                Validate.validState(!duration.isNegative(), "Next message from source is sent before previous message from source");
             }
             lastTime = newLastTime;
 

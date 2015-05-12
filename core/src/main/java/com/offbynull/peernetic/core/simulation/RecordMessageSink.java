@@ -35,10 +35,12 @@ import org.apache.commons.lang3.Validate;
  * simulations) or {@link ReplayerGateway} (for real runs).
  * @author Kasra Faghihi
  */
-public final class RecordMessageSink implements MessageSink {
+public final class RecordMessageSink implements MessageSink { // FYI: NOT THREAD-SAFE
     private final String destinationPrefix;
     private final DataOutputStream dos;
     private final Serializer serializer;
+    
+    private boolean closed;
 
     /**
      * Constructs a {@link RecordMessageSink} object.
@@ -77,11 +79,16 @@ public final class RecordMessageSink implements MessageSink {
 
     @Override
     public void close() throws Exception {
+        if (closed) {
+            return;
+        }
+        
         try {
             dos.writeBoolean(false);
         } catch (IOException ioe) {
             throw ioe;
         } finally {
+            closed = true;
             IOUtils.closeQuietly(dos);
         }
     }

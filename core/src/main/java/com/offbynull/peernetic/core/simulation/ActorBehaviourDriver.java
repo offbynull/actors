@@ -22,7 +22,7 @@ import java.time.Duration;
 /**
  * Used to calculate the amount of time an {@link Actor} takes to process an incoming message when running in a simulation. Use this to
  * simulate conditions on a system (e.g. an actor running on a system that's under heavy load will take longer to process incoming
- * messages).
+ * messages), or monitor if actors are taking too long to execute (real durations are provided).
  * @author Kasra Faghihi
  */
 public interface ActorBehaviourDriver {

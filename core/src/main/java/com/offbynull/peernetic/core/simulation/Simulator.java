@@ -81,8 +81,19 @@ import org.apache.commons.lang3.Validate;
  *     testHarness.process();
  * }
  * </pre>
- * Note that there is no explicit binding of {@link Shuttle}s. This class doesn't expose shuttles. All actors and mock gateways in a
- * simulation environment can pass messages to/from each other as soon as they're added.
+ * Things to note when running your actors in a simulation:
+ * <ol>
+ * <li>The simulator does not make use of {@link Shuttle}s. That means that all actors and mock gateways in a simulation environment can
+ * pass messages to/from each other as soon as they're added.</li>
+ * <li>The time one actor takes to process an incoming message has no effect on the other actors in the simulation. For example, imagine
+ * that {@code actor1} and {@code actor2} both receive a message at the same time. {@code actor1} processes its message first and takes 5
+ * milliseconds to do so. {@code actor2} then processes its message <b>from the same point in time</b> (without the 5 milliseconds tacked
+ * on), as if it was running in parallel with {@actor1} vs after {@code actor1}. One way to think about this is that all actors in a
+ * simulation are running as if they're in their own {@link ActorThread}.</li>
+ * <li>Messages that are already in transit will remain in transit even if the source actor/gateway or destination actor/gateway is removed.
+ * For example, if you send a message from {@code actor1} to {@code actor2}, then remove {@code actor2} and add in a new {@code actor2}
+ * before the message arrives, the new {@code actor2} will receive the message.</li>
+ * </ol>
  * @author Kasra Faghihi
  */
 public final class Simulator {
@@ -402,7 +413,8 @@ public final class Simulator {
 
     private void handleTimerTriggerEvent(Event event) {
         TimerTriggerEvent timerTriggerEvent = (TimerTriggerEvent) event;        
-        queueMessage(true, timerTriggerEvent.getSourceAddress(), timerTriggerEvent.getDestinationAddress(), timerTriggerEvent.getMessage());
+        queueMessage(true, timerTriggerEvent.getSourceAddress(), timerTriggerEvent.getDestinationAddress(), timerTriggerEvent.getMessage(),
+                Duration.ZERO);
     }
     
     private void handleAddActorEvent(Event event) {
@@ -419,7 +431,7 @@ public final class Simulator {
         holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessage(true, address, address, message);
+            queueMessage(true, address, address, message, Duration.ZERO);
         }
     }
     
@@ -516,7 +528,7 @@ public final class Simulator {
         }
         
         // Queue message
-        queueMessage(false, sourceMessage.getSource(), sourceMessage.getDestination(), sourceMessage.getMessage());
+        queueMessage(false, sourceMessage.getSource(), sourceMessage.getDestination(), sourceMessage.getMessage(), Duration.ZERO);
         
         // Queue another pull (read the next message) once the message arrives
         Instant nextPullTime = currentTime.plus(sourceMessage.getDuration());
@@ -575,10 +587,13 @@ public final class Simulator {
             boolean sourceMustExistFlag,
             String sourceAddress,
             String destinationAddress,
-            Object message) {
+            Object message,
+            Duration sentDuration) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
+        Validate.notNull(sentDuration);
+        Validate.isTrue(!sentDuration.isNegative());
         
         // Source must exist.
         //
@@ -590,6 +605,12 @@ public final class Simulator {
         }
         
         Instant arriveTime = currentTime;
+        
+        // Add how far in the future this message is sent. This is here because an actors's onStep() may take some time to execute. Messages
+        // sent by that actor are sent after the onStep() completes. As such, we need to make it seem as if this message was sent in the
+        // future after onStep()'s completion.
+        arriveTime = arriveTime.plus(sentDuration);
+        
         
         // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
         // should be zero (or close to zero).
@@ -759,11 +780,6 @@ public final class Simulator {
             return;
         }
 
-        for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
-            String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
-            queueMessage(true, outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage());
-        }
-
         // We've finished calling onStep(). Next, add the amount of time it took to do the processing of the message by onStep. This is a
         // calculated value. We have the real execution time, and we pass that in as a hint to the interface that does the calculations, but
         // ultimately the interface can specify whatever duration it wants (provided that it isn't negative).
@@ -778,6 +794,13 @@ public final class Simulator {
 
         Instant earliestPossibleOnStepTime = currentTime.plus(execDuration);
         destHolder.setEarliestPossibleOnStepTime(earliestPossibleOnStepTime);
+        
+        // All messages going out from this onStep() call go out at the end, which means that their arrival time needs to have execDuration
+        // added to it as well.
+        for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
+            String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
+            queueMessage(true, outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage(), execDuration);
+        }
 
         // Go through any messages queued to arrive at this actor before earliest possible onstep time. Reschedule each of those messages
         // such that they arrive at earliest possible on step time. Like the comment above says, it wouldn't make sense to call onStep()

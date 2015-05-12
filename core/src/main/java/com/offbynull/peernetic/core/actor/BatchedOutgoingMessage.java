@@ -20,6 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A queued outgoing message.
+ * @author Kasra Faghihi
  */
 public final class BatchedOutgoingMessage {
     private final String sourceId;

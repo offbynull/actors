@@ -29,6 +29,11 @@ public final class NullShuttle implements Shuttle {
 
     private final String prefix;
 
+    /**
+     * Constructs a {@link NullShuttle} instance.
+     * @param prefix address prefix of this shuttle
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public NullShuttle(String prefix) {
         Validate.notNull(prefix);
         this.prefix = prefix;

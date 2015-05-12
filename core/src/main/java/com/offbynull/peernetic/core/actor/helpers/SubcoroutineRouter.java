@@ -187,7 +187,7 @@ public final class SubcoroutineRouter {
     
     /**
      * Behaviour when adding a subcoroutine via {@link Controller#add(com.offbynull.peernetic.core.actor.helpers.Subcoroutine,
-     * com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour) }
+     * com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour) }.
      */
     public enum AddBehaviour {
         /**

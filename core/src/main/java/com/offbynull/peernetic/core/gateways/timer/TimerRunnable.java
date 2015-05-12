@@ -20,9 +20,11 @@ import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -45,7 +47,7 @@ final class TimerRunnable implements Runnable {
 
     public TimerRunnable(Bus bus) {
         outgoingShuttles = new HashMap<>();
-        queue = new PriorityQueue<>();
+        queue = new PriorityQueue<>(new PendingMessageSendTimeComparator());
         this.bus = bus;
     }
 
@@ -143,7 +145,7 @@ final class TimerRunnable implements Runnable {
         }
     }
 
-    private static final class PendingMessage implements Comparable<PendingMessage> {
+    private static final class PendingMessage {
 
         private final Instant sendTime;
         private final String from;
@@ -176,11 +178,16 @@ final class TimerRunnable implements Runnable {
             return message;
         }
 
-        @Override
-        public int compareTo(PendingMessage o) {
-            return sendTime.compareTo(o.sendTime);
-        }
+    }
+    
+    private static final class PendingMessageSendTimeComparator implements Comparator<PendingMessage>, Serializable {
+        private static final long serialVersionUID = 1L;
 
+        @Override
+        public int compare(PendingMessage o1, PendingMessage o2) {
+            return o1.getSendTime().compareTo(o2.getSendTime());
+        }
+        
     }
 
 }

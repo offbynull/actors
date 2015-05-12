@@ -20,7 +20,7 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class CustomEvent extends Event {
-    final Runnable runnable;
+    private final Runnable runnable;
 
     public CustomEvent(Runnable runnable, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);

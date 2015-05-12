@@ -90,7 +90,7 @@ public final class CaptureShuttle implements Shuttle {
      * @return next captured message
      * @throws InterruptedException if thread interrupted
      */
-    public Message takeNextMessage() throws InterruptedException{
+    public Message takeNextMessage() throws InterruptedException {
         return queuedMessages.take();
     }
 }

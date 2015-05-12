@@ -28,6 +28,9 @@ import org.apache.commons.lang3.Validate;
  */
 public final class AddressUtils {
 
+    /**
+     * Delimiter for address elements.
+     */
     public static final String SEPARATOR = ":";
 
     private AddressUtils() {
@@ -41,7 +44,7 @@ public final class AddressUtils {
      * @return {@code true} if {@code parentAddress} is a prefix of {@code absoluteAddress}
      * @throws NullPointerException if any argument is {@code null}
      */
-    public static final boolean isPrefix(String parentAddress, String absoluteAddress) {
+    public static boolean isPrefix(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(absoluteAddress);
         
@@ -68,7 +71,7 @@ public final class AddressUtils {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code parentAddress} is not a prefix of {@code absoluteAddress}
      */
-    public static final String relativize(String parentAddress, String absoluteAddress) {
+    public static String relativize(String parentAddress, String absoluteAddress) {
         Validate.notNull(parentAddress);
         Validate.notNull(absoluteAddress);
         
@@ -95,7 +98,7 @@ public final class AddressUtils {
      * {@code parentAddress} is returned
      * @throws NullPointerException if any argument other than {@code relativeAddress} is {@code null}
      */
-    public static final String parentize(String parentAddress, String relativeAddress) {
+    public static String parentize(String parentAddress, String relativeAddress) {
         Validate.notNull(parentAddress);
         // relativeAddress can be null
         

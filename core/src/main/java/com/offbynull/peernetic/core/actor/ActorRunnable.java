@@ -194,7 +194,7 @@ final class ActorRunnable implements Runnable {
             if (shuttle != null) {
                 shuttle.send(entry.getValue());
             } else {
-                // TODO: Log warning here saying shuttle doesn't exist
+                // Log warning here saying shuttle doesn't exist
             }
         }
     }

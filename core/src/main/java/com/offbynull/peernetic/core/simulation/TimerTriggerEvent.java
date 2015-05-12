@@ -20,9 +20,9 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class TimerTriggerEvent extends Event {
-    final String sourceAddress;
-    final String destinationAddress;
-    final Object message;
+    private final String sourceAddress;
+    private final String destinationAddress;
+    private final Object message;
 
     public TimerTriggerEvent(String sourceAddress, String destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);

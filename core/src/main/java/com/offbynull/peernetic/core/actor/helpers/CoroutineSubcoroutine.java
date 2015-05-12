@@ -49,6 +49,7 @@ public final class CoroutineSubcoroutine implements Subcoroutine<Void> {
 
     @Override
     public Void run(Continuation cnt) throws Exception {
+        // Dead store findbugs warnings are false positives caused by coroutine instrumentation
         coroutine.run(cnt);
         return null;
     }

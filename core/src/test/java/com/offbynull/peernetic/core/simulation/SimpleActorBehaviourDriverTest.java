@@ -6,11 +6,11 @@ import org.junit.Before;
 import org.junit.Test;
 public class SimpleActorBehaviourDriverTest {
     
-    private SimpleActorBehaviourDriver fixture;
+    private SimpleActorDurationCalculator fixture;
     
     @Before
     public void setUp() {
-        fixture = new SimpleActorBehaviourDriver();
+        fixture = new SimpleActorDurationCalculator();
     }
 
     @Test

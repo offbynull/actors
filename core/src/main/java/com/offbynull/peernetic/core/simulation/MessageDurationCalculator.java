@@ -24,7 +24,7 @@ import java.time.Duration;
  * time before getting processed by the actor).
  * @author Kasra Faghihi
  */
-public interface MessageBehaviourDriver {
+public interface MessageDurationCalculator {
     // NOTE: unlike ActorBehaviourDriver, it doesn't make sense for this method to have a realDuration parameter. The way the simulator
     // works, we will never have access to an duration value for message passing, as messages are passed "instantly" in the simulator.
     /**

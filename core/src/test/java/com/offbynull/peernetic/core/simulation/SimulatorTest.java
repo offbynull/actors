@@ -130,7 +130,7 @@ public class SimulatorTest {
 
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
-                new SimpleActorBehaviourDriver(),
+                new SimpleActorDurationCalculator(),
                 (src, dst, msg) -> Duration.ofSeconds(1L));
         fixture.addCoroutineActor("local:sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "local:echoer");
         fixture.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
@@ -191,7 +191,7 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L),
-                new SimpleMessageBehaviourDriver());
+                new SimpleMessageDurationCalculator());
         fixture.addCoroutineActor("local:sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "local:echoer");
         fixture.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 

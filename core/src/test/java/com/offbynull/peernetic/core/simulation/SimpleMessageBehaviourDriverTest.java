@@ -6,11 +6,11 @@ import org.junit.Before;
 import org.junit.Test;
 public class SimpleMessageBehaviourDriverTest {
     
-    private SimpleMessageBehaviourDriver fixture;
+    private SimpleMessageDurationCalculator fixture;
     
     @Before
     public void setUp() {
-        fixture = new SimpleMessageBehaviourDriver();
+        fixture = new SimpleMessageDurationCalculator();
     }
 
     @Test

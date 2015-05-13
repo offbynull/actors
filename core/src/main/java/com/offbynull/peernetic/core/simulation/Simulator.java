@@ -102,8 +102,8 @@ public final class Simulator {
     private final Map<String, Holder> holders;
     private final Set<MessageSink> sinks;
     private final Set<MessageSource> sources;
-    private final ActorBehaviourDriver actorDurationCalculator;
-    private final MessageBehaviourDriver messageDurationCalculator;
+    private final ActorDurationCalculator actorDurationCalculator;
+    private final MessageDurationCalculator messageDurationCalculator;
     private Instant currentTime;
     private long nextSequenceNumber; // Each time an event created and added to the events collection, this sequence number is incremented
                                      // and used for the events sequence number. The sequence number is used to properly order order events
@@ -120,12 +120,12 @@ public final class Simulator {
     
     /**
      * Constructs a {@link Simulator} object which is set to run it's simulation as if from some specific point in time. Equivalent to
-     * calling {@code new Simulator(startTime, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver())}.
+     * calling {@code new Simulator(startTime, new SimpleActorDurationCalculator(), new SimpleMessageDurationCalculator())}.
      * @param startTime start time of simulation
      * @throws NullPointerException if any argument is {@code null}
      */
     public Simulator(Instant startTime) {
-        this(startTime, new SimpleActorBehaviourDriver(), new SimpleMessageBehaviourDriver());
+        this(startTime, new SimpleActorDurationCalculator(), new SimpleMessageDurationCalculator());
     }
 
     /**
@@ -138,8 +138,8 @@ public final class Simulator {
      */
     public Simulator(
             Instant startTime,
-            ActorBehaviourDriver actorDurationCalculator,
-            MessageBehaviourDriver messageDurationCalculator) {
+            ActorDurationCalculator actorDurationCalculator,
+            MessageDurationCalculator messageDurationCalculator) {
         Validate.notNull(startTime);
         Validate.notNull(actorDurationCalculator);
         Validate.notNull(messageDurationCalculator);

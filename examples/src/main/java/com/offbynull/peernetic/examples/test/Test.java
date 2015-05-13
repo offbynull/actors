@@ -285,7 +285,7 @@ public class Test {
         };
 
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
         
         while (testHarness.hasMore()) {
@@ -318,7 +318,7 @@ public class Test {
         };
 
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
         testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
         
@@ -357,7 +357,7 @@ public class Test {
 
             try (MessageSink sink = new RecordMessageSink("local:echoer", recordFile, new SimpleSerializer())) {
                 Simulator testHarness = new Simulator();
-                testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+                testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
                 testHarness.addMessageSink(sink, Instant.ofEpochMilli(0L));
                 testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
                 testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
@@ -385,7 +385,7 @@ public class Test {
 
             try (MessageSource source = new ReplayMessageSource("local:sender", recordFile, new SimpleSerializer())) {
                 Simulator testHarness = new Simulator();
-                testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+                testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
                 testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
                 testHarness.addMessageSource(source, Instant.ofEpochMilli(0L));
 

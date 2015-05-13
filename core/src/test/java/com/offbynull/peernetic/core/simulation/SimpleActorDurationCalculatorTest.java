@@ -4,7 +4,7 @@ import java.time.Duration;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
-public class SimpleActorBehaviourDriverTest {
+public class SimpleActorDurationCalculatorTest {
     
     private SimpleActorDurationCalculator fixture;
     

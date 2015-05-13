@@ -81,18 +81,22 @@ import org.apache.commons.lang3.Validate;
  *     testHarness.process();
  * }
  * </pre>
- * Things to note when running your actors in a simulation:
+ * Other important things to note when running your actors in a simulation:
  * <ol>
- * <li>The simulator does not make use of {@link Shuttle}s. That means that all actors and mock gateways in a simulation environment can
- * pass messages to/from each other as soon as they're added.</li>
- * <li>The time one actor takes to process an incoming message has no effect on the other actors in the simulation. For example, imagine
- * that {@code actor1} and {@code actor2} both receive a message at the same time. {@code actor1} processes its message first and takes 5
- * milliseconds to do so. {@code actor2} then processes its message <b>from the same point in time</b> (without the 5 milliseconds tacked
- * on), as if it was running in parallel with {@actor1} vs after {@code actor1}. One way to think about this is that all actors in a
- * simulation are running as if they're in their own {@link ActorThread}.</li>
- * <li>Messages that are already in transit will remain in transit even if the source actor/gateway or destination actor/gateway is removed.
- * For example, if you send a message from {@code actor1} to {@code actor2}, then remove {@code actor2} and add in a new {@code actor2}
- * before the message arrives, the new {@code actor2} will receive the message.</li>
+ * <li><b>Actors are added in to the simulator as-is.</b> When running actors in a real environment, you would normally run those actors in
+ * one or more {@link ActorThread}s and potentially bind their {@link Shuttle}s between each other and related {@link Gateway}s. In
+ * contrast, the simulator has no concept of a container for actors (something similar to {@link ActorThread}) and no concept of a
+ * explicitly binding between those containers (something similar to {@link Shuttle}). Instead, actors are directly added to the simulator
+ * and all addresses present in the simulator can send to and receive from each other.</li>
+ * <li><b>Messages are passed between actors and (mocked) gateways instantly,</b> meaning that you cannot use the simulator to simulate
+ * message delays (e.g. simulating a system under heavy load). However, delays caused by the execution of an actor can be simulated. See
+ * {@link ActorDurationCalculator} and
+ * {@link #Simulator(java.time.Instant, com.offbynull.peernetic.core.simulation.ActorDurationCalculator) } for more detail.</li>
+ * <li><b>The time one actor takes to process an incoming message has no effect on the other actors in the simulation.</b> For example,
+ * imagine that {@code actor1} and {@code actor2} both receive a message at the same time. {@code actor1} processes its message first and
+ * takes 5 milliseconds to do so. {@code actor2} then processes its message <u>from the same point in time</u> (without the 5 milliseconds
+ * tacked on), as if it was running in parallel with {@code actor1} vs after {@code actor1}. One way to think about this is that all actors
+ * in the simulator runs all actors in parallel, as if each individual actor runs in its own thread.</li>
  * </ol>
  * @author Kasra Faghihi
  */
@@ -103,7 +107,6 @@ public final class Simulator {
     private final Set<MessageSink> sinks;
     private final Set<MessageSource> sources;
     private final ActorDurationCalculator actorDurationCalculator;
-    private final MessageDurationCalculator messageDurationCalculator;
     private Instant currentTime;
     private long nextSequenceNumber; // Each time an event created and added to the events collection, this sequence number is incremented
                                      // and used for the events sequence number. The sequence number is used to properly order order events
@@ -120,12 +123,12 @@ public final class Simulator {
     
     /**
      * Constructs a {@link Simulator} object which is set to run it's simulation as if from some specific point in time. Equivalent to
-     * calling {@code new Simulator(startTime, new SimpleActorDurationCalculator(), new SimpleMessageDurationCalculator())}.
+     * calling {@code new Simulator(startTime, new SimpleActorDurationCalculator())}.
      * @param startTime start time of simulation
      * @throws NullPointerException if any argument is {@code null}
      */
     public Simulator(Instant startTime) {
-        this(startTime, new SimpleActorDurationCalculator(), new SimpleMessageDurationCalculator());
+        this(startTime, new SimpleActorDurationCalculator());
     }
 
     /**
@@ -133,16 +136,11 @@ public final class Simulator {
      * specific point in time.
      * @param startTime start time of simulation
      * @param actorDurationCalculator determines the delay caused by an actor processing a message
-     * @param messageDurationCalculator determines the delay for a message to reach its destination
      * @throws NullPointerException if any argument is {@code null}
      */
-    public Simulator(
-            Instant startTime,
-            ActorDurationCalculator actorDurationCalculator,
-            MessageDurationCalculator messageDurationCalculator) {
+    public Simulator(Instant startTime, ActorDurationCalculator actorDurationCalculator) {
         Validate.notNull(startTime);
         Validate.notNull(actorDurationCalculator);
-        Validate.notNull(messageDurationCalculator);
 
         this.events = new PriorityQueue<>();
         this.holders = new HashMap<>();
@@ -165,7 +163,6 @@ public final class Simulator {
         this.eventHandlers =
                 (UnmodifiableMap<Class<? extends Event>, Consumer<Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
         this.actorDurationCalculator = actorDurationCalculator;
-        this.messageDurationCalculator = messageDurationCalculator;
         
         this.sinks = new HashSet<>();
         this.sources = new HashSet<>();
@@ -450,6 +447,19 @@ public final class Simulator {
             holders.put(address, holder);
             throw new IllegalArgumentException("Address not an actor");
         }
+        
+        // In addition to removing the actor, we need to remove all messages coming in to the actor. The actor has been removed, which means
+        // that it'll never get a chance to receive these messages (we pretend that these messages were already in its receive queue).
+        Iterator<Event> eventsIt = events.iterator();
+        while (eventsIt.hasNext()) {
+            Event pendingEvent = eventsIt.next();
+            if (pendingEvent instanceof MessageEvent) {
+                MessageEvent messageEvent = (MessageEvent) pendingEvent;
+                if (AddressUtils.isPrefix(address, messageEvent.getDestinationAddress())) {
+                    eventsIt.remove();
+                }
+            }
+        }
     }
 
     private void handleAddTimerEvent(Event event) {
@@ -640,14 +650,7 @@ public final class Simulator {
         //
         // If not sent by an actor, this value should be Duration.ZERO
         arriveTime = arriveTime.plus(actorExecDuration);
-        
-        
-        // Add the amount of time it takes the message to arrive for processing. For messages sent between local gateways/actors, duration
-        // should be zero (or close to zero).
-        Duration messageDuration = messageDurationCalculator.calculateDuration(sourceAddress, destinationAddress, message);
-        Validate.isTrue(!messageDuration.isNegative()); // sanity check here, make sure it isn't negative
-        
-        arriveTime = arriveTime.plus(messageDuration);
+
         
         // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. Why is
         // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed

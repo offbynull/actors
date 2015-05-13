@@ -14,22 +14,36 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
-final class RemoveMessageSinkEvent extends Event {
-    private final MessageSink messageSink;
+final class MessageEvent extends Event {
+    private final String sourceAddress;
+    private final String destinationAddress;
+    private final Object message;
 
-    public RemoveMessageSinkEvent(MessageSink messageSink, Instant triggerTime, long sequenceNumber) {
+    public MessageEvent(String sourceAddress, String destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);
-        Validate.notNull(messageSink);
-        
-        this.messageSink = messageSink;
+        Validate.notNull(sourceAddress);
+        Validate.notNull(destinationAddress);
+        Validate.notNull(message);
+        this.sourceAddress = sourceAddress;
+        this.destinationAddress = destinationAddress;
+        this.message = message;
     }
 
-    public MessageSink getMessageSink() {
-        return messageSink;
+    public String getSourceAddress() {
+        return sourceAddress;
     }
+
+    public String getDestinationAddress() {
+        return destinationAddress;
+    }
+
+    public Object getMessage() {
+        return message;
+    }
+    
 }

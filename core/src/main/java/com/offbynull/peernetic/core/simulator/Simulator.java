@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
@@ -29,7 +29,7 @@ import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.simulation.MessageSource.SourceMessage;
+import com.offbynull.peernetic.core.simulator.MessageSource.SourceMessage;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;

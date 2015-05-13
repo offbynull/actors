@@ -14,23 +14,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
-import java.time.Instant;
-import org.apache.commons.lang3.Validate;
-
-final class AddTimerEvent extends Event {
-    
-    private final String address;
-
-    public AddTimerEvent(String address, Instant triggerTime, long sequenceNumber) {
-        super(triggerTime, sequenceNumber);
-        Validate.notNull(address);
-        this.address = address;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-    
+interface Holder {
+    String getAddress();
 }

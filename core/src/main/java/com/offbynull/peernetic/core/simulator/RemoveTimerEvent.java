@@ -14,24 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
-import java.io.IOException;
 import java.time.Instant;
+import org.apache.commons.lang3.Validate;
 
-/**
- * Write messages from the simulation to some external source.
- * @author Kasra Faghihi
- */
-public interface MessageSink extends AutoCloseable {
-    /**
-     * Write the next message.
-     * @param source source address
-     * @param destination destination address
-     * @param time time when message arrived
-     * @param message message
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IOException if an error occurs while writing
-     */
-    void writeNextMessage(String source, String destination, Instant time, Object message) throws IOException;
+final class RemoveTimerEvent extends Event {
+    final String address;
+
+    public RemoveTimerEvent(String address, Instant triggerTime, long sequenceNumber) {
+        super(triggerTime, sequenceNumber);
+        Validate.notNull(address);
+        this.address = address;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+    
 }

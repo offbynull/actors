@@ -14,25 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
-
-import java.time.Duration;
-import org.apache.commons.lang3.Validate;
 
 /**
- * A {@link ActorDurationCalculator} that always returns a {@code 0} duration.
+ * Provides classes and interfaces for running simulations with actors.
+ * 
  * @author Kasra Faghihi
  */
-public final class SimpleActorDurationCalculator implements ActorDurationCalculator {
-
-    @Override
-    public Duration calculateDuration(String source, String destination, Object message, Duration realDuration) {
-        Validate.notNull(source);
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        Validate.notNull(realDuration);
-        Validate.isTrue(!realDuration.isNegative());
-        return Duration.ZERO;
-    }
-    
-}
+package com.offbynull.peernetic.core.simulator;

@@ -1,5 +1,10 @@
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.simulator.Simulator;
+import com.offbynull.peernetic.core.simulator.ReplayMessageSource;
+import com.offbynull.peernetic.core.simulator.MessageSink;
+import com.offbynull.peernetic.core.simulator.RecordMessageSink;
+import com.offbynull.peernetic.core.simulator.MessageSource;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.SimpleSerializer;

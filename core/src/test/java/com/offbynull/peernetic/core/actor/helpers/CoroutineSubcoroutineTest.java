@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.peernetic.core.simulation.Simulator;
+import com.offbynull.peernetic.core.simulator.Simulator;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.mutable.MutableBoolean;

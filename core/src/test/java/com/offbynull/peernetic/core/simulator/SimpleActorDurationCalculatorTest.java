@@ -1,5 +1,6 @@
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.simulator.SimpleActorDurationCalculator;
 import java.time.Duration;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;

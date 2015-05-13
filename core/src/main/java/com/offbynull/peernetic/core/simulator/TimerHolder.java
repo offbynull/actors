@@ -14,21 +14,21 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulation;
+package com.offbynull.peernetic.core.simulator;
 
-import java.time.Instant;
+import org.apache.commons.lang3.Validate;
 
-final class PullFromMessageSourceEvent extends Event {
-
-    private final MessageSource messageSource;
+final class TimerHolder implements Holder {
+    private final String address;
     
-    public PullFromMessageSourceEvent(MessageSource messageSource, Instant triggerTime, long sequenceNumber) {
-        super(triggerTime, sequenceNumber);
-        this.messageSource = messageSource;
+    public TimerHolder(String address) {
+        Validate.notNull(address);
+        this.address = address;
     }
 
-    public MessageSource getMessageSource() {
-        return messageSource;
+    @Override
+    public String getAddress() {
+        return address;
     }
-    
+
 }

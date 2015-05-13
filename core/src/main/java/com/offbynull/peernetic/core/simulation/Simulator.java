@@ -97,6 +97,8 @@ import org.apache.commons.lang3.Validate;
  * takes 5 milliseconds to do so. {@code actor2} then processes its message <u>from the same point in time</u> (without the 5 milliseconds
  * tacked on), as if it was running in parallel with {@code actor1} vs after {@code actor1}. One way to think about this is that all actors
  * in the simulator runs all actors in parallel, as if each individual actor runs in its own thread.</li>
+ * <li><b>Timer's have exact precision.</b> This will almost always never be the case when you run in a real environment. The precision of
+ * a {@link TimerGateway} is dependent on the OS/platform and the current load on the system.</li>
  * </ol>
  * @author Kasra Faghihi
  */
@@ -311,25 +313,21 @@ public final class Simulator {
     }
 
     /**
-     * Queue a timer to be added to this simulation. This is used to simulate a {@link TimerGateway}. A timer can have a granularity
-     * associated with it, meaning that the triggers from this timer can be made to fire at intervals rather than be exact. This is for
-     * simulating timer granularity on different systems (e.g. on Windows the default timer resolution is around 15 to 16 milliseconds).
+     * Queue a timer to be added to this simulation. This is used to simulate a {@link TimerGateway}.
      * <p>
      * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
      * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
      * at the event added by this call.
      * @param address address of this actor
-     * @param granularity timer granularity
      * @param when time in simulation environment when event should take place
      * @throws NullPointerException if any argument is {@code null}
      */
-    public void addTimer(String address, long granularity, Instant when) {
+    public void addTimer(String address, Instant when) {
         Validate.notNull(address);
         Validate.notNull(when);
-        Validate.isTrue(granularity >= 0, "Negative granularity not allowed");
         Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
 
-        events.add(new AddTimerEvent(address, granularity, when, nextSequenceNumber++));
+        events.add(new AddTimerEvent(address, when, nextSequenceNumber++));
     }
 
     /**
@@ -466,11 +464,10 @@ public final class Simulator {
         AddTimerEvent addTimerEvent = (AddTimerEvent) event;
 
         String address = addTimerEvent.getAddress();
-        long granularity = addTimerEvent.getGranularity();
 
         validateAddressDoesNotConflict(address);
 
-        TimerHolder newHolder = new TimerHolder(address, granularity);
+        TimerHolder newHolder = new TimerHolder(address);
         holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
     }
     
@@ -673,15 +670,12 @@ public final class Simulator {
             String sourceAddress,
             String destinationAddress,
             Object message,
-            Duration scheduledDuration,
-            long granularity) {
+            Duration scheduledDuration) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
         Validate.notNull(scheduledDuration);
-        Validate.notNull(granularity);
         Validate.isTrue(!scheduledDuration.isNegative());
-        Validate.isTrue(granularity >= 0L);
         
         // Source must exist.
         //
@@ -696,14 +690,6 @@ public final class Simulator {
         
         // Message may be scheduled by the timer to run at a certain delay. If it is, add that scheduled delay to the arrival time.
         arriveTime = arriveTime.plus(scheduledDuration);
-        
-        // That timer may also be set to run at some time granularity. Apply that granularity here (if applicable).
-        if (granularity != 0L) {
-            long origTime = arriveTime.toEpochMilli();
-            long remaining = arriveTime.toEpochMilli() % granularity;
-            long time = origTime + remaining;
-            arriveTime = Instant.ofEpochMilli(time);
-        }
         
         // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. Why is
         // this here? because the last onStep call took some amount of time to execute. That duration of time has already elapsed
@@ -759,7 +745,7 @@ public final class Simulator {
             // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
             return;
         }
-        queueTimerTrigger(true, destination, source, message, timerDuration, destHolder.getGranularity());
+        queueTimerTrigger(true, destination, source, message, timerDuration);
     }
 
     private void processMessageToActor(ActorHolder destHolder, String destination, String source, Object message) {
@@ -845,7 +831,7 @@ public final class Simulator {
 
             // Events queue is ordered. If the event we're looking at right now is >= to the earliest possible onstep time, it means that
             // this event and all events after it don't need to be rescheduled, so stop checking here.
-            if (!earliestPossibleOnStepTime.isBefore(event.getTriggerTime())) {
+            if (earliestPossibleOnStepTime.isBefore(event.getTriggerTime())) {
                 break;
             }
 
@@ -856,7 +842,13 @@ public final class Simulator {
             if (event instanceof MessageEvent) {
                 MessageEvent pendingMessageEvent = (MessageEvent) event;
                 if (pendingMessageEvent.getDestinationAddress().equals(address)) {
-                    messageEventsToReschedule.add(pendingMessageEvent);
+                    MessageEvent updatedMessageEvent = new MessageEvent(
+                            pendingMessageEvent.getSourceAddress(),
+                            pendingMessageEvent.getDestinationAddress(),
+                            pendingMessageEvent.getMessage(),
+                            earliestPossibleOnStepTime,
+                            nextSequenceNumber++);
+                    messageEventsToReschedule.add(updatedMessageEvent);
                     it.remove();
                 }
             }

@@ -10,10 +10,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SimulatorTest {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     @Test
     public void mustShuttleMessagesBetweenActors() {
@@ -236,7 +243,7 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        fixture.addTimer("timer", Instant.ofEpochMilli(0L));
         fixture.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
 
         while (fixture.hasMore()) {
@@ -273,7 +280,7 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        fixture.addTimer("timer", Instant.ofEpochMilli(0L));
         fixture.addCoroutineActor("local", tester, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "timer");
 
         while (fixture.hasMore()) {
@@ -321,7 +328,7 @@ public class SimulatorTest {
                 Simulator simulator = new Simulator(
                         Instant.ofEpochSecond(10L),
                         (src, dst, msg, realDuration) -> Duration.ofSeconds(2L));
-                simulator.addTimer("timer", 0L, Instant.ofEpochSecond(10L));
+                simulator.addTimer("timer", Instant.ofEpochSecond(10L));
                 simulator.addMessageSink(sink, Instant.ofEpochSecond(10L));
                 simulator.addCoroutineActor("local:sender", sender, Duration.ofSeconds(5L), Instant.ofEpochSecond(10L), "local:echoer");
                 simulator.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(10L), Instant.ofEpochSecond(10L));
@@ -354,7 +361,7 @@ public class SimulatorTest {
                 Simulator simulator = new Simulator(
                         Instant.ofEpochMilli(0L),
                         (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-                simulator.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+                simulator.addTimer("timer", Instant.ofEpochMilli(0L));
                 simulator.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L));
                 simulator.addMessageSource(source, Instant.ofEpochMilli(0L)); // add the msg source after the priming msg
 
@@ -376,7 +383,127 @@ public class SimulatorTest {
                     echoerTimes);
         }
     }
-    
-    // TODO: Add test: 1 sends a message to 2. The message takes 5 seconds to arrive. 1 drops at 2seconds, 2 drops at 3seconds, 2 is readded at 4seconds. 2 should still get the message at at 5 seconds.
-    // TODO: Add test: Similar to above but with timer
+
+    @Test
+    public void mustNotGetPendingMessagesComingInToActorThatWasRemovedAndReadded() {
+        MutableBoolean failCalled = new MutableBoolean();
+        Coroutine ignoreActor = (cnt) -> {
+            while (true) {
+                cnt.suspend();
+            }
+        };
+        Coroutine failActor = (cnt) -> {
+            failCalled.setTrue();
+        };
+
+        Simulator fixture = new Simulator(
+                Instant.ofEpochMilli(0L),
+                (src, dst, msg, realDuration) -> Duration.ofSeconds(5L));
+        fixture.addCoroutineActor("local:test", ignoreActor, Duration.ZERO, Instant.ofEpochMilli(0L), "hi1", "hi2");
+        fixture.removeActor("local:test", Instant.ofEpochMilli(1L));
+        fixture.addCoroutineActor("local:test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
+
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+
+        assertFalse(failCalled.booleanValue());
+    }
+
+    @Test
+    public void mustNotSendTimerMessageIfTimerWasRemovedAndReadded() {
+        MutableBoolean failCalled = new MutableBoolean();
+        Coroutine triggerTimerActor = (cnt) -> {
+            ((Context) cnt.getContext()).addOutgoingMessage("timer:5000", "failmsg");
+            while (true) {
+                cnt.suspend();
+            }
+        };
+        Coroutine failActor = (cnt) -> {
+            failCalled.setTrue();
+        };
+
+        Simulator fixture = new Simulator();
+        fixture.addTimer("timer", Instant.ofEpochMilli(0L));
+        fixture.addCoroutineActor("local:test", triggerTimerActor, Duration.ZERO, Instant.ofEpochMilli(0L), "sendmsg");
+
+        fixture.removeActor("local:test", Instant.ofEpochMilli(1L));
+        fixture.removeTimer("timer", Instant.ofEpochMilli(1L));
+
+        fixture.addTimer("timer", Instant.ofEpochMilli(2L));
+        fixture.addCoroutineActor("local:test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
+
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+
+        assertFalse(failCalled.booleanValue());
+    }
+
+    @Test
+    public void mustFailToRemoveUnknownTimer() {
+        Simulator fixture = new Simulator();
+        fixture.removeTimer("timer", Instant.ofEpochMilli(1L));
+
+        exception.expect(IllegalArgumentException.class);
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+    }
+
+    @Test
+    public void mustFailToRemoveUnknownActor() {
+        Simulator fixture = new Simulator();
+        fixture.removeActor("actor", Instant.ofEpochMilli(1L));
+
+        exception.expect(IllegalArgumentException.class);
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+    }
+
+    @Test
+    public void mustFailToRemoveActorThatHadAlreadyCompleted() {
+        Coroutine actor = (cnt) -> {};
+        
+        Simulator fixture = new Simulator();
+        fixture.addCoroutineActor("actor", actor, Duration.ZERO, Instant.EPOCH, "msg");
+        fixture.removeActor("actor", Instant.ofEpochMilli(1L));
+
+        exception.expect(IllegalArgumentException.class);
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+    }
+
+    @Test
+    public void mustAddAndRemoveActorWhenBothEventsOccurAtSameTime() {
+        Coroutine actor = (cnt) -> {};
+        
+        Simulator fixture = new Simulator();
+        fixture.addCoroutineActor("actor", actor, Duration.ZERO, Instant.EPOCH);
+        fixture.removeActor("actor", Instant.EPOCH);
+
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+        
+        // No exception means pass
+    }
+
+    @Test
+    public void mustFailToRemoveAndAddActorWhenBothEventsOccurAtSameTime() {
+        Coroutine actor = (cnt) -> {};
+        
+        // If happening at the same time, simulator runs in order events were added. So remove happens first then add happens, but remove
+        // should throw an exception
+        Simulator fixture = new Simulator();
+        fixture.removeActor("actor", Instant.EPOCH);
+        fixture.addCoroutineActor("actor", actor, Duration.ZERO, Instant.EPOCH);
+
+        exception.expect(IllegalArgumentException.class);
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+    }
 }

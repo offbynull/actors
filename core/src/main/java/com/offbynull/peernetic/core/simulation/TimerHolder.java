@@ -20,22 +20,15 @@ import org.apache.commons.lang3.Validate;
 
 final class TimerHolder implements Holder {
     private final String address;
-    private final long granularity;
-
-    public TimerHolder(String address, long granularity) {
+    
+    public TimerHolder(String address) {
         Validate.notNull(address);
-        Validate.notNull(granularity);
-        Validate.isTrue(granularity >= 0L);
         this.address = address;
-        this.granularity = granularity;
     }
 
+    @Override
     public String getAddress() {
         return address;
-    }
-
-    public long getGranularity() {
-        return granularity;
     }
 
 }

@@ -21,7 +21,7 @@ public class RequestSubcoroutineTest {
         List<Object> recvdItems = new ArrayList<>();
         
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("rcvr", cnt -> {
             Context ctx = (Context) cnt.getContext();
             srcAddresses.add(ctx.getSource());
@@ -57,7 +57,7 @@ public class RequestSubcoroutineTest {
         List<Object> recvdItems = new ArrayList<>();
         
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("rcvr", cnt -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {
@@ -95,7 +95,7 @@ public class RequestSubcoroutineTest {
         MutableObject<String> savedResponse = new MutableObject<>();
         
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("rcvr", cnt -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {

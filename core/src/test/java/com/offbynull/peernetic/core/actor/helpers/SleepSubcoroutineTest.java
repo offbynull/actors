@@ -11,7 +11,7 @@ public class SleepSubcoroutineTest {
     @Test
     public void mustSleepFor1Second() throws Exception {
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
                 SleepSubcoroutine fixture = new SleepSubcoroutine.Builder()
                         .id("sleep")

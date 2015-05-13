@@ -14,7 +14,7 @@ public class CoroutineSubcoroutineTest {
         MutableBoolean flag = new MutableBoolean();
         
         Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
                 CoroutineSubcoroutine fixture = new CoroutineSubcoroutine("wrapper", x -> flag.setValue(true));
                 fixture.run(cnt);

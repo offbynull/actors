@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.timer;
 
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
@@ -79,12 +79,12 @@ final class TimerRunnable implements Runnable {
                 for (Object incomingObj : incomingObjects) {
                     if (incomingObj instanceof Message) {
                         Message message = (Message) incomingObj;
-                        String src = message.getSourceAddress();
-                        String dst = message.getDestinationAddress();
+                        Address src = message.getSourceAddress();
+                        Address dst = message.getDestinationAddress();
                         Object payload = message.getMessage();
 
-                        String delayStr = AddressUtils.getElement(dst, 1);
-                        long delay = Long.parseLong(delayStr);
+                        String delayStr = dst.getElement(1);
+                        long delay = Long.parseLong(delayStr); // THIS NEEDS TO BE FIXED, rather than crashing if negative or NaN, ignore
                         Validate.isTrue(delay >= 0L);
                         Instant sendTime = time.plus(delay, ChronoUnit.MILLIS);
 
@@ -114,8 +114,8 @@ final class TimerRunnable implements Runnable {
                     it.remove();
                     
                     // Add to outgoingMap by prefix
-                    String outDst = pm.getTo();
-                    String outDstPrefix = AddressUtils.getElement(outDst, 0);
+                    Address outDst = pm.getTo();
+                    String outDstPrefix = outDst.getElement(0);
 
                     List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
                     if (batchedMessages == null) {
@@ -148,11 +148,12 @@ final class TimerRunnable implements Runnable {
     private static final class PendingMessage {
 
         private final Instant sendTime;
-        private final String from;
-        private final String to;
+        private final Address from;
+        private final Address to;
         private final Object message;
 
-        public PendingMessage(Instant sendTime, String from, String to, Object message) {
+        public PendingMessage(Instant sendTime, Address from, Address to, Object message) {
+            Validate.notNull(sendTime);
             Validate.notNull(from);
             Validate.notNull(to);
             Validate.notNull(message);
@@ -166,11 +167,11 @@ final class TimerRunnable implements Runnable {
             return sendTime;
         }
 
-        public String getFrom() {
+        public Address getFrom() {
             return from;
         }
 
-        public String getTo() {
+        public Address getTo() {
             return to;
         }
 

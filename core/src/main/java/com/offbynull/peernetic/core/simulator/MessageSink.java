@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.IOException;
 import java.time.Instant;
 
@@ -33,5 +34,5 @@ public interface MessageSink extends AutoCloseable {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IOException if an error occurs while writing
      */
-    void writeNextMessage(String source, String destination, Instant time, Object message) throws IOException;
+    void writeNextMessage(Address source, Address destination, Instant time, Object message) throws IOException;
 }

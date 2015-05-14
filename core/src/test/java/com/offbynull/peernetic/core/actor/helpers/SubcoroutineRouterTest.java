@@ -5,6 +5,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD_PRIME;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD_PRIME_NO_FINISH;
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.mutable.MutableInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -18,9 +19,9 @@ import static org.mockito.Mockito.when;
 
 public class SubcoroutineRouterTest {
 
-    private static final String DST_ADDRESS_PREFIX = "local:actor";
-    private static final String ROUTER_ID = "router";
-    private static final String CHILD_ID = "router:child";
+    private static final Address DST_ADDRESS_PREFIX = Address.fromString("local:actor");
+    private static final Address ROUTER_ID = Address.fromString("router");
+    private static final Address CHILD_ID = Address.fromString("router:child");
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -37,7 +38,7 @@ public class SubcoroutineRouterTest {
     @Test
     public void mustSilentlyIgnoreForwardsToUnknownChildren() throws Exception {
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX + ":" + CHILD_ID);
+        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
         boolean forwarded = fixture.forward();
 
@@ -50,7 +51,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
+            public Address getId() {
                 return CHILD_ID;
             }
 
@@ -64,7 +65,7 @@ public class SubcoroutineRouterTest {
         fixture.getController().add(subcoroutine, ADD);
 
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX + ":" + CHILD_ID);
+        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
         boolean forwarded = fixture.forward();
 
@@ -78,7 +79,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
+            public Address getId() {
                 return CHILD_ID;
             }
 
@@ -90,7 +91,7 @@ public class SubcoroutineRouterTest {
         };
 
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX + ":" + CHILD_ID);
+        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
         fixture.getController().add(subcoroutine, ADD_PRIME);
 
@@ -103,7 +104,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
+            public Address getId() {
                 return CHILD_ID;
             }
 
@@ -118,7 +119,7 @@ public class SubcoroutineRouterTest {
         fixture.getController().add(subcoroutine, ADD);
 
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX + ":" + CHILD_ID);
+        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
         boolean forwarded = fixture.forward();
 
@@ -139,7 +140,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
+            public Address getId() {
                 return CHILD_ID;
             }
 
@@ -152,7 +153,7 @@ public class SubcoroutineRouterTest {
         };
 
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX + ":" + CHILD_ID);
+        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
         fixture.getController().add(subcoroutine, ADD_PRIME_NO_FINISH);
         
@@ -164,7 +165,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
+            public Address getId() {
                 return CHILD_ID;
             }
 
@@ -175,7 +176,7 @@ public class SubcoroutineRouterTest {
         };
 
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX + ":" + CHILD_ID);
+        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
         
         exception.expect(IllegalStateException.class);
@@ -188,7 +189,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
+            public Address getId() {
                 return CHILD_ID;
             }
 
@@ -209,8 +210,8 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public String getId() {
-                return "badid";
+            public Address getId() {
+                return Address.of("badid");
             }
 
             @Override
@@ -232,6 +233,6 @@ public class SubcoroutineRouterTest {
     @Test
     public void mustFailOnIncorrectRemove() throws Exception {
         exception.expect(IllegalArgumentException.class);
-        fixture.getController().remove(ROUTER_ID + ":fake");
+        fixture.getController().remove(ROUTER_ID.appendSuffix("fake"));
     }
 }

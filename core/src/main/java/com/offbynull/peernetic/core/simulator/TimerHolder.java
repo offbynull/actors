@@ -16,18 +16,19 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 final class TimerHolder implements Holder {
-    private final String address;
+    private final Address address;
     
-    public TimerHolder(String address) {
+    public TimerHolder(Address address) {
         Validate.notNull(address);
         this.address = address;
     }
 
     @Override
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 

@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 import java.util.List;
 
@@ -38,7 +39,9 @@ public interface Context {
      * @param message outgoing message
      * @throws NullPointerException if any argument is {@code null}
      */
-    void addOutgoingMessage(String destination, Object message);
+    default void addOutgoingMessage(Address destination, Object message) {
+        addOutgoingMessage(null, destination, message);
+    }
 
     /**
      * Queue up an outgoing message.
@@ -49,7 +52,7 @@ public interface Context {
      * @param message outgoing message
      * @throws NullPointerException if any argument other than {@code sourceId} is {@code null}
      */
-    void addOutgoingMessage(String sourceId, String destination, Object message);
+    void addOutgoingMessage(Address sourceId, Address destination, Object message);
     
     /**
      * Returns an unmodifiable list of outgoing messages. This list stays in sync as more outgoing messages are added.
@@ -61,7 +64,7 @@ public interface Context {
      * Get the address the incoming message was sent to.
      * @return destination address of incoming message
      */
-    String getDestination();
+    Address getDestination();
 
     /**
      * Get the incoming message.
@@ -75,13 +78,13 @@ public interface Context {
      * Get the address of the actor that this context is for.
      * @return address of actor
      */
-    String getSelf();
+    Address getSelf();
 
     /**
      * Get the address the incoming message was sent from.
      * @return source address of incoming message
      */
-    String getSource();
+    Address getSource();
 
     /**
      * Get the current time. This may not be exact, it is the time the actor was invoked.

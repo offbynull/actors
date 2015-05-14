@@ -3,6 +3,7 @@ package com.offbynull.peernetic.core.gateways.timer;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.concurrent.ArrayBlockingQueue;
 import static org.junit.Assert.assertEquals;
@@ -18,11 +19,11 @@ public class TimerGatewayTest {
             Context ctx = (Context) cnt.getContext();
 
             String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage("fromid", timerPrefix + ":2000:extra", "msg");
+            ctx.addOutgoingMessage(Address.of("fromid"), Address.of(timerPrefix, "2000", "extra"), "msg");
             cnt.suspend();
             
-            queue.add(ctx.getSource());
-            queue.add(ctx.getDestination());
+            queue.add(ctx.getSource().toString());
+            queue.add(ctx.getDestination().toString());
             queue.add(ctx.getIncomingMessage());
         };
 

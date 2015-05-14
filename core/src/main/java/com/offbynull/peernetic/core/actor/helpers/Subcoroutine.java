@@ -18,6 +18,7 @@ package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.shuttle.Address;
 
 /**
  * Interface for a child coroutine, intended to be run as part of an {@link Actor}.
@@ -33,7 +34,7 @@ public interface Subcoroutine<T> {
      * id, not the id relative to its parent.
      * @return id
      */
-    String getId();
+    Address getId();
     /**
      * Entry point of subcoroutine.
      * @param cnt used to suspend/yield this subcoroutine

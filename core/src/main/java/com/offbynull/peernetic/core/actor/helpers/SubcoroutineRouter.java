@@ -19,7 +19,7 @@ package com.offbynull.peernetic.core.actor.helpers;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
@@ -35,7 +35,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class SubcoroutineRouter {
 
-    private final String id;
+    private final Address id;
     private final Context context;
     private final Map<String, CoroutineRunner> idMap;
     private final Controller controller;
@@ -46,7 +46,7 @@ public final class SubcoroutineRouter {
      * @param context actor context
      * @throws NullPointerException if any argument is {@code null}
      */
-    public SubcoroutineRouter(String id, Context context) {
+    public SubcoroutineRouter(Address id, Context context) {
         Validate.notNull(id);
         Validate.notNull(context);
         this.id = id;
@@ -72,18 +72,20 @@ public final class SubcoroutineRouter {
      * @throws Exception if the {@link Subcoroutine} forwarded to threw an exception
      */
     public boolean forward() throws Exception {
-        String incomingId = AddressUtils.relativize(context.getSelf(), context.getDestination());
-        if (incomingId == null || !AddressUtils.isPrefix(id, incomingId)) {
+        Address incomingId = context.getDestination().removePrefix(context.getSelf());
+        if (incomingId == null || id.equals(incomingId) || !id.isPrefixOf(incomingId)) {
             return false;
         }
+        
+        String key = incomingId.removePrefix(id).getElement(0);
 
-        CoroutineRunner runner = idMap.get(incomingId);
+        CoroutineRunner runner = idMap.get(key);
 
         boolean forwarded = false;
         if (runner != null) {
             boolean running = runner.execute();
             if (!running) {
-                idMap.remove(incomingId);
+                idMap.remove(key);
             }
             forwarded = true;
         }
@@ -97,7 +99,7 @@ public final class SubcoroutineRouter {
      * parent.
      * @return id
      */
-    public String getId() {
+    public Address getId() {
         return id;
     }
     
@@ -124,24 +126,26 @@ public final class SubcoroutineRouter {
             Validate.notNull(subcoroutine);
             Validate.notNull(addBehaviour);
 
-            String subcoroutineId = subcoroutine.getId();
-            String suffix = AddressUtils.relativize(id, subcoroutineId);
+            Address subcoroutineId = subcoroutine.getId();
+            Address suffix = subcoroutineId.removePrefix(id);
             Validate.isTrue(suffix != null);
-            Validate.isTrue(AddressUtils.getElementSize(suffix) == 1);
+            Validate.isTrue(suffix.size() == 1);
+            
+            String key = suffix.getElement(0);
 
             CoroutineRunner newRunner = new CoroutineRunner(x -> subcoroutine.run(x));
             newRunner.setContext(context);
-            CoroutineRunner existing = idMap.putIfAbsent(subcoroutineId, newRunner);
+            CoroutineRunner existing = idMap.putIfAbsent(key, newRunner);
             Validate.isTrue(existing == null);
 
             switch (addBehaviour) {
                 case ADD:
                     break;
                 case ADD_PRIME:
-                    forceForward(subcoroutineId, false);
+                    forceForward(key, false);
                     break;
                 case ADD_PRIME_NO_FINISH:
-                    forceForward(subcoroutineId, true);
+                    forceForward(key, true);
                     break;
                 default:
                     throw new IllegalStateException(); // should never happen
@@ -155,14 +159,16 @@ public final class SubcoroutineRouter {
          * @throws IllegalArgumentException if a subcoroutine with this id is not assigned to the owning router, or if {@code id} isn't a
          * <b>direct</b> child of the owning router
          */
-        public void remove(String id) {
+        public void remove(Address id) {
             Validate.notNull(id);
             
-            String suffix = AddressUtils.relativize(SubcoroutineRouter.this.id, id);
+            Address suffix = id.removePrefix(SubcoroutineRouter.this.id);
             Validate.isTrue(suffix != null);
-            Validate.isTrue(AddressUtils.getElementSize(suffix) == 1);
+            Validate.isTrue(suffix.size() == 1);
             
-            CoroutineRunner old = idMap.remove(id);
+            String key = suffix.getElement(0);
+            
+            CoroutineRunner old = idMap.remove(key);
             Validate.isTrue(old != null);
         }
 

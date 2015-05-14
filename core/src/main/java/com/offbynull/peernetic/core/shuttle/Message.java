@@ -23,8 +23,8 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class Message {
-    private final String sourceAddress;
-    private final String destinationAddress;
+    private final Address sourceAddress;
+    private final Address destinationAddress;
     private final Object message;
 
     /**
@@ -34,7 +34,7 @@ public final class Message {
      * @param message content of this message
      * @throws NullPointerException if any argument is {@code null}
      */
-    public Message(String sourceAddress, String destinationAddress, Object message) {
+    public Message(Address sourceAddress, Address destinationAddress, Object message) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
@@ -48,7 +48,7 @@ public final class Message {
      * Get the source address.
      * @return source address
      */
-    public String getSourceAddress() {
+    public Address getSourceAddress() {
         return sourceAddress;
     }
 
@@ -56,7 +56,7 @@ public final class Message {
      * Get the destination address.
      * @return destination address.
      */
-    public String getDestinationAddress() {
+    public Address getDestinationAddress() {
         return destinationAddress;
     }
 

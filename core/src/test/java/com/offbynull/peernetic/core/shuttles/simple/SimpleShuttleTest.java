@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.shuttles.simple;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import java.util.Arrays;
 import java.util.List;
@@ -26,33 +27,33 @@ public class SimpleShuttleTest {
 
     @Test
     public void mustReadMessagesFromBusWhenInsertedInToShuttle() throws InterruptedException {
-        fixture.send(Arrays.asList(new Message("src:fake1", "test:sub1", "hi1")));
-        fixture.send(Arrays.asList(new Message("src:fake2", "test:sub2", "hi2")));
+        fixture.send(Arrays.asList(new Message(Address.fromString("src:fake1"), Address.fromString("test:sub1"), "hi1")));
+        fixture.send(Arrays.asList(new Message(Address.fromString("src:fake2"), Address.fromString("test:sub2"), "hi2")));
         
         List<Object> read = bus.pull();
         
         assertEquals(2, read.size());
         
-        assertEquals("src:fake1", ((Message) read.get(0)).getSourceAddress());
-        assertEquals("test:sub1", ((Message) read.get(0)).getDestinationAddress());
+        assertEquals("src:fake1", ((Message) read.get(0)).getSourceAddress().toString());
+        assertEquals("test:sub1", ((Message) read.get(0)).getDestinationAddress().toString());
         assertEquals("hi1", ((Message) read.get(0)).getMessage());
         
-        assertEquals("src:fake2", ((Message) read.get(1)).getSourceAddress());
-        assertEquals("test:sub2", ((Message) read.get(1)).getDestinationAddress());
+        assertEquals("src:fake2", ((Message) read.get(1)).getSourceAddress().toString());
+        assertEquals("test:sub2", ((Message) read.get(1)).getDestinationAddress().toString());
         assertEquals("hi2", ((Message) read.get(1)).getMessage());
     }
 
     @Test
     public void mustIgnoreMessagesBeingAddedThatHaveIncorrectDestinations() throws InterruptedException {
-        fixture.send(Arrays.asList(new Message("src:fake1", "wrongdestination", "hi1")));
-        fixture.send(Arrays.asList(new Message("src:fake2", "test:sub2", "hi2")));
+        fixture.send(Arrays.asList(new Message(Address.fromString("src:fake1"), Address.fromString("wrongdestination"), "hi1")));
+        fixture.send(Arrays.asList(new Message(Address.fromString("src:fake2"), Address.fromString("test:sub2"), "hi2")));
         
         List<Object> read = bus.pull();
         
         assertEquals(1, read.size());
         
-        assertEquals("src:fake2", ((Message) read.get(0)).getSourceAddress());
-        assertEquals("test:sub2", ((Message) read.get(0)).getDestinationAddress());
+        assertEquals("src:fake2", ((Message) read.get(0)).getSourceAddress().toString());
+        assertEquals("test:sub2", ((Message) read.get(0)).getDestinationAddress().toString());
         assertEquals("hi2", ((Message) read.get(0)).getMessage());
     }
     

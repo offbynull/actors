@@ -2,6 +2,7 @@ package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper.ForwardInformation;
+import com.offbynull.peernetic.core.shuttle.Address;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,38 +26,38 @@ public class ProxyHelperTest {
     @Before
     public void setUp() {
         context = mock(Context.class);
-        fixture = new ProxyHelper(context, SOURCE_PREFIX);
+        fixture = new ProxyHelper(context, Address.of(SOURCE_PREFIX));
     }
 
     @Test
     public void mustProperlyForwardOutgoing() {
-        when(context.getSelf()).thenReturn(PROXY_PREFIX);
-        when(context.getSource()).thenReturn(SOURCE_PREFIX + ":sourceid");
-        when(context.getDestination()).thenReturn(PROXY_PREFIX + ":" + DESTINATION_PREFIX + ":destid");
+        when(context.getSelf()).thenReturn(Address.of(PROXY_PREFIX));
+        when(context.getSource()).thenReturn(Address.of(SOURCE_PREFIX, "sourceid"));
+        when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX, DESTINATION_PREFIX, "destid"));
         
         ForwardInformation forwardInfo = fixture.generateOutboundForwardInformation();
         
-        assertEquals("sourceid", forwardInfo.getProxyFromId());
-        assertEquals(DESTINATION_PREFIX + ":destid", forwardInfo.getProxyToAddress());
+        assertEquals(Address.of("sourceid"), forwardInfo.getProxyFromId());
+        assertEquals(Address.of(DESTINATION_PREFIX, "destid"), forwardInfo.getProxyToAddress());
     }
 
     @Test
     public void mustProperlyForwardIncoming() {
-        when(context.getSelf()).thenReturn(PROXY_PREFIX);
-        when(context.getSource()).thenReturn(DESTINATION_PREFIX + ":destid");
-        when(context.getDestination()).thenReturn(PROXY_PREFIX + ":sourceid");
+        when(context.getSelf()).thenReturn(Address.of(PROXY_PREFIX));
+        when(context.getSource()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
+        when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX, "sourceid"));
         
         ForwardInformation forwardInfo = fixture.generatInboundForwardInformation();
         
-        assertEquals(DESTINATION_PREFIX + ":destid", forwardInfo.getProxyFromId());
-        assertEquals(SOURCE_PREFIX + ":sourceid", forwardInfo.getProxyToAddress());
+        assertEquals(Address.of(DESTINATION_PREFIX, "destid"), forwardInfo.getProxyFromId());
+        assertEquals(Address.of(SOURCE_PREFIX, "sourceid"), forwardInfo.getProxyToAddress());
     }
 
     @Test
     public void mustFailIfOutboundMessageIsNotFromProxiedActor() {
-        when(context.getSelf()).thenReturn(PROXY_PREFIX);
-        when(context.getSource()).thenReturn(DESTINATION_PREFIX + ":destid");
-        when(context.getDestination()).thenReturn(PROXY_PREFIX + ":sourceid");
+        when(context.getSelf()).thenReturn(Address.of(PROXY_PREFIX));
+        when(context.getSource()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
+        when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX + "sourceid"));
         
         exception.expect(IllegalArgumentException.class);
         fixture.generateOutboundForwardInformation();

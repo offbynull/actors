@@ -19,7 +19,7 @@ package com.offbynull.peernetic.core.actor.helpers;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -36,19 +36,20 @@ import org.apache.commons.lang3.Validate;
  * @param <T> response type
  */
 public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
-    private final String id;
-    private final String destinationAddress;
+    private final Address id;
+    private final Address destinationAddress;
+    private final Address timerAddressPrefix;
     private final Object request;
-    private final String timerAddressPrefix;
     private final int maxAttempts;
     private final Duration attemptInterval;
     private final Set<Class<?>> expectedResponseTypes;
     private final boolean exceptionOnNoResponse;
     private Object response;
     
-    private RequestSubcoroutine(String id,
-            String destinationAddress,
-            String timerAddressPrefix,
+    private RequestSubcoroutine(
+            Address id,
+            Address destinationAddress,
+            Address timerAddressPrefix,
             Object request,
             int maxAttempts,
             Duration attemptInterval,
@@ -87,7 +88,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
                     request);
             ctx.addOutgoingMessage(
                     id,
-                    AddressUtils.parentize(timerAddressPrefix, "" + attemptInterval.toMillis()),
+                    timerAddressPrefix.appendSuffix("" + attemptInterval.toMillis()),
                     timeoutMarker);
             
             while (true) {
@@ -96,7 +97,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
                 Object incomingMessage = ctx.getIncomingMessage();
 
                 // If timedout, reattempt
-                if (AddressUtils.isPrefix(timerAddressPrefix, ctx.getSource()) && incomingMessage == timeoutMarker) {
+                if (timerAddressPrefix.isPrefixOf(ctx.getSource()) && incomingMessage == timeoutMarker) {
                     continue reattempt;
                 }
 
@@ -132,7 +133,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
     }
 
     @Override
-    public String getId() {
+    public Address getId() {
         return id;
     }
     
@@ -141,10 +142,10 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
      * @param <T> expected return type
      */
     public static final class Builder<T> {
-        private String id;
-        private String destinationAddress;
+        private Address id;
+        private Address destinationAddress;
+        private Address timerAddressPrefix;
         private Object request;
-        private String timerAddressPrefix;
         private int maxAttempts = 5;
         private Duration attemptInterval = Duration.ofSeconds(2L);
         private Set<Class<?>> expectedResponseTypes = new HashSet<>();
@@ -155,7 +156,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @param id id
          * @return this builder
          */
-        public Builder<T> id(String id) {
+        public Builder<T> id(Address id) {
             this.id = id;
             return this;
         }
@@ -165,7 +166,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @param destinationAddress destination address
          * @return this builder
          */
-        public Builder<T> destinationAddress(String destinationAddress) {
+        public Builder<T> destinationAddress(Address destinationAddress) {
             this.destinationAddress = destinationAddress;
             return this;
         }
@@ -185,7 +186,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @param timerAddressPrefix timer gateway address
          * @return this builder
          */
-        public Builder<T> timerAddressPrefix(String timerAddressPrefix) {
+        public Builder<T> timerAddressPrefix(Address timerAddressPrefix) {
             this.timerAddressPrefix = timerAddressPrefix;
             return this;
         }
@@ -248,7 +249,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @return a new instance of {@link RequestSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
          * @throws IllegalArgumentException if {@code attemptInterval} parameter was set to a negative duration, or if {@code maxAttempts}
-         * was set to 0
+         * was set to 0, or if {@code id} was set to empty
          */
         public RequestSubcoroutine<T> build() {
             return new RequestSubcoroutine<>(id, destinationAddress, timerAddressPrefix, request, maxAttempts, attemptInterval,

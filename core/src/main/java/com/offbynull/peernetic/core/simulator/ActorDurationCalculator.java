@@ -17,6 +17,7 @@
 package com.offbynull.peernetic.core.simulator;
 
 import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 
 /**
@@ -36,5 +37,5 @@ public interface ActorDurationCalculator {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code realDuration} is negative
      */
-    Duration calculateDuration(String source, String destination, Object message, Duration realDuration);
+    Duration calculateDuration(Address source, Address destination, Object message, Duration realDuration);
 }

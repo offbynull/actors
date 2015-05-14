@@ -18,8 +18,8 @@ package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -38,14 +38,14 @@ final class ReadRunnable implements Runnable {
 
     private final Shuttle dstShuttle;
     private final File file;
-    private final String dstAddress;
+    private final Address dstAddress;
     private final Serializer serializer;
 
-    ReadRunnable(Shuttle dstShuttle, String dstAddress, File file, Serializer serializer) {
+    ReadRunnable(Shuttle dstShuttle, Address dstAddress, File file, Serializer serializer) {
         Validate.notNull(dstShuttle);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(Address.of(dstShuttle.getPrefix()).isPrefixOf(dstAddress));
         this.dstShuttle = dstShuttle;
         this.file = file;
         this.dstAddress = dstAddress;
@@ -79,9 +79,10 @@ final class ReadRunnable implements Runnable {
                 List<Message> messages
                         = recordedBlock.getMessages().stream()
                         .map(x -> {
+                            Address dstSuffix = x.getDstSuffix();
                             return new Message(
                                     x.getSrcAddress(),
-                                    AddressUtils.parentize(dstAddress, x.getDstSuffix()),
+                                    dstSuffix == null ? dstAddress : dstAddress.appendSuffix(dstSuffix),
                                     x.getMessage());
                         })
                         .collect(Collectors.toList());

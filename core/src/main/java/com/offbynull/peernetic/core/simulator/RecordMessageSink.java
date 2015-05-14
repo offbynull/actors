@@ -20,7 +20,7 @@ import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedBlock;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedMessage;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,7 +36,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class RecordMessageSink implements MessageSink { // FYI: NOT THREAD-SAFE
-    private final String destinationPrefix;
+    private final Address destinationPrefix;
     private final DataOutputStream dos;
     private final Serializer serializer;
     
@@ -54,20 +54,20 @@ public final class RecordMessageSink implements MessageSink { // FYI: NOT THREAD
         Validate.notNull(destinationPrefix);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        this.destinationPrefix = destinationPrefix;
+        this.destinationPrefix = Address.of(destinationPrefix);
         this.dos = new DataOutputStream(new FileOutputStream(file));
         this.serializer = serializer;
     }
     
     @Override
-    public void writeNextMessage(String source, String destination, Instant time, Object message) throws IOException {
-        if (!AddressUtils.isPrefix(destinationPrefix, destination)) {
+    public void writeNextMessage(Address source, Address destination, Instant time, Object message) throws IOException {
+        if (!destinationPrefix.isPrefixOf(destination)) {
             return;
         }
         
         RecordedMessage recordedMessage = new RecordedMessage(
                 source,
-                AddressUtils.relativize(destinationPrefix, destination),
+                destination.removePrefix(destinationPrefix),
                 message);
         RecordedBlock recordedBlock = new RecordedBlock(Collections.singletonList(recordedMessage), time);
 

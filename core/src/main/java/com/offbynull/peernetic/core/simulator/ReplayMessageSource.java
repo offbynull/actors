@@ -20,7 +20,7 @@ import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedBlock;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedMessage;
 import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,7 +37,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class ReplayMessageSource implements MessageSource {
-    private final String destinationPrefix;
+    private final Address destinationPrefix;
     private final DataInputStream dis;
     private final Serializer serializer;
     
@@ -57,7 +57,7 @@ public final class ReplayMessageSource implements MessageSource {
         Validate.notNull(destinationPrefix);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        this.destinationPrefix = destinationPrefix;
+        this.destinationPrefix = Address.of(destinationPrefix);
         this.dis = new DataInputStream(new FileInputStream(file));
         this.serializer = serializer;
     }
@@ -94,9 +94,10 @@ public final class ReplayMessageSource implements MessageSource {
         Validate.notNull(recordedMessage.getSrcAddress());
         // recordedMessage.dstsuffix may be null
         Validate.notNull(recordedMessage.getMessage());
+        Address dstSuffix = recordedMessage.getDstSuffix();
         return new SourceMessage(
                 recordedMessage.getSrcAddress(),
-                AddressUtils.parentize(destinationPrefix, recordedMessage.getDstSuffix()),
+                dstSuffix == null ? destinationPrefix : destinationPrefix.appendSuffix(dstSuffix),
                 duration,
                 recordedMessage.getMessage());
     }

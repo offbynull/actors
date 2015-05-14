@@ -16,15 +16,16 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class MessageEvent extends Event {
-    private final String sourceAddress;
-    private final String destinationAddress;
+    private final Address sourceAddress;
+    private final Address destinationAddress;
     private final Object message;
 
-    public MessageEvent(String sourceAddress, String destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
+    public MessageEvent(Address sourceAddress, Address destinationAddress, Object message, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
@@ -34,11 +35,11 @@ final class MessageEvent extends Event {
         this.message = message;
     }
 
-    public String getSourceAddress() {
+    public Address getSourceAddress() {
         return sourceAddress;
     }
 
-    public String getDestinationAddress() {
+    public Address getDestinationAddress() {
         return destinationAddress;
     }
 

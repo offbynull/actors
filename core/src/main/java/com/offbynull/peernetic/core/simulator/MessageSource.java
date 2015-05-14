@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.IOException;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
@@ -36,8 +37,8 @@ public interface MessageSource extends AutoCloseable {
      * A message read in by a {@link MessageSource} implementation.
      */
     public static final class SourceMessage {
-        private final String source;
-        private final String destination;
+        private final Address source;
+        private final Address destination;
         private final Duration duration;
         private final Object message;
 
@@ -50,7 +51,7 @@ public interface MessageSource extends AutoCloseable {
          * @throws NullPointerException if any argument is {@code null}
          * @throws IllegalArgumentException if {@code duration} is negative
          */
-        public SourceMessage(String source, String destination, Duration duration, Object message) {
+        public SourceMessage(Address source, Address destination, Duration duration, Object message) {
             Validate.notNull(source);
             Validate.notNull(destination);
             Validate.notNull(duration);
@@ -66,7 +67,7 @@ public interface MessageSource extends AutoCloseable {
          * Get the source address.
          * @return source address
          */
-        public String getSource() {
+        public Address getSource() {
             return source;
         }
 
@@ -74,7 +75,7 @@ public interface MessageSource extends AutoCloseable {
          * Get the destination address.
          * @return destination address
          */
-        public String getDestination() {
+        public Address getDestination() {
             return destination;
         }
 

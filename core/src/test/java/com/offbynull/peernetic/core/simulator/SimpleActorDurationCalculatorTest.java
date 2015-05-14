@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.simulator.SimpleActorDurationCalculator;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
@@ -16,7 +16,7 @@ public class SimpleActorDurationCalculatorTest {
 
     @Test
     public void mustAlwaysReturnDurationOfZero() {
-        Duration duration = fixture.calculateDuration("test", "test", "test", Duration.ofSeconds(5L));
+        Duration duration = fixture.calculateDuration(Address.of("test"), Address.of("test"), "test", Duration.ofSeconds(5L));
         assertEquals(Duration.ZERO, duration);
     }
     

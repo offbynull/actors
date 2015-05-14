@@ -16,12 +16,10 @@
  */
 package com.offbynull.peernetic.core.actor;
 
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.peernetic.core.shuttle.AddressUtils.getAddress;
-import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import java.time.Instant;
@@ -69,8 +67,8 @@ final class ActorRunnable implements Runnable {
                         Message incomingMessage = (Message) incomingObject;
                         
                         Object msg = incomingMessage.getMessage();
-                        String src = incomingMessage.getSourceAddress();
-                        String dst = incomingMessage.getDestinationAddress();
+                        Address src = incomingMessage.getSourceAddress();
+                        Address dst = incomingMessage.getDestinationAddress();
 
                         processNormalMessage(msg, src, dst, actors, outgoingMessages);
                     } else {
@@ -95,7 +93,7 @@ final class ActorRunnable implements Runnable {
             actors.put(aam.id, new LoadedActor(aam.actor, new SourceContext()));
             List<Message> initialMessages = new LinkedList<>();
             for (Object primingMessage : aam.primingMessages) {
-                String dstAddr = getAddress(prefix, aam.id);
+                Address dstAddr = Address.of(prefix, aam.id);
                 Message initialMessage = new Message(dstAddr, dstAddr, primingMessage);
                 initialMessages.add(initialMessage);
             }
@@ -118,13 +116,13 @@ final class ActorRunnable implements Runnable {
         }
     }
 
-    private void processNormalMessage(Object msg, String src, String dst, Map<String, LoadedActor> actors, List<Message> outgoingMessages) {
+    private void processNormalMessage(Object msg, Address src, Address dst, Map<String, LoadedActor> actors,
+            List<Message> outgoingMessages) {
         // Get actor to dump to
-        String[] splitDst = AddressUtils.splitAddress(dst);
-        Validate.isTrue(splitDst.length >= 2); // sanity check
+        Validate.isTrue(dst.size() >= 2); // sanity check
         
-        String dstPrefix = splitDst[0];
-        String dstImmediateId = splitDst[1];
+        String dstPrefix = dst.getElement(0);
+        String dstImmediateId = dst.getElement(1);
         Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
 
         LoadedActor loadedActor = actors.get(dstImmediateId);
@@ -135,7 +133,7 @@ final class ActorRunnable implements Runnable {
 
         Actor actor = loadedActor.actor;
         SourceContext context = loadedActor.context;
-        context.setSelf(dstPrefix + SEPARATOR + dstImmediateId);
+        context.setSelf(Address.of(dstPrefix, dstImmediateId));
         context.setIncomingMessage(msg);
         context.setSource(src);
         context.setDestination(dst);
@@ -159,9 +157,12 @@ final class ActorRunnable implements Runnable {
         // Queue up outgoing messages
         List<BatchedOutgoingMessage> batchedOutgoingMessages = context.copyAndClearOutgoingMessages();
         for (BatchedOutgoingMessage batchedOutgoingMessage : batchedOutgoingMessages) {
-            String sentFrom;
-            String srcId = batchedOutgoingMessage.getSourceId();
-            sentFrom = dstPrefix + SEPARATOR + dstImmediateId + (srcId != null ? SEPARATOR + srcId : "");
+            Address srcId = batchedOutgoingMessage.getSourceId();
+            Address sentFrom = Address.of(dstPrefix, dstImmediateId);
+            
+            if (srcId != null) {
+                sentFrom = sentFrom.appendSuffix(srcId);
+            }
             
             Message outgoingMessage = new Message(
                     sentFrom,
@@ -176,8 +177,8 @@ final class ActorRunnable implements Runnable {
         // Group outgoing messages by prefix
         Map<String, List<Message>> outgoingMap = new HashMap<>();
         for (Message outgoingMessage : outgoingMessages) {
-            String outDst = outgoingMessage.getDestinationAddress();
-            String outDstPrefix = AddressUtils.getElement(outDst, 0);
+            Address outDst = outgoingMessage.getDestinationAddress();
+            String outDstPrefix = outDst.getElement(0);
 
             List<Message> batchedMessages = outgoingMap.get(outDstPrefix);
             if (batchedMessages == null) {
@@ -233,6 +234,7 @@ final class ActorRunnable implements Runnable {
 
     void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
+        Validate.notNull(shuttle.getPrefix()); // sanity check
         AddShuttleMessage asm = new AddShuttleMessage(shuttle);
         bus.add(asm);
     }

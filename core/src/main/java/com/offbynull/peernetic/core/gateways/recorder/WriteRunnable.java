@@ -17,8 +17,8 @@
 package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.peernetic.core.shuttle.Message;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +38,7 @@ final class WriteRunnable implements Runnable {
 
     private final WriteBus bus;
     private final File file;
-    private final String selfPrefix;
+    private final Address selfPrefix;
     private final Serializer serializer;
 
     WriteRunnable(File file, String selfPrefix, Serializer serializer) {
@@ -48,7 +48,7 @@ final class WriteRunnable implements Runnable {
 
         this.bus = new WriteBus();
         this.file = file;
-        this.selfPrefix = selfPrefix;
+        this.selfPrefix = Address.of(selfPrefix);
         this.serializer = serializer;
     }
 
@@ -94,11 +94,12 @@ final class WriteRunnable implements Runnable {
         UnmodifiableList<Message> messages = messageBlock.getMessages();
 
         List<RecordedMessage> recordedMessages = messages.stream()
-                .filter(x -> AddressUtils.isPrefix(selfPrefix, x.getDestinationAddress())) // only msgs that are destined for output
+                 // only msgs that are destined for output
+                .filter(x -> selfPrefix.isPrefixOf(x.getDestinationAddress()))
                 .map(x -> {
                     return new RecordedMessage(
                             x.getSourceAddress(),
-                            AddressUtils.relativize(selfPrefix, x.getDestinationAddress()),
+                            selfPrefix.appendSuffix(x.getDestinationAddress()),
                             x.getMessage());
                 })
                 .collect(Collectors.toList());

@@ -18,19 +18,20 @@ package com.offbynull.peernetic.core.simulator;
 
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.SourceContext;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class ActorHolder implements Holder {
-    private final String address;
+    private final Address address;
     private final Actor actor;
     private final Duration timeOffset;
     private final SourceContext context;
     
     private Instant earliestPossibleOnStepTime;
 
-    public ActorHolder(String address, Actor actor, Duration timeOffset, Instant earliestPossibleOnStepTime) {
+    public ActorHolder(Address address, Actor actor, Duration timeOffset, Instant earliestPossibleOnStepTime) {
         Validate.notNull(address);
         Validate.notNull(actor);
         Validate.notNull(timeOffset);
@@ -51,7 +52,8 @@ final class ActorHolder implements Holder {
         return timeOffset;
     }
 
-    public String getAddress() {
+    @Override
+    public Address getAddress() {
         return address;
     }
 

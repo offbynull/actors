@@ -1,13 +1,9 @@
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.simulator.Simulator;
-import com.offbynull.peernetic.core.simulator.ReplayMessageSource;
-import com.offbynull.peernetic.core.simulator.MessageSink;
-import com.offbynull.peernetic.core.simulator.RecordMessageSink;
-import com.offbynull.peernetic.core.simulator.MessageSource;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,7 +29,7 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
 
             for (int i = 0; i < 3; i++) {
                 ctx.addOutgoingMessage(dstAddr, i);
@@ -46,7 +42,7 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 ctx.addOutgoingMessage(src, msg);
                 cnt.suspend();
@@ -54,8 +50,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
-        fixture.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        fixture.addCoroutineActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
+        fixture.addCoroutineActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -72,7 +68,7 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
             senderTimes.add(ctx.getTime());
 
             for (int i = 0; i < 3; i++) {
@@ -87,7 +83,7 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 echoerTimes.add(ctx.getTime());
                 ctx.addOutgoingMessage(src, msg);
@@ -96,8 +92,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("local:sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "local:echoer");
-        fixture.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addCoroutineActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
+        fixture.addCoroutineActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -116,7 +112,7 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
             senderTimes.add(ctx.getTime());
 
             for (int i = 0; i < 3; i++) {
@@ -131,7 +127,7 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 echoerTimes.add(ctx.getTime());
                 ctx.addOutgoingMessage(src, msg);
@@ -142,8 +138,8 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addCoroutineActor("local:sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "local:echoer");
-        fixture.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addCoroutineActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
+        fixture.addCoroutineActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -175,7 +171,7 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
             senderTimes.add(ctx.getTime());
 
             for (int i = 0; i < 3; i++) {
@@ -190,7 +186,7 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 echoerTimes.add(ctx.getTime());
                 ctx.addOutgoingMessage(src, msg);
@@ -201,8 +197,8 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addCoroutineActor("local:sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "local:echoer");
-        fixture.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addCoroutineActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
+        fixture.addCoroutineActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -239,8 +235,8 @@ public class SimulatorTest {
             result.add(ctx.getIncomingMessage());
             times.add(ctx.getTime());
 
-            String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
+            Address timerPrefix = ctx.getIncomingMessage();
+            ctx.addOutgoingMessage(timerPrefix.appendSuffix("2000"), 0);
             cnt.suspend();
 
             result.add(ctx.getIncomingMessage());
@@ -249,13 +245,13 @@ public class SimulatorTest {
 
         Simulator fixture = new Simulator();
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
-        fixture.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
+        fixture.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), Address.of("timer"));
 
         while (fixture.hasMore()) {
             fixture.process();
         }
 
-        assertEquals(Arrays.asList("timer", 0), result);
+        assertEquals(Arrays.asList(Address.of("timer"), 0), result);
         assertEquals(
                 Arrays.asList(
                         Instant.ofEpochSecond(0L),
@@ -274,8 +270,8 @@ public class SimulatorTest {
             result.add(ctx.getIncomingMessage());
             times.add(ctx.getTime());
 
-            String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
+            Address timerPrefix = ctx.getIncomingMessage();
+            ctx.addOutgoingMessage(timerPrefix.appendSuffix("2000"), 0);
             cnt.suspend();
 
             result.add(ctx.getIncomingMessage());
@@ -286,13 +282,13 @@ public class SimulatorTest {
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
-        fixture.addCoroutineActor("local", tester, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), "timer");
+        fixture.addCoroutineActor("local", tester, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("timer"));
 
         while (fixture.hasMore()) {
             fixture.process();
         }
 
-        assertEquals(Arrays.asList("timer", 0), result);
+        assertEquals(Arrays.asList(Address.of("timer"), 0), result);
         assertEquals(
                 Arrays.asList(
                         Instant.ofEpochSecond(1L),
@@ -310,7 +306,7 @@ public class SimulatorTest {
         {
             Coroutine sender = (cnt) -> {
                 Context ctx = (Context) cnt.getContext();
-                String dstAddr = ctx.getIncomingMessage();
+                Address dstAddr = ctx.getIncomingMessage();
 
                 for (int i = 0; i < 3; i++) {
                     ctx.addOutgoingMessage(dstAddr, i);
@@ -322,21 +318,21 @@ public class SimulatorTest {
                 Context ctx = (Context) cnt.getContext();
 
                 while (true) {
-                    String src = ctx.getSource();
+                    Address src = ctx.getSource();
                     Object msg = ctx.getIncomingMessage();
                     ctx.addOutgoingMessage(src, msg);
                     cnt.suspend();
                 }
             };
 
-            try (MessageSink sink = new RecordMessageSink("local:echoer", recordFile, new SimpleSerializer())) {
+            try (MessageSink sink = new RecordMessageSink("echoer", recordFile, new SimpleSerializer())) {
                 Simulator simulator = new Simulator(
                         Instant.ofEpochSecond(10L),
                         (src, dst, msg, realDuration) -> Duration.ofSeconds(2L));
                 simulator.addTimer("timer", Instant.ofEpochSecond(10L));
                 simulator.addMessageSink(sink, Instant.ofEpochSecond(10L));
-                simulator.addCoroutineActor("local:sender", sender, Duration.ofSeconds(5L), Instant.ofEpochSecond(10L), "local:echoer");
-                simulator.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(10L), Instant.ofEpochSecond(10L));
+                simulator.addCoroutineActor("sender", sender, Duration.ofSeconds(5L), Instant.ofEpochSecond(10L), Address.fromString("echoer"));
+                simulator.addCoroutineActor("echoer", echoer, Duration.ofSeconds(10L), Instant.ofEpochSecond(10L));
 
                 while (simulator.hasMore()) {
                     simulator.process();
@@ -353,7 +349,7 @@ public class SimulatorTest {
                 Context ctx = (Context) cnt.getContext();
 
                 while (true) {
-                    String src = ctx.getSource();
+                    Address src = ctx.getSource();
                     Object msg = ctx.getIncomingMessage();
                     ctx.addOutgoingMessage(src, msg);
                     result.add((Integer) ctx.getIncomingMessage());
@@ -362,12 +358,12 @@ public class SimulatorTest {
                 }
             };
 
-            try (MessageSource source = new ReplayMessageSource("local:echoer", recordFile, new SimpleSerializer())) {
+            try (MessageSource source = new ReplayMessageSource("echoer", recordFile, new SimpleSerializer())) {
                 Simulator simulator = new Simulator(
                         Instant.ofEpochMilli(0L),
                         (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
                 simulator.addTimer("timer", Instant.ofEpochMilli(0L));
-                simulator.addCoroutineActor("local:echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L));
+                simulator.addCoroutineActor("echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L));
                 simulator.addMessageSource(source, Instant.ofEpochMilli(0L)); // add the msg source after the priming msg
 
                 while (simulator.hasMore()) {
@@ -404,9 +400,9 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(5L));
-        fixture.addCoroutineActor("local:test", ignoreActor, Duration.ZERO, Instant.ofEpochMilli(0L), "hi1", "hi2");
-        fixture.removeActor("local:test", Instant.ofEpochMilli(1L));
-        fixture.addCoroutineActor("local:test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
+        fixture.addCoroutineActor("test", ignoreActor, Duration.ZERO, Instant.ofEpochMilli(0L), "hi1", "hi2");
+        fixture.removeActor("test", Instant.ofEpochMilli(1L));
+        fixture.addCoroutineActor("test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -419,7 +415,7 @@ public class SimulatorTest {
     public void mustNotSendTimerMessageIfTimerWasRemovedAndReadded() {
         MutableBoolean failCalled = new MutableBoolean();
         Coroutine triggerTimerActor = (cnt) -> {
-            ((Context) cnt.getContext()).addOutgoingMessage("timer:5000", "failmsg");
+            ((Context) cnt.getContext()).addOutgoingMessage(Address.of("timer", "5000"), "failmsg");
             while (true) {
                 cnt.suspend();
             }
@@ -430,13 +426,13 @@ public class SimulatorTest {
 
         Simulator fixture = new Simulator();
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
-        fixture.addCoroutineActor("local:test", triggerTimerActor, Duration.ZERO, Instant.ofEpochMilli(0L), "sendmsg");
+        fixture.addCoroutineActor("test", triggerTimerActor, Duration.ZERO, Instant.ofEpochMilli(0L), "sendmsg");
 
-        fixture.removeActor("local:test", Instant.ofEpochMilli(1L));
+        fixture.removeActor("test", Instant.ofEpochMilli(1L));
         fixture.removeTimer("timer", Instant.ofEpochMilli(1L));
 
         fixture.addTimer("timer", Instant.ofEpochMilli(2L));
-        fixture.addCoroutineActor("local:test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
+        fixture.addCoroutineActor("test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
 
         while (fixture.hasMore()) {
             fixture.process();

@@ -18,10 +18,10 @@ package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.gateway.InputGateway;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.File;
 import org.apache.commons.lang3.Validate;
 
@@ -125,13 +125,13 @@ public final class RecorderGateway implements InputGateway {
      * @throws IllegalArgumentException if {@code dstAddress} is not a prefix of address returned by {@code dstShuttle}
      * @return new {@link ReplayerGateway} instance
      */
-    public static RecorderGateway record(String prefix, Shuttle dstShuttle, String dstAddress, File file, Serializer serializer) {
+    public static RecorderGateway record(String prefix, Shuttle dstShuttle, Address dstAddress, File file, Serializer serializer) {
         Validate.notNull(prefix);
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(dstAddress.getElement(0).equals(dstShuttle.getPrefix()));
         
         WriteRunnable writeRunnable = new WriteRunnable(file, prefix, serializer);
         WriteBus writeBus = writeRunnable.getBus();

@@ -18,6 +18,7 @@ package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -26,7 +27,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class CoroutineSubcoroutine implements Subcoroutine<Void> {
 
-    private final String id;
+    private final Address id;
     private final Coroutine coroutine;
 
     /**
@@ -35,15 +36,27 @@ public final class CoroutineSubcoroutine implements Subcoroutine<Void> {
      * @param coroutine coroutine to wrap
      * @throws NullPointerException if any argument is {@code null}
      */
-    public CoroutineSubcoroutine(String id, Coroutine coroutine) {
+    public CoroutineSubcoroutine(Address id, Coroutine coroutine) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         this.id = id;
         this.coroutine = coroutine;
     }
+
+    /**
+     * Constructs a {@link CoroutineSubcoroutine} instance. Equivalent to calling
+     * {@code new CoroutineSubcoroutine(Address.fromString(id), coroutine)}.
+     * @param id id of this subcoroutine
+     * @param coroutine coroutine to wrap
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code id} is malformed
+     */
+    public CoroutineSubcoroutine(String id, Coroutine coroutine) {
+        this(Address.fromString(id), coroutine);
+    }
     
     @Override
-    public String getId() {
+    public Address getId() {
         return id;
     }
 

@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -23,15 +24,15 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class BatchedOutgoingMessage {
-    private final String sourceId;
-    private final String destination;
+    private final Address sourceId;
+    private final Address destination;
     private final Object message;
 
-    BatchedOutgoingMessage(String sourceId, String destination, Object message) {
-        // sourceId may be null
+    BatchedOutgoingMessage(Address sourceId, Address destination, Object message) {
         Validate.notNull(destination);
         Validate.notNull(message);
-        Validate.notEmpty(destination);
+        // sourceId may be empty
+        Validate.isTrue(destination.size() > 0);
         this.sourceId = sourceId;
         this.destination = destination;
         this.message = message;
@@ -41,7 +42,7 @@ public final class BatchedOutgoingMessage {
      * Source id of the outgoing message.
      * @return source id
      */
-    public String getSourceId() {
+    public Address getSourceId() {
         return sourceId;
     }
 
@@ -49,7 +50,7 @@ public final class BatchedOutgoingMessage {
      * Destination address of the outgoing message.
      * @return destination address
      */
-    public String getDestination() {
+    public Address getDestination() {
         return destination;
     }
 

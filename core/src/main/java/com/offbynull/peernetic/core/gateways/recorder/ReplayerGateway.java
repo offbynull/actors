@@ -18,9 +18,9 @@ package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateway.Gateway;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.File;
 import org.apache.commons.lang3.Validate;
 
@@ -77,12 +77,12 @@ public final class ReplayerGateway implements Gateway {
      * @throws IllegalArgumentException if {@code dstAddress} is not a prefix of address returned by {@code dstShuttle}
      * @return new {@link ReplayerGateway} instance
      */
-    public static ReplayerGateway replay(Shuttle dstShuttle, String dstAddress, File file, Serializer serializer) {
+    public static ReplayerGateway replay(Shuttle dstShuttle, Address dstAddress, File file, Serializer serializer) {
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
         Validate.notNull(file);
         Validate.notNull(serializer);
-        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(Address.of(dstShuttle.getPrefix()).isPrefixOf(dstAddress));
         
         ReadRunnable readRunnable = new ReadRunnable(dstShuttle, dstAddress, file, serializer);
         Thread readThread = new Thread(readRunnable);

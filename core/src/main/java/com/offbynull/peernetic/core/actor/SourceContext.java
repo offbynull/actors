@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,15 +31,15 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class SourceContext implements Context {
-    private String self;
+    private Address self;
     private Instant time;
-    private String source;
-    private String destination;
+    private Address source;
+    private Address destination;
     private Object incomingMessage;
     private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
 
     @Override
-    public String getSelf() {
+    public Address getSelf() {
         return self;
     }
 
@@ -46,11 +47,9 @@ public final class SourceContext implements Context {
      * Sets the address of the actor that this context is for.
      * @param self address of actor
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code self} is empty
      */
-    public void setSelf(String self) {
+    public void setSelf(Address self) {
         Validate.notNull(self);
-        Validate.notEmpty(self);
         this.self = self;
     }
 
@@ -70,7 +69,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public String getSource() {
+    public Address getSource() {
         return source;
     }
 
@@ -79,13 +78,13 @@ public final class SourceContext implements Context {
      * @param source address of incoming message
      * @throws NullPointerException if any argument is {@code null}
      */
-    public void setSource(String source) {
+    public void setSource(Address source) {
         Validate.notNull(source);
         this.source = source;
     }
 
     @Override
-    public String getDestination() {
+    public Address getDestination() {
         return destination;
     }
 
@@ -94,7 +93,7 @@ public final class SourceContext implements Context {
      * @param destination address of incoming message
      * @throws NullPointerException if any argument is {@code null}
      */
-    public void setDestination(String destination) {
+    public void setDestination(Address destination) {
         Validate.notNull(destination);
         this.destination = destination;
     }
@@ -116,12 +115,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public void addOutgoingMessage(String destination, Object message) {
-        addOutgoingMessage(null, destination, message);
-    }
-
-    @Override
-    public void addOutgoingMessage(String sourceId, String destination, Object message) {
+    public void addOutgoingMessage(Address sourceId, Address destination, Object message) {
         // sourceId can be null
         Validate.notNull(destination);
         Validate.notNull(message);
@@ -153,12 +147,7 @@ public final class SourceContext implements Context {
         return new Context() {
 
             @Override
-            public void addOutgoingMessage(String destination, Object message) {
-                SourceContext.this.addOutgoingMessage(destination, message);
-            }
-
-            @Override
-            public void addOutgoingMessage(String sourceId, String destination, Object message) {
+            public void addOutgoingMessage(Address sourceId, Address destination, Object message) {
                 SourceContext.this.addOutgoingMessage(sourceId, destination, message);
             }
             
@@ -168,7 +157,7 @@ public final class SourceContext implements Context {
             }
 
             @Override
-            public String getDestination() {
+            public Address getDestination() {
                 return SourceContext.this.getDestination();
             }
 
@@ -178,12 +167,12 @@ public final class SourceContext implements Context {
             }
 
             @Override
-            public String getSelf() {
+            public Address getSelf() {
                 return SourceContext.this.getSelf();
             }
 
             @Override
-            public String getSource() {
+            public Address getSource() {
                 return SourceContext.this.getSource();
             }
 

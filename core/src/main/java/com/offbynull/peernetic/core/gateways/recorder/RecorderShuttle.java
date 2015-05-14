@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.recorder;
 
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import java.time.Instant;
@@ -26,20 +26,20 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 
 final class RecorderShuttle implements Shuttle {
-    
-    private final String prefix;
+
+    private final Address prefix;
     private final WriteBus internalBus;
     private final Shuttle dstShuttle;
-    private final String dstAddress;
+    private final Address dstAddress;
 
-    RecorderShuttle(String prefix, WriteBus internalBus, Shuttle dstShuttle, String dstAddress) {
+    RecorderShuttle(String prefix, WriteBus internalBus, Shuttle dstShuttle, Address dstAddress) {
         Validate.notNull(prefix);
         Validate.notNull(internalBus);
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
-        Validate.isTrue(AddressUtils.isPrefix(dstShuttle.getPrefix(), dstAddress));
+        Validate.isTrue(Address.of(dstShuttle.getPrefix()).isPrefixOf(dstAddress));
 
-        this.prefix = prefix;
+        this.prefix = Address.of(prefix);
         this.internalBus = internalBus;
         this.dstShuttle = dstShuttle;
         this.dstAddress = dstAddress;
@@ -47,21 +47,20 @@ final class RecorderShuttle implements Shuttle {
 
     @Override
     public String getPrefix() {
-        return prefix;
+        return prefix.getElement(0);
     }
 
     @Override
     public void send(Collection<Message> messages) {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
-        
+
         internalBus.add(new MessageBlock(messages, Instant.now()));
-        
-        List<Message> redirectedMessages
-                = messages.stream()
+
+        List<Message> redirectedMessages = messages.stream()
                 .map(x -> {
-                    String dstSuffix = AddressUtils.relativize(prefix, x.getDestinationAddress());
-                    String realDstAddress = AddressUtils.parentize(dstAddress, dstSuffix);
+                    Address dstSuffix = prefix.removePrefix(x.getDestinationAddress());
+                    Address realDstAddress = dstAddress.appendSuffix(dstSuffix);
                     return new Message(
                             x.getSourceAddress(),
                             realDstAddress,
@@ -71,5 +70,4 @@ final class RecorderShuttle implements Shuttle {
         dstShuttle.send(redirectedMessages);
     }
 
-    
 }

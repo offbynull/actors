@@ -1,10 +1,10 @@
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedBlock;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedMessage;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,10 +40,26 @@ public class RecordMessageSinkTest {
 
     @Test
     public void mustWriteOutMessagesToFile() throws Exception {
-        fixture.writeNextMessage("src0", DST_PREFIX, Instant.ofEpochMilli(0L), "this0");
-        fixture.writeNextMessage("bad", "bad", Instant.ofEpochMilli(1L), "bad"); // should ignore because not being sent to DST_PREFIX
-        fixture.writeNextMessage("src1", DST_PREFIX + ":1", Instant.ofEpochMilli(1L), "this1");
-        fixture.writeNextMessage("src2", DST_PREFIX + ":2", Instant.ofEpochMilli(2L), "this2");
+        fixture.writeNextMessage(
+                Address.of("src0"),
+                Address.of(DST_PREFIX),
+                Instant.ofEpochMilli(0L),
+                "this0");
+        fixture.writeNextMessage( // should ignore because not being sent to DST_PREFIX
+                Address.of("bad"),
+                Address.of("bad"),
+                Instant.ofEpochMilli(1L),
+                "bad");
+        fixture.writeNextMessage(
+                Address.of("src1"),
+                Address.of(DST_PREFIX, "1"),
+                Instant.ofEpochMilli(1L),
+                "this1");
+        fixture.writeNextMessage(
+                Address.of("src2"),
+                Address.of(DST_PREFIX, "2"),
+                Instant.ofEpochMilli(2L),
+                "this2");
         fixture.close();
         
         // Read file back out
@@ -69,12 +85,12 @@ public class RecordMessageSinkTest {
         }
         
         assertEquals(3, recordedMessages.size());
-        assertEquals("src0", recordedMessages.get(0).getSrcAddress());
-        assertEquals("src1", recordedMessages.get(1).getSrcAddress());
-        assertEquals("src2", recordedMessages.get(2).getSrcAddress());
+        assertEquals(Address.of("src0"), recordedMessages.get(0).getSrcAddress());
+        assertEquals(Address.of("src1"), recordedMessages.get(1).getSrcAddress());
+        assertEquals(Address.of("src2"), recordedMessages.get(2).getSrcAddress());
         assertNull(recordedMessages.get(0).getDstSuffix());
-        assertEquals("1", recordedMessages.get(1).getDstSuffix());
-        assertEquals("2", recordedMessages.get(2).getDstSuffix());
+        assertEquals(Address.of("1"), recordedMessages.get(1).getDstSuffix());
+        assertEquals(Address.of("2"), recordedMessages.get(2).getDstSuffix());
         assertEquals("this0", recordedMessages.get(0).getMessage());
         assertEquals("this1", recordedMessages.get(1).getMessage());
         assertEquals("this2", recordedMessages.get(2).getMessage());

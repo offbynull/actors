@@ -5,6 +5,7 @@ import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.io.DataInputStream;
 import java.io.File;
@@ -27,7 +28,7 @@ public class RecorderGatewayTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
 
             for (int i = 0; i < 10; i++) {
                 ctx.addOutgoingMessage(dstAddr, i);
@@ -42,7 +43,7 @@ public class RecorderGatewayTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 ctx.addOutgoingMessage(src, msg);
                 cnt.suspend();
@@ -57,7 +58,7 @@ public class RecorderGatewayTest {
         RecorderGateway echoRecorderGateway = RecorderGateway.record(
                 "recorder",
                 echoerThread.getIncomingShuttle(),
-                "echoer:echoer",
+                Address.of("echoer", "echoer"),
                 file,
                 new SimpleSerializer());
         Shuttle echoRecorderShuttle = echoRecorderGateway.getIncomingShuttle();
@@ -70,7 +71,7 @@ public class RecorderGatewayTest {
 
         // Add coroutines
         echoerThread.addCoroutineActor("echoer", echoer);
-        senderThread.addCoroutineActor("sender", sender, "recorder");
+        senderThread.addCoroutineActor("sender", sender, Address.of("recorder"));
 
         latch.await();
         echoRecorderGateway.close();

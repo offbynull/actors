@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.core.shuttles.simple;
 
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.ArrayList;
@@ -64,8 +64,8 @@ public final class SimpleShuttle implements Shuttle {
         List<Message> filteredMessages = new ArrayList<>(messages.size());
         messages.stream().forEach(x -> {
             try {
-                String dst = x.getDestinationAddress();
-                String dstPrefix = AddressUtils.getElement(dst, 0);
+                Address dst = x.getDestinationAddress();
+                String dstPrefix = dst.getElement(0);
                 Validate.isTrue(dstPrefix.equals(prefix));
                 
                 filteredMessages.add(x);

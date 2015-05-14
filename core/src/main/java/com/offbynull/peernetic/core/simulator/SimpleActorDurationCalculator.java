@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
@@ -26,7 +27,7 @@ import org.apache.commons.lang3.Validate;
 public final class SimpleActorDurationCalculator implements ActorDurationCalculator {
 
     @Override
-    public Duration calculateDuration(String source, String destination, Object message, Duration realDuration) {
+    public Duration calculateDuration(Address source, Address destination, Object message, Duration realDuration) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);

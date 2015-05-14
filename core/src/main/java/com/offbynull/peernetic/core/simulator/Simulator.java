@@ -26,14 +26,12 @@ import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
-import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.simulator.MessageSource.SourceMessage;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.function.Consumer;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.map.UnmodifiableMap;
@@ -99,13 +96,40 @@ import org.apache.commons.lang3.Validate;
  * in the simulator runs all actors in parallel, as if each individual actor runs in its own thread.</li>
  * <li><b>Timer's have exact precision.</b> This will almost always never be the case when you run in a real environment. The precision of
  * a {@link TimerGateway} is dependent on the OS/platform and the current load on the system.</li>
+ * <li><b>Garbage collection pauses do not occur.</b> Remember that the simulator is is essentially mocking out time. As such, pauses caused
+ * by the JVM running garbage collection are not reflected on to actors running in the simulation.</li>
  * </ol>
  * @author Kasra Faghihi
  */
 public final class Simulator {
+    
+    // NOTE that this is a simulator, not an emulator. There was a (partially implemented) idea at one point to bring this closer to being
+    // an emulator. Here are the things that were implementer or were going to be implemented:
+    //
+    // 1. Timer granularity -- You could set the granularity at which a timer operates. For example, windows defaults to 15ms/16ms
+    //    timer granularity, which could potentially go lower based on system time.
+    // 2. Send duration -- When a message is sent out, it sits for a while before being sent out. If the sending actor is removed during
+    //    that time, the messge is also removed. This is to simulate a sender under load. It can also be used to simulate out of order
+    //    message sending (but networking mock actor currently provides this functionality).
+    // 3. Recv duration -- When a message arrives, it sits for a while before going in to the actor for processing. If the recving actor is
+    //    removed during that time, the message is also removed. This is to simulate a recver under load (backed up message queue). It can
+    //    also be used to simulate out of order message recving (but networking mock actor currently provides this functionality).
+    // 4. Actor container -- Simulate multiple actors in an ActorThread. For example, if an actor sits in the same container as 5 other
+    //    actors and gets an incoming message that takes 5 seconds to process, those 5 other actors will also be delayed by 5 seconds,
+    //    because technically they're all running as if they're "in the same thread". In addition, simulate linking the containers the
+    //    same way that shuttles are used to link together actors and gateways.
+    // 5. Garbage collection pasues -- Simulat pausese, either from garbage collection or some other event (e.g. computer goes in to
+    //    hibernation mode and comes back up?).
+    // 6. Actor time offsets -- This is currently implemented.
+    //
+    // It's possible to do all of the above items in this class, but the class will become much more convoluted. In addition to that, there
+    // will need to be a lot more unit tests. Performance will likely also suffer.
+    //
+    // What is here now reaches the "good enough" bar, at least for now.
+    
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
-    private final Map<String, Holder> holders;
+    private final Map<Address, Holder> holders;
     private final Set<MessageSink> sinks;
     private final Set<MessageSource> sources;
     private final ActorDurationCalculator actorDurationCalculator;
@@ -422,14 +446,15 @@ public final class Simulator {
         Actor actor = joinEvent.getActor();
         Duration timeOffset = joinEvent.getTimeOffset();
         UnmodifiableList<Object> primingMessages = joinEvent.getPrimingMessages();
+        Address addressObj = Address.of(address);
+        
+        validateAddressDoesNotConflict(addressObj);
 
-        validateAddressDoesNotConflict(address);
-
-        ActorHolder newHolder = new ActorHolder(address, actor, timeOffset, currentTime);
-        holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
+        ActorHolder newHolder = new ActorHolder(addressObj, actor, timeOffset, currentTime);
+        holders.put(addressObj, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
 
         for (Object message : primingMessages) {
-            queueMessageFromActorOrGateway(address, address, message, Duration.ZERO);
+            queueMessageFromActorOrGateway(addressObj, addressObj, message, Duration.ZERO);
         }
     }
     
@@ -437,12 +462,13 @@ public final class Simulator {
         RemoveActorEvent removeActorEvent = (RemoveActorEvent) event;
 
         String address = removeActorEvent.getAddress();
+        Address addressObj = Address.of(address);
 
-        Holder holder = holders.remove(address);
+        Holder holder = holders.remove(addressObj);
         Validate.isTrue(holder != null, "Address does not exist");
         if (!(holder instanceof ActorHolder)) {
             // If the holder removed was not an actor holder, add it back in and throw an exception
-            holders.put(address, holder);
+            holders.put(addressObj, holder);
             throw new IllegalArgumentException("Address not an actor");
         }
         
@@ -453,7 +479,7 @@ public final class Simulator {
             Event pendingEvent = eventsIt.next();
             if (pendingEvent instanceof MessageEvent) {
                 MessageEvent messageEvent = (MessageEvent) pendingEvent;
-                if (AddressUtils.isPrefix(address, messageEvent.getDestinationAddress())) {
+                if (addressObj.isPrefixOf(messageEvent.getDestinationAddress())) {
                     eventsIt.remove();
                 }
             }
@@ -464,23 +490,25 @@ public final class Simulator {
         AddTimerEvent addTimerEvent = (AddTimerEvent) event;
 
         String address = addTimerEvent.getAddress();
+        Address addressObj = Address.of(address);
 
-        validateAddressDoesNotConflict(address);
+        validateAddressDoesNotConflict(addressObj);
 
-        TimerHolder newHolder = new TimerHolder(address);
-        holders.put(address, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
+        TimerHolder newHolder = new TimerHolder(addressObj);
+        holders.put(addressObj, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
     }
     
     private void handleRemoveTimerEvent(Event event) {
         RemoveTimerEvent removeTimerEvent = (RemoveTimerEvent) event;
 
         String address = removeTimerEvent.getAddress();
+        Address addressObj = Address.of(address);
 
-        Holder holder = holders.remove(address);
+        Holder holder = holders.remove(addressObj);
         Validate.isTrue(holder != null, "Address does not exist");
         if (!(holder instanceof TimerHolder)) {
             // If the holder removed was not a timer holder, add it back in and throw an exception
-            holders.put(address, holder);
+            holders.put(addressObj, holder);
             throw new IllegalArgumentException("Address not a timer");
         }
         
@@ -491,7 +519,7 @@ public final class Simulator {
             Event pendingEvent = eventsIt.next();
             if (pendingEvent instanceof TimerTriggerEvent) {
                 TimerTriggerEvent timerTriggerEvent = (TimerTriggerEvent) pendingEvent;
-                if (AddressUtils.isPrefix(address, timerTriggerEvent.getSourceAddress())) {
+                if (addressObj.isPrefixOf(timerTriggerEvent.getSourceAddress())) {
                     eventsIt.remove();
                 }
             }
@@ -567,23 +595,21 @@ public final class Simulator {
         Validate.isTrue(sinks.remove(sink));
     }
     
-    private void validateAddressDoesNotConflict(String address) {
+    private void validateAddressDoesNotConflict(Address address) {
         Validate.notNull(address);
         Holder conflictingHolder = findHolder(address);
         Validate.isTrue(conflictingHolder == null,
                 "Address {} conflicts with existing address {}", address, conflictingHolder);
     }
 
-    private Holder findHolder(String address) {
+    // Only top-level addresses can be added to simulator, so doing all this is a bit unnessecary, but leave it in just in case.
+    private Holder findHolder(Address address) {
         Validate.notNull(address);
 
-        List<String> splitAddress = Arrays.asList(AddressUtils.splitAddress(address));
+        List<String> splitAddress = address.getElements();
         
-        for (int i = 0; i <= splitAddress.size(); i++) {
-            StringJoiner joiner = new StringJoiner(SEPARATOR);
-            splitAddress.subList(0, i).forEach(x -> joiner.add(x));
-            
-            String testAddress = joiner.toString();
+        for (int i = address.size(); i >= 1; i--) {
+            Address testAddress = Address.of(splitAddress.subList(0, i));
             Holder actorHolder = holders.get(testAddress);
             if (actorHolder != null) {
                 return actorHolder;
@@ -594,8 +620,8 @@ public final class Simulator {
     }
     
     private void queueMessageFromMessageSource(
-            String sourceAddress,
-            String destinationAddress,
+            Address sourceAddress,
+            Address destinationAddress,
             Object message) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
@@ -623,8 +649,8 @@ public final class Simulator {
     }
 
     private void queueMessageFromActorOrGateway(
-            String sourceAddress,
-            String destinationAddress,
+            Address sourceAddress,
+            Address destinationAddress,
             Object message,
             Duration actorExecDuration) {
         Validate.notNull(sourceAddress);
@@ -667,8 +693,8 @@ public final class Simulator {
     
     private void queueTimerTrigger(
             boolean sourceMustExistFlag,
-            String sourceAddress,
-            String destinationAddress,
+            Address sourceAddress,
+            Address destinationAddress,
             Object message,
             Duration scheduledDuration) {
         Validate.notNull(sourceAddress);
@@ -710,8 +736,8 @@ public final class Simulator {
     private void processMessage(MessageEvent messageEvent) {
         Validate.notNull(messageEvent);
         
-        String source = messageEvent.getSourceAddress();
-        String destination = messageEvent.getDestinationAddress();
+        Address source = messageEvent.getSourceAddress();
+        Address destination = messageEvent.getDestinationAddress();
         Object message = messageEvent.getMessage();
         
         // Get destination
@@ -734,11 +760,11 @@ public final class Simulator {
         }
     }
 
-    private void processMessageToTimer(TimerHolder destHolder, String destination, String source, Object message) {
+    private void processMessageToTimer(TimerHolder destHolder, Address destination, Address source, Object message) {
         // If this is a timer messages, bounce it back to the source -- scheduled to arrive after the specified duration
         Duration timerDuration;
         try {
-            String durationStr = AddressUtils.getElement(destination, 1);
+            String durationStr = destination.getElement(1);
             timerDuration = Duration.ofMillis(Long.parseLong(durationStr));
             Validate.isTrue(!timerDuration.isNegative());
         } catch (Exception e) {
@@ -748,7 +774,7 @@ public final class Simulator {
         queueTimerTrigger(true, destination, source, message, timerDuration);
     }
 
-    private void processMessageToActor(ActorHolder destHolder, String destination, String source, Object message) {
+    private void processMessageToActor(ActorHolder destHolder, Address destination, Address source, Object message) {
         // Earliest possible step time is the minimum point in time which the destination actor can have its onStep called again. That is,
         // the message being processed must be >= to the earliest possible step time. Otherwise, something has gone wrong. This is a sanity
         // check.
@@ -760,14 +786,14 @@ public final class Simulator {
         // test harness. In the real world, if an actor throws an exception, it'll get removed from the list of actors assigned to that
         // ActorThread/ActorRunnable and no more execution is done on it.
         Actor actor = destHolder.getActor();
-        String address = destHolder.getAddress();
+        Address address = destHolder.getAddress();
         SourceContext context = destHolder.getContext();
         Instant localActorTime = currentTime.plus(destHolder.getTimeOffset()); // This is the time as it appears to the actor. Clocks
                                                                                // between different machines are never going to be entirely
                                                                                // in sync. So, one actor may technically have a different
                                                                                // local time than another (because they may be running on
                                                                                // different machines).
-
+        
         context.setTime(localActorTime);
         context.setSource(source);
         context.setDestination(destination);
@@ -817,7 +843,11 @@ public final class Simulator {
         // All messages going out from this onStep() call go out at the end, which means that their arrival time needs to have execDuration
         // added to it as well.
         for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
-            String outSrc = AddressUtils.parentize(address, batchedOutMsg.getSourceId());
+            Address outSrc = address;
+            Address outSrcId = batchedOutMsg.getSourceId();
+            if (outSrcId != null) {
+                outSrc = outSrc.appendSuffix(outSrcId);
+            }
             queueMessageFromActorOrGateway(outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage(), execDuration);
         }
 

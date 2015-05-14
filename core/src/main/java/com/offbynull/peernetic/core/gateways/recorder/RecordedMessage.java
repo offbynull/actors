@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.recorder;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
@@ -28,8 +29,8 @@ import org.apache.commons.lang3.Validate;
 public final class RecordedMessage implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private String srcAddress;
-    private String dstSuffix;
+    private Address srcAddress;
+    private Address dstSuffix;
     private Object message;
 
     /**
@@ -39,7 +40,7 @@ public final class RecordedMessage implements Serializable {
      * @param message message being recorded
      * @throws NullPointerException if any argument other than {@code dstSuffix} is {@code null}
      */
-    public RecordedMessage(String srcAddress, String dstSuffix, Object message) {
+    public RecordedMessage(Address srcAddress, Address dstSuffix, Object message) {
         Validate.notNull(srcAddress);
         // dstSuffix can be null
         Validate.notNull(message);
@@ -52,7 +53,7 @@ public final class RecordedMessage implements Serializable {
      * Get the source address.
      * @return source address
      */
-    public String getSrcAddress() {
+    public Address getSrcAddress() {
         return srcAddress;
     }
 
@@ -60,7 +61,7 @@ public final class RecordedMessage implements Serializable {
      * Get the destination address suffix.
      * @return destination address
      */
-    public String getDstSuffix() {
+    public Address getDstSuffix() {
         return dstSuffix;
     }
 

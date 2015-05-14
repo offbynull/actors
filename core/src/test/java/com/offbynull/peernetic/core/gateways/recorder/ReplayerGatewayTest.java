@@ -5,6 +5,7 @@ import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -32,7 +33,7 @@ public class ReplayerGatewayTest {
             for (int i = 0; i < 10; i++) {
                 Instant time = Instant.now();
                 List<RecordedMessage> recordedMessages = Collections.singletonList(
-                        new RecordedMessage("fake", "", i));
+                        new RecordedMessage(Address.of("fake"), null, i));
 
                 RecordedBlock recordedBlock = new RecordedBlock(recordedMessages, time);
 
@@ -88,7 +89,7 @@ public class ReplayerGatewayTest {
         // Create replayer that mocks out sender and replays previous events to echoer
         ReplayerGateway replayerGateway = ReplayerGateway.replay(
                 echoerThread.getIncomingShuttle(),
-                "echoer:echoer",
+                Address.of("echoer", "echoer"),
                 file,
                 new SimpleSerializer());
         replayerGateway.await();

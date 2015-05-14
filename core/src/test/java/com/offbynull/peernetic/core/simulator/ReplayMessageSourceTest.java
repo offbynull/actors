@@ -1,10 +1,10 @@
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.simulator.ReplayMessageSource;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedBlock;
 import com.offbynull.peernetic.core.gateways.recorder.RecordedMessage;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.simulator.MessageSource.SourceMessage;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -40,8 +40,8 @@ public class ReplayMessageSourceTest {
                 Instant time = Instant.ofEpochMilli(i);
                 List<RecordedMessage> recordedMessages = Collections.singletonList(
                         new RecordedMessage(
-                                "src" + i, 
-                                i == 0 ? null : "" + i,
+                                Address.of("src" + i), 
+                                i == 0 ? null : Address.of("" + i),
                                 "this" + i)
                 );
 
@@ -73,12 +73,12 @@ public class ReplayMessageSourceTest {
         SourceMessage msg2 = fixture.readNextMessage();
         SourceMessage msg3 = fixture.readNextMessage();
         
-        assertEquals("src0", msg0.getSource());
-        assertEquals("src1", msg1.getSource());
-        assertEquals("src2", msg2.getSource());
-        assertEquals("dst", msg0.getDestination());
-        assertEquals("dst:1", msg1.getDestination());
-        assertEquals("dst:2", msg2.getDestination());
+        assertEquals(Address.of("src0"), msg0.getSource());
+        assertEquals(Address.of("src1"), msg1.getSource());
+        assertEquals(Address.of("src2"), msg2.getSource());
+        assertEquals(Address.of("dst"), msg0.getDestination());
+        assertEquals(Address.of("dst", "1"), msg1.getDestination());
+        assertEquals(Address.of("dst", "2"), msg2.getDestination());
         assertEquals("this0", msg0.getMessage());
         assertEquals("this1", msg1.getMessage());
         assertEquals("this2", msg2.getMessage());

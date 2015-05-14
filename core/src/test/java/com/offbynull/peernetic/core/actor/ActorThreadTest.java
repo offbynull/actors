@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.test.CaptureShuttle;
 import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
 import java.util.concurrent.CountDownLatch;
@@ -31,13 +32,13 @@ public class ActorThreadTest {
                 "echoer",
                 cnt -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.addOutgoingMessage("local:sender", ctx.getIncomingMessage());
+                    ctx.addOutgoingMessage(Address.fromString("local:sender"), ctx.getIncomingMessage());
                 });
         fixture.addCoroutineActor(
                 "sender",
                 cnt -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.addOutgoingMessage("local:echoer", "hi");
+                    ctx.addOutgoingMessage(Address.fromString("local:echoer"), "hi");
                     
                     cnt.suspend();
                     
@@ -69,7 +70,7 @@ public class ActorThreadTest {
                     "sender",
                     cnt -> {
                         Context ctx = (Context) cnt.getContext();
-                        ctx.addOutgoingMessage("local2:echoer", "hi");
+                        ctx.addOutgoingMessage(Address.fromString("local2:echoer"), "hi");
                         cnt.suspend();
                         
                         assertEquals(ctx.getIncomingMessage(), "hi");
@@ -118,8 +119,8 @@ public class ActorThreadTest {
                 "sender",
                 cnt -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.addOutgoingMessage("fake", "1");
-                    ctx.addOutgoingMessage("local:sender", new Object());
+                    ctx.addOutgoingMessage(Address.fromString("fake"), "1");
+                    ctx.addOutgoingMessage(Address.fromString("local:sender"), new Object());
         
                     // Suspend here. We'll continue when we get the msg we sent to ourselves, and at that point we can be sure that msgs to
                     // "fake" were sent
@@ -155,8 +156,8 @@ public class ActorThreadTest {
                 "sender",
                 cnt -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.addOutgoingMessage("fake", "1");
-                    ctx.addOutgoingMessage("local:sender", new Object());
+                    ctx.addOutgoingMessage(Address.fromString("fake"), "1");
+                    ctx.addOutgoingMessage(Address.fromString("local:sender"), new Object());
         
                     // Suspend here. We'll continue when we get the msg we sent to ourselves, and at that point we can be sure that msgs to
                     // "fake" were sent

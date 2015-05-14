@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
+import com.offbynull.peernetic.core.shuttle.Address;
+
 interface Holder {
-    String getAddress();
+    Address getAddress();
 }

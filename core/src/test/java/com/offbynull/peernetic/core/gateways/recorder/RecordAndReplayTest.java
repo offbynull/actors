@@ -4,6 +4,7 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
 import java.io.File;
@@ -28,7 +29,7 @@ public class RecordAndReplayTest {
 
             Coroutine sender = (cnt) -> {
                 Context ctx = (Context) cnt.getContext();
-                String dstAddr = ctx.getIncomingMessage();
+                Address dstAddr = ctx.getIncomingMessage();
 
                 for (int i = 0; i < 10; i++) {
                     ctx.addOutgoingMessage(dstAddr, i);
@@ -43,7 +44,7 @@ public class RecordAndReplayTest {
                 Context ctx = (Context) cnt.getContext();
 
                 while (true) {
-                    String src = ctx.getSource();
+                    Address src = ctx.getSource();
                     Object msg = ctx.getIncomingMessage();
                     ctx.addOutgoingMessage(src, msg);
                     cnt.suspend();
@@ -58,7 +59,7 @@ public class RecordAndReplayTest {
             RecorderGateway echoRecorderGateway = RecorderGateway.record(
                     "recorder",
                     echoerThread.getIncomingShuttle(),
-                    "echoer:echoer",
+                    Address.of("echoer", "echoer"),
                     eventsFile,
                     new SimpleSerializer());
             Shuttle echoRecorderShuttle = echoRecorderGateway.getIncomingShuttle();
@@ -72,7 +73,7 @@ public class RecordAndReplayTest {
 
             // Add coroutines
             echoerThread.addCoroutineActor("echoer", echoer);
-            senderThread.addCoroutineActor("sender", sender, "recorder");
+            senderThread.addCoroutineActor("sender", sender, Address.of("recorder"));
 
             latch.await();
             echoRecorderGateway.close();
@@ -123,7 +124,7 @@ public class RecordAndReplayTest {
             // Create replayer that mocks out sender and replays previous events to echoer
             ReplayerGateway replayerGateway = ReplayerGateway.replay(
                     echoerThread.getIncomingShuttle(),
-                    "echoer:echoer",
+                    Address.of("echoer", "echoer"),
                     eventsFile,
                     new SimpleSerializer());
             replayerGateway.await();

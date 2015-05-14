@@ -18,8 +18,7 @@ package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
-import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -69,7 +68,7 @@ import org.apache.commons.lang3.Validate;
 public final class ProxyHelper {
 
     private final Context context;
-    private final String actorPrefix;
+    private final Address actorPrefix;
 
     /**
      * Construct a {@link ProxyHelper} instance.
@@ -77,7 +76,7 @@ public final class ProxyHelper {
      * @param actorPrefix address of the actor being proxied
      * @throws NullPointerException if any argument is {@code null}
      */
-    public ProxyHelper(Context context, String actorPrefix) {
+    public ProxyHelper(Context context, Address actorPrefix) {
         Validate.notNull(context);
         Validate.notNull(actorPrefix);
         this.context = context;
@@ -101,14 +100,14 @@ public final class ProxyHelper {
      */
     public ForwardInformation generateOutboundForwardInformation() {
         // Get address to proxy to
-        String selfAddr = context.getSelf();
-        String dstAddr = context.getDestination();
-        String proxyToAddress = AddressUtils.relativize(selfAddr, dstAddr); // treat suffix for dst of this msg as address to proxy to
+        Address selfAddr = context.getSelf();
+        Address dstAddr = context.getDestination();
+        Address proxyToAddress = dstAddr.removePrefix(selfAddr); // treat suffix for dst of this msg as address to proxy to
         Validate.validState(proxyToAddress != null);
 
         // Get suffix for from address
-        String srcAddr = context.getSource();
-        String proxyFromId = AddressUtils.relativize(actorPrefix, srcAddr);
+        Address srcAddr = context.getSource();
+        Address proxyFromId = srcAddr.removePrefix(actorPrefix);
         
         return new ForwardInformation(proxyFromId, proxyToAddress);
     }
@@ -130,13 +129,13 @@ public final class ProxyHelper {
      */
     public ForwardInformation generatInboundForwardInformation() {
         // Get suffix portion of incoming message's destination address
-        String selfAddr = context.getSelf();
-        String dstAddr = context.getDestination();
-        String suffix = AddressUtils.relativize(selfAddr, dstAddr);
-        String proxyToAddress = actorPrefix + (suffix != null ? SEPARATOR + suffix : "");
+        Address selfAddr = context.getSelf();
+        Address dstAddr = context.getDestination();
+        Address suffix = dstAddr.removePrefix(selfAddr);
+        Address proxyToAddress = actorPrefix.appendSuffix(suffix);
         
         // Get sender
-        String proxyFromId = context.getSource();
+        Address proxyFromId = context.getSource();
         
         return new ForwardInformation(proxyFromId, proxyToAddress);
     }
@@ -173,24 +172,24 @@ public final class ProxyHelper {
     
     /**
      * Determines if the incoming message is from some address prefix. Convenience method equivalent to calling
-     * {@code AddressUtils.isPrefix(addressPrefix, context.getSource())}.
+     * {@code addressPrefix.isPrefixOf(context.getSource())}.
      * @param addressPrefix address prefix
      * @throws NullPointerException if any argument is {@code null}
      * @return {@code true} if the incoming message is from the specified address prefix, {@code false} otherwise
      */
-    public boolean isMessageFrom(String addressPrefix) {
+    public boolean isMessageFrom(Address addressPrefix) {
         Validate.notNull(addressPrefix);
-        return AddressUtils.isPrefix(addressPrefix, context.getSource());
+        return addressPrefix.isPrefixOf(context.getSource());
     }
     
     /**
      * Forwarding information.
      */
     public static final class ForwardInformation {
-        private final String proxyFromId;
-        private final String proxyToAddress;
+        private final Address proxyFromId;
+        private final Address proxyToAddress;
         
-        private ForwardInformation(String proxyFromId, String proxyToAddress) {
+        private ForwardInformation(Address proxyFromId, Address proxyToAddress) {
             this.proxyFromId = proxyFromId;
             this.proxyToAddress = proxyToAddress;
         }
@@ -199,7 +198,7 @@ public final class ProxyHelper {
          * Get the id (address suffix) to forward from.
          * @return id (address suffix) to forward from
          */
-        public String getProxyFromId() {
+        public Address getProxyFromId() {
             return proxyFromId;
         }
 
@@ -207,7 +206,7 @@ public final class ProxyHelper {
          * Get the address to forward to.
          * @return address to forward to
          */
-        public String getProxyToAddress() {
+        public Address getProxyToAddress() {
             return proxyToAddress;
         }
         

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
@@ -21,30 +22,30 @@ public class SourceContextTest {
     public void mustQueueUpOutgoingMessages() {
         List<BatchedOutgoingMessage> outgoingMsgsView = fixture.viewOutgoingMessages();
         
-        fixture.addOutgoingMessage("test1", "1");
-        fixture.addOutgoingMessage("src", "test2", "2");
-        fixture.addOutgoingMessage("src", "test3", "3");
+        fixture.addOutgoingMessage(Address.fromString("test1"), "1");
+        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test2"), "2");
+        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test3"), "3");
         
         assertEquals(3, outgoingMsgsView.size());
         
         assertNull(outgoingMsgsView.get(0).getSourceId());
-        assertEquals("test1", outgoingMsgsView.get(0).getDestination());
+        assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         
-        assertEquals("src", outgoingMsgsView.get(1).getSourceId());
-        assertEquals("test2", outgoingMsgsView.get(1).getDestination());
+        assertEquals(Address.of("src"), outgoingMsgsView.get(1).getSourceId());
+        assertEquals(Address.of("test2"), outgoingMsgsView.get(1).getDestination());
         assertEquals("2", outgoingMsgsView.get(1).getMessage());
 
-        assertEquals("src", outgoingMsgsView.get(2).getSourceId());
-        assertEquals("test3", outgoingMsgsView.get(2).getDestination());
+        assertEquals(Address.of("src"), outgoingMsgsView.get(2).getSourceId());
+        assertEquals(Address.of("test3"), outgoingMsgsView.get(2).getDestination());
         assertEquals("3", outgoingMsgsView.get(2).getMessage());
     }
 
     @Test
     public void mustDrainOutgoingMessages() {
-        fixture.addOutgoingMessage("test1", "1");
-        fixture.addOutgoingMessage("src", "test2", "2");
-        fixture.addOutgoingMessage("src", "test3", "3");
+        fixture.addOutgoingMessage(Address.fromString("test1"), "1");
+        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test2"), "2");
+        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test3"), "3");
         
         List<BatchedOutgoingMessage> outgoingMsgs = fixture.copyAndClearOutgoingMessages();
         
@@ -54,25 +55,25 @@ public class SourceContextTest {
         assertEquals(3, outgoingMsgs.size());
         
         assertNull(outgoingMsgs.get(0).getSourceId());
-        assertEquals("test1", outgoingMsgs.get(0).getDestination());
+        assertEquals(Address.of("test1"), outgoingMsgs.get(0).getDestination());
         assertEquals("1", outgoingMsgs.get(0).getMessage());
         
-        assertEquals("src", outgoingMsgs.get(1).getSourceId());
-        assertEquals("test2", outgoingMsgs.get(1).getDestination());
+        assertEquals(Address.of("src"), outgoingMsgs.get(1).getSourceId());
+        assertEquals(Address.of("test2"), outgoingMsgs.get(1).getDestination());
         assertEquals("2", outgoingMsgs.get(1).getMessage());
 
-        assertEquals("src", outgoingMsgs.get(2).getSourceId());
-        assertEquals("test3", outgoingMsgs.get(2).getDestination());
+        assertEquals(Address.of("src"), outgoingMsgs.get(2).getSourceId());
+        assertEquals(Address.of("test3"), outgoingMsgs.get(2).getDestination());
         assertEquals("3", outgoingMsgs.get(2).getMessage());
     }
 
     @Test
     public void mustConvertToNormalContext() {
-        fixture.addOutgoingMessage("test1", "1");
-        fixture.setDestination("dest");
-        fixture.setIncomingMessage("msg");
-        fixture.setSource("src");
-        fixture.setSelf("self");
+        fixture.addOutgoingMessage(Address.fromString("test1"), "1");
+        fixture.setDestination(Address.of("dest"));
+        fixture.setIncomingMessage(Address.of("msg"));
+        fixture.setSource(Address.of("src"));
+        fixture.setSelf(Address.of("self"));
         fixture.setTime(Instant.MIN);
         
         Context normalContext = fixture.toNormalContext();
@@ -80,13 +81,13 @@ public class SourceContextTest {
         List<BatchedOutgoingMessage> outgoingMsgsView = normalContext.viewOutgoingMessages();
         assertEquals(1, outgoingMsgsView.size());
         assertNull(outgoingMsgsView.get(0).getSourceId());
-        assertEquals("test1", outgoingMsgsView.get(0).getDestination());
+        assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         
-        assertEquals("dest", normalContext.getDestination());
-        assertEquals("msg", normalContext.getIncomingMessage());
-        assertEquals("src", normalContext.getSource());
-        assertEquals("self", normalContext.getSelf());
+        assertEquals(Address.of("dest"), normalContext.getDestination());
+        assertEquals(Address.of("msg"), normalContext.getIncomingMessage());
+        assertEquals(Address.of("src"), normalContext.getSource());
+        assertEquals(Address.of("self"), normalContext.getSelf());
         assertEquals(Instant.MIN, normalContext.getTime());
     }
     

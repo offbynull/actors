@@ -16,11 +16,11 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import java.time.Instant;
 import java.util.List;
-import javafx.stage.Stage;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
@@ -52,12 +52,12 @@ final class GraphRunnable implements Runnable {
                     return;
                 }
 
-                MultiMap<String, Object> payloads = new MultiValueMap<>();
+                MultiMap<Address, Object> payloads = new MultiValueMap<>();
                 for (Object incomingObject : incomingObjects) {
                     if (incomingObject instanceof Message) {
                         Message msg = (Message) incomingObject;
 
-                        String dst = msg.getDestinationAddress();
+                        Address dst = msg.getDestinationAddress();
                         Object payload = msg.getMessage();
                         payloads.put(dst, payload);
                         

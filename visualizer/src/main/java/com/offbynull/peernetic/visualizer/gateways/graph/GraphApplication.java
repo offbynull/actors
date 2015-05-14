@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +34,6 @@ import javafx.scene.SceneAntialiasing;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
@@ -134,14 +134,14 @@ public final class GraphApplication extends Application {
         }
     }
 
-    void execute(MultiMap<String, Object> commands) {
+    void execute(MultiMap<Address, Object> commands) {
         Validate.notNull(commands);
 
-        MultiMap<String, Object> commandsCopy = new MultiValueMap<>();
+        MultiMap<Address, Object> commandsCopy = new MultiValueMap<>();
         commandsCopy.putAll(commands);
         Platform.runLater(() -> {
-            for (Entry<String, Object> entry : commandsCopy.entrySet()) {
-                String fromAddress = entry.getKey();
+            for (Entry<Address, Object> entry : commandsCopy.entrySet()) {
+                String fromAddress = entry.getKey().toString();
                 GraphStage graphStage = graphStages.get(fromAddress);
                 if (graphStage == null) {
                     graphStage = new GraphStage();

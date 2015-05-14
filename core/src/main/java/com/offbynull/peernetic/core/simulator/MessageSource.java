@@ -56,6 +56,8 @@ public interface MessageSource extends AutoCloseable {
             Validate.notNull(destination);
             Validate.notNull(duration);
             Validate.notNull(message);
+            Validate.isTrue(!source.isEmpty());
+            Validate.isTrue(!destination.isEmpty());
             Validate.isTrue(!duration.isNegative());
             this.source = source;
             this.destination = destination;

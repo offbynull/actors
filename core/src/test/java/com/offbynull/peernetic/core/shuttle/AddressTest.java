@@ -35,7 +35,7 @@ public class AddressTest {
     @Test
     public void mustConstructAddressFromEmptyString() {
         Address fixture = Address.fromString("");
-        assertEquals(Arrays.asList(""), fixture.getElements());
+        assertEquals(Arrays.asList(), fixture.getElements());
     }
 
     @Test
@@ -95,10 +95,10 @@ public class AddressTest {
     }
 
     @Test
-    public void mustRelativizeToNull() {
+    public void mustRelativizeToEmpty() {
         Address parent = Address.of("one", "two");
         Address fixture = Address.of("one", "two");
-        assertNull(fixture.removePrefix(parent));
+        assertTrue(fixture.removePrefix(parent).isEmpty());
     }
 
     @Test
@@ -110,9 +110,8 @@ public class AddressTest {
     }
     
     @Test
-    public void mustFailWhenCreatingAnAddressWith0Elements() {
-        exception.expect(IllegalArgumentException.class);
-        Address.of();
+    public void mustConstructAnAddressWith0Elements() {
+        Address.of(); // no crash means success
     }
     
     

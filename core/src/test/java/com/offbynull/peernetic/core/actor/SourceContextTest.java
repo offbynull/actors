@@ -28,7 +28,7 @@ public class SourceContextTest {
         
         assertEquals(3, outgoingMsgsView.size());
         
-        assertNull(outgoingMsgsView.get(0).getSourceId());
+        assertEquals(Address.of(), outgoingMsgsView.get(0).getSourceId());
         assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         
@@ -54,7 +54,7 @@ public class SourceContextTest {
         
         assertEquals(3, outgoingMsgs.size());
         
-        assertNull(outgoingMsgs.get(0).getSourceId());
+        assertEquals(Address.of(), outgoingMsgs.get(0).getSourceId());
         assertEquals(Address.of("test1"), outgoingMsgs.get(0).getDestination());
         assertEquals("1", outgoingMsgs.get(0).getMessage());
         
@@ -80,7 +80,7 @@ public class SourceContextTest {
         
         List<BatchedOutgoingMessage> outgoingMsgsView = normalContext.viewOutgoingMessages();
         assertEquals(1, outgoingMsgsView.size());
-        assertNull(outgoingMsgsView.get(0).getSourceId());
+        assertEquals(Address.of(), outgoingMsgsView.get(0).getSourceId());
         assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         

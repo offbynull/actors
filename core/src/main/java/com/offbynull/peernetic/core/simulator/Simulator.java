@@ -597,14 +597,15 @@ public final class Simulator {
     
     private void validateAddressDoesNotConflict(Address address) {
         Validate.notNull(address);
+        Validate.isTrue(!address.isEmpty());
         Holder conflictingHolder = findHolder(address);
         Validate.isTrue(conflictingHolder == null,
                 "Address {} conflicts with existing address {}", address, conflictingHolder);
     }
 
-    // Only top-level addresses can be added to simulator, so doing all this is a bit unnessecary, but leave it in just in case.
     private Holder findHolder(Address address) {
         Validate.notNull(address);
+        Validate.isTrue(!address.isEmpty());
 
         List<String> splitAddress = address.getElements();
         
@@ -626,6 +627,8 @@ public final class Simulator {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
+        Validate.isTrue(!sourceAddress.isEmpty());
+        Validate.isTrue(!destinationAddress.isEmpty());
         
         Instant arriveTime = currentTime;
         

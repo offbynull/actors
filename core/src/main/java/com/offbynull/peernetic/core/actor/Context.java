@@ -32,15 +32,16 @@ import java.util.List;
  * @author Kasra Faghihi
  */
 public interface Context {
-
+    
     /**
-     * Equivalent to calling {@code addOutgoingMessage(null, destination, message)}. 
+     * Equivalent to calling {@code addOutgoingMessage(Address.of(), destination, message)}. 
      * @param destination destination address
      * @param message outgoing message
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destination} is empty
      */
     default void addOutgoingMessage(Address destination, Object message) {
-        addOutgoingMessage(null, destination, message);
+        addOutgoingMessage(Address.of(), destination, message);
     }
 
     /**
@@ -50,7 +51,8 @@ public interface Context {
      * outgoing message being sent will be "actor:1:id1:id2".
      * @param destination destination address
      * @param message outgoing message
-     * @throws NullPointerException if any argument other than {@code sourceId} is {@code null}
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destination} is empty
      */
     void addOutgoingMessage(Address sourceId, Address destination, Object message);
     

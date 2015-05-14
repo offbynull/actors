@@ -37,6 +37,7 @@ final class RecorderShuttle implements Shuttle {
         Validate.notNull(internalBus);
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
+        Validate.isTrue(!dstAddress.isEmpty());
         Validate.isTrue(Address.of(dstShuttle.getPrefix()).isPrefixOf(dstAddress));
 
         this.prefix = Address.of(prefix);

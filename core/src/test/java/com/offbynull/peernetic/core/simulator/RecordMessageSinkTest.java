@@ -88,7 +88,7 @@ public class RecordMessageSinkTest {
         assertEquals(Address.of("src0"), recordedMessages.get(0).getSrcAddress());
         assertEquals(Address.of("src1"), recordedMessages.get(1).getSrcAddress());
         assertEquals(Address.of("src2"), recordedMessages.get(2).getSrcAddress());
-        assertNull(recordedMessages.get(0).getDstSuffix());
+        assertEquals(Address.of(), recordedMessages.get(0).getDstSuffix());
         assertEquals(Address.of("1"), recordedMessages.get(1).getDstSuffix());
         assertEquals(Address.of("2"), recordedMessages.get(2).getDstSuffix());
         assertEquals("this0", recordedMessages.get(0).getMessage());

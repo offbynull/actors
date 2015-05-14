@@ -41,7 +41,7 @@ public class ReplayMessageSourceTest {
                 List<RecordedMessage> recordedMessages = Collections.singletonList(
                         new RecordedMessage(
                                 Address.of("src" + i), 
-                                i == 0 ? null : Address.of("" + i),
+                                i == 0 ? Address.of() : Address.of("" + i),
                                 "this" + i)
                 );
 

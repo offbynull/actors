@@ -24,6 +24,7 @@ final class TimerHolder implements Holder {
     
     public TimerHolder(Address address) {
         Validate.notNull(address);
+        Validate.isTrue(!address.isEmpty());
         this.address = address;
     }
 

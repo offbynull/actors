@@ -35,10 +35,12 @@ public final class CoroutineSubcoroutine implements Subcoroutine<Void> {
      * @param id id of this subcoroutine
      * @param coroutine coroutine to wrap
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code id} is empty
      */
     public CoroutineSubcoroutine(Address id, Coroutine coroutine) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
+        Validate.isTrue(!id.isEmpty());
         this.id = id;
         this.coroutine = coroutine;
     }

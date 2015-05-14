@@ -75,10 +75,12 @@ public final class ProxyHelper {
      * @param context actor context
      * @param actorPrefix address of the actor being proxied
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code actorPrefix} is empty
      */
     public ProxyHelper(Context context, Address actorPrefix) {
         Validate.notNull(context);
         Validate.notNull(actorPrefix);
+        Validate.isTrue(!actorPrefix.isEmpty());
         this.context = context;
         this.actorPrefix = actorPrefix;
     }
@@ -103,7 +105,7 @@ public final class ProxyHelper {
         Address selfAddr = context.getSelf();
         Address dstAddr = context.getDestination();
         Address proxyToAddress = dstAddr.removePrefix(selfAddr); // treat suffix for dst of this msg as address to proxy to
-        Validate.validState(proxyToAddress != null);
+        Validate.validState(!proxyToAddress.isEmpty());
 
         // Get suffix for from address
         Address srcAddr = context.getSource();

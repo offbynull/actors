@@ -30,6 +30,8 @@ final class MessageEvent extends Event {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
+        Validate.isTrue(!sourceAddress.isEmpty());
+        Validate.isTrue(!destinationAddress.isEmpty());
         this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;
         this.message = message;

@@ -61,6 +61,7 @@ public final class RecordMessageSink implements MessageSink { // FYI: NOT THREAD
     
     @Override
     public void writeNextMessage(Address source, Address destination, Instant time, Object message) throws IOException {
+        Validate.isTrue(!destination.isEmpty());
         if (!destinationPrefix.isPrefixOf(destination)) {
             return;
         }

@@ -32,6 +32,8 @@ public final class SimpleActorDurationCalculator implements ActorDurationCalcula
         Validate.notNull(destination);
         Validate.notNull(message);
         Validate.notNull(realDuration);
+        Validate.isTrue(!source.isEmpty());
+        Validate.isTrue(!destination.isEmpty());
         Validate.isTrue(!realDuration.isNegative());
         return Duration.ZERO;
     }

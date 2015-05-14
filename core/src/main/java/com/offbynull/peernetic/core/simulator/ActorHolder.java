@@ -36,6 +36,7 @@ final class ActorHolder implements Holder {
         Validate.notNull(actor);
         Validate.notNull(timeOffset);
         Validate.notNull(earliestPossibleOnStepTime);
+        Validate.isTrue(!address.isEmpty());
         Validate.isTrue(!timeOffset.isNegative());
         this.address = address;
         this.actor = actor;

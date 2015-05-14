@@ -61,6 +61,9 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         Validate.notNull(timerAddressPrefix);
         Validate.notNull(attemptInterval);
         Validate.notNull(expectedResponseTypes);
+        Validate.isTrue(!id.isEmpty());
+        Validate.isTrue(!destinationAddress.isEmpty());
+        Validate.isTrue(!timerAddressPrefix.isEmpty());
         Validate.isTrue(maxAttempts > 0);
         Validate.isTrue(!attemptInterval.isNegative());
         this.id = id;
@@ -249,7 +252,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @return a new instance of {@link RequestSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
          * @throws IllegalArgumentException if {@code attemptInterval} parameter was set to a negative duration, or if {@code maxAttempts}
-         * was set to 0, or if {@code id} was set to empty
+         * was set to 0, or if either {@code id} or {@code destinationAddress} or {@code timeAddressPrefix} is set to empty
          */
         public RequestSubcoroutine<T> build() {
             return new RequestSubcoroutine<>(id, destinationAddress, timerAddressPrefix, request, maxAttempts, attemptInterval,

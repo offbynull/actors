@@ -39,6 +39,8 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         Validate.notNull(id);
         Validate.notNull(timerAddressPrefix);
         Validate.notNull(timeoutDuration);
+        Validate.isTrue(!id.isEmpty());
+        Validate.isTrue(!timerAddressPrefix.isEmpty());
         Validate.isTrue(!timeoutDuration.isNegative());
         this.id = id;
         this.timerAddressPrefix = timerAddressPrefix;
@@ -112,7 +114,8 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * Build a {@link SleepSubcoroutine} instance.
          * @return a new instance of {@link SleepSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
-         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration, or if {@code id} was set to empty
+         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration, or if {@code id} or
+         * {@code timeAddressPrefix} was set to empty
          */
         public SleepSubcoroutine build() {
             return new SleepSubcoroutine(id, timerAddressPrefix, duration);

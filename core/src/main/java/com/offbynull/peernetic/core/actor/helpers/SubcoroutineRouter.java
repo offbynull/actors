@@ -45,10 +45,12 @@ public final class SubcoroutineRouter {
      * @param id of this router -- incoming messages destined for this id should trigger this router
      * @param context actor context
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code id} is empty
      */
     public SubcoroutineRouter(Address id, Context context) {
         Validate.notNull(id);
         Validate.notNull(context);
+        Validate.isTrue(!id.isEmpty());
         this.id = id;
         this.context = context;
         idMap = new HashMap<>();
@@ -73,11 +75,16 @@ public final class SubcoroutineRouter {
      */
     public boolean forward() throws Exception {
         Address incomingId = context.getDestination().removePrefix(context.getSelf());
-        if (incomingId == null || id.equals(incomingId) || !id.isPrefixOf(incomingId)) {
+        if (!id.isPrefixOf(incomingId)) {
             return false;
         }
         
-        String key = incomingId.removePrefix(id).getElement(0);
+        Address subId = incomingId.removePrefix(id);
+        if (subId.isEmpty()) {
+            return false;
+        }
+        
+        String key = subId.getElement(0);
 
         CoroutineRunner runner = idMap.get(key);
 
@@ -128,7 +135,6 @@ public final class SubcoroutineRouter {
 
             Address subcoroutineId = subcoroutine.getId();
             Address suffix = subcoroutineId.removePrefix(id);
-            Validate.isTrue(suffix != null);
             Validate.isTrue(suffix.size() == 1);
             
             String key = suffix.getElement(0);
@@ -163,7 +169,6 @@ public final class SubcoroutineRouter {
             Validate.notNull(id);
             
             Address suffix = id.removePrefix(SubcoroutineRouter.this.id);
-            Validate.isTrue(suffix != null);
             Validate.isTrue(suffix.size() == 1);
             
             String key = suffix.getElement(0);

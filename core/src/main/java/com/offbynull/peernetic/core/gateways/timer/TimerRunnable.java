@@ -157,6 +157,8 @@ final class TimerRunnable implements Runnable {
             Validate.notNull(from);
             Validate.notNull(to);
             Validate.notNull(message);
+            Validate.isTrue(!from.isEmpty());
+            Validate.isTrue(!to.isEmpty());
             this.sendTime = sendTime;
             this.from = from;
             this.to = to;

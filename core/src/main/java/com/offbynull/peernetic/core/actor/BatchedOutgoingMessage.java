@@ -29,10 +29,10 @@ public final class BatchedOutgoingMessage {
     private final Object message;
 
     BatchedOutgoingMessage(Address sourceId, Address destination, Object message) {
+        Validate.notNull(sourceId);
         Validate.notNull(destination);
         Validate.notNull(message);
-        // sourceId may be empty
-        Validate.isTrue(destination.size() > 0);
+        Validate.isTrue(!destination.isEmpty());
         this.sourceId = sourceId;
         this.destination = destination;
         this.message = message;

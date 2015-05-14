@@ -53,8 +53,8 @@ public final class Address implements Serializable {
      * <li>{@code Address.of("one:two")} would produce an address with the elements {@code ["one", "two"]}.</li>
      * <li>{@code Address.of("one\:two")} would produce an address with the elements {@code ["one:two"]}.</li>
      * <li>{@code Address.of("one\\two")} would produce an address with the elements {@code ["one\two"]}.</li>
-     * <li>{@code Address.of("::")} would produce an address with the elements {@code [""]}.</li>
-     * <li>{@code Address.of("")} would produce an address with the element {no address elements).</li>
+     * <li>{@code Address.of("::")} would produce an address with the elements {@code ["", "", ""]}.</li>
+     * <li>{@code Address.of("")} would produce an address with the element {@code []}.</li>
      * <li>{@code Address.of("a\")} would be invalid (bad escape sequence).</li>
      * <li>{@code Address.of("\a")} would be invalid (bad escape sequence).</li>
      * </ul>
@@ -75,10 +75,6 @@ public final class Address implements Serializable {
                 }
                 elements.add(element);
             }
-            
-            if (elements.isEmpty()) {
-                elements.add("");
-            }
         } catch (IOException ioe) {
             // this should never happen
             throw new IllegalStateException(ioe);
@@ -92,13 +88,11 @@ public final class Address implements Serializable {
      * @param elements list of printable US-ASCII strings
      * @return new address
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if any element in {@code elements} is malformed (not printable US-ASCII), or if {@code elements} is
-     * empty
+     * @throws IllegalArgumentException if any element in {@code elements} is malformed (not printable US-ASCII)
      */
     public static Address of(List<String> elements) {
         Validate.notNull(elements);
         Validate.noNullElements(elements);
-        Validate.isTrue(!elements.isEmpty());
         elements.stream().forEach(// is US-ASCII
                 x -> x.chars().forEach(
                         // this should cause surrogate pairs to fail as well, which is what we want!
@@ -115,12 +109,11 @@ public final class Address implements Serializable {
      * @return new address
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @throws IllegalArgumentException if any element in {@code elements} is malformed (not printable US-ASCII), or if {@code offset} is
-     * {@code < 0 || > elements.length}, or if {@code elements} is empty
+     * {@code < 0 || > elements.length}
      */
     public static Address of(String ... elements) {
         Validate.notNull(elements);
         Validate.noNullElements(elements);
-        Validate.isTrue(elements.length > 0);
 
         return of(Arrays.asList(elements));
     }
@@ -193,11 +186,19 @@ public final class Address implements Serializable {
     }
 
     /**
-     * Gets the number of elements that make up this address. Is always {@code > 0}.
+     * Gets the number of elements that make up this address.
      * @return number of elements that make up this address
      */
     public int size() {
         return addressElements.size();
+    }
+
+    /**
+     * Gets if this address is empty.
+     * @return {@code true} if empty, otherwise {@code false}
+     */
+    public boolean isEmpty() {
+        return addressElements.isEmpty();
     }
     
     /**
@@ -224,7 +225,6 @@ public final class Address implements Serializable {
      * @param elements elements to appendSuffix
      * @return copy of this address with {@code elements} appended
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if {@code elements} is empty
      */
     public Address appendSuffix(String ... elements) {
         Validate.notNull(elements);
@@ -234,13 +234,12 @@ public final class Address implements Serializable {
 
     /**
      * Adds elements to the end of this address.
-     * @param child child to add appendSuffix (if {@code null} nothing gets appended)
+     * @param child child to add appendSuffix
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @return copy of this address with {@code child} appended
      */
     public Address appendSuffix(Address child) {
-        if (child == null) {
-            return this;
-        }
+        Validate.notNull(child);
         
         List<String> newElements = new ArrayList<>(addressElements);
         newElements.addAll(child.addressElements);
@@ -254,8 +253,10 @@ public final class Address implements Serializable {
      * <p>
      * For example...
      * {@code isParentOf(Address.of("one", "two"), Address.of("one", "two", "three"))} returns {@code true}
-     * {@code isParentOf(Address.of("one", Address.of("one", "two", "three"))} returns {@code true}
+     * {@code isParentOf(Address.of("one"), Address.of("one", "two", "three"))} returns {@code true}
      * {@code isParentOf(Address.of("one", "two", "three"), Address.of("one", "two", "three"))} returns {@code true}
+     * {@code isParentOf(Address.of("one", "two", "three", "four"), Address.of("one", "two", "three"))} returns {@code false}
+     * {@code isParentOf(Address.of(""), Address.of("one", "two", "three"))} returns {@code false}
      * {@code isParentOf(Address.of("xxxxx", "two"), Address.of("one", "two", "three"))} returns {@code false}
      * {@code isParentOf(Address.of("one", "xxxxx"), Address.of("one", "two", "three"))} returns {@code false}
      * @param other address to check against
@@ -264,37 +265,25 @@ public final class Address implements Serializable {
      */
     public boolean isPrefixOf(Address other) {
         Validate.notNull(other);
-        if (addressElements.size() > other.addressElements.size()) {
-            return false;
-        }
-        
         return other.addressElements.subList(0, addressElements.size()).equals(addressElements);
     }
     
     /**
-     * Removes elements in {@code prefix} from the beginning of this address. If there are no elements left once {@code prefix} has been
-     * removed, this method returns {@code null}.
+     * Removes elements in {@code prefix} from the beginning of this address.
      * <p>
      * For example ...
      * <ul>
      * <li>{@code Address.of("one", "two").removeParent("one")} will return {@code Address.of("two")}.</li>
-     * <li>{@code Address.of("one", "two").removeParent("one", "two")} will return {@code null}.</li>
+     * <li>{@code Address.of("one", "two").removeParent("one", "two")} will return {@code Address.of()}.</li>
      * <li>{@code Address.of("xxx").removeParent("one", "two")} will throw an exception.</li>
      * </ul>
      * @param prefix address to remove from the beginning of this address
-     * @return copy of this address with the last {@code parent} removed from the beginning, or {@code null} if there are no elements left
-     * after removal of {@code parent}
+     * @return copy of this address with the last {@code parent} removed from the beginning
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if this address does not start with {@code parent}, or if no address elements are left when
-     * {@code parent} is removed
+     * @throws IllegalArgumentException if this address does not start with {@code parent}
      */
     public Address removePrefix(Address prefix) {
         Validate.notNull(prefix);
-        
-        if (equals(prefix)) {
-            return null;
-        }
-        
         Validate.isTrue(prefix.isPrefixOf(this));
         
         // Need to create a new ArrayList instead of passing in subList directly because subList generates a non-serializable list

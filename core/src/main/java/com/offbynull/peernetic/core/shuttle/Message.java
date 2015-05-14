@@ -33,11 +33,14 @@ public final class Message {
      * @param destinationAddress destination address of this message
      * @param message content of this message
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if either {@code sourceAddress} or {@code destinationAddress} is empty
      */
     public Message(Address sourceAddress, Address destinationAddress, Object message) {
         Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
+        Validate.isTrue(!sourceAddress.isEmpty());
+        Validate.isTrue(!destinationAddress.isEmpty());
         
         this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;

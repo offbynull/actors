@@ -47,9 +47,11 @@ public final class SourceContext implements Context {
      * Sets the address of the actor that this context is for.
      * @param self address of actor
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code self} is empty
      */
     public void setSelf(Address self) {
         Validate.notNull(self);
+        Validate.isTrue(!self.isEmpty());
         this.self = self;
     }
 
@@ -77,9 +79,11 @@ public final class SourceContext implements Context {
      * Set the address the incoming message was sent from.
      * @param source address of incoming message
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} is empty
      */
     public void setSource(Address source) {
         Validate.notNull(source);
+        Validate.isTrue(!source.isEmpty());
         this.source = source;
     }
 
@@ -92,9 +96,11 @@ public final class SourceContext implements Context {
      * Set the address the incoming message was sent to.
      * @param destination address of incoming message
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destination} is empty
      */
     public void setDestination(Address destination) {
         Validate.notNull(destination);
+        Validate.isTrue(!destination.isEmpty());
         this.destination = destination;
     }
 
@@ -117,8 +123,10 @@ public final class SourceContext implements Context {
     @Override
     public void addOutgoingMessage(Address sourceId, Address destination, Object message) {
         // sourceId can be null
+        Validate.notNull(sourceId);
         Validate.notNull(destination);
         Validate.notNull(message);
+        Validate.isTrue(!destination.isEmpty());
         outgoingMessages.add(new BatchedOutgoingMessage(sourceId, destination, message));
     }
     

@@ -27,11 +27,12 @@ import java.time.Instant;
 public interface MessageSink extends AutoCloseable {
     /**
      * Write the next message.
-     * @param source source address
+     * @param source source address (can be empty)
      * @param destination destination address
      * @param time time when message arrived
      * @param message message
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destination} is empty
      * @throws IOException if an error occurs while writing
      */
     void writeNextMessage(Address source, Address destination, Instant time, Object message) throws IOException;

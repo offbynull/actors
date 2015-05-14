@@ -33,7 +33,7 @@ public class ReplayerGatewayTest {
             for (int i = 0; i < 10; i++) {
                 Instant time = Instant.now();
                 List<RecordedMessage> recordedMessages = Collections.singletonList(
-                        new RecordedMessage(Address.of("fake"), null, i));
+                        new RecordedMessage(Address.of("fake"), Address.of(), i));
 
                 RecordedBlock recordedBlock = new RecordedBlock(recordedMessages, time);
 

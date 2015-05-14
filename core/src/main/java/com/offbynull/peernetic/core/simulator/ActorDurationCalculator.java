@@ -35,7 +35,7 @@ public interface ActorDurationCalculator {
      * @param realDuration real amount of time that this message took to process
      * @return amount of time that this message took in the simulation
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code realDuration} is negative
+     * @throws IllegalArgumentException if {@code realDuration} is negative, or {@code source} is empty, or {@code destination} is empty
      */
     Duration calculateDuration(Address source, Address destination, Object message, Duration realDuration);
 }

@@ -6,7 +6,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
@@ -46,10 +46,10 @@ public final class ChordClientCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
 
         Start start = ctx.getIncomingMessage();
-        String timerPrefix = start.getTimerPrefix();
-        String graphAddress = start.getGraphAddress();
+        Address timerPrefix = start.getTimerPrefix();
+        Address graphAddress = start.getGraphAddress();
         NodeId selfId = start.getNodeId();
-        String bootstrapAddress = start.getBootstrapAddress();
+        Address bootstrapAddress = start.getBootstrapAddress();
 
         switchToStartedOnGraph(ctx, selfId, graphAddress);
         
@@ -59,7 +59,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
             
             // Join (or just initialize if no bootstrap node is set)
-            JoinTask joinTask = new JoinTask("join", state);
+            JoinTask joinTask = new JoinTask(Address.of("join"), state);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
@@ -67,15 +67,15 @@ public final class ChordClientCoroutine implements Coroutine {
 
             
             // Create parent coroutine and add maintenance tasks to it
-            String mainSourceId = "main";
+            Address mainSourceId = Address.of("main");
             
             SubcoroutineRouter router = new SubcoroutineRouter(mainSourceId, ctx);
             Controller controller = router.getController();
             
-            controller.add(new UpdateOthersTask(mainSourceId + ":updateothers", state), AddBehaviour.ADD_PRIME); // notify our fingers
-            controller.add(new FixFingerTableTask(mainSourceId + ":fixfinger", state), AddBehaviour.ADD_PRIME_NO_FINISH);
-            controller.add(new StabilizeTask(mainSourceId + ":stabilize", state), AddBehaviour.ADD_PRIME_NO_FINISH);
-            controller.add(new CheckPredecessorTask(mainSourceId + ":checkpred", state), AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(new UpdateOthersTask(mainSourceId.appendSuffix("updateothers"), state), AddBehaviour.ADD_PRIME); // notify our fingers
+            controller.add(new FixFingerTableTask(mainSourceId.appendSuffix("fixfinger"), state), AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(new StabilizeTask(mainSourceId.appendSuffix("stabilize"), state), AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(new CheckPredecessorTask(mainSourceId.appendSuffix("checkpred"), state), AddBehaviour.ADD_PRIME_NO_FINISH);
             
 
             while (true) {
@@ -86,7 +86,7 @@ public final class ChordClientCoroutine implements Coroutine {
                 boolean forwarded = router.forward();
                 if (!forwarded) {
                     Object msg = ctx.getIncomingMessage();
-                    String fromAddress = ctx.getSource();
+                    Address fromAddress = ctx.getSource();
 
                     LOG.debug("{} {} - Processing {} from {} to {}", state.getSelfId(), "", msg.getClass(), fromAddress,
                             ctx.getDestination());
@@ -101,7 +101,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
                         Pointer pointer = state.getClosestPrecedingFinger(extMsg.getChordId(), extMsg.getIgnoreIds());
                         NodeId id = pointer.getId();
-                        String address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
+                        Address address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
 
                         addOutgoingExternalMessage(ctx,
                                 fromAddress,
@@ -111,7 +111,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
                         ExternalPointer pointer = state.getPredecessor();
                         NodeId id = pointer == null ? null : pointer.getId();
-                        String address = pointer == null ? null : pointer.getAddress();
+                        Address address = pointer == null ? null : pointer.getAddress();
 
                         addOutgoingExternalMessage(ctx,
                                 fromAddress,
@@ -128,7 +128,7 @@ public final class ChordClientCoroutine implements Coroutine {
                         NotifyRequest extMsg = (NotifyRequest) msg;
 
                         NodeId requesterId = extMsg.getChordId();
-                        String requesterAddress = AddressUtils.removeSuffix(fromAddress, 2);
+                        Address requesterAddress = fromAddress.removeSuffix(2);
 
                         ExternalPointer newPredecessor = new ExternalPointer(requesterId, requesterAddress);
                         ExternalPointer existingPredecessor = state.getPredecessor();
@@ -138,7 +138,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
                         ExternalPointer pointer = state.getPredecessor();
                         NodeId id = pointer.getId();
-                        String address = pointer.getAddress();
+                        Address address = pointer.getAddress();
 
                         addOutgoingExternalMessage(ctx,
                                 fromAddress,
@@ -146,7 +146,7 @@ public final class ChordClientCoroutine implements Coroutine {
                     } else if (msg instanceof UpdateFingerTableRequest) {
                         UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
                         NodeId id = extMsg.getChordId();
-                        String address = AddressUtils.removeSuffix(fromAddress, 2);
+                        Address address = fromAddress.removeSuffix(2);
                         ExternalPointer newFinger = new ExternalPointer(id, address);
 
                         if (!state.isSelfId(id)) {
@@ -185,7 +185,7 @@ public final class ChordClientCoroutine implements Coroutine {
         }
     }
 
-    private Set<Pointer> updateOutgoingLinksOnGraph(State state, Set<Pointer> lastNotifiedPointers, Context ctx, NodeId selfId, String graphAddress) {
+    private Set<Pointer> updateOutgoingLinksOnGraph(State state, Set<Pointer> lastNotifiedPointers, Context ctx, NodeId selfId, Address graphAddress) {
         // Send link changes to graph
         Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
                 state.getFingers().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
@@ -205,35 +205,35 @@ public final class ChordClientCoroutine implements Coroutine {
         return lastNotifiedPointers;
     }
 
-    private void switchToStartedOnGraph(Context ctx, NodeId selfId, String graphAddress) {
+    private void switchToStartedOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: yellow"));
     }
 
-    private void switchToReadyOnGraph(Context ctx, NodeId selfId, String graphAddress) {
+    private void switchToReadyOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: green"));
     }
 
-    private void switchToDeadOnGraph(Context ctx, NodeId selfId, String graphAddress) {
+    private void switchToDeadOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: red"));
     }
     
-    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String graphAddress) {
+    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
         ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(),
                 "-fx-stroke: rgba(0, 0, 0, .5); -fx-stroke-width: 3;"));
     }
 
-    private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String graphAddress) {
+    private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
     }
     
-    private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {
+    private void addOutgoingExternalMessage(Context ctx, Address destination, ExternalMessage message) {
         Validate.notNull(ctx);
         Validate.notNull(destination);
         Validate.notNull(message);
         
         ctx.addOutgoingMessage(
-                "" + message.getId(),
+                Address.of("" + message.getId()),
                 destination,
                 message);
     }

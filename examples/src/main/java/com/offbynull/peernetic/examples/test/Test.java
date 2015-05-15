@@ -16,27 +16,19 @@
  */
 package com.offbynull.peernetic.examples.test;
 
-import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
-import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.network.actors.simulation.SimpleLine;
 import com.offbynull.peernetic.network.actors.simulation.StartUnreliableProxy;
 import com.offbynull.peernetic.network.actors.simulation.UnreliableProxyCoroutine;
-import com.offbynull.peernetic.core.common.SimpleSerializer;
-import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
-import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
-import com.offbynull.peernetic.core.simulator.MessageSink;
-import com.offbynull.peernetic.core.simulator.MessageSource;
-import com.offbynull.peernetic.core.simulator.RecordMessageSink;
-import com.offbynull.peernetic.core.simulator.ReplayMessageSource;
-import com.offbynull.peernetic.core.simulator.Simulator;
-import java.io.File;
-import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
+import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
+import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
+import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.Validate;
 
@@ -45,12 +37,12 @@ public class Test {
     public static void main(String[] args) throws Exception {
         //basicTest();
         //basicTimer();
-//        basicUdp();
-        //basicUnreliable();
+        basicUdp();
+        basicUnreliable();
 //        basicRetry();
-        testEnvironmentTimer();
-        testEnvironmentEcho();
-        testEnvironmentRecordAndReplay();
+//        testEnvironmentTimer();
+//        testEnvironmentEcho();
+//        testEnvironmentRecordAndReplay();
 //        testRecordAndReplay();
     }
 
@@ -59,7 +51,7 @@ public class Test {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
 
             for (int i = 0; i < 10; i++) {
                 ctx.addOutgoingMessage(dstAddr, i);
@@ -74,7 +66,7 @@ public class Test {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 ctx.addOutgoingMessage(src, msg);
                 cnt.suspend();
@@ -87,7 +79,7 @@ public class Test {
         echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
         senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
         echoerThread.addCoroutineActor("echoer", echoer);
-        senderThread.addCoroutineActor("sender", sender, "echoer:echoer");
+        senderThread.addCoroutineActor("sender", sender, Address.fromString("echoer:echoer"));
 
         latch.await();
     }
@@ -97,10 +89,10 @@ public class Test {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.getIncomingMessage();
 
             for (int i = 0; i < 10; i++) {
-                ctx.addOutgoingMessage("hi", dstAddr, i);
+                ctx.addOutgoingMessage(Address.of("hi"), dstAddr, i);
                 cnt.suspend();
                 Validate.isTrue(i == (int) ctx.getIncomingMessage());
             }
@@ -112,7 +104,7 @@ public class Test {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                String src = ctx.getSource();
+                Address src = ctx.getSource();
                 Object msg = ctx.getIncomingMessage();
                 ctx.addOutgoingMessage(src, msg);
                 cnt.suspend();
@@ -125,10 +117,10 @@ public class Test {
 
         echoerThread.addCoroutineActor("echoer", echoer);
         echoerThread.addCoroutineActor("proxy", new UnreliableProxyCoroutine(),
-                new StartUnreliableProxy("timer", "echoer:echoer", new SimpleLine(12345L)));
-        senderThread.addCoroutineActor("sender", sender, "sender:proxy:echoer:echoer");
+                new StartUnreliableProxy(Address.of("timer"), Address.fromString("echoer:echoer"), new SimpleLine(12345L)));
+        senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
         senderThread.addCoroutineActor("proxy", new UnreliableProxyCoroutine(),
-                new StartUnreliableProxy("timer", "sender:sender", new SimpleLine(12345L)));
+                new StartUnreliableProxy(Address.of("timer"), Address.fromString("sender:sender"), new SimpleLine(12345L)));
 
         echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
         echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
@@ -140,80 +132,80 @@ public class Test {
         latch.await();
     }
 
-//    private static void basicUdp() throws InterruptedException {
-//        CountDownLatch latch = new CountDownLatch(1);
-//
-//        Coroutine sender = (cnt) -> {
-//            Context ctx = (Context) cnt.getContext();
-//            String dstAddr = ctx.getIncomingMessage();
-//
-//            for (int i = 0; i < 10; i++) {
-//                ctx.addOutgoingMessage(dstAddr, i);
-//                cnt.suspend();
-//                Validate.isTrue(i == (int) ctx.getIncomingMessage());
-//            }
-//
-//            latch.countDown();
-//        };
-//
-//        Coroutine echoer = (cnt) -> {
-//            Context ctx = (Context) cnt.getContext();
-//
-//            while (true) {
-//                String src = ctx.getSource();
-//                Object msg = ctx.getIncomingMessage();
-//                ctx.addOutgoingMessage(src, msg);
-//                cnt.suspend();
-//            }
-//        };
-//
-//        ActorThread echoerThread = ActorThread.create("echoer");
-//        Shuttle echoerInputShuttle = echoerThread.getIncomingShuttle();
-//        Gateway echoerUdpGateway = new UdpGateway(new InetSocketAddress(1000), "internaludp", echoerInputShuttle, "echoer:echoer", new SimpleSerializer());
-//        Shuttle echoerOutputShuttle = echoerUdpGateway.getIncomingShuttle();
-//
-//        ActorThread senderThread = ActorThread.create("sender");
-//        Shuttle senderInputShuttle = senderThread.getIncomingShuttle();
-//        Gateway senderUdpGateway = new UdpGateway(new InetSocketAddress(2000), "internaludp", senderInputShuttle, "sender:sender", new SimpleSerializer());
-//        Shuttle senderOutputShuttle = senderUdpGateway.getIncomingShuttle();
-//
-//        echoerThread.addOutgoingShuttle(echoerOutputShuttle);
-//        senderThread.addOutgoingShuttle(senderOutputShuttle);
-//
-//        echoerThread.addCoroutineActor("echoer", echoer);
-//        senderThread.addCoroutineActor("sender", sender, "internaludp:7f000001.1000");
-//
-//        latch.await();
-//    }
-
-    private static void basicTimer() throws InterruptedException {
+    private static void basicUdp() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
 
-        Coroutine tester = (cnt) -> {
+        Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            Address dstAddr = ctx.getIncomingMessage();
 
-            String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage("fromid", timerPrefix + ":2000:extra", 0);
-            System.out.println("ADDED TRIGGER FOR FOR 2 SECOND");
-            cnt.suspend();
-            System.out.println("TRIGGERED FROM " + ctx.getSource()+ " TO " + ctx.getDestination()+ " WITH " + ctx.getIncomingMessage());
+            for (int i = 0; i < 10; i++) {
+                ctx.addOutgoingMessage(dstAddr, i);
+                cnt.suspend();
+                Validate.isTrue(i == (int) ctx.getIncomingMessage());
+            }
 
             latch.countDown();
         };
 
-        TimerGateway timerGateway = new TimerGateway("timer");
-        Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
+        Coroutine echoer = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
 
-        ActorThread testerThread = ActorThread.create("local");
-        Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+            while (true) {
+                Address src = ctx.getSource();
+                Object msg = ctx.getIncomingMessage();
+                ctx.addOutgoingMessage(src, msg);
+                cnt.suspend();
+            }
+        };
 
-        testerThread.addOutgoingShuttle(timerInputShuttle);
-        timerGateway.addOutgoingShuttle(testerInputShuttle);
+        ActorThread echoerThread = ActorThread.create("echoer");
+        Shuttle echoerInputShuttle = echoerThread.getIncomingShuttle();
+        UdpGateway echoerUdpGateway = new UdpGateway(new InetSocketAddress(1000), "internaludp", echoerInputShuttle, Address.fromString("echoer:echoer"), new SimpleSerializer());
+        Shuttle echoerOutputShuttle = echoerUdpGateway.getIncomingShuttle();
 
-        testerThread.addCoroutineActor("tester", tester, "timer");
+        ActorThread senderThread = ActorThread.create("sender");
+        Shuttle senderInputShuttle = senderThread.getIncomingShuttle();
+        UdpGateway senderUdpGateway = new UdpGateway(new InetSocketAddress(2000), "internaludp", senderInputShuttle, Address.fromString("sender:sender"), new SimpleSerializer());
+        Shuttle senderOutputShuttle = senderUdpGateway.getIncomingShuttle();
+
+        echoerThread.addOutgoingShuttle(echoerOutputShuttle);
+        senderThread.addOutgoingShuttle(senderOutputShuttle);
+
+        echoerThread.addCoroutineActor("echoer", echoer);
+        senderThread.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
 
         latch.await();
     }
+
+//    private static void basicTimer() throws InterruptedException {
+//        CountDownLatch latch = new CountDownLatch(1);
+//
+//        Coroutine tester = (cnt) -> {
+//            Context ctx = (Context) cnt.getContext();
+//
+//            String timerPrefix = ctx.getIncomingMessage();
+//            ctx.addOutgoingMessage("fromid", timerPrefix + ":2000:extra", 0);
+//            System.out.println("ADDED TRIGGER FOR FOR 2 SECOND");
+//            cnt.suspend();
+//            System.out.println("TRIGGERED FROM " + ctx.getSource()+ " TO " + ctx.getDestination()+ " WITH " + ctx.getIncomingMessage());
+//
+//            latch.countDown();
+//        };
+//
+//        TimerGateway timerGateway = new TimerGateway("timer");
+//        Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
+//
+//        ActorThread testerThread = ActorThread.create("local");
+//        Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+//
+//        testerThread.addOutgoingShuttle(timerInputShuttle);
+//        timerGateway.addOutgoingShuttle(testerInputShuttle);
+//
+//        testerThread.addCoroutineActor("tester", tester, "timer");
+//
+//        latch.await();
+//    }
 
 //    private static void basicRetry() throws InterruptedException {
 //        CountDownLatch latch = new CountDownLatch(1);
@@ -273,224 +265,224 @@ public class Test {
 //        latch.await();
 //    }
 
-    private static void testEnvironmentTimer() {
-        Coroutine tester = (cnt) -> {
-            Context ctx = (Context) cnt.getContext();
+//    private static void testEnvironmentTimer() {
+//        Coroutine tester = (cnt) -> {
+//            Context ctx = (Context) cnt.getContext();
+//
+//            System.out.println("Sending out at " + ctx.getTime());
+//            String timerPrefix = ctx.getIncomingMessage();
+//            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
+//            cnt.suspend();
+//            System.out.println("Got response at " + ctx.getTime());
+//        };
+//
+//        Simulator testHarness = new Simulator();
+//        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
+//        testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
+//        
+//        while (testHarness.hasMore()) {
+//            testHarness.process();
+//        }
+//    }
 
-            System.out.println("Sending out at " + ctx.getTime());
-            String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
-            cnt.suspend();
-            System.out.println("Got response at " + ctx.getTime());
-        };
-
-        Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
-        
-        while (testHarness.hasMore()) {
-            testHarness.process();
-        }
-    }
-
-    private static void testEnvironmentEcho() {
-        Coroutine sender = (cnt) -> {
-            Context ctx = (Context) cnt.getContext();
-            String dstAddr = ctx.getIncomingMessage();
-
-            for (int i = 0; i < 10; i++) {
-                ctx.addOutgoingMessage(dstAddr, i);
-                cnt.suspend();
-                Validate.isTrue(i == (int) ctx.getIncomingMessage());
-                System.out.println("Got " + i);
-            }
-        };
-
-        Coroutine echoer = (cnt) -> {
-            Context ctx = (Context) cnt.getContext();
-
-            while (true) {
-                String src = ctx.getSource();
-                Object msg = ctx.getIncomingMessage();
-                ctx.addOutgoingMessage(src, msg);
-                cnt.suspend();
-            }
-        };
-
-        Simulator testHarness = new Simulator();
-        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
-        testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
-        
-        while (testHarness.hasMore()) {
-            testHarness.process();
-        }
-    }
+//    private static void testEnvironmentEcho() {
+//        Coroutine sender = (cnt) -> {
+//            Context ctx = (Context) cnt.getContext();
+//            String dstAddr = ctx.getIncomingMessage();
+//
+//            for (int i = 0; i < 10; i++) {
+//                ctx.addOutgoingMessage(dstAddr, i);
+//                cnt.suspend();
+//                Validate.isTrue(i == (int) ctx.getIncomingMessage());
+//                System.out.println("Got " + i);
+//            }
+//        };
+//
+//        Coroutine echoer = (cnt) -> {
+//            Context ctx = (Context) cnt.getContext();
+//
+//            while (true) {
+//                String src = ctx.getSource();
+//                Object msg = ctx.getIncomingMessage();
+//                ctx.addOutgoingMessage(src, msg);
+//                cnt.suspend();
+//            }
+//        };
+//
+//        Simulator testHarness = new Simulator();
+//        testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
+//        testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
+//        testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+//        
+//        while (testHarness.hasMore()) {
+//            testHarness.process();
+//        }
+//    }
     
-    private static void testEnvironmentRecordAndReplay() throws Exception {
-        File recordFile = File.createTempFile("recordtest", ".data");
-        
-        System.out.println("RECORDING ECHO");
-        {
-            Coroutine sender = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-                String dstAddr = ctx.getIncomingMessage();
-
-                for (int i = 0; i < 10; i++) {
-                    ctx.addOutgoingMessage(dstAddr, i);
-                    cnt.suspend();
-                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
-                    System.out.println("Got " + i);
-                }
-            };
-
-            Coroutine echoer = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-
-                while (true) {
-                    String src = ctx.getSource();
-                    Object msg = ctx.getIncomingMessage();
-                    ctx.addOutgoingMessage(src, msg);
-                    cnt.suspend();
-                }
-            };
-
-            try (MessageSink sink = new RecordMessageSink("local:echoer", recordFile, new SimpleSerializer())) {
-                Simulator testHarness = new Simulator();
-                testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-                testHarness.addMessageSink(sink, Instant.ofEpochMilli(0L));
-                testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
-                testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
-
-                while (testHarness.hasMore()) {
-                    testHarness.process();
-                }
-            }
-        }
-        
-        
-        System.out.println("REPLAYING RECORDING OF ECHO");
-        {
-            Coroutine sender = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-                String dstAddr = ctx.getIncomingMessage();
-
-                for (int i = 0; i < 10; i++) {
-                    ctx.addOutgoingMessage(dstAddr, i);
-                    cnt.suspend();
-                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
-                    System.out.println("Got " + i);
-                }
-            };
-
-            try (MessageSource source = new ReplayMessageSource("local:sender", recordFile, new SimpleSerializer())) {
-                Simulator testHarness = new Simulator();
-                testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-                testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
-                testHarness.addMessageSource(source, Instant.ofEpochMilli(0L));
-
-                while (testHarness.hasMore()) {
-                    testHarness.process();
-                }
-            }
-        }
-    }
+//    private static void testEnvironmentRecordAndReplay() throws Exception {
+//        File recordFile = File.createTempFile("recordtest", ".data");
+//        
+//        System.out.println("RECORDING ECHO");
+//        {
+//            Coroutine sender = (cnt) -> {
+//                Context ctx = (Context) cnt.getContext();
+//                String dstAddr = ctx.getIncomingMessage();
+//
+//                for (int i = 0; i < 10; i++) {
+//                    ctx.addOutgoingMessage(dstAddr, i);
+//                    cnt.suspend();
+//                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
+//                    System.out.println("Got " + i);
+//                }
+//            };
+//
+//            Coroutine echoer = (cnt) -> {
+//                Context ctx = (Context) cnt.getContext();
+//
+//                while (true) {
+//                    String src = ctx.getSource();
+//                    Object msg = ctx.getIncomingMessage();
+//                    ctx.addOutgoingMessage(src, msg);
+//                    cnt.suspend();
+//                }
+//            };
+//
+//            try (MessageSink sink = new RecordMessageSink("local:echoer", recordFile, new SimpleSerializer())) {
+//                Simulator testHarness = new Simulator();
+//                testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
+//                testHarness.addMessageSink(sink, Instant.ofEpochMilli(0L));
+//                testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
+//                testHarness.addCoroutineActor("local:echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+//
+//                while (testHarness.hasMore()) {
+//                    testHarness.process();
+//                }
+//            }
+//        }
+//        
+//        
+//        System.out.println("REPLAYING RECORDING OF ECHO");
+//        {
+//            Coroutine sender = (cnt) -> {
+//                Context ctx = (Context) cnt.getContext();
+//                String dstAddr = ctx.getIncomingMessage();
+//
+//                for (int i = 0; i < 10; i++) {
+//                    ctx.addOutgoingMessage(dstAddr, i);
+//                    cnt.suspend();
+//                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
+//                    System.out.println("Got " + i);
+//                }
+//            };
+//
+//            try (MessageSource source = new ReplayMessageSource("local:sender", recordFile, new SimpleSerializer())) {
+//                Simulator testHarness = new Simulator();
+//                testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
+//                testHarness.addCoroutineActor("local:sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), "local:echoer");
+//                testHarness.addMessageSource(source, Instant.ofEpochMilli(0L));
+//
+//                while (testHarness.hasMore()) {
+//                    testHarness.process();
+//                }
+//            }
+//        }
+//    }
     
-    private static void testRecordAndReplay() throws InterruptedException, IOException {
-        File eventsFile = File.createTempFile(Test.class.getSimpleName(), "data");
-        
-        // RUN SENDER+ECHOER WITH EVENTS COMING IN TO ECHOER BEING RECORDED
-        {
-            System.out.println("RECORD RUN");
-            
-            CountDownLatch latch = new CountDownLatch(1);
-
-            Coroutine sender = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-                String dstAddr = ctx.getIncomingMessage();
-
-                for (int i = 0; i < 10; i++) {
-                    ctx.addOutgoingMessage(dstAddr, i);
-                    cnt.suspend();
-                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
-                }
-
-                latch.countDown();
-            };
-
-            Coroutine echoer = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-
-                while (true) {
-                    String src = ctx.getSource();
-                    Object msg = ctx.getIncomingMessage();
-                    ctx.addOutgoingMessage(src, msg);
-                    System.out.println(msg);
-                    cnt.suspend();
-                }
-            };
-
-            // Create actor threads
-            ActorThread echoerThread = ActorThread.create("echoer");
-            ActorThread senderThread = ActorThread.create("sender");
-
-            // Create recorder that records events coming to echoer and then passes it along to echoer
-            RecorderGateway echoRecorderGateway = RecorderGateway.record(
-                    "recorder",
-                    echoerThread.getIncomingShuttle(),
-                    "echoer:echoer",
-                    eventsFile,
-                    new SimpleSerializer());
-            Shuttle echoRecorderShuttle = echoRecorderGateway.getIncomingShuttle();
-
-
-            // Wire sender to send to echoerRecorder instead of echoer
-            senderThread.addOutgoingShuttle(echoRecorderShuttle);
-
-            // Wire echoer to send back directly to recorder
-            echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
-
-            // Add coroutines
-            echoerThread.addCoroutineActor("echoer", echoer);
-            senderThread.addCoroutineActor("sender", sender, "recorder");
-
-            latch.await();
-            echoRecorderGateway.close();
-            echoRecorderGateway.await();
-        }
-        
-        
-        // RUN ECHOER WITH EVENTS COMING IN FROM SAVED EVENTS BEING REPLAYED
-        {
-            System.out.println("REPLAY RUN");
-            
-            Coroutine echoer = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-
-                while (true) {
-                    String src = ctx.getSource();
-                    Object msg = ctx.getIncomingMessage();
-                    ctx.addOutgoingMessage(src, msg);
-                    System.out.println(msg);
-                    cnt.suspend();
-                }
-            };
-            
-            ActorThread echoerThread = ActorThread.create("echoer");
-            
-            // Wire echoer to send back to null
-            echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
-            
-            // Add coroutines
-            echoerThread.addCoroutineActor("echoer", echoer);
-            
-            // Create replayer that mocks out sender and replays previous events to echoer
-            ReplayerGateway replayerGateway = ReplayerGateway.replay(
-                    echoerThread.getIncomingShuttle(),
-                    "echoer:echoer",
-                    eventsFile,
-                    new SimpleSerializer());
-            replayerGateway.await();
-        }
-    }
+//    private static void testRecordAndReplay() throws InterruptedException, IOException {
+//        File eventsFile = File.createTempFile(Test.class.getSimpleName(), "data");
+//        
+//        // RUN SENDER+ECHOER WITH EVENTS COMING IN TO ECHOER BEING RECORDED
+//        {
+//            System.out.println("RECORD RUN");
+//            
+//            CountDownLatch latch = new CountDownLatch(1);
+//
+//            Coroutine sender = (cnt) -> {
+//                Context ctx = (Context) cnt.getContext();
+//                String dstAddr = ctx.getIncomingMessage();
+//
+//                for (int i = 0; i < 10; i++) {
+//                    ctx.addOutgoingMessage(dstAddr, i);
+//                    cnt.suspend();
+//                    Validate.isTrue(i == (int) ctx.getIncomingMessage());
+//                }
+//
+//                latch.countDown();
+//            };
+//
+//            Coroutine echoer = (cnt) -> {
+//                Context ctx = (Context) cnt.getContext();
+//
+//                while (true) {
+//                    String src = ctx.getSource();
+//                    Object msg = ctx.getIncomingMessage();
+//                    ctx.addOutgoingMessage(src, msg);
+//                    System.out.println(msg);
+//                    cnt.suspend();
+//                }
+//            };
+//
+//            // Create actor threads
+//            ActorThread echoerThread = ActorThread.create("echoer");
+//            ActorThread senderThread = ActorThread.create("sender");
+//
+//            // Create recorder that records events coming to echoer and then passes it along to echoer
+//            RecorderGateway echoRecorderGateway = RecorderGateway.record(
+//                    "recorder",
+//                    echoerThread.getIncomingShuttle(),
+//                    "echoer:echoer",
+//                    eventsFile,
+//                    new SimpleSerializer());
+//            Shuttle echoRecorderShuttle = echoRecorderGateway.getIncomingShuttle();
+//
+//
+//            // Wire sender to send to echoerRecorder instead of echoer
+//            senderThread.addOutgoingShuttle(echoRecorderShuttle);
+//
+//            // Wire echoer to send back directly to recorder
+//            echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+//
+//            // Add coroutines
+//            echoerThread.addCoroutineActor("echoer", echoer);
+//            senderThread.addCoroutineActor("sender", sender, "recorder");
+//
+//            latch.await();
+//            echoRecorderGateway.close();
+//            echoRecorderGateway.await();
+//        }
+//        
+//        
+//        // RUN ECHOER WITH EVENTS COMING IN FROM SAVED EVENTS BEING REPLAYED
+//        {
+//            System.out.println("REPLAY RUN");
+//            
+//            Coroutine echoer = (cnt) -> {
+//                Context ctx = (Context) cnt.getContext();
+//
+//                while (true) {
+//                    String src = ctx.getSource();
+//                    Object msg = ctx.getIncomingMessage();
+//                    ctx.addOutgoingMessage(src, msg);
+//                    System.out.println(msg);
+//                    cnt.suspend();
+//                }
+//            };
+//            
+//            ActorThread echoerThread = ActorThread.create("echoer");
+//            
+//            // Wire echoer to send back to null
+//            echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
+//            
+//            // Add coroutines
+//            echoerThread.addCoroutineActor("echoer", echoer);
+//            
+//            // Create replayer that mocks out sender and replays previous events to echoer
+//            ReplayerGateway replayerGateway = ReplayerGateway.replay(
+//                    echoerThread.getIncomingShuttle(),
+//                    "echoer:echoer",
+//                    eventsFile,
+//                    new SimpleSerializer());
+//            replayerGateway.await();
+//        }
+//    }
 }

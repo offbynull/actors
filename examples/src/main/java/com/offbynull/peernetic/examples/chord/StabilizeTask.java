@@ -5,7 +5,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -29,10 +29,10 @@ final class StabilizeTask implements Subcoroutine<Void> {
     
     private static final Logger LOG = LoggerFactory.getLogger(StabilizeTask.class);
     
-    private final String sourceId;
+    private final Address sourceId;
     private final State state;
 
-    public StabilizeTask(String sourceId, State state) {
+    public StabilizeTask(Address sourceId, State state) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         this.sourceId = sourceId;
@@ -55,7 +55,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 }
 
                 // ask for successor's pred
-                String successorAddress = ((ExternalPointer) successor).getAddress();
+                Address successorAddress = ((ExternalPointer) successor).getAddress();
                 
                 LOG.debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), sourceId, successor);
                 
@@ -69,7 +69,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
 
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
-                    String address = gpr.getAddress();
+                    Address address = gpr.getAddress();
                     NodeId potentiallyNewSuccessorId = gpr.getChordId();
                     NodeId existingSuccessorId = ((ExternalPointer) successor).getId();
 
@@ -125,7 +125,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
     }
     
     @Override
-    public String getId() {
+    public Address getId() {
         return sourceId;
     }
 
@@ -138,10 +138,10 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())
@@ -150,9 +150,9 @@ final class StabilizeTask implements Subcoroutine<Void> {
         return requestSubcoroutine.run(cnt);
     }
     
-    private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {
+    private void addOutgoingExternalMessage(Context ctx, Address destination, ExternalMessage message) {
         ctx.addOutgoingMessage(
-                AddressUtils.parentize(sourceId, "" + message.getId()),
+                sourceId.appendSuffix("" + message.getId()),
                 destination,
                 message);
     }

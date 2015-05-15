@@ -16,9 +16,9 @@
  */
 package com.offbynull.peernetic.network.gateways.udp;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import io.netty.channel.AddressedEnvelope;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultAddressedEnvelope;
@@ -31,16 +31,16 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.Validate;
 
 final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object> {
-    private String srcAddressPrefix;
+    private Address srcAddressPrefix;
     private Shuttle dstShuttle;
-    private String dstAddress;
+    private Address dstAddress;
 
-    IncomingMessageShuttleHandler(String srcAddressPrefix, Shuttle dstShuttle, String dstAddress) {
+    IncomingMessageShuttleHandler(Address srcAddressPrefix, Shuttle dstShuttle, Address dstAddress) {
         Validate.notNull(srcAddressPrefix);
         Validate.notNull(dstShuttle);
         Validate.notNull(dstAddress);
-        Validate.notEmpty(srcAddressPrefix);
-        Validate.notEmpty(dstAddress);
+        Validate.isTrue(!srcAddressPrefix.isEmpty());
+        Validate.isTrue(!dstAddress.isEmpty());
 
         this.srcAddressPrefix = srcAddressPrefix;
         this.dstShuttle = dstShuttle;
@@ -69,11 +69,9 @@ final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object
     
     protected Object transform(SocketAddress localAddress, SocketAddress remoteAddress, Object obj) {
         EncapsulatedMessage em = (EncapsulatedMessage) obj;
-        String srcAddress = srcAddressPrefix + SEPARATOR + toShuttleAddress(remoteAddress);
-        String srcSuffix = em.getAddressSuffix();
-        if (srcSuffix != null) {
-            srcAddress += SEPARATOR + em.getAddressSuffix();
-        }
+        Address srcAddress = srcAddressPrefix
+                .appendSuffix(toShuttleAddress(remoteAddress))
+                .appendSuffix(em.getAddressSuffix());
         
         Object msgObj = em.getObject();
         

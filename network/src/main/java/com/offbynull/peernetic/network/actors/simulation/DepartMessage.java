@@ -16,17 +16,20 @@
  */
 package com.offbynull.peernetic.network.actors.simulation;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 public final class DepartMessage {
     private final Object message;
-    private final String sourceId;
-    private final String destinationAddress;
+    private final Address sourceId;
+    private final Address destinationAddress;
 
-    public DepartMessage(Object message, String sourceId, String destinationAddress) {
+    public DepartMessage(Object message, Address sourceId, Address destinationAddress) {
         Validate.notNull(message);
-        // sourceId can be null
+        Validate.notNull(sourceId);
         Validate.notNull(destinationAddress);
+        // sourceId can be empty
+        Validate.isTrue(!destinationAddress.isEmpty());
         this.message = message;
         this.sourceId = sourceId;
         this.destinationAddress = destinationAddress;
@@ -36,11 +39,11 @@ public final class DepartMessage {
         return message;
     }
 
-    public String getSourceId() {
+    public Address getSourceId() {
         return sourceId;
     }
 
-    public String getDestinationAddress() {
+    public Address getDestinationAddress() {
         return destinationAddress;
     }
 

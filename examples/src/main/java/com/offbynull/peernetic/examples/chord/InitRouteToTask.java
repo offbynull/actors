@@ -3,7 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -25,10 +25,10 @@ final class InitRouteToTask implements Coroutine {
 
     private ExternalPointer foundPointer;
     
-    private final String sourceId;
+    private final Address sourceId;
     private final State state;
 
-    public InitRouteToTask(String sourceId, State state, ExternalPointer bootstrapNode, NodeId findId) {
+    public InitRouteToTask(Address sourceId, State state, ExternalPointer bootstrapNode, NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(bootstrapNode);
@@ -98,10 +98,10 @@ final class InitRouteToTask implements Coroutine {
         return foundPointer;
     }
     
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())

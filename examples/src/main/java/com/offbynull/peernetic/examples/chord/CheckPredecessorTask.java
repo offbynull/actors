@@ -6,7 +6,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -21,10 +21,10 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
     
     private static final Logger LOG = LoggerFactory.getLogger(CheckPredecessorTask.class);
 
-    private final String sourceId;
+    private final Address sourceId;
     private final State state;
 
-    public CheckPredecessorTask(String sourceId, State state) {
+    public CheckPredecessorTask(Address sourceId, State state) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         this.sourceId = sourceId;
@@ -69,7 +69,7 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
     }
     
     @Override
-    public String getId() {
+    public Address getId() {
         return sourceId;
     }
     
@@ -82,10 +82,10 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())

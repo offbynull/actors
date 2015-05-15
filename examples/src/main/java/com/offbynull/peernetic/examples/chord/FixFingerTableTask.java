@@ -3,7 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
@@ -18,10 +18,10 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
     
     private static final Logger LOG = LoggerFactory.getLogger(FixFingerTableTask.class);
 
-    private final String sourceId;
+    private final Address sourceId;
     private final State state;
 
-    public FixFingerTableTask(String sourceId, State state) {
+    public FixFingerTableTask(Address sourceId, State state) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         this.sourceId = sourceId;
@@ -85,7 +85,7 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
     }
     
     @Override
-    public String getId() {
+    public Address getId() {
         return sourceId;
     }
     
@@ -101,7 +101,7 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
     private Pointer funnelToRouteToSuccessorCoroutine(Continuation cnt, NodeId findId) throws Exception {
         String idSuffix = "routetosucc" + state.generateExternalMessageId();
         RouteToSuccessorTask innerCoroutine = new RouteToSuccessorTask(
-                AddressUtils.parentize(sourceId, idSuffix),
+                sourceId.appendSuffix(idSuffix),
                 state,
                 findId);
         return innerCoroutine.run(cnt);

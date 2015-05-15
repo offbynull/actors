@@ -19,6 +19,7 @@ package com.offbynull.peernetic.network.gateways.udp;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateway.InputGateway;
+import com.offbynull.peernetic.core.shuttle.Address;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -34,22 +35,19 @@ public final class UdpGateway implements InputGateway {
     private final String prefix;
     private final Shuttle srcShuttle;
     private final Shuttle dstShuttle;
-    private final String dstId;
+    private final Address dstId;
     
     private final Channel channel;
     private final EventLoopGroup eventLoopGroup;
     private final boolean closeEventLoopGroup;
     
     
-    public UdpGateway(InetSocketAddress bindAddress, String prefix, Shuttle outgoingShuttle, String dstId, Serializer serializer) {
+    public UdpGateway(InetSocketAddress bindAddress, String prefix, Shuttle outgoingShuttle, Address dstId, Serializer serializer) {
         Validate.notNull(bindAddress);
         Validate.notNull(prefix);
         Validate.notNull(outgoingShuttle);
         Validate.notNull(dstId);
         Validate.notNull(serializer);
-        
-        Validate.notEmpty(prefix);
-        // Validate.notEmpty(dstId); don't do this because dstId can be empty
         
         this.prefix = prefix;
         this.dstShuttle = outgoingShuttle;
@@ -69,7 +67,7 @@ public final class UdpGateway implements InputGateway {
                             ch.pipeline()
                                     .addLast(new SerializerEncodeHandler(serializer))
                                     .addLast(new SerializerDecodeHandler(serializer))
-                                    .addLast(new IncomingMessageShuttleHandler(prefix, outgoingShuttle, dstId));
+                                    .addLast(new IncomingMessageShuttleHandler(Address.of(prefix), outgoingShuttle, dstId));
                         }
                     });
             channel = cb.bind(bindAddress).sync().channel();

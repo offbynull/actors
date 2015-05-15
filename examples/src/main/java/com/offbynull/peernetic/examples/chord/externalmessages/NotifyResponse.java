@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
@@ -24,9 +25,9 @@ public final class NotifyResponse extends ExternalMessage implements Serializabl
     private static final long serialVersionUID = 1L;
     
     private NodeId chordId;
-    private String address;
+    private Address address;
 
-    public NotifyResponse(long id, NodeId chordId, String address) {
+    public NotifyResponse(long id, NodeId chordId, Address address) {
         super(id);
         this.chordId = chordId;
         this.address = address;
@@ -36,7 +37,7 @@ public final class NotifyResponse extends ExternalMessage implements Serializabl
         return chordId;
     }
 
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 }

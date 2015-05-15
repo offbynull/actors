@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.examples.chord.model;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.nodeid.NodeIdUtils;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.math.BigInteger;
@@ -464,7 +465,7 @@ public final class FingerTable {
         Validate.isTrue(NodeIdUtils.getBitLength(ptr.getId()) == bitCount);
 
         NodeId id = ptr.getId();
-        String address = ptr.getAddress();
+        Address address = ptr.getAddress();
         NodeId baseId = basePtr.getId();
 
         Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
@@ -481,7 +482,7 @@ public final class FingerTable {
             
             ExternalPointer testPtr = (ExternalPointer) ie.pointer;
             NodeId testId = testPtr.getId();
-            String testAddress = testPtr.getAddress();
+            Address testAddress = testPtr.getAddress();
 
             if (id.equals(testId) && address.equals(testAddress)) {
                 remove(lit.previousIndex() + 1);

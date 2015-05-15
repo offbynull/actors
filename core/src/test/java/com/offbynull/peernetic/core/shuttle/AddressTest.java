@@ -3,7 +3,6 @@ package com.offbynull.peernetic.core.shuttle;
 import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +57,13 @@ public class AddressTest {
         Address fixture = Address.of("one", "xxx", "three");
         assertFalse(other.isPrefixOf(fixture));
     }
+
+    @Test
+    public void mustNotIdentifyAsPrefixWhenShorter() {
+        Address other = Address.of("one", "two", "three");
+        Address fixture = Address.of("one", "two");
+        assertFalse(other.isPrefixOf(fixture));
+    }
     
     @Test
     public void mustIdentifyAsPrefixWhenEqual() {
@@ -102,11 +108,36 @@ public class AddressTest {
     }
 
     @Test
-    public void mustFailToRemoveParent() {
+    public void mustFailToRemovePrefix() {
         Address other = Address.of("one", "two", "three");
         Address fixture = Address.of("one", "xxx", "three");
         exception.expect(IllegalArgumentException.class);
         fixture.removePrefix(other);
+    }
+
+    @Test
+    public void mustRemoveSuffix() {
+        Address fixture = Address.of("one", "xxx", "three");
+        assertEquals(Address.of("one"), fixture.removeSuffix(2));
+    }
+
+    @Test
+    public void mustNotRemoveSuffixIfRemoveCountIs0() {
+        Address fixture = Address.of("one", "xxx", "three");
+        assertEquals(fixture, fixture.removeSuffix(0));
+    }
+
+    @Test
+    public void mustNotRemoveSuffixIfRemoveCountIsAll() {
+        Address fixture = Address.of("one", "xxx", "three");
+        assertTrue(fixture.removeSuffix(3).isEmpty());
+    }
+
+    @Test
+    public void mustFailToRemoveSuffixIfRemoveCountIsOutOfBounds() {
+        Address fixture = Address.of("one", "xxx", "three");
+        exception.expect(IllegalArgumentException.class);
+        fixture.removeSuffix(4);
     }
     
     @Test

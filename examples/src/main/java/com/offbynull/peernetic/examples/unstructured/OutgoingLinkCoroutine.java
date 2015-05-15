@@ -4,6 +4,7 @@ import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerato
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkResponse;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
@@ -13,11 +14,11 @@ import org.apache.commons.lang3.Validate;
 final class OutgoingLinkCoroutine implements Coroutine {
     private final Context mainCtx;
     private final ExternalMessageIdGenerator idGenerator;
-    private final String graphAddress;
-    private final String address;
+    private final Address graphAddress;
+    private final Address address;
     private Instant lastResponseTime;
 
-    public OutgoingLinkCoroutine(Context mainCtx, ExternalMessageIdGenerator idGenerator, String graphAddress, String address, Instant currentTime) {
+    public OutgoingLinkCoroutine(Context mainCtx, ExternalMessageIdGenerator idGenerator, Address graphAddress, Address address, Instant currentTime) {
         Validate.notNull(mainCtx);
         Validate.notNull(idGenerator);
         Validate.notNull(address);
@@ -37,7 +38,7 @@ final class OutgoingLinkCoroutine implements Coroutine {
 
     @Override
     public void run(Continuation cnt) throws Exception {
-        mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf(), address, "-fx-stroke: yellow"));
+        mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf().toString(), address.toString(), "-fx-stroke: yellow"));
         boolean lineIsGreen = false;
         
         while (true) {
@@ -53,7 +54,7 @@ final class OutgoingLinkCoroutine implements Coroutine {
             
             lastResponseTime = mainCtx.getTime();
             if (!lineIsGreen) {
-                mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf(), address, "-fx-stroke: green"));
+                mainCtx.addOutgoingMessage(graphAddress, new StyleEdge(mainCtx.getSelf().toString(), address.toString(), "-fx-stroke: green"));
                 lineIsGreen = true;
             }
         }

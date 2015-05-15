@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
@@ -54,7 +55,14 @@ final class ControllerStage extends Stage {
                 
                 for (int id = startId; id <= endId; id++) {
                     actorThread.addCoroutineActor("" + id, new ChordClientCoroutine(),
-                            new Start(connIdStr, new NodeId(id, bits), new Random(id), "timer", "graph"));
+                            new Start(
+                                    connIdStr == null ? null : Address.fromString(connIdStr),
+                                    new NodeId(id, bits),
+                                    new Random(id),
+                                    Address.fromString("timer"),
+                                    Address.fromString("graph")
+                            )
+                    );
                 }
         });
         
@@ -72,7 +80,15 @@ final class ControllerStage extends Stage {
             int endId = Integer.parseInt(removeEndTextField.getText());
 
             for (int id = startId; id <= endId; id++) {
-                actorThread.getIncomingShuttle().send(Collections.singleton(new Message("", "actor:" + id, new Kill())));
+                actorThread.getIncomingShuttle().send(
+                        Collections.singleton(
+                                new Message(
+                                        Address.of(""),
+                                        Address.fromString("actor:" + id),
+                                        new Kill()
+                                )
+                        )
+                );
             }
         });
         

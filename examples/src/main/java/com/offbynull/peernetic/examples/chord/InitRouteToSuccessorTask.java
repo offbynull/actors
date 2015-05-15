@@ -4,7 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -27,10 +27,10 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
     private final ExternalPointer bootstrapNode;
     private final NodeId findId;
     
-    private final String sourceId;
+    private final Address sourceId;
     private final State state;
 
-    public InitRouteToSuccessorTask(String sourceId, State state, ExternalPointer bootstrapNode, NodeId findId) {
+    public InitRouteToSuccessorTask(Address sourceId, State state, ExternalPointer bootstrapNode, NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(bootstrapNode);
@@ -53,7 +53,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
         }
         
         LOG.debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer);
-        String ptrAddress = ((ExternalPointer) pointer).getAddress();
+        Address ptrAddress = ((ExternalPointer) pointer).getAddress();
         GetSuccessorResponse gsr = funnelToRequestCoroutine(
                     cnt,
                     ptrAddress,
@@ -62,7 +62,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
 
         SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-        String succAddress;
+        Address succAddress;
         if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
             succAddress = ptrAddress;
         } else if (successorEntry instanceof ExternalSuccessorEntry) {
@@ -84,7 +84,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
     }
     
     @Override
-    public String getId() {
+    public Address getId() {
         return sourceId;
     }
     
@@ -95,7 +95,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
         
         String idSuffix = "initroutetopred" + state.generateExternalMessageId();
         InitRouteToTask innerCoroutine = new InitRouteToTask(
-                AddressUtils.parentize(sourceId, idSuffix),
+                sourceId.appendSuffix(idSuffix),
                 state,
                 bootstrapNode,
                 findId);
@@ -103,10 +103,10 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
         return innerCoroutine.getResult();
     }
     
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())

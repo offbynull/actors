@@ -20,8 +20,8 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper.ForwardInformation;
-import static com.offbynull.peernetic.core.shuttle.AddressUtils.SEPARATOR;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 
 public final class UnreliableProxyCoroutine implements Coroutine {
@@ -33,8 +33,8 @@ public final class UnreliableProxyCoroutine implements Coroutine {
         StartUnreliableProxy startMsg = ctx.getIncomingMessage();
 
         Line line = startMsg.getLine();
-        String timerPrefix = startMsg.getTimerPrefix();
-        String actorPrefix = startMsg.getActorPrefix();
+        Address timerPrefix = startMsg.getTimerPrefix();
+        Address actorPrefix = startMsg.getActorPrefix();
         
         ProxyHelper proxyHelper = new ProxyHelper(ctx, actorPrefix);
 
@@ -57,7 +57,7 @@ public final class UnreliableProxyCoroutine implements Coroutine {
                         forwardInfo.getProxyFromId(),
                         forwardInfo.getProxyToAddress());
                 for (TransitMessage tm : line.processOutgoing(time, dm)) {
-                    ctx.addOutgoingMessage(timerPrefix + SEPARATOR + tm.getDuration().toMillis(), tm);
+                    ctx.addOutgoingMessage(timerPrefix.appendSuffix("" + tm.getDuration().toMillis()), tm);
                 }
             } else {
                 // Incoming message
@@ -66,7 +66,7 @@ public final class UnreliableProxyCoroutine implements Coroutine {
                         forwardInfo.getProxyFromId(),
                         forwardInfo.getProxyToAddress());
                 for (TransitMessage tm : line.processIncoming(time, dm)) {
-                    ctx.addOutgoingMessage(timerPrefix + SEPARATOR + tm.getDuration().toMillis(), tm);
+                    ctx.addOutgoingMessage(timerPrefix.appendSuffix("" + tm.getDuration().toMillis()), tm);
                 }
             }
         }

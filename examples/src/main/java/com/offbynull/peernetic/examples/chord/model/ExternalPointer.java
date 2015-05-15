@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.examples.chord.model;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
@@ -26,7 +27,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class ExternalPointer implements Pointer {
     private NodeId id;
-    private String address;
+    private Address address;
 
     /**
      * Constructs a {@link Pointer} object.
@@ -34,7 +35,7 @@ public final class ExternalPointer implements Pointer {
      * @param address address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public ExternalPointer(NodeId id, String address) {
+    public ExternalPointer(NodeId id, Address address) {
         Validate.notNull(id);
         Validate.notNull(address);
         
@@ -55,7 +56,7 @@ public final class ExternalPointer implements Pointer {
      * Get address.
      * @return address
      */
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 

@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
@@ -86,15 +87,15 @@ public final class GetSuccessorResponse extends ExternalMessage implements Seria
 
     public static final class ExternalSuccessorEntry extends SuccessorEntry {
 
-        private String address;
+        private Address address;
 
-        public ExternalSuccessorEntry(NodeId chordId, String address) {
+        public ExternalSuccessorEntry(NodeId chordId, Address address) {
             super(chordId);
             Validate.notNull(address);
             this.address = address;
         }
 
-        public String getAddress() {
+        public Address getAddress() {
             return address;
         }
 

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured.externalmessages;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,16 +9,16 @@ import org.apache.commons.lang3.Validate;
 
 public final class QueryResponse extends ExternalMessage {
 
-    private final UnmodifiableList<String> links;
+    private final UnmodifiableList<Address> links;
 
-    public QueryResponse(long id, List<String> links) {
+    public QueryResponse(long id, List<Address> links) {
         super(id);
         Validate.notNull(links);
         Validate.noNullElements(links);
-        this.links = (UnmodifiableList<String>) UnmodifiableList.unmodifiableList(new ArrayList<String>(links));
+        this.links = (UnmodifiableList<Address>) UnmodifiableList.unmodifiableList(new ArrayList<Address>(links));
     }
 
-    public UnmodifiableList<String> getLinks() {
+    public UnmodifiableList<Address> getLinks() {
         return links;
     }
 }

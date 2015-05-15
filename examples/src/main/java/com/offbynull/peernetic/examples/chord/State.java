@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.chord;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.FindSuccessorResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -16,7 +17,7 @@ import org.apache.commons.lang3.Validate;
 
 final class State {
     
-    private final String timerPrefix;
+    private final Address timerPrefix;
     
     private ExternalMessageIdGenerator externalMessageIdGenerator = new ExternalMessageIdGenerator(new Random());
     
@@ -25,9 +26,9 @@ final class State {
     private ExternalPointer predecessor;
     
     private NodeId selfId;
-    private String bootstrapAddress;
+    private Address bootstrapAddress;
     
-    public State(String timerPrefix, NodeId selfId, String bootstrapAddress) {
+    public State(Address timerPrefix, NodeId selfId, Address bootstrapAddress) {
         Validate.notNull(timerPrefix);
         Validate.notNull(selfId);
         this.timerPrefix = timerPrefix;
@@ -35,7 +36,7 @@ final class State {
         this.bootstrapAddress = bootstrapAddress;
     }
 
-    public String getTimerPrefix() {
+    public Address getTimerPrefix() {
         return timerPrefix;
     }
 
@@ -43,7 +44,7 @@ final class State {
         return selfId;
     }
 
-    public String getBootstrapAddress() {
+    public Address getBootstrapAddress() {
         return bootstrapAddress;
     }
 
@@ -230,7 +231,7 @@ final class State {
         return new NodeId(idData, selfId.getLimitAsByteArray());
     }
     
-    public ExternalPointer toExternalPointer(FindSuccessorResponse resp, String defaultAddress) {
+    public ExternalPointer toExternalPointer(FindSuccessorResponse resp, Address defaultAddress) {
         Validate.notNull(resp);
         Validate.notNull(defaultAddress);
         return toExternalPointer(resp.getChordId(), resp.getAddress(), defaultAddress);
@@ -241,7 +242,7 @@ final class State {
         return toExternalPointer(resp.getChordId(), resp.getAddress(), resp.getAddress());
     }
     
-    public ExternalPointer toExternalPointer(NodeId idData, String address, String defaultAddress) {
+    public ExternalPointer toExternalPointer(NodeId idData, Address address, Address defaultAddress) {
         Validate.notNull(idData);
         Validate.notNull(defaultAddress);
         // address can be null
@@ -253,7 +254,7 @@ final class State {
         }
     }
     
-    public Pointer toPointer(NodeId idData, String address) {
+    public Pointer toPointer(NodeId idData, Address address) {
         Validate.notNull(idData);
         Validate.isTrue(idData.getLimitAsBigInteger().equals(selfId.getLimitAsBigInteger()));
         // address can be null
@@ -269,7 +270,7 @@ final class State {
         return ret;
     }
 
-    public ExternalPointer toExternalPointer(NodeId idData, String address) {
+    public ExternalPointer toExternalPointer(NodeId idData, Address address) {
         Validate.notNull(idData);
         Pointer ret = toPointer(idData, address);
         Validate.isTrue(ret instanceof ExternalPointer);

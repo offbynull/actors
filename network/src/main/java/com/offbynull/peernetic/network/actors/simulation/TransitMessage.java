@@ -16,24 +16,27 @@
  */
 package com.offbynull.peernetic.network.actors.simulation;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 public final class TransitMessage {
-    private String sourceId;
-    private String destinationAddress;
+    private Address sourceId;
+    private Address destinationAddress;
     private Object message;
     private Instant departTime;
     private Duration duration;
 
-    TransitMessage(String sourceId, String destinationAddress, Object message, Instant departTime, Duration duration) {
-        // sourceId can be null
+    TransitMessage(Address sourceId, Address destinationAddress, Object message, Instant departTime, Duration duration) {
+        Validate.notNull(sourceId);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
         Validate.notNull(departTime);
         Validate.notNull(duration);
         Validate.isTrue(!duration.isNegative());
+        // sourceId can be empty
+        Validate.isTrue(!destinationAddress.isEmpty());
         this.sourceId = sourceId;
         this.destinationAddress = destinationAddress;
         this.message = message;
@@ -41,11 +44,11 @@ public final class TransitMessage {
         this.duration = duration;
     }
 
-    String getSourceId() {
+    Address getSourceId() {
         return sourceId;
     }
 
-    String getDestinationAddress() {
+    Address getDestinationAddress() {
         return destinationAddress;
     }
 

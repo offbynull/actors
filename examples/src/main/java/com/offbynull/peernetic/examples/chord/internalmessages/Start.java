@@ -1,22 +1,23 @@
 package com.offbynull.peernetic.examples.chord.internalmessages;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
 
-    private final String bootstrapAddress;
+    private final Address bootstrapAddress;
     private final NodeId nodeId;
     private final Random random;
-    private final String timerPrefix;
-    private final String graphAddress;
+    private final Address timerPrefix;
+    private final Address graphAddress;
 
-    public Start(NodeId nodeId, Random random, String timerPrefix, String graphAddress) {
+    public Start(NodeId nodeId, Random random, Address timerPrefix, Address graphAddress) {
         this(null, nodeId, random, timerPrefix, graphAddress);
     }
     
-    public Start(String bootstrapAddress, NodeId nodeId, Random random, String timerPrefix, String graphAddress) {
+    public Start(Address bootstrapAddress, NodeId nodeId, Random random, Address timerPrefix, Address graphAddress) {
         // bootstrapAddress can be null
         Validate.notNull(nodeId);
         Validate.notNull(random);
@@ -30,7 +31,7 @@ public final class Start {
         this.graphAddress = graphAddress;
     }
 
-    public String getBootstrapAddress() {
+    public Address getBootstrapAddress() {
         return bootstrapAddress;
     }
 
@@ -42,11 +43,11 @@ public final class Start {
         return random;
     }
 
-    public String getTimerPrefix() {
+    public Address getTimerPrefix() {
         return timerPrefix;
     }
 
-    public String getGraphAddress() {
+    public Address getGraphAddress() {
         return graphAddress;
     }
 

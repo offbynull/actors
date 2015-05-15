@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
@@ -38,9 +39,9 @@ public final class Main {
             double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
             Point newPoint = PositionUtils.pointOnCircle(500, percentage);
             graphGateway.getIncomingShuttle().send(Arrays.asList(
-                    new Message("", "graph", new AddNode(selfId.toString())),
-                    new Message("", "graph", new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY())),
-                    new Message("", "graph", new StyleNode(selfId.toString(), "-fx-background-color: red"))
+                    new Message(Address.of(""), Address.of("graph"), new AddNode(selfId.toString())),
+                    new Message(Address.of(""), Address.of("graph"), new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY())),
+                    new Message(Address.of(""), Address.of("graph"), new StyleNode(selfId.toString(), "-fx-background-color: red"))
             ));
         }
         

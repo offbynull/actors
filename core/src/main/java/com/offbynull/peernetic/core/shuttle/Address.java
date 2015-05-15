@@ -265,6 +265,11 @@ public final class Address implements Serializable {
      */
     public boolean isPrefixOf(Address other) {
         Validate.notNull(other);
+        
+        if (other.addressElements.size() < addressElements.size()) {
+            return false;
+        }
+        
         return other.addressElements.subList(0, addressElements.size()).equals(addressElements);
     }
     
@@ -288,6 +293,20 @@ public final class Address implements Serializable {
         
         // Need to create a new ArrayList instead of passing in subList directly because subList generates a non-serializable list
         List<String> subList = new ArrayList<>(addressElements.subList(prefix.addressElements.size(), addressElements.size()));
+        return new Address(subList);
+    }
+
+    /**
+     * Removes a number of address elements from the end of this address. For example, removing {@code 2} address elements from
+     * {@code ["test1", "test2", "test3", "test4"]} will result in {@code ["test1", "test2"]}.
+     * @param count number of address elements to remove from the tail of this address
+     * @return a copy of this address with the last {@code removeCount} address elements removed
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if the number of address elements in this address is less than {@code removeCount}
+     */
+    public Address removeSuffix(int count) {
+        Validate.isTrue(count >= 0 && count <= addressElements.size());
+        List<String> subList = new ArrayList<>(addressElements.subList(0, addressElements.size() - count));
         return new Address(subList);
     }
     

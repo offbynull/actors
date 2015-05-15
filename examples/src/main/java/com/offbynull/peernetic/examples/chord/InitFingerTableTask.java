@@ -4,7 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -21,11 +21,11 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
     
     private static final Logger LOG = LoggerFactory.getLogger(InitFingerTableTask.class);
 
-    private final String bootstrapAddress;
-    private final String sourceId;
+    private final Address bootstrapAddress;
+    private final Address sourceId;
     private final State state;
 
-    public InitFingerTableTask(String sourceId, State state, String bootstrapAddress) {
+    public InitFingerTableTask(Address sourceId, State state, Address bootstrapAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(bootstrapAddress);
@@ -78,14 +78,14 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
     }
     
     @Override
-    public String getId() {
+    public Address getId() {
         return sourceId;
     }
     
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, String destination, ExternalMessage message,
+    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(AddressUtils.parentize(sourceId, "" + message.getId()))
+                .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(state.getTimerPrefix())
@@ -100,7 +100,7 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
         
         String idSuffix = "" + state.generateExternalMessageId();
         InitRouteToSuccessorTask innerCoroutine = new InitRouteToSuccessorTask(
-                AddressUtils.parentize(sourceId, idSuffix),
+                sourceId.appendSuffix(idSuffix),
                 state,
                 bootstrapNode,
                 findId);

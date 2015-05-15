@@ -16,28 +16,31 @@
  */
 package com.offbynull.peernetic.network.actors.simulation;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 public class StartUnreliableProxy {
-    private final String timerPrefix;
-    private final String actorPrefix;
+    private final Address timerPrefix;
+    private final Address actorPrefix;
     private final Line line;
 
-    public StartUnreliableProxy(String timerPrefix, String actorPrefix, Line line) {
+    public StartUnreliableProxy(Address timerPrefix, Address actorPrefix, Line line) {
         Validate.notNull(timerPrefix);
         Validate.notNull(actorPrefix);
         Validate.notNull(line);
+        Validate.isTrue(!timerPrefix.isEmpty());
+        Validate.isTrue(!actorPrefix.isEmpty());
         Validate.isTrue(!timerPrefix.equals(actorPrefix));
         this.timerPrefix = timerPrefix;
         this.actorPrefix = actorPrefix;
         this.line = line;
     }
 
-    public String getTimerPrefix() {
+    public Address getTimerPrefix() {
         return timerPrefix;
     }
 
-    public String getActorPrefix() {
+    public Address getActorPrefix() {
         return actorPrefix;
     }
 

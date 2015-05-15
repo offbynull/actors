@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
@@ -25,9 +26,9 @@ public final class GetClosestPrecedingFingerResponse extends ExternalMessage imp
     private static final long serialVersionUID = 1L;
     
     private NodeId chordId;
-    private String address;
+    private Address address;
 
-    public GetClosestPrecedingFingerResponse(long id, NodeId chordId, String address) {
+    public GetClosestPrecedingFingerResponse(long id, NodeId chordId, Address address) {
         super(id);
         Validate.notNull(id);
         this.chordId = chordId;
@@ -39,7 +40,7 @@ public final class GetClosestPrecedingFingerResponse extends ExternalMessage imp
         return chordId;
     }
 
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 }

@@ -4,7 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
@@ -20,10 +20,10 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateOthersTask.class);
 
-    private final String sourceId;
+    private final Address sourceId;
     private final State state;
 
-    public UpdateOthersTask(String sourceId, State state) {
+    public UpdateOthersTask(Address sourceId, State state) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         this.sourceId = sourceId;
@@ -84,7 +84,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
     }
 
     @Override
-    public String getId() {
+    public Address getId() {
         return sourceId;
     }
     
@@ -94,7 +94,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
 
         String idSuffix = "routeto" + state.generateExternalMessageId();
         RouteToTask innerCoroutine = new RouteToTask(
-                AddressUtils.parentize(sourceId, idSuffix),
+                sourceId.appendSuffix(idSuffix),
                 state,
                 routerId);
         return innerCoroutine.run(cnt);
@@ -113,13 +113,13 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private void addOutgoingExternalMessage(Context ctx, String destination, ExternalMessage message) {
+    private void addOutgoingExternalMessage(Context ctx, Address destination, ExternalMessage message) {
         Validate.notNull(ctx);
         Validate.notNull(destination);
         Validate.notNull(message);
 
         ctx.addOutgoingMessage(
-                AddressUtils.parentize(sourceId, "" + message.getId()),
+                sourceId.appendSuffix("" + message.getId()),
                 destination,
                 message);
     }

@@ -11,7 +11,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.shuttle.AddressUtils;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
@@ -37,10 +37,10 @@ public final class UnstructuredClientCoroutine implements Coroutine {
     private static final Duration OUTGOING_TIMEOUT = Duration.ofSeconds(10L);
     private ExternalMessageIdGenerator idGenerator;
     private AddressCache addressCache;
-    private String timerAddressPrefix;
-    private String graphAddress;
-    private Map<String, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>> outgoingLinks;
-    private Map<String, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>> incomingLinks;
+    private Address timerAddressPrefix;
+    private Address graphAddress;
+    private Map<Address, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>> outgoingLinks;
+    private Map<Address, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>> incomingLinks;
     private Map<Class<?>, Consumer<Object>> handlerMap;
     
     private Context mainCtx;
@@ -66,11 +66,11 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         handlerMap.put(QueryResponse.class, this::handleQueryResponse);
         
         mainCtx.addOutgoingMessage(
-                AddressUtils.parentize(timerAddressPrefix, "" + CHECK_DURATION.toMillis()),
+                timerAddressPrefix.appendSuffix("" + CHECK_DURATION.toMillis()),
                 new Check());
         mainCtx.addOutgoingMessage(graphAddress,
                 new AddNode(
-                        mainCtx.getSelf(),
+                        mainCtx.getSelf().toString(),
                         start.getRandom().nextInt(1400),
                         start.getRandom().nextInt(1400)));
         
@@ -94,22 +94,22 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Instant currentTime = mainCtx.getTime();
         
         // Remove outgoing links that have timed out
-        Iterator<Entry<String, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>>> outIt = outgoingLinks.entrySet().iterator();
+        Iterator<Entry<Address, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>>> outIt = outgoingLinks.entrySet().iterator();
         while (outIt.hasNext()) {
-            Entry<String, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>> entry = outIt.next();
+            Entry<Address, ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine>> entry = outIt.next();
             Instant sendTime = entry.getValue().getValue().getLastResponseTime();
             Duration duration = Duration.between(sendTime, currentTime);
 
             if (duration.compareTo(OUTGOING_TIMEOUT) > 0) {
                 outIt.remove();
-                mainCtx.addOutgoingMessage(graphAddress, new RemoveEdge(mainCtx.getSelf(), entry.getKey()));
+                mainCtx.addOutgoingMessage(graphAddress, new RemoveEdge(mainCtx.getSelf().toString(), entry.getKey().toString()));
             }
         }
         
         // Remove incoming links that have timed out
-        Iterator<Entry<String, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>>> inIt = incomingLinks.entrySet().iterator();
+        Iterator<Entry<Address, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>>> inIt = incomingLinks.entrySet().iterator();
         while(inIt.hasNext()) {
-            Entry<String, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>> entry = inIt.next();
+            Entry<Address, ImmutablePair<CoroutineRunner, IncomingLinkCoroutine>> entry = inIt.next();
             Instant sendTime = entry.getValue().getValue().getLastRequestTime();
             Duration duration = Duration.between(sendTime, currentTime);
             
@@ -120,13 +120,13 @@ public final class UnstructuredClientCoroutine implements Coroutine {
 
         // Reschedule check message
         mainCtx.addOutgoingMessage(
-                AddressUtils.parentize(timerAddressPrefix, "" + CHECK_DURATION.toMillis()),
+                timerAddressPrefix.appendSuffix("" + CHECK_DURATION.toMillis()),
                 msg);
 
         // Add new outgoing links (if we have room available to do so)
         int newOutLinkSize = MAX_OUTGOING_LINKS - outgoingLinks.size();
         for (int i = 0; i < newOutLinkSize; i++) {
-            String address = addressCache.next();
+            Address address = addressCache.next();
 
             // If no more addresses in address cache, break out of loop
             if (address == null) {
@@ -139,7 +139,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
             }
 
                 // Add edge to graph
-            mainCtx.addOutgoingMessage(graphAddress, new AddEdge(mainCtx.getSelf(), address));
+            mainCtx.addOutgoingMessage(graphAddress, new AddEdge(mainCtx.getSelf().toString(), address.toString()));
             
                 // Start coroutine to attempt a link
             OutgoingLinkCoroutine coroutine = new OutgoingLinkCoroutine(mainCtx, idGenerator, graphAddress, address, currentTime);
@@ -157,7 +157,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Validate.isTrue(msg instanceof LinkRequest);
         LinkRequest req = (LinkRequest) msg;
         
-        String sourceAddress = mainCtx.getSource();
+        Address sourceAddress = mainCtx.getSource();
         
         ImmutablePair<CoroutineRunner, IncomingLinkCoroutine> entry = incomingLinks.get(sourceAddress);
         CoroutineRunner runner;
@@ -184,7 +184,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Validate.isTrue(msg instanceof LinkResponse);
         
         // A response to an outgoing link request
-        String sourceAddress = mainCtx.getSource();
+        Address sourceAddress = mainCtx.getSource();
 
         ImmutablePair<CoroutineRunner, OutgoingLinkCoroutine> coroutine = outgoingLinks.get(sourceAddress);
         if (coroutine == null) {
@@ -194,7 +194,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         boolean stillRunning = coroutine.getKey().execute();
         if (!stillRunning) {
             outgoingLinks.remove(sourceAddress);
-            mainCtx.addOutgoingMessage(graphAddress, new RemoveEdge(mainCtx.getSelf(), sourceAddress));
+            mainCtx.addOutgoingMessage(graphAddress, new RemoveEdge(mainCtx.getSelf().toString(), sourceAddress.toString()));
         }
     }
     
@@ -202,12 +202,12 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Validate.isTrue(msg instanceof QueryRequest);
         
         // Incoming query request
-        String sourceAddress = mainCtx.getSource();
+        Address sourceAddress = mainCtx.getSource();
 
         QueryRequest req = (QueryRequest) msg;
         long id = req.getId();
 
-        ArrayList<String> links = new ArrayList<>(MAX_INCOMING_LINKS + MAX_OUTGOING_LINKS);
+        ArrayList<Address> links = new ArrayList<>(MAX_INCOMING_LINKS + MAX_OUTGOING_LINKS);
         links.addAll(incomingLinks.keySet());
         links.addAll(outgoingLinks.keySet());
         QueryResponse resp = new QueryResponse(id, links);
@@ -220,7 +220,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         
         // A response to an outgoing query request
         QueryResponse resp = (QueryResponse) msg;
-        List<String> addresses = new ArrayList<>(resp.getLinks());
+        List<Address> addresses = new ArrayList<>(resp.getLinks());
 
         addressCache.addAll(addresses);
     }

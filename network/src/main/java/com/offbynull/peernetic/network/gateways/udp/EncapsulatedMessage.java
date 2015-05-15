@@ -16,23 +16,25 @@
  */
 package com.offbynull.peernetic.network.gateways.udp;
 
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 final class EncapsulatedMessage implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private final String dstSuffix;
+    private final Address dstSuffix;
     private final Object object;
 
-    public EncapsulatedMessage(String dstSuffix, Object object) {
+    public EncapsulatedMessage(Address dstSuffix, Object object) {
+        Validate.notNull(dstSuffix);
         Validate.notNull(object);
         
         this.dstSuffix = dstSuffix; // this can be null
         this.object = object; // this technically shouldn't be null
     }
 
-    public String getAddressSuffix() {
+    public Address getAddressSuffix() {
         return dstSuffix;
     }
 

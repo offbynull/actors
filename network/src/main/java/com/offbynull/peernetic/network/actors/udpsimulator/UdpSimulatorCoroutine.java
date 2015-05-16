@@ -18,12 +18,97 @@ package com.offbynull.peernetic.network.actors.udpsimulator;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper.ForwardInformation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
 import java.time.Instant;
 
+/**
+ * {@link Coroutine} actor that attempts to simulate a {@link UdpGateway}.
+ * <p>
+ * In the following example, there are two {@link Actor}s: {@code sender} and {@code echoer}. {@code sender} sends 10 message and waits for
+ * those messages to be echoed back to it, while {@code echoer} echoes back whatever is sent to it. Both of these actors are assigned
+ * their own {@link UdpSimulatorCoroutine} (both called {@code proxy} -- note that each actor is running in its own {@link ActorThread} so
+ * there is no naming conflict here), and pass messages through it to the other to simulate communicating over UDP.
+ * <p>
+ * Note that UDP is unreliable. Each message is sent as a single packet, and packets may come out of order or not at all. This example
+ * simulates mild unreliability in terms of packet loss and packet duplication, and heavy unreliability in terms of out-of-order packet
+ * arrival (jitter is set to a maximum of 1 second). The line can be modified to change unreliability parameters.
+ * <pre>
+ * Coroutine sender = (cnt) -&gt; {
+ *     Context ctx = (Context) cnt.getContext();
+ *     Address dstAddr = ctx.getIncomingMessage();
+ *
+ *     // Send out 10 messages
+ *     for (int i = 0; i &lt; 10; i++) {
+ *         ctx.addOutgoingMessage(Address.of("hi"), dstAddr, i);
+ *     }
+ *     
+ *     // Print out messages as they come in
+ *     while (true) {
+ *         cnt.suspend();
+ *         System.out.println(ctx.getIncomingMessage().toString()); // Shouldn't be doing I/O in actor, but this example so its okay
+ *     }
+ * };
+ *
+ * Coroutine echoer = (cnt) -&gt; {
+ *     Context ctx = (Context) cnt.getContext();
+ *
+ *     // Echo back anything that comes in
+ *     while (true) {
+ *         Address src = ctx.getSource();
+ *         Object msg = ctx.getIncomingMessage();
+ *         ctx.addOutgoingMessage(src, msg);
+ *         cnt.suspend();
+ *     }
+ * };
+ *
+ * 
+ * 
+ * // Create a timer gateway. Used by UdpSimualtorCoroutine to time message arrivals
+ * TimerGateway timerGateway = new TimerGateway("timer");
+ * 
+ * // Create threads for echoer and sender
+ * ActorThread echoerThread = ActorThread.create("echoer");
+ * ActorThread senderThread = ActorThread.create("sender");
+ * 
+ * // Bind shuttles for echoer
+ * echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+ * echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+ * 
+ * // Bind shuttles for sender
+ * senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+ * senderThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+ * 
+ * // Bind shuttles for timer gateway
+ * timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
+ * timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+ *
+ * // Create echoer actor + the udp simulator that proxies it
+ * echoerThread.addCoroutineActor("echoer", echoer);
+ * echoerThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
+ *         new StartUdpSimulator(
+ *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
+ *                 Address.fromString("echoer:echoer"),                                                      // Actor being proxied
+ *                 () -&gt; new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10))); // Unreliability parameters
+ * 
+ * // Create sender actor + the udp simulator that proxies it
+ * senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
+ * senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
+ *         new StartUdpSimulator(
+ *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
+ *                 Address.fromString("sender:sender"),                                                      // Actor being proxied
+ *                 () -&gt; new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10))); // Unreliability parameters
+ * 
+ * // Sleep for 10 seconds so you can see the output in console
+ * Thread.sleep(10000L);
+ * </pre>
+ * @author Kasra Faghihi
+ */
 public final class UdpSimulatorCoroutine implements Coroutine {
 
     @Override

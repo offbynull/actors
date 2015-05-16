@@ -16,8 +16,11 @@
  */
 package com.offbynull.peernetic.network.gateways.udp;
 
+import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.common.Serializer;
+import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import io.netty.bootstrap.Bootstrap;
@@ -43,11 +46,11 @@ import org.apache.commons.lang3.Validate;
  * <pre>
  * CountDownLatch latch = new CountDownLatch(1);
  *
- * Coroutine sender = (cnt) -> {
+ * Coroutine sender = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();
  *     Address dstAddr = ctx.getIncomingMessage();
  *
- *     for (int i = 0; i < 10; i++) {
+ *     for (int i = 0; i &lt; 10; i++) {
  *         ctx.addOutgoingMessage(dstAddr, i);
  *         cnt.suspend();
  *         Validate.isTrue(i == (int) ctx.getIncomingMessage());
@@ -57,7 +60,7 @@ import org.apache.commons.lang3.Validate;
  *     latch.countDown();
  * };
  *
- * Coroutine echoer = (cnt) -> {
+ * Coroutine echoer = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();
  *
  *     while (true) {

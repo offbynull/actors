@@ -29,6 +29,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.Validate;
 
@@ -37,7 +38,7 @@ public class Test {
     public static void main(String[] args) throws Exception {
         //basicTest();
         //basicTimer();
-        basicUdp();
+//        basicUdp();
         basicUnreliable();
 //        basicRetry();
 //        testEnvironmentTimer();
@@ -85,19 +86,18 @@ public class Test {
     }
 
     private static void basicUnreliable() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
             Address dstAddr = ctx.getIncomingMessage();
 
             for (int i = 0; i < 10; i++) {
                 ctx.addOutgoingMessage(Address.of("hi"), dstAddr, i);
-                cnt.suspend();
-                Validate.isTrue(i == (int) ctx.getIncomingMessage());
             }
-
-            latch.countDown();
+            
+            while (true) {
+                cnt.suspend();
+                System.out.println(ctx.getIncomingMessage().toString());
+            }
         };
 
         Coroutine echoer = (cnt) -> {
@@ -118,12 +118,18 @@ public class Test {
         ActorThread echoerThread = ActorThread.create("echoer");
         echoerThread.addCoroutineActor("echoer", echoer);
         echoerThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
-                new StartUdpSimulator(Address.of("timer"), Address.fromString("echoer:echoer"), () -> new SimpleLine(12345L)));
+                new StartUdpSimulator(
+                        Address.of("timer"),
+                        Address.fromString("echoer:echoer"),
+                        () -> new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10)));
         
         ActorThread senderThread = ActorThread.create("sender");
         senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
         senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
-                new StartUdpSimulator(Address.of("timer"), Address.fromString("sender:sender"), () -> new SimpleLine(12345L)));
+                new StartUdpSimulator(
+                        Address.of("timer"),
+                        Address.fromString("sender:sender"),
+                        () -> new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10)));
 
         echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
         echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
@@ -134,7 +140,7 @@ public class Test {
         timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
         timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
         
-        latch.await();
+        Thread.sleep(10000L);
     }
 
     private static void basicUdp() throws InterruptedException {

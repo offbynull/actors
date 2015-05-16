@@ -21,9 +21,9 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateway.Gateway;
-import com.offbynull.peernetic.network.actors.simulation.SimpleLine;
-import com.offbynull.peernetic.network.actors.simulation.StartUnreliableProxy;
-import com.offbynull.peernetic.network.actors.simulation.UnreliableProxyCoroutine;
+import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
+import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
+import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
@@ -111,21 +111,26 @@ public class Test {
             }
         };
 
-        ActorThread echoerThread = ActorThread.create("echoer");
-        ActorThread senderThread = ActorThread.create("sender");
+        
+        
         TimerGateway timerGateway = new TimerGateway("timer");
 
+        ActorThread echoerThread = ActorThread.create("echoer");
         echoerThread.addCoroutineActor("echoer", echoer);
-        echoerThread.addCoroutineActor("proxy", new UnreliableProxyCoroutine(),
-                new StartUnreliableProxy(Address.of("timer"), Address.fromString("echoer:echoer"), new SimpleLine(12345L)));
+        echoerThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
+                new StartUdpSimulator(Address.of("timer"), Address.fromString("echoer:echoer"), () -> new SimpleLine(12345L)));
+        
+        ActorThread senderThread = ActorThread.create("sender");
         senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
-        senderThread.addCoroutineActor("proxy", new UnreliableProxyCoroutine(),
-                new StartUnreliableProxy(Address.of("timer"), Address.fromString("sender:sender"), new SimpleLine(12345L)));
+        senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
+                new StartUdpSimulator(Address.of("timer"), Address.fromString("sender:sender"), () -> new SimpleLine(12345L)));
 
         echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
         echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        
         senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
         senderThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        
         timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
         timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
         
@@ -161,16 +166,25 @@ public class Test {
 
         ActorThread echoerThread = ActorThread.create("echoer");
         Shuttle echoerInputShuttle = echoerThread.getIncomingShuttle();
-        UdpGateway echoerUdpGateway = new UdpGateway(new InetSocketAddress(1000), "internaludp", echoerInputShuttle, Address.fromString("echoer:echoer"), new SimpleSerializer());
-        Shuttle echoerOutputShuttle = echoerUdpGateway.getIncomingShuttle();
+        UdpGateway echoerUdpGateway = new UdpGateway(
+                new InetSocketAddress(1000),
+                "internaludp",
+                echoerInputShuttle,
+                Address.fromString("echoer:echoer"),
+                new SimpleSerializer());
+        Shuttle echoerUdpOutputShuttle = echoerUdpGateway.getIncomingShuttle();
+        echoerThread.addOutgoingShuttle(echoerUdpOutputShuttle);
 
         ActorThread senderThread = ActorThread.create("sender");
         Shuttle senderInputShuttle = senderThread.getIncomingShuttle();
-        UdpGateway senderUdpGateway = new UdpGateway(new InetSocketAddress(2000), "internaludp", senderInputShuttle, Address.fromString("sender:sender"), new SimpleSerializer());
-        Shuttle senderOutputShuttle = senderUdpGateway.getIncomingShuttle();
-
-        echoerThread.addOutgoingShuttle(echoerOutputShuttle);
-        senderThread.addOutgoingShuttle(senderOutputShuttle);
+        UdpGateway senderUdpGateway = new UdpGateway(
+                new InetSocketAddress(2000),
+                "internaludp",
+                senderInputShuttle,
+                Address.fromString("sender:sender"),
+                new SimpleSerializer());
+        Shuttle senderUdpOutputShuttle = senderUdpGateway.getIncomingShuttle();
+        senderThread.addOutgoingShuttle(senderUdpOutputShuttle);
 
         echoerThread.addCoroutineActor("echoer", echoer);
         senderThread.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
@@ -243,14 +257,14 @@ public class Test {
 //
 //        // This is slow because the retry durations are very far apart in SimpleSendGuidelineGenerator/SimpleReceiveGuidelineGenerator, but
 //        // it will eventually finish!
-//        echoerThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
-//                new StartUnreliableProxy("timer", "echoer:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
+//        echoerThread.addCoroutineActor("unreliable", new UdpSimulatorCoroutine(),
+//                new StartUdpSimulator("timer", "echoer:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
 //        echoerThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
 //                new StartRetryProxy("timer", "echoer:echoer", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
 //        echoerThread.addCoroutineActor("echoer", echoer);
 //        
-//        senderThread.addCoroutineActor("unreliable", new UnreliableProxyCoroutine(),
-//                new StartUnreliableProxy("timer", "sender:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
+//        senderThread.addCoroutineActor("unreliable", new UdpSimulatorCoroutine(),
+//                new StartUdpSimulator("timer", "sender:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
 //        senderThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
 //                new StartRetryProxy("timer", "sender:sender", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
 //        senderThread.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable"); // needs to be added last to avoid race condition

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.network.actors.simulation;
+package com.offbynull.peernetic.network.actors.udpsimulator;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
@@ -24,15 +24,15 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 
-public final class UnreliableProxyCoroutine implements Coroutine {
+public final class UdpSimulatorCoroutine implements Coroutine {
 
     @Override
     public void run(Continuation cont) throws Exception {
         Context ctx = (Context) cont.getContext();
 
-        StartUnreliableProxy startMsg = ctx.getIncomingMessage();
+        StartUdpSimulator startMsg = ctx.getIncomingMessage();
 
-        Line line = startMsg.getLine();
+        Line line = startMsg.getLineFactory().get();
         Address timerPrefix = startMsg.getTimerPrefix();
         Address actorPrefix = startMsg.getActorPrefix();
         

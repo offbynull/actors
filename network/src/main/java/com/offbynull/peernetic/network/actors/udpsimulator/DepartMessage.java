@@ -14,16 +14,28 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.network.actors.simulation;
+package com.offbynull.peernetic.network.actors.udpsimulator;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Message coming in for processing by {@link Line}.
+ * @author Kasra Faghihi
+ */
 public final class DepartMessage {
     private final Object message;
     private final Address sourceId;
     private final Address destinationAddress;
 
+    /**
+     * Constructs a {@link DepartMessage} instance.
+     * @param message message
+     * @param sourceId source id of message
+     * @param destinationAddress destination address of message
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destinationAddress} is empty
+     */
     public DepartMessage(Object message, Address sourceId, Address destinationAddress) {
         Validate.notNull(message);
         Validate.notNull(sourceId);
@@ -35,14 +47,26 @@ public final class DepartMessage {
         this.destinationAddress = destinationAddress;
     }
 
+    /**
+     * Get message.
+     * @return message
+     */
     public Object getMessage() {
         return message;
     }
 
+    /**
+     * Get source id.
+     * @return source id
+     */
     public Address getSourceId() {
         return sourceId;
     }
 
+    /**
+     * Get destination address.
+     * @return destination address
+     */
     public Address getDestinationAddress() {
         return destinationAddress;
     }

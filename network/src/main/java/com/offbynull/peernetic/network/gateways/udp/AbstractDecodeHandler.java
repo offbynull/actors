@@ -27,22 +27,23 @@ import java.util.List;
 abstract class AbstractDecodeHandler extends MessageToMessageDecoder<Object> {
 
     @Override
+    @SuppressWarnings("unchecked")
     protected final void decode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {
         Object res;
         if (msg instanceof AddressedEnvelope) {
-            AddressedEnvelope<ByteBuf, ? extends SocketAddress> envelopeMsg =
-                    (AddressedEnvelope<ByteBuf, ? extends SocketAddress>) msg;
-            
+            AddressedEnvelope<ByteBuf, ? extends SocketAddress> envelopeMsg
+                    = (AddressedEnvelope<ByteBuf, ? extends SocketAddress>) msg;
+
             Object decoded = decode(envelopeMsg.content());
-            
+
             res = new DefaultAddressedEnvelope<>(decoded, envelopeMsg.recipient(), envelopeMsg.sender());
         } else {
             res = decode((ByteBuf) msg);
         }
-        
+
         out.add(res);
     }
-    
+
     protected abstract Object decode(ByteBuf buf);
-    
+
 }

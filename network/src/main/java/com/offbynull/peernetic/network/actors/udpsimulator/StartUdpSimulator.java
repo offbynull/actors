@@ -14,37 +14,49 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.network.actors.simulation;
+package com.offbynull.peernetic.network.actors.udpsimulator;
 
 import com.offbynull.peernetic.core.shuttle.Address;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.Validate;
 
-public class StartUnreliableProxy {
+/**
+ * Priming message for {@link UdpSimulatorCoroutine}.
+ * @author Kasra Faghihi
+ */
+public final class StartUdpSimulator {
     private final Address timerPrefix;
     private final Address actorPrefix;
-    private final Line line;
+    private final Supplier<Line> lineFactory;
 
-    public StartUnreliableProxy(Address timerPrefix, Address actorPrefix, Line line) {
+    /**
+     * Constructs a {@link StartUdpSimulator} instance.
+     * @param timerPrefix address of timer
+     * @param actorPrefix address of the actor the UDP simulator is for
+     * @param lineFactory factory that creates new {@link Line}s
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code timerPrefix} or {@code actorPrefix} is empty
+     */
+    public StartUdpSimulator(Address timerPrefix, Address actorPrefix, Supplier<Line> lineFactory) {
         Validate.notNull(timerPrefix);
         Validate.notNull(actorPrefix);
-        Validate.notNull(line);
+        Validate.notNull(lineFactory);
         Validate.isTrue(!timerPrefix.isEmpty());
         Validate.isTrue(!actorPrefix.isEmpty());
-        Validate.isTrue(!timerPrefix.equals(actorPrefix));
         this.timerPrefix = timerPrefix;
         this.actorPrefix = actorPrefix;
-        this.line = line;
+        this.lineFactory = lineFactory;
     }
 
-    public Address getTimerPrefix() {
+    Address getTimerPrefix() {
         return timerPrefix;
     }
 
-    public Address getActorPrefix() {
+    Address getActorPrefix() {
         return actorPrefix;
     }
 
-    public Line getLine() {
-        return line;
+    Supplier<Line> getLineFactory() {
+        return lineFactory;
     }
 }

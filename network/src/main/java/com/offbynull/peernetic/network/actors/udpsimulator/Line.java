@@ -14,14 +14,14 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.network.actors.simulation;
+package com.offbynull.peernetic.network.actors.udpsimulator;
 
 import java.time.Instant;
 import java.util.Collection;
 
 /**
- * Interface for mimicking network conditions. For example, depending on the implementation, a message may be dropped, duplicate, corrupted,
- * slowed, etc.
+ * Interface for mimicking UDP network behaviour/conditions. For example, depending on the implementation, a packet may be dropped,
+ * duplicated, corrupted, slowed, etc.
  *
  * @author Kasra Faghihi
  */
@@ -40,7 +40,7 @@ public interface Line {
      * Called when an incoming message should be processed by this line.
      *
      * @param time time of departure
-     * @param departMessage outgoing message
+     * @param departMessage incoming message
      * @return list of {@link TransitMessage} objects generated from {@code departMessage}
      */
     Collection<TransitMessage> processIncoming(Instant time, DepartMessage departMessage);

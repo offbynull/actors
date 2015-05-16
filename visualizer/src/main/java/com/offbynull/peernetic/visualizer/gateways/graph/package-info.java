@@ -14,32 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.visualizer.gateways.graph;
-
-import org.apache.commons.lang3.Validate;
 
 /**
- * Remove a node from the graph.
+ * Gateway that creates and displays 2D directed graphs based on messages it receives.
+ * 
  * @author Kasra Faghihi
  */
-public final class RemoveNode {
-    private final String id;
-
-    /**
-     * Constructs a {@link RemoveNode} instance.
-     * @param id id of node to remove
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public RemoveNode(String id) {
-        Validate.notNull(id);
-        this.id = id;
-    }
-
-    /**
-     * Get id of node to be removed.
-     * @return node id
-     */
-    public String getId() {
-        return id;
-    }
-}
+package com.offbynull.peernetic.visualizer.gateways.graph;

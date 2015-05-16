@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.DoubleBinding;
 import static javafx.beans.binding.DoubleExpression.doubleExpression;
@@ -115,16 +114,12 @@ final class GraphStage extends Stage {
         AddNode addNode = (AddNode) msg;
         
         String id = addNode.getId();
-        double x = addNode.getX();
-        double y = addNode.getY();
-        String style = addNode.getStyle();
 
         return () -> {
             Label label = new Label(id);
 
-            label.layoutXProperty().set(x);
-            label.layoutYProperty().set(y);
-            label.setStyle(style);
+            label.layoutXProperty().set(0);
+            label.layoutYProperty().set(0);
 
             Label existingLabel = nodes.putIfAbsent(id, label);
             Validate.isTrue(existingLabel == null);

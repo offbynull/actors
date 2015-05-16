@@ -16,6 +16,7 @@ import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.examples.unstructured.AddressCache.RetentionMode;
+import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -68,11 +69,12 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         mainCtx.addOutgoingMessage(
                 timerAddressPrefix.appendSuffix("" + CHECK_DURATION.toMillis()),
                 new Check());
+        mainCtx.addOutgoingMessage(graphAddress, new AddNode(mainCtx.getSelf().toString()));
         mainCtx.addOutgoingMessage(graphAddress,
-                new AddNode(
-                        mainCtx.getSelf().toString(),
+                new MoveNode(mainCtx.getSelf().toString(),
                         start.getRandom().nextInt(1400),
-                        start.getRandom().nextInt(1400)));
+                        start.getRandom().nextInt(1400))
+        );
         
         while (true) {
             cnt.suspend();

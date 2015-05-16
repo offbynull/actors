@@ -39,12 +39,16 @@ import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * JavaFX application to display a 2D graph.
+ * @author Kasra Faghihi
+ */
 public final class GraphApplication extends Application {
 
     private static volatile GraphApplication instance;
-    private static final Lock lock = new ReentrantLock();
-    private static final Condition startedCondition = lock.newCondition();
-    private static final Condition stoppedCondition = lock.newCondition();
+    private static final Lock LOCK = new ReentrantLock();
+    private static final Condition STARTED_CONDITION = LOCK.newCondition();
+    private static final Condition STOPPED_CONDITION = LOCK.newCondition();
 
     private ListView<String> listView;
     private ObservableList<String> listItems;
@@ -82,55 +86,59 @@ public final class GraphApplication extends Application {
 
         stage.show();
 
-        lock.lock();
+        LOCK.lock();
         try {
             instance = this;
-            startedCondition.signalAll();
+            STARTED_CONDITION.signalAll();
         } finally {
-            lock.unlock();
+            LOCK.unlock();
         }
     }
 
     @Override
     public void stop() throws Exception {
-        lock.lock();
+        LOCK.lock();
         try {
             instance = null;
-            stoppedCondition.signalAll();
+            STOPPED_CONDITION.signalAll();
         } finally {
-            lock.unlock();
+            LOCK.unlock();
         }
     }
 
+    /**
+     * Get the instance of {@link GraphApplication} that was created when this JavaFX application was started.
+     * @return {@link GraphApplication} instance
+     */
     static GraphApplication getInstance() {
-        lock.lock();
+        LOCK.lock();
         try {
             return instance;
         } finally {
-            lock.unlock();
+            LOCK.unlock();
         }
     }
 
     static GraphApplication awaitStarted() throws InterruptedException {
-        lock.lock();
+        LOCK.lock();
         try {
             if (instance == null) {
-                startedCondition.await();
+                STARTED_CONDITION.await();
             }
             return instance;
         } finally {
-            lock.unlock();
+            LOCK.unlock();
         }
     }
 
     static void awaitStopped() throws InterruptedException {
-        lock.lock();
+        LOCK.lock();
         try {
             if (instance != null) {
-                stoppedCondition.await();
+                STOPPED_CONDITION.await();
             }
         } finally {
-            lock.unlock();
+            LOCK.unlock();
         }
     }
 

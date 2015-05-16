@@ -18,10 +18,20 @@ package com.offbynull.peernetic.visualizer.gateways.graph;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Message to disconnect to nodes in a graph.
+ * @author Kasra Faghihi
+ */
 public final class RemoveEdge {
     private final String fromId;
     private final String toId;
 
+    /**
+     * Constructs an {@link RemoveEdge} instance.
+     * @param fromId id of node that edge starts from
+     * @param toId to id of node that edge ends at
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public RemoveEdge(String fromId, String toId) {
         Validate.notNull(fromId);
         Validate.notNull(toId);
@@ -29,10 +39,18 @@ public final class RemoveEdge {
         this.toId = toId;
     }
 
+    /**
+     * Get id of node that edge starts from.
+     * @return from node id
+     */
     public String getFromId() {
         return fromId;
     }
 
+    /**
+     * Get id of node that edge ends at.
+     * @return to node id
+     */
     public String getToId() {
         return toId;
     }

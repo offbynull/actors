@@ -18,10 +18,20 @@ package com.offbynull.peernetic.visualizer.gateways.graph;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Message to connect 2 nodes in a graph together.
+ * @author Kasra Faghihi
+ */
 public final class AddEdge {
     private final String fromId;
     private final String toId;
 
+    /**
+     * Constructs an {@link AddEdge} instance.
+     * @param fromId node id to connect from
+     * @param toId node id to connect to
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public AddEdge(String fromId, String toId) {
         Validate.notNull(fromId);
         Validate.notNull(toId);
@@ -29,10 +39,18 @@ public final class AddEdge {
         this.toId = toId;
     }
 
+    /**
+     * Get node id to connect from.
+     * @return node id to connect from
+     */
     public String getFromId() {
         return fromId;
     }
 
+    /**
+     * Get node id to connect to.
+     * @return node id to connect to
+     */
     public String getToId() {
         return toId;
     }

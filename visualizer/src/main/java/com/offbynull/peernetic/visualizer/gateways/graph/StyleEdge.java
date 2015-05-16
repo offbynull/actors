@@ -16,13 +16,25 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import javafx.scene.shape.Line;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Message to apply a JavaFX CSS effect to an edge.
+ * @author Kasra Faghihi
+ */
 public final class StyleEdge {
     private final String fromId;
     private final String toId;
     private final String style;
 
+    /**
+     * Constructs a {link StyleEdge} instance.
+     * @param fromId id of node that edge starts from
+     * @param toId to id of node that edge ends at
+     * @param style JavaFX CSS style to apply to node (node is a JavaFX {@link Line})
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public StyleEdge(String fromId, String toId, String style) {
         Validate.notNull(fromId);
         Validate.notNull(toId);
@@ -33,14 +45,26 @@ public final class StyleEdge {
         this.style = style;
     }
 
+    /**
+     * Get id of node that edge starts from.
+     * @return from node id
+     */
     public String getFromId() {
         return fromId;
     }
 
+    /**
+     * Get id of node that edge ends at.
+     * @return to node id
+     */
     public String getToId() {
         return toId;
     }
 
+    /**
+     * Get JavaFX CSS style to apply to node (node is a JavaFX {@link Line}).
+     * @return style to apply
+     */
     public String getStyle() {
         return style;
     }

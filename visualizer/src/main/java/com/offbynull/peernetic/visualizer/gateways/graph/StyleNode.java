@@ -16,12 +16,23 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import javafx.scene.control.Label;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Message to apply a JavaFX CSS effect to a node.
+ * @author Kasra Faghihi
+ */
 public final class StyleNode {
     private final String id;
     private final String style;
 
+    /**
+     * Constructs a {@link StyleNode} instance.
+     * @param id id of node to be styled
+     * @param style JavaFX CSS style to apply to node (node is a JavaFX {@link Label})
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public StyleNode(String id, String style) {
         Validate.notNull(id);
         Validate.notNull(style);
@@ -29,10 +40,18 @@ public final class StyleNode {
         this.style = style;
     }
 
+    /**
+     * Get id of node being styled.
+     * @return node id
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * Get JavaFX CSS style to apply to node (node is a JavaFX {@link Label}).
+     * @return style to apply
+     */
     public String getStyle() {
         return style;
     }

@@ -18,11 +18,23 @@ package com.offbynull.peernetic.visualizer.gateways.graph;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Message to move a node in a graph.
+ * @author Kasra Faghihi
+ */
 public final class MoveNode {
     private final String id;
     private final double x;
     private final double y;
 
+    /**
+     * Constructs a {@link MoveNode} instance.
+     * @param id node id to move
+     * @param x x coordinate to move node to
+     * @param y y coordinate to move node to
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any double argument is not finite
+     */
     public MoveNode(String id, double x, double y) {
         Validate.notNull(id);
         Validate.isTrue(Double.isFinite(x));
@@ -32,14 +44,26 @@ public final class MoveNode {
         this.y = y;
     }
 
+    /**
+     * Get id of node being moved.
+     * @return node id
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * Get x coordinate to move node to.
+     * @return x coordinate
+     */
     public double getX() {
         return x;
     }
 
+    /**
+     * Get y coordinate to move node to.
+     * @return y coordinate
+     */
     public double getY() {
         return y;
     }

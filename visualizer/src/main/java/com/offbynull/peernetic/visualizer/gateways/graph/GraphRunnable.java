@@ -19,7 +19,6 @@ package com.offbynull.peernetic.visualizer.gateways.graph;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
-import java.time.Instant;
 import java.util.List;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
@@ -72,46 +71,6 @@ final class GraphRunnable implements Runnable {
         } catch (InterruptedException ie) {
             bus.close(); // just in case
         }
-    }
-
-    private static final class PendingMessage implements Comparable<PendingMessage> {
-
-        private final Instant sendTime;
-        private final String from;
-        private final String to;
-        private final Object message;
-
-        public PendingMessage(Instant sendTime, String from, String to, Object message) {
-            Validate.notNull(from);
-            Validate.notNull(to);
-            Validate.notNull(message);
-            this.sendTime = sendTime;
-            this.from = from;
-            this.to = to;
-            this.message = message;
-        }
-
-        public Instant getSendTime() {
-            return sendTime;
-        }
-
-        public String getFrom() {
-            return from;
-        }
-
-        public String getTo() {
-            return to;
-        }
-
-        public Object getMessage() {
-            return message;
-        }
-
-        @Override
-        public int compareTo(PendingMessage o) {
-            return sendTime.compareTo(o.sendTime);
-        }
-
     }
 
 }

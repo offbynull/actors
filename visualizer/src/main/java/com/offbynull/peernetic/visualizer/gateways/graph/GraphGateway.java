@@ -26,6 +26,57 @@ import javafx.application.Platform;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * {@link Gateway} that provides access to a 2D graphs built on top of JavaFX.
+ * <p>
+ * In the following example, the {@link Actor} called {@code tester} sends messages to the {@link GraphGateway} called {@code graph} such
+ * that it creates two graphs: {@code g1} and {@code g2}. {@code g1} has the nodes {@code [n1, n2, n3]} added and linked, while {@code g2}
+ * has the nodes {@code [e1, e2]} added and linked. Each node is positioned and styled.
+ * <p>
+ * The user can use the UI to show and hide individual graphs.
+ * <pre>
+ * Coroutine tester = (cnt) -&gt; {
+ *     Context ctx = (Context) cnt.getContext();
+ *
+ *     Address graphPrefix = ctx.getIncomingMessage();
+ *     
+ *     // Create graph g1
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddNode("n1"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new MoveNode("n1", 0.0, 0.0));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new StyleNode("n1", "-fx-background-color: orange"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddNode("n2"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new MoveNode("n2", 200.0, 0.0));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new StyleNode("n2", "-fx-background-color: red"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddNode("n3"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new MoveNode("n3", 0.0, 200.0));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new StyleNode("n3", "-fx-background-color: green"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddEdge("n1", "n2"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddEdge("n2", "n3"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddEdge("n3", "n1"));
+ *
+ *     // Create graph g2
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new AddNode("e1"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new MoveNode("e1", 0.0, 0.0));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new StyleNode("e1", "-fx-background-color: orange"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new AddNode("e2"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new MoveNode("e2", 200.0, 200.0));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new StyleNode("e2", "-fx-background-color: red"));
+ *     ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new AddEdge("e1", "e2"));
+ * };
+ *
+ * GraphGateway graphGateway = new GraphGateway("graph");
+ * Shuttle graphInputShuttle = graphGateway.getIncomingShuttle();
+ * GraphGateway.startApplication();
+ *
+ * ActorThread testerThread = ActorThread.create("local");
+ *
+ * testerThread.addOutgoingShuttle(graphInputShuttle);
+ * testerThread.addCoroutineActor("tester", tester, Address.of("graph"));
+ *
+ * GraphGateway.awaitShutdown();
+ * </pre>
+ * @author Kasra Faghihi
+ */
 public final class GraphGateway implements InputGateway {
 
     private final Thread thread;
@@ -33,6 +84,11 @@ public final class GraphGateway implements InputGateway {
     
     private final SimpleShuttle shuttle;
 
+    /**
+     * Constructs a {@link GraphGateway} instance.
+     * @param prefix address prefix for this gateway
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public GraphGateway(String prefix) {
         Validate.notNull(prefix);
 
@@ -55,8 +111,12 @@ public final class GraphGateway implements InputGateway {
         exitApplication();
     }
 
+    /**
+     * Start the JavaFX application.
+     * @throws IllegalStateException if application is already running
+     */
     public static void startApplication() {
-        Validate.isTrue(GraphApplication.getInstance() == null);
+        Validate.validState(GraphApplication.getInstance() == null);
         Thread thread = new Thread(() -> Application.launch(GraphApplication.class));
         thread.setDaemon(true);
         thread.setName(GraphGateway.class.getName() + " thread");
@@ -69,11 +129,20 @@ public final class GraphGateway implements InputGateway {
         }
     }
     
+    /**
+     * Add a custom {@link Stage} to the JavaFX application.
+     * @param factory factory to create stage
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public void addStage(Supplier<? extends Stage> factory) {
         Validate.notNull(factory);
         bus.add(new CreateStage(factory));
     }
 
+    /**
+     * Wait for the JavaFX application to be closed.
+     * @throws IllegalStateException if thread is interrupted while waiting
+     */
     public static void awaitShutdown() {
         try {
             GraphApplication.awaitStopped();
@@ -82,6 +151,9 @@ public final class GraphGateway implements InputGateway {
         }
     }
 
+    /**
+     * Exits the JavaFX application. Equivalent to calling {@link Platform#exit() }.
+     */
     public static void exitApplication() {
         Platform.exit();
     }

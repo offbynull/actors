@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;

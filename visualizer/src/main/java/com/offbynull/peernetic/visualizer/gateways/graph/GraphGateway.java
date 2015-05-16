@@ -29,7 +29,7 @@ import javafx.stage.Stage;
 import org.apache.commons.lang3.Validate;
 
 /**
- * {@link Gateway} that provides access to a 2D graphs built on top of JavaFX.
+ * {@link Gateway} that provides access to 2D graphs built on top of JavaFX.
  * <p>
  * In the following example, the {@link Actor} called {@code tester} sends messages to the {@link GraphGateway} called {@code graph} such
  * that it creates two graphs: {@code g1} and {@code g2}. {@code g1} has the nodes {@code [n1, n2, n3]} added and linked, while {@code g2}

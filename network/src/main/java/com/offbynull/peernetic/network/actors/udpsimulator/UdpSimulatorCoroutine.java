@@ -94,7 +94,15 @@ import java.time.Instant;
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
  *                 Address.fromString("echoer:echoer"),                                                      // Actor being proxied
- *                 () -&gt; new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10))); // Unreliability parameters
+ *                 () -&gt;  new SimpleLine(                                                                    // Unreliability params
+ *                                0L,
+ *                                Duration.ofSeconds(1L),
+ *                                Duration.ofSeconds(1L),
+ *                                0.1,
+ *                                0.1,
+ *                                10,
+ *                                1500,
+ *                                new SimpleSerializer())));
  * 
  * // Create sender actor + the udp simulator that proxies it
  * senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
@@ -102,7 +110,15 @@ import java.time.Instant;
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
  *                 Address.fromString("sender:sender"),                                                      // Actor being proxied
- *                 () -&gt; new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10))); // Unreliability parameters
+ *                 () -&gt; new SimpleLine(                                                                    // Unreliability params
+ *                                 0L,
+ *                                 Duration.ofSeconds(1L),
+ *                                 Duration.ofSeconds(1L),
+ *                                 0.1,
+ *                                 0.1,
+ *                                 10,
+ *                                 1500,
+ *                                 new SimpleSerializer())));
  * 
  * // Sleep for 10 seconds so you can see the output in console
  * Thread.sleep(10000L);

@@ -20,7 +20,6 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
-import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
@@ -121,7 +120,15 @@ public class Test {
                 new StartUdpSimulator(
                         Address.of("timer"),
                         Address.fromString("echoer:echoer"),
-                        () -> new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10)));
+                        () -> new SimpleLine(
+                                0L,
+                                Duration.ofSeconds(1L),
+                                Duration.ofSeconds(1L),
+                                0.1,
+                                0.1,
+                                10,
+                                1500,
+                                new SimpleSerializer())));
         
         ActorThread senderThread = ActorThread.create("sender");
         senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
@@ -129,7 +136,15 @@ public class Test {
                 new StartUdpSimulator(
                         Address.of("timer"),
                         Address.fromString("sender:sender"),
-                        () -> new SimpleLine(0L, Duration.ofSeconds(1L), Duration.ofSeconds(1L), 0.1, 0.1, 10)));
+                        () -> new SimpleLine(
+                                0L,
+                                Duration.ofSeconds(1L),
+                                Duration.ofSeconds(1L),
+                                0.1,
+                                0.1,
+                                10,
+                                1500,
+                                new SimpleSerializer())));
 
         echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
         echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());

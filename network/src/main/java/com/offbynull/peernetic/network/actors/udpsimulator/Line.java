@@ -33,6 +33,8 @@ public interface Line {
      * @param time time of departure
      * @param departMessage outgoing message
      * @return list of {@link TransitMessage} objects generated from {@code departMessage}
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if there were any problems
      */
     Collection<TransitMessage> processOutgoing(Instant time, DepartMessage departMessage);
 
@@ -42,6 +44,8 @@ public interface Line {
      * @param time time of departure
      * @param departMessage incoming message
      * @return list of {@link TransitMessage} objects generated from {@code departMessage}
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if there were any problems
      */
     Collection<TransitMessage> processIncoming(Instant time, DepartMessage departMessage);
 

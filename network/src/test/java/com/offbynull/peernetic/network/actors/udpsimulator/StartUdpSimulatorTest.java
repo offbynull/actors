@@ -8,7 +8,6 @@ import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.apache.commons.io.IOUtils;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 

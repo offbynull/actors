@@ -105,7 +105,7 @@ import java.time.Instant;
  *                                new SimpleSerializer())));
  * 
  * // Create sender actor + the udp simulator that proxies it
- * senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
+ * senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
  * senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs

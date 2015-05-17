@@ -131,7 +131,7 @@ public class Test {
                                 new SimpleSerializer())));
         
         ActorThread senderThread = ActorThread.create("sender");
-        senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:echoer"));
+        senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
         senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
                 new StartUdpSimulator(
                         Address.of("timer"),

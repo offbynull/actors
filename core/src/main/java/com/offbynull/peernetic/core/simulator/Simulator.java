@@ -828,12 +828,6 @@ public final class Simulator {
         Instant execEndTime = Instant.now();
         realExecDuration = Duration.between(execStartTime, execEndTime);
 
-        if (stopped) {
-            // Actor stopped or crashed. Remove it from the list of actors and stop processing.
-            holders.remove(address);
-            return;
-        }
-
         // We've finished calling onStep(). Next, add the amount of time it took to do the processing of the message by onStep. This is a
         // calculated value. We have the real execution time, and we pass that in as a hint to the interface that does the calculations, but
         // ultimately the interface can specify whatever duration it wants (provided that it isn't negative).
@@ -901,6 +895,14 @@ public final class Simulator {
                     pendingMessageEvent.getTriggerTime(),
                     nextSequenceNumber++);
             events.add(rescheduledMessageEvent);
+        }
+        
+        
+        if (stopped) {
+            // Actor stopped or crashed. Remove it from the list of actors and stop processing. We do this here at the end of hte method
+            // because the actor may have sent stuff out before it termianted. We want the stuff that was sent out to make it to its
+            // destination (logic to send it above this if block, and checks to crashes if holder.contains(address) == false).
+            holders.remove(address);
         }
     }
 }

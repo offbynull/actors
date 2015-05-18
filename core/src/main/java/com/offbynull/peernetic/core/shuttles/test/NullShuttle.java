@@ -20,6 +20,8 @@ import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.Collection;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A shuttle implementation that discards all messages sent to it.
@@ -27,6 +29,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class NullShuttle implements Shuttle {
 
+    private static final Logger LOG = LoggerFactory.getLogger(NullShuttle.class);
     private final String prefix;
 
     /**
@@ -49,6 +52,8 @@ public final class NullShuttle implements Shuttle {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         // do nothing
+        
+        LOG.debug("Received {} messages", messages.size());
     }
     
 }

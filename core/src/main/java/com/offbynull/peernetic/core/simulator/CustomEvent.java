@@ -31,5 +31,10 @@ final class CustomEvent extends Event {
     public Runnable getRunnable() {
         return runnable;
     }
+
+    @Override
+    public String toString() {
+        return "CustomEvent{" + super.toString() + ", runnable=" + runnable + '}';
+    }
     
 }

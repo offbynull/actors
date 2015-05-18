@@ -23,20 +23,18 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.commons.collections4.collection.UnmodifiableCollection;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class ActorRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ActorRunnable.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ActorRunnable.class);
 
     private final String prefix;
     private final Bus bus;
@@ -79,8 +77,10 @@ final class ActorRunnable implements Runnable {
                 sendOutgoingMessages(outgoingMessages, outgoingShuttles);
             }
         } catch (InterruptedException ie) {
-            //throw new RuntimeException(ie); // do nothing
+            LOG.debug("Actor thread interrupted");
             Thread.interrupted();
+        } catch (RuntimeException re) {
+            LOG.error("Internal error encountered", re);
         } finally {
             bus.close();
         }
@@ -88,31 +88,32 @@ final class ActorRunnable implements Runnable {
 
     private void processManagementMessage(Object msg, Map<String, LoadedActor> actors, List<Message> outgoingMessages,
             Map<String, Shuttle> outgoingShuttles) {
-        if (msg instanceof AddActorMessage) {
-            AddActorMessage aam = (AddActorMessage) msg;
-            actors.put(aam.id, new LoadedActor(aam.actor, new SourceContext()));
+        LOG.debug("Processing management message: {}" , msg);
+        if (msg instanceof AddActor) {
+            AddActor aam = (AddActor) msg;
+            actors.put(aam.getId(), new LoadedActor(aam.getActor(), new SourceContext()));
             List<Message> initialMessages = new LinkedList<>();
-            for (Object primingMessage : aam.primingMessages) {
-                Address dstAddr = Address.of(prefix, aam.id);
+            for (Object primingMessage : aam.getPrimingMessages()) {
+                Address dstAddr = Address.of(prefix, aam.getId());
                 Message initialMessage = new Message(dstAddr, dstAddr, primingMessage);
                 initialMessages.add(initialMessage);
             }
             outgoingMessages.addAll(initialMessages);
-        } else if (msg instanceof RemoveActorMessage) {
-            RemoveActorMessage ram = (RemoveActorMessage) msg;
-            actors.remove(ram.id);
-        } else if (msg instanceof AddShuttleMessage) {
-            AddShuttleMessage asm = (AddShuttleMessage) msg;
-            Shuttle existingShuttle = outgoingShuttles.putIfAbsent(asm.shuttle.getPrefix(), asm.shuttle);
+        } else if (msg instanceof RemoveActor) {
+            RemoveActor ram = (RemoveActor) msg;
+            actors.remove(ram.getId());
+        } else if (msg instanceof AddShuttle) {
+            AddShuttle asm = (AddShuttle) msg;
+            Shuttle existingShuttle = outgoingShuttles.putIfAbsent(asm.getShuttle().getPrefix(), asm.getShuttle());
             
             Validate.isTrue(existingShuttle == null); // unable to add a prefix for a shuttle that already exists
-        } else if (msg instanceof RemoveShuttleMessage) {
-            RemoveShuttleMessage rsm = (RemoveShuttleMessage) msg;
-            Shuttle existingShuttle = outgoingShuttles.remove(rsm.prefix);
+        } else if (msg instanceof RemoveShuttle) {
+            RemoveShuttle rsm = (RemoveShuttle) msg;
+            Shuttle existingShuttle = outgoingShuttles.remove(rsm.getPrefix());
             
             Validate.isTrue(existingShuttle != null); // unable to remove a shuttle prefix that doesnt exist
         } else {
-            LOGGER.warn("Unprocessed management message: {}", msg);
+            LOG.warn("No handler for management message: {}", msg);
         }
     }
 
@@ -127,10 +128,11 @@ final class ActorRunnable implements Runnable {
 
         LoadedActor loadedActor = actors.get(dstImmediateId);
         if (loadedActor == null) {
-            LOGGER.warn("Undeliverable message: id={} message={}", dstImmediateId, msg);
+            LOG.warn("Undeliverable message: id={} message={}", dstImmediateId, msg);
             return;
         }
 
+        LOG.debug("Processing message from {} to {}: {}", src, dst, msg);
         Actor actor = loadedActor.actor;
         SourceContext context = loadedActor.context;
         context.setSelf(Address.of(dstPrefix, dstImmediateId));
@@ -146,11 +148,12 @@ final class ActorRunnable implements Runnable {
                 shutdown = true;
             }
         } catch (Exception e) {
-            LOGGER.error("Actor " + dst + " threw an exception", e);
+            LOG.error("Actor " + dst + " threw an exception", e);
             shutdown = true;
         }
 
         if (shutdown) {
+            LOG.debug("Removing actor {}", dst);
             actors.remove(dstImmediateId);
         }
 
@@ -213,7 +216,7 @@ final class ActorRunnable implements Runnable {
         Validate.notNull(actor);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        AddActorMessage aam = new AddActorMessage(id, actor, primingMessages);
+        AddActor aam = new AddActor(id, actor, primingMessages);
         bus.add(aam);
     }
 
@@ -222,26 +225,26 @@ final class ActorRunnable implements Runnable {
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        AddActorMessage aam = new AddActorMessage(id, new CoroutineActor(coroutine), primingMessages);
+        AddActor aam = new AddActor(id, new CoroutineActor(coroutine), primingMessages);
         bus.add(aam);
     }
 
     void removeActor(String id) {
         Validate.notNull(id);
-        RemoveActorMessage ram = new RemoveActorMessage(id);
+        RemoveActor ram = new RemoveActor(id);
         bus.add(ram);
     }
 
     void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
         Validate.notNull(shuttle.getPrefix()); // sanity check
-        AddShuttleMessage asm = new AddShuttleMessage(shuttle);
+        AddShuttle asm = new AddShuttle(shuttle);
         bus.add(asm);
     }
 
     void removeOutgoingShuttle(String prefix) {
         Validate.notNull(prefix);
-        RemoveShuttleMessage rsm = new RemoveShuttleMessage(prefix);
+        RemoveShuttle rsm = new RemoveShuttle(prefix);
         bus.add(rsm);
     }
     
@@ -258,54 +261,7 @@ final class ActorRunnable implements Runnable {
     }
     
 
-    static final class AddActorMessage {
 
-        private final String id;
-        private final Actor actor;
-        private final UnmodifiableCollection<Object> primingMessages;
 
-        public AddActorMessage(String id, Actor actor, Object... primingMessages) {
-            Validate.notNull(id);
-            Validate.notNull(actor);
-            Validate.notNull(primingMessages);
-            Validate.noNullElements(primingMessages);
 
-            this.id = id;
-            this.actor = actor;
-            this.primingMessages = (UnmodifiableCollection<Object>) UnmodifiableCollection.<Object>unmodifiableCollection(
-                    Arrays.asList(primingMessages));
-        }
-    }
-
-    static final class RemoveActorMessage {
-
-        private final String id;
-
-        public RemoveActorMessage(String id) {
-            Validate.notNull(id);
-
-            this.id = id;
-        }
-    }
-
-    static final class AddShuttleMessage {
-
-        private final Shuttle shuttle;
-
-        public AddShuttleMessage(Shuttle shuttle) {
-            Validate.notNull(shuttle);
-            this.shuttle = shuttle;
-        }
-    }
-
-    static final class RemoveShuttleMessage {
-
-        private final String prefix;
-
-        public RemoveShuttleMessage(String prefix) {
-            Validate.notNull(prefix);
-
-            this.prefix = prefix;
-        }
-    }
 }

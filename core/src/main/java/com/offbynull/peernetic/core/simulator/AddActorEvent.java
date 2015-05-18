@@ -24,6 +24,7 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 final class AddActorEvent extends Event {
+
     private final String address;
     private final Actor actor;
     private final Duration timeOffset;
@@ -38,7 +39,7 @@ final class AddActorEvent extends Event {
         Validate.notNull(primingMessages);
         Validate.isTrue(!timeOffset.isNegative());
         Validate.noNullElements(primingMessages);
-        
+
         this.address = address;
         this.actor = actor;
         this.timeOffset = timeOffset;
@@ -60,5 +61,11 @@ final class AddActorEvent extends Event {
     public UnmodifiableList<Object> getPrimingMessages() {
         return primingMessages;
     }
-    
+
+    @Override
+    public String toString() {
+        return "AddActorEvent{" + super.toString() + ", address=" + address + ", actor=" + actor + ", timeOffset=" + timeOffset
+                + ", primingMessages=" + primingMessages + '}';
+    }
+
 }

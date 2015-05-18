@@ -32,4 +32,9 @@ final class AddMessageSinkEvent extends Event {
     public MessageSink getMessageSink() {
         return messageSink;
     }
+
+    @Override
+    public String toString() {
+        return "AddMessageSinkEvent{" + super.toString() + ", messageSink=" + messageSink + '}';
+    }
 }

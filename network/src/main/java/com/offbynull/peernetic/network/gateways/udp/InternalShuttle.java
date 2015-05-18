@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 final class InternalShuttle implements Shuttle {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InternalShuttle.class);
+    private static final Logger LOG = LoggerFactory.getLogger(InternalShuttle.class);
     
     private String prefix;
     private Channel channel;
@@ -73,9 +73,10 @@ final class InternalShuttle implements Shuttle {
                 EncapsulatedMessage em = new EncapsulatedMessage(dstSuffix, x.getMessage());
                 DefaultAddressedEnvelope<Object, InetSocketAddress> datagramPacket = new DefaultAddressedEnvelope<>(em, dstAddr);
                 
+                LOG.debug("Outgoing packet to {}: {}", dstAddr, x.getMessage());
                 channel.writeAndFlush(datagramPacket);
             } catch (Exception e) {
-                LOGGER.error("Error shuttling message: " + x, e);
+                LOG.error("Error shuttling message: " + x, e);
             }
         });
     }

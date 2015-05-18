@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 final class GraphRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GraphRunnable.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GraphRunnable.class);
 
     private final Bus bus;
 
@@ -46,30 +46,34 @@ final class GraphRunnable implements Runnable {
                 Validate.noNullElements(incomingObjects);
 
                 GraphApplication graph = GraphApplication.getInstance();
-                if (graph == null) {
-                    // TODO log warning here
-                    return;
-                }
+                Validate.notNull(graph, "Graph application isn't running");
 
                 MultiMap<Address, Object> payloads = new MultiValueMap<>();
-                for (Object incomingObject : incomingObjects) {
-                    if (incomingObject instanceof Message) {
-                        Message msg = (Message) incomingObject;
+                for (Object incomingObj : incomingObjects) {
+                    if (incomingObj instanceof Message) {
+                        Message msg = (Message) incomingObj;
 
                         Address dst = msg.getDestinationAddress();
                         Object payload = msg.getMessage();
                         payloads.put(dst, payload);
                         
+                        LOG.debug("Processing incoming message from {} to {}: {}", msg.getSourceAddress(), dst, payload);
                         graph.execute(payloads);
-                    } else if (incomingObject instanceof CreateStage) {
-                        graph.execute((CreateStage) incomingObject);
+                    } else if (incomingObj instanceof CreateStage) {
+                        LOG.debug("Processing management message: {} ", incomingObj);
+                        graph.execute((CreateStage) incomingObj);
                     } else {
-                        throw new IllegalStateException("Unexpected message type: " + incomingObject);
+                        throw new IllegalStateException("Unexpected message type: " + incomingObj);
                     }
                 }
             }
         } catch (InterruptedException ie) {
-            bus.close(); // just in case
+            LOG.debug("Graph gateway interrupted");
+            Thread.interrupted();
+        } catch (Exception e) {
+            LOG.error("Internal error encountered", e);
+        } finally {
+            bus.close();
         }
     }
 

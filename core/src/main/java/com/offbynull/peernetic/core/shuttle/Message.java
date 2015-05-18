@@ -71,5 +71,9 @@ public final class Message {
         return message;
     }
 
-    
+    @Override
+    public String toString() {
+        return "Message{" + "sourceAddress=" + sourceAddress + ", destinationAddress=" + destinationAddress + ", message=" + message + '}';
+    }
+
 }

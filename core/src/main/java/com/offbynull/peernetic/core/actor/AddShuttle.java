@@ -14,28 +14,26 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.core.simulator;
+package com.offbynull.peernetic.core.actor;
 
-import java.time.Instant;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import org.apache.commons.lang3.Validate;
 
-final class AddTimerEvent extends Event {
-    
-    private final String address;
+final class AddShuttle {
+    private final Shuttle shuttle;
 
-    public AddTimerEvent(String address, Instant triggerTime, long sequenceNumber) {
-        super(triggerTime, sequenceNumber);
-        Validate.notNull(address);
-        this.address = address;
+    public AddShuttle(Shuttle shuttle) {
+        Validate.notNull(shuttle);
+        this.shuttle = shuttle;
     }
 
-    public String getAddress() {
-        return address;
+    public Shuttle getShuttle() {
+        return shuttle;
     }
 
     @Override
     public String toString() {
-        return "AddTimerEvent{" + super.toString() + ", address=" + address + '}';
+        return "AddShuttle{" + "shuttle=" + shuttle + '}';
     }
     
 }

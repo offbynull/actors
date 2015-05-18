@@ -33,4 +33,9 @@ final class RemoveMessageSourceEvent extends Event {
         return messageSource;
     }
 
+    @Override
+    public String toString() {
+        return "RemoveMessageSourceEvent{" + super.toString() + ", messageSource=" + messageSource + '}';
+    }
+
 }

@@ -65,6 +65,7 @@ final class WriteRunnable implements Runnable {
                 while (true) {
                     MessageBlock messageBlock = bus.pull();
 
+                    LOG.debug("Writing block of {} messages", messageBlock.getMessages().size());
                     writeMessageBlock(messageBlock, dos);
                 }
             } catch (InterruptedException ie) {
@@ -83,7 +84,7 @@ final class WriteRunnable implements Runnable {
                 writeTermination(dos);
             }
         } catch (Exception e) {
-            LOG.error("Error in write thread", e);
+            LOG.error("Internal error encountered", e);
         } finally {
             bus.close(); // so stuff doesn't keep accumulating in this internalbus
         }

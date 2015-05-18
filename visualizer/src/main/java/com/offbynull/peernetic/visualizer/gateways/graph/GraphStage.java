@@ -41,9 +41,13 @@ import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class GraphStage extends Stage {
 
+    private static final Logger LOG = LoggerFactory.getLogger(GraphStage.class);
+    
     private final BidiMap<String, Label> nodes = new DualHashBidiMap<>();
     private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
     private final MultiMap<Label, Line> anchors = new MultiValueMap<>();
@@ -101,7 +105,7 @@ final class GraphStage extends Stage {
                 Runnable runnable = func.apply(command);
                 runnables.add(runnable);
             } else {
-                // TODO log here
+                LOG.warn("Generator not found for command: {}", command);
                 continue;
             }
         }

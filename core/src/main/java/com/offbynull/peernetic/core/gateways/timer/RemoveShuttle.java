@@ -30,4 +30,9 @@ final class RemoveShuttle {
         return prefix;
     }
 
+    @Override
+    public String toString() {
+        return "RemoveShuttle{" + "prefix=" + prefix + '}';
+    }
+
 }

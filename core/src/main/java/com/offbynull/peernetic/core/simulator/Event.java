@@ -41,6 +41,11 @@ abstract class Event implements Comparable<Event> {
     }
 
     @Override
+    public String toString() {
+        return "Event{" + "triggerTime=" + triggerTime + ", seqNum=" + seqNum + '}';
+    }
+
+    @Override
     public int compareTo(Event o) {
         if (!triggerTime.equals(o.triggerTime)) {
             return triggerTime.compareTo(o.triggerTime); // smallest time to largest time

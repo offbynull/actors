@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * @author Kasra Faghihi
  */
 public final class CaptureShuttle implements Shuttle {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CaptureShuttle.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CaptureShuttle.class);
 
     private final String prefix;
     private final LinkedBlockingQueue<Message> queuedMessages;
@@ -59,6 +59,7 @@ public final class CaptureShuttle implements Shuttle {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         
+        LOG.debug("Received {} messages", messages.size());
         List<Message> filteredMessages = new ArrayList<>(messages.size());
         messages.stream().forEach(x -> {
             try {
@@ -68,7 +69,7 @@ public final class CaptureShuttle implements Shuttle {
                 
                 filteredMessages.add(x);
             } catch (Exception e) {
-                LOGGER.error("Error shuttling message: " + x, e);
+                LOG.error("Error capturing message: " + x, e);
             }
         });
         

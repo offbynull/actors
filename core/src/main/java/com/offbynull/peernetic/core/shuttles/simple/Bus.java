@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class Bus implements AutoCloseable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Bus.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Bus.class);
 
     private LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>();
     private AtomicBoolean closed = new AtomicBoolean();
@@ -60,7 +60,7 @@ public final class Bus implements AutoCloseable {
      */
     public void add(Collection<?> messages) {
         if (closed.get()) {
-            LOGGER.debug("Messages incoming to closed bus: {}", messages);
+            LOG.debug("Messages incoming to closed bus: {}", messages);
             return;
         }
         queue.addAll(messages); // automatically throws NPE if messages contains null, or if messages itself is null
@@ -84,6 +84,8 @@ public final class Bus implements AutoCloseable {
             messages.add(first);
             queue.drainTo(messages);
         }
+        
+        LOG.debug("Pulled {} messages", messages.size());
 
         return messages;
     }
@@ -100,6 +102,8 @@ public final class Bus implements AutoCloseable {
         messages.add(first);
         queue.drainTo(messages);
 
+        LOG.debug("Pulled {} messages", messages.size());
+        
         return messages;
     }
 }

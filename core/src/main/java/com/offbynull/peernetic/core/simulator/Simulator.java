@@ -44,6 +44,8 @@ import java.util.function.Consumer;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simulation environment for {@link Actor}s.
@@ -126,6 +128,8 @@ public final class Simulator {
     // will need to be a lot more unit tests. Performance will likely also suffer.
     //
     // What is here now reaches the "good enough" bar, at least for now.
+    
+    private static final Logger LOG = LoggerFactory.getLogger(Simulator.class);
     
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
@@ -413,6 +417,7 @@ public final class Simulator {
         currentTime = event.getTriggerTime();
         
         Consumer<Event> eventHandler = eventHandlers.get(event.getClass());
+        LOG.debug("Processing event {}", event);
         Validate.validState(eventHandler != null);
         eventHandler.accept(event);
         
@@ -750,7 +755,7 @@ public final class Simulator {
         // unreachable, the same thing happens -- message is sent to some destination but the system doesn't really care if it arrives or
         // not.
         if (holder == null) {
-            // TODO log here
+            LOG.warn("Processing message to destination that doesn't exist: {}", destination);
             return;
         }
 
@@ -771,6 +776,7 @@ public final class Simulator {
             timerDuration = Duration.ofMillis(Long.parseLong(durationStr));
             Validate.isTrue(!timerDuration.isNegative());
         } catch (Exception e) {
+            LOG.warn("Processing message to destination that doesn't exist: {}", destination);
             // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
             return;
         }

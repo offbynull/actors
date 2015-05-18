@@ -33,4 +33,9 @@ final class AddMessageSourceEvent extends Event {
         return messageSource;
     }
 
+    @Override
+    public String toString() {
+        return "AddMessageSourceEvent{" + super.toString() + ", messageSource=" + messageSource + '}';
+    }
+
 }

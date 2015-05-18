@@ -29,8 +29,12 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object> {
+    private static final Logger LOG = LoggerFactory.getLogger(IncomingMessageShuttleHandler.class);
+    
     private Address srcAddressPrefix;
     private Shuttle dstShuttle;
     private Address dstAddress;
@@ -79,6 +83,7 @@ final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object
                 srcAddress,
                 dstAddress,
                 msgObj);
+        LOG.debug("Incoming packet from {}: {}", remoteAddress, message);
         dstShuttle.send(Collections.singleton(message));
         
         return obj;

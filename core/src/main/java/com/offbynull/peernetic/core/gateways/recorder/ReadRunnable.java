@@ -62,7 +62,7 @@ final class ReadRunnable implements Runnable {
             while (true) {
                 boolean hasMore = dis.readBoolean();
                 if (!hasMore) {
-                    LOG.info("Stopping read thread (EOF marker found)");
+                    LOG.debug("End of read (EOF marker found) -- finishing thread");
                     return;
                 }
 
@@ -76,6 +76,8 @@ final class ReadRunnable implements Runnable {
                     Duration duration = Duration.between(lastTime, recordedBlock.getTime());
                     Thread.sleep(duration.toMillis());
                 }
+                
+                LOG.debug("Writing block of {} messages", recordedBlock.getMessages().size());
                 
                 List<Message> messages
                         = recordedBlock.getMessages().stream()
@@ -93,11 +95,11 @@ final class ReadRunnable implements Runnable {
             }
             
         } catch (EOFException e) {
-            LOG.error("Stopping read thread (unexpected end of file)");
+            LOG.error("Unexpected end of file");
         } catch (InterruptedException ie) {
             LOG.error("Stopping read thread (interrupted)");
         } catch (Exception e) {
-            LOG.error("Error in read thread", e);
+            LOG.error("Internal error encountered", e);
         }
     }
 

@@ -18,7 +18,6 @@ package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.actor.ActorRunnable.AddShuttleMessage;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import org.apache.commons.lang3.Validate;
@@ -95,7 +94,7 @@ public final class ActorThread implements AutoCloseable {
         Shuttle selfShuttle = runnable.getIncomingShuttle();
 
         // add in our own shuttle as well so we can send msgs to ourselves
-        bus.add(new AddShuttleMessage(selfShuttle));
+        bus.add(new AddShuttle(selfShuttle));
 
         // start thread
         Thread thread = new Thread(runnable);

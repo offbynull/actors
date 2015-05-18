@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * @author Kasra Faghihi
  */
 public final class SimpleShuttle implements Shuttle {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleShuttle.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleShuttle.class);
     
     private final String prefix;
     private final Bus bus;
@@ -70,10 +70,11 @@ public final class SimpleShuttle implements Shuttle {
                 
                 filteredMessages.add(x);
             } catch (Exception e) {
-                LOGGER.error("Error shuttling message: " + x, e);
+                LOG.error("Error shuttling message: " + x, e);
             }
         });
         
+        LOG.debug("Shuttling {} messages", filteredMessages.size());
         bus.add(filteredMessages);
     }
 }

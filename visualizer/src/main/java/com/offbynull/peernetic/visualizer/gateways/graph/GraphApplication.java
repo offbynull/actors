@@ -38,12 +38,16 @@ import javafx.stage.Stage;
 import org.apache.commons.collections4.MultiMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JavaFX application to display a 2D graph.
  * @author Kasra Faghihi
  */
 public final class GraphApplication extends Application {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(GraphApplication.class);
 
     private static volatile GraphApplication instance;
     private static final Lock LOCK = new ReentrantLock();
@@ -169,6 +173,7 @@ public final class GraphApplication extends Application {
                     try {
                         runnable.run();
                     } catch (RuntimeException re) {
+                        LOG.warn("Exception while executing runnable", re);
                         // TODO log here
                     }
                 }

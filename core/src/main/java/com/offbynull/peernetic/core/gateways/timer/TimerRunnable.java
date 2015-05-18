@@ -39,13 +39,14 @@ import org.slf4j.LoggerFactory;
 
 final class TimerRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TimerRunnable.class);
-    
+    private static final Logger LOG = LoggerFactory.getLogger(TimerRunnable.class);
+
     private final Map<String, Shuttle> outgoingShuttles;
     private final PriorityQueue<PendingMessage> queue;
     private final Bus bus;
 
     public TimerRunnable(Bus bus) {
+        Validate.notNull(bus);
         outgoingShuttles = new HashMap<>();
         queue = new PriorityQueue<>(new PendingMessageSendTimeComparator());
         this.bus = bus;
@@ -70,11 +71,11 @@ final class TimerRunnable implements Runnable {
                     }
                     incomingObjects = bus.pull(duration.toMillis(), TimeUnit.MILLISECONDS);
                 }
-                
+
                 Validate.notNull(incomingObjects);
                 Validate.noNullElements(incomingObjects);
                 Instant time = Instant.now();
-                
+
                 // Queue new messages
                 for (Object incomingObj : incomingObjects) {
                     if (incomingObj instanceof Message) {
@@ -83,25 +84,36 @@ final class TimerRunnable implements Runnable {
                         Address dst = message.getDestinationAddress();
                         Object payload = message.getMessage();
 
+                        LOG.debug("Processing incoming message from {} to {}: {}", src, dst, payload);
+
                         String delayStr = dst.getElement(1);
-                        long delay = Long.parseLong(delayStr); // THIS NEEDS TO BE FIXED, rather than crashing if negative or NaN, ignore
-                        Validate.isTrue(delay >= 0L);
+                        long delay;
+                        try {
+                            delay = Long.parseLong(delayStr);
+                            Validate.isTrue(delay >= 0L);
+                        } catch (RuntimeException nfe) {
+                            LOG.warn("Unable to parse duration: " + delayStr, nfe);
+                            continue;
+                        }
                         Instant sendTime = time.plus(delay, ChronoUnit.MILLIS);
 
                         queue.add(new PendingMessage(sendTime, dst, src, payload));
-                    } else if (incomingObj instanceof AddShuttle) {
-                        AddShuttle addShuttle = (AddShuttle) incomingObj;
-                        Shuttle shuttle = addShuttle.getShuttle();
-                        Shuttle existingShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
-                        Validate.validState(existingShuttle == null);
-                    } else if (incomingObj instanceof RemoveShuttle) {
-                        RemoveShuttle removeShuttle = (RemoveShuttle) incomingObj;
-                        String prefix = removeShuttle.getPrefix();
-                        Shuttle oldShuttle = outgoingShuttles.remove(prefix);
-                        Validate.validState(oldShuttle != null);
+                    } else {
+                        LOG.debug("Processing management message: {} ", incomingObj);
+                        if (incomingObj instanceof AddShuttle) {
+                            AddShuttle addShuttle = (AddShuttle) incomingObj;
+                            Shuttle shuttle = addShuttle.getShuttle();
+                            Shuttle existingShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
+                            Validate.validState(existingShuttle == null);
+                        } else if (incomingObj instanceof RemoveShuttle) {
+                            RemoveShuttle removeShuttle = (RemoveShuttle) incomingObj;
+                            String prefix = removeShuttle.getPrefix();
+                            Shuttle oldShuttle = outgoingShuttles.remove(prefix);
+                            Validate.validState(oldShuttle != null);
+                        }
                     }
                 }
-                
+
                 // Group outgoing messages by prefix
                 Map<String, List<Message>> outgoingMap = new HashMap<>();
                 Iterator<PendingMessage> it = queue.iterator();
@@ -112,7 +124,7 @@ final class TimerRunnable implements Runnable {
                         break;
                     }
                     it.remove();
-                    
+
                     // Add to outgoingMap by prefix
                     Address outDst = pm.getTo();
                     String outDstPrefix = outDst.getElement(0);
@@ -126,22 +138,26 @@ final class TimerRunnable implements Runnable {
                     Message message = new Message(pm.getFrom(), pm.getTo(), pm.getMessage());
                     batchedMessages.add(message);
                 }
-                
 
                 // Send outgoing messaged by prefix
                 for (Entry<String, List<Message>> entry : outgoingMap.entrySet()) {
                     Shuttle shuttle = outgoingShuttles.get(entry.getKey());
-                    
+
                     if (shuttle == null) {
-                        LOGGER.warn("No shuttle for {}", entry.getKey());
+                        LOG.warn("Shuttle not found for {}, {} messages ignores", entry.getKey(), entry.getValue().size());
                         continue;
                     }
-                    
+
                     shuttle.send(entry.getValue());
                 }
             }
         } catch (InterruptedException ie) {
-            bus.close(); // just in case
+            LOG.debug("Timer gateway interrupted");
+            Thread.interrupted();
+        } catch (RuntimeException re) {
+            LOG.error("Internal error encountered", re);
+        } finally {
+            bus.close();
         }
     }
 
@@ -182,15 +198,16 @@ final class TimerRunnable implements Runnable {
         }
 
     }
-    
+
     private static final class PendingMessageSendTimeComparator implements Comparator<PendingMessage>, Serializable {
+
         private static final long serialVersionUID = 1L;
 
         @Override
         public int compare(PendingMessage o1, PendingMessage o2) {
             return o1.getSendTime().compareTo(o2.getSendTime());
         }
-        
+
     }
 
 }

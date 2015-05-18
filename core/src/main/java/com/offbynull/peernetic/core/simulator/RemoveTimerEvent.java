@@ -20,7 +20,7 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class RemoveTimerEvent extends Event {
-    final String address;
+    private final String address;
 
     public RemoveTimerEvent(String address, Instant triggerTime, long sequenceNumber) {
         super(triggerTime, sequenceNumber);
@@ -30,6 +30,11 @@ final class RemoveTimerEvent extends Event {
 
     public String getAddress() {
         return address;
+    }
+
+    @Override
+    public String toString() {
+        return "RemoveTimerEvent{" + super.toString() + ", address=" + address + '}';
     }
     
 }

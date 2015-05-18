@@ -21,6 +21,7 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class TimerTriggerEvent extends Event {
+
     private final Address sourceAddress;
     private final Address destinationAddress;
     private final Object message;
@@ -48,5 +49,11 @@ final class TimerTriggerEvent extends Event {
     public Object getMessage() {
         return message;
     }
-    
+
+    @Override
+    public String toString() {
+        return "TimerTriggerEvent{" + super.toString() + ", sourceAddress=" + sourceAddress + ", destinationAddress=" + destinationAddress
+                + ", message=" + message + '}';
+    }
+
 }

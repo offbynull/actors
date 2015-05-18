@@ -30,5 +30,10 @@ final class PullFromMessageSourceEvent extends Event {
     public MessageSource getMessageSource() {
         return messageSource;
     }
+
+    @Override
+    public String toString() {
+        return "PullFromMessageSourceEvent{" + super.toString() + ", messageSource=" + messageSource + '}';
+    }
     
 }

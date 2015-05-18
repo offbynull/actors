@@ -30,5 +30,10 @@ final class AddShuttle {
     public Shuttle getShuttle() {
         return shuttle;
     }
+
+    @Override
+    public String toString() {
+        return "AddShuttle{" + "shuttle=" + shuttle + '}';
+    }
     
 }

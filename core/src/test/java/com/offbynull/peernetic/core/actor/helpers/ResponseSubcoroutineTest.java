@@ -33,13 +33,24 @@ public class ResponseSubcoroutineTest {
                 Duration.ZERO,
                 Instant.ofEpochMilli(0L)
         );
+        List<Object> responses = new ArrayList<>();
         testHarness.addCoroutineActor("test", cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "0");
+            cnt.suspend();
+            responses.add(ctx.getIncomingMessage());
             ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "1");
+            cnt.suspend();
+            responses.add(ctx.getIncomingMessage());
             ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "2");
+            cnt.suspend();
+            responses.add(ctx.getIncomingMessage());
             ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "3");
+            cnt.suspend();
+            responses.add(ctx.getIncomingMessage());
             ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "4");
+            cnt.suspend();
+            responses.add(ctx.getIncomingMessage());
         }, Duration.ZERO, Instant.ofEpochMilli(0L), "start");
 
         while (testHarness.hasMore()) {
@@ -49,6 +60,7 @@ public class ResponseSubcoroutineTest {
         assertEquals(Collections.nCopies(1, "test:fakeid"), captureSubcoroutine.srcAddresses);
         assertEquals(Collections.nCopies(1, "rcvr"), captureSubcoroutine.dstAddresses);
         assertEquals(Collections.nCopies(1, "0"), captureSubcoroutine.recvdItems);
+        assertEquals(Collections.nCopies(5, "resp0"), responses); // all responses are for "0" -- the first msg sent
     }
 
     @Test
@@ -69,13 +81,23 @@ public class ResponseSubcoroutineTest {
                 Duration.ZERO,
                 Instant.ofEpochMilli(0L)
         );
+        List<Object> responses = new ArrayList<>();
         testHarness.addCoroutineActor("test", cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "0");
             ctx.addOutgoingMessage(Address.of("timer", "20000"), new Object()); // wake up in 20seconds
+            ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "0");
+            cnt.suspend(); // msg after this point is from recver
             
-            cnt.suspend();
+            System.out.println(ctx.getSource());
+            responses.add(ctx.getIncomingMessage());
+            cnt.suspend(); // msg after this point is from the timer that waits for 20000ms  
+            
+            System.out.println(ctx.getSource());
             ctx.addOutgoingMessage(Address.of("fakeid"), Address.of("rcvr"), "1");
+            cnt.suspend(); // msg after this point is from recver
+            
+            System.out.println(ctx.getSource());
+            responses.add(ctx.getIncomingMessage());
         }, Duration.ZERO, Instant.ofEpochMilli(0L), "start");
 
         while (testHarness.hasMore()) {
@@ -85,6 +107,7 @@ public class ResponseSubcoroutineTest {
         assertEquals(Collections.nCopies(2, "test:fakeid"), captureSubcoroutine.srcAddresses);
         assertEquals(Collections.nCopies(2, "rcvr"), captureSubcoroutine.dstAddresses);
         assertEquals(Arrays.asList("0", "1"), captureSubcoroutine.recvdItems);
+        assertEquals(Arrays.asList("resp0", "resp1"), responses); // enough time has past that you get responses for both 0 and 1
     }
     
     @Test
@@ -138,6 +161,7 @@ public class ResponseSubcoroutineTest {
                 srcAddresses.add(ctx.getSource().toString());
                 dstAddresses.add(ctx.getDestination().toString());
                 recvdItems.add(ctx.getIncomingMessage());
+                ctx.addOutgoingMessage(ctx.getSource(), "resp" + ctx.getIncomingMessage());
                 cnt.suspend();
             }
         }

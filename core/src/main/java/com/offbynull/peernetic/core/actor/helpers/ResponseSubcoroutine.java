@@ -18,18 +18,29 @@ package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.CoroutineRunner;
+import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 /**
- * A subcoroutine that acts as a filter for another subcoroutine, ignoring requests that have already been received before (within a certain
- * time span). The source address of an incoming message is used to test if a message has already been received.
- *
+ * A subcoroutine that acts as a filter for another subcoroutine, caching outgoing responses to requests and resending those responses if
+ * the same request comes in again (within a certain time span).
+ * <p>
+ * When using this subcoroutine, keep in mind the following:
+ * <ul>
+ * <li>All incoming messages are cached.</li>
+ * <li>The source address of an incoming message is used to test if a message has already been received.</li>
+ * <li>Responses for a cached item are set only if those responses go out immediately. If you delay sending out a response, this
+ * subcoroutine will think that you sent out no response.</li>
+ * </ul>
  * @author Kasra Faghihi
  * @param <T> result type of backing subcoroutine
  */
@@ -76,7 +87,7 @@ public final class ResponseSubcoroutine<T> implements Subcoroutine<T> {
         runner.setContext(ctx);
 
         // Check incoming message isn't a duplicate and forward to backing subcoroutine if it isn't
-        Set<Address> sourceCache = new HashSet<>();
+        Map<Address, List<BatchedOutgoingMessage>> cache = new HashMap<>(); // sourceaddress -> responses
         while (true) {
             Object msg = ctx.getIncomingMessage();
             Address src = ctx.getSource();
@@ -88,25 +99,39 @@ public final class ResponseSubcoroutine<T> implements Subcoroutine<T> {
                 Validate.isTrue(removeMessage.getParent() == this); // sanity check
 
                 Address sourceToRemoveFromCache = removeMessage.getSource();
-                sourceCache.remove(sourceToRemoveFromCache);
+                cache.remove(sourceToRemoveFromCache);
 
                 cnt.suspend();
                 continue;
             }
 
-            // Do not forward if message is already in cache
-            if (sourceCache.contains(src)) {
+            // If already in cache, send cached responses... don't bother forwarding to backing subcoroutine
+            if (cache.containsKey(src)) {
+                List<BatchedOutgoingMessage> cachedResponses = cache.get(src);
+                for (BatchedOutgoingMessage cachedResponse : cachedResponses) {
+                    ctx.addOutgoingMessage(cachedResponse.getSourceId(), cachedResponse.getDestination(), cachedResponse.getMessage());
+                }
                 cnt.suspend();
                 continue;
             }
 
             // Ask timer to send us a msg to remove this msg from the cache after retainDuration + add msg to cache
             ctx.addOutgoingMessage(timerAddressPrefix.appendSuffix("" + retainDuration.toMillis()), new RemoveFromCache(src));
-            sourceCache.add(src);
 
+            // Execute backing subcourtine, and determine if any new messages were added in. If there were new messages added in, pick out
+            // the ones that are going back to the sender and cache them (those ones are the responses, assuming that the request came from
+            // a unique address that will continue to use the same unique address for retries of the request)
+            int msgSizeBeforeRun = ctx.viewOutgoingMessages().size();
             if (!runner.execute()) {
                 return ret.getValue();
             }
+            int msgSizeAfterRun = ctx.viewOutgoingMessages().size();
+
+            List<BatchedOutgoingMessage> newMsgs = new ArrayList<>(ctx.viewOutgoingMessages().subList(msgSizeBeforeRun, msgSizeAfterRun));
+            newMsgs = newMsgs.stream().filter(x -> x.getDestination().equals(src)).collect(Collectors.toList());
+            cache.put(src, newMsgs); // This is the correct behaviour even if list is empty -- if empty, it means we had no responses for
+                                     // the request, but we still ingested the message. As such, if the same msg comes in don't hit it again
+
             cnt.suspend();
         }
     }

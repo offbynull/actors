@@ -1,24 +1,24 @@
 package com.offbynull.peernetic.examples.unstructured.externalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.commons.collections4.list.UnmodifiableList;
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
-public final class QueryResponse extends ExternalMessage {
+public final class QueryResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
 
-    private final UnmodifiableList<Address> links;
+    private final UnmodifiableSet<Address> links;
 
-    public QueryResponse(long id, List<Address> links) {
-        super(id);
+    public QueryResponse(Set<Address> links) {
         Validate.notNull(links);
         Validate.noNullElements(links);
-        this.links = (UnmodifiableList<Address>) UnmodifiableList.unmodifiableList(new ArrayList<Address>(links));
+        this.links = (UnmodifiableSet<Address>) UnmodifiableSet.unmodifiableSet(new HashSet<Address>(links));
     }
 
-    public UnmodifiableList<Address> getLinks() {
+    public UnmodifiableSet<Address> getLinks() {
         return links;
     }
 }

@@ -1,10 +1,8 @@
 package com.offbynull.peernetic.examples.unstructured.externalmessages;
 
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
+import java.io.Serializable;
 
-public final class QueryRequest extends ExternalMessage {
+public final class QueryRequest implements Serializable {
+    private static final long serialVersionUID = 1L;
 
-    public QueryRequest(long id) {
-        super(id);
-    }
 }

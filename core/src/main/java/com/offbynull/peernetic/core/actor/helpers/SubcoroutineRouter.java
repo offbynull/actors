@@ -176,7 +176,23 @@ public final class SubcoroutineRouter {
             CoroutineRunner old = idMap.remove(key);
             Validate.isTrue(old != null);
         }
+        
+        /**
+         * Get the number of {@link Subcoroutine}s assigned to the router that owns this controller.
+         * @return number of subcoroutines
+         */
+        public int size() {
+            return idMap.size();
+        }
 
+        /**
+         * Get the source id of the router that owns this controller.
+         * @return source id of router
+         */
+        public Address getSourceId() {
+            return SubcoroutineRouter.this.id;
+        }
+        
         private boolean forceForward(String id, boolean mustNotFinish) throws Exception {
             Validate.notNull(id);
 

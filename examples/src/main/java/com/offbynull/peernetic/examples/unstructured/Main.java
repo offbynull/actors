@@ -25,13 +25,13 @@ public final class Main {
         actorThread.addCoroutineActor(
                 "0",
                 new UnstructuredClientCoroutine(),
-                new Start(new Random(0), Address.of("timer"), Address.of("graph")));
+                new Start(0L, Address.of("timer"), Address.of("graph")));
         for (int i = 1; i < 1024; i++) {
             String id = Integer.toString(i);
             String bootstrapAddress = "actor:" + rand.nextInt(i);
             
             actorThread.addCoroutineActor(id, new UnstructuredClientCoroutine(),
-                    new Start(Address.fromString(bootstrapAddress), new Random(i), Address.of("timer"), Address.of("graph")));
+                    new Start(Address.fromString(bootstrapAddress), (long) i, Address.of("timer"), Address.of("graph")));
             
             Thread.sleep(1000L);
         }

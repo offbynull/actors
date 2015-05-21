@@ -13,14 +13,14 @@ import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryReque
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
 import org.apache.commons.lang3.Validate;
 
-final class IncomingHandlerSubcoroutine implements Subcoroutine<Void> {
+final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
     private final Address timerAddress;
     private final State state;
     private final Controller controller;
 
-    public IncomingHandlerSubcoroutine(Address sourceId, Address timerAddress, State state, Controller controller) {
+    public IncomingMessageHandlerSubcoroutine(Address sourceId, Address timerAddress, State state, Controller controller) {
         Validate.notNull(sourceId);
         Validate.notNull(timerAddress);
         Validate.notNull(state);
@@ -46,16 +46,19 @@ final class IncomingHandlerSubcoroutine implements Subcoroutine<Void> {
                 QueryResponse resp = new QueryResponse(state.getLinks());
                 ctx.addOutgoingMessage(sourceId, ctx.getSource(), resp);
             } else if (msg instanceof LinkRequest) {
+                Address sourceAddress = ctx.getSource();
+                
                 if (state.isIncomingLinksFull()) {
-                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkFailedResponse());
+                    ctx.addOutgoingMessage(sourceId, sourceAddress, new LinkFailedResponse());
                     continue;
                 }
                 
-                state.addIncomingLink(ctx.getSource());
-                Address newId = controller.getSourceId().appendSuffix("" + state.nextRandomId());
-                ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(newId));
+                Address updaterId = controller.getSourceId().appendSuffix("in" + state.nextRandomId());
+                state.addIncomingLink(sourceAddress, updaterId);
+                
+                ctx.addOutgoingMessage(sourceId, sourceAddress, new LinkSuccessResponse(updaterId));
 
-                controller.add(new IncomingLinkSubcoroutine(newId, timerAddress, state), AddBehaviour.ADD_PRIME);
+                controller.add(new IncomingLinkSubcoroutine(updaterId, timerAddress, state), AddBehaviour.ADD_PRIME);
             }
         }
     }

@@ -6,7 +6,6 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkKeepAliveRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
-import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkFailedResponse;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Check;
 import org.apache.commons.lang3.Validate;
 

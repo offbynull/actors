@@ -21,11 +21,11 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
         long seed = start.getSeed();
-        
+
         Random random = new Random(seed);
-        
+
         State state = new State(seed, 3, 4);
-        
+
         ctx.addOutgoingMessage(graphAddress, new AddNode(ctx.getSelf().toString()));
         ctx.addOutgoingMessage(graphAddress,
                 new MoveNode(ctx.getSelf().toString(),
@@ -33,10 +33,21 @@ public final class UnstructuredClientCoroutine implements Coroutine {
                         random.nextInt(1400))
         );
 
-        SubcoroutineRouter outgoingLinkRouter = new SubcoroutineRouter(Address.of("out"), ctx);
+        SubcoroutineRouter outgoingLinkRouter = new SubcoroutineRouter(Address.of("router"), ctx);
         outgoingLinkRouter.getController().add(
-                new IncomingHandlerSubcoroutine(Address.of("handler"), timerAddress, state, outgoingLinkRouter.getController()),
+                new IncomingMessageHandlerSubcoroutine(
+                        Address.of("handler"),
+                        timerAddress,
+                        state,
+                        outgoingLinkRouter.getController()),
                 AddBehaviour.ADD_PRIME_NO_FINISH);
+        outgoingLinkRouter.getController().add(
+                new OutgoingQuerySubcoroutine(
+                        Address.of("querier"),
+                        timerAddress,
+                        addressCache),
+                AddBehaviour.ADD_PRIME_NO_FINISH);
+        ADD OUTGOING LINK SUBCOURTINES HERE;
 
         while (true) {
             cnt.suspend();

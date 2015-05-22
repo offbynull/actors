@@ -5,26 +5,24 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerator;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkFailedResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
     private final Address timerAddress;
-    private final AddressCache addressCache;
+    private final State state;
 
-    public OutgoingQuerySubcoroutine(Address sourceId, Address timerAddress, AddressCache addressCache) {
+    public OutgoingQuerySubcoroutine(Address sourceId, Address timerAddress, State state) {
         Validate.notNull(sourceId);
         Validate.notNull(timerAddress);
-        Validate.notNull(addressCache);
+        Validate.notNull(state);
         this.sourceId = sourceId;
         this.timerAddress = timerAddress;
-        this.addressCache = addressCache;
+        this.state = state;
     }
 
     @Override
@@ -35,15 +33,13 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
     @Override
     public Void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
-        
-        ExternalMessageIdGenerator gen = new ExternalMessageIdGenerator(new Random());
 
         while (true) {
-            Address address = addressCache.next();
+            Address address = state.getRandomCachedAddress();
 
             QueryRequest request = new QueryRequest();
             RequestSubcoroutine<QueryResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<QueryResponse>()
-                    .id(sourceId.appendSuffix("" + gen.generateId()))
+                    .id(sourceId.appendSuffix("" + state.nextRandomId()))
                     .request(request)
                     .timerAddressPrefix(timerAddress)
                     .destinationAddress(address.appendSuffix("router", "handler"))
@@ -52,7 +48,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
                     .build();
             QueryResponse response = requestSubcoroutine.run(cnt);
             
-            addressCache.addAll(response.getLinks());
+            state.addCachedAddresses(response.getLinks());
         }
     }
 

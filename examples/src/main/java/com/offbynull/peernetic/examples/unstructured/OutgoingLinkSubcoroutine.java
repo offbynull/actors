@@ -3,9 +3,9 @@ package com.offbynull.peernetic.examples.unstructured;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerator;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkFailedResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkKeepAliveRequest;
@@ -14,7 +14,7 @@ import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkSucces
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
-import java.util.Random;
+import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
@@ -22,17 +22,17 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
     private final Address sourceId;
     private final Address graphAddress;
     private final Address timerAddress;
-    private final AddressCache addressCache;
+    private final State state;
 
-    public OutgoingLinkSubcoroutine(Address sourceId, Address graphAddress, Address timerAddress, AddressCache addressCache) {
+    public OutgoingLinkSubcoroutine(Address sourceId, Address graphAddress, Address timerAddress, State state) {
         Validate.notNull(sourceId);
         Validate.notNull(graphAddress);
         Validate.notNull(timerAddress);
-        Validate.notNull(addressCache);
+        Validate.notNull(state);
         this.sourceId = sourceId;
         this.graphAddress = graphAddress;
         this.timerAddress = timerAddress;
-        this.addressCache = addressCache;
+        this.state = state;
     }
 
     @Override
@@ -43,19 +43,24 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
     @Override
     public Void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
-
-        ExternalMessageIdGenerator gen = new ExternalMessageIdGenerator(new Random());
-
+        
         reconnect:
         while (true) {
-            Address address = addressCache.next();
+            while (!state.hasMoreCachedAddresses()) {
+                new SleepSubcoroutine.Builder()
+                        .duration(Duration.ofSeconds(1L))
+                        .build()
+                        .run(cnt);
+            }
+            
+            Address address = state.removeNextCachedAddress();
 
             ctx.addOutgoingMessage(graphAddress, new AddEdge(ctx.getSelf().toString(), address.toString()));
             ctx.addOutgoingMessage(graphAddress, new StyleEdge(ctx.getSelf().toString(), address.toString(), "-fx-stroke: yellow"));
             boolean lineIsGreen = false;
 
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
-                    .id(sourceId.appendSuffix("" + gen.generateId()))
+                    .id(sourceId.appendSuffix("" + state.nextRandomId()))
                     .request(new LinkRequest())
                     .timerAddressPrefix(timerAddress)
                     .destinationAddress(address.appendSuffix("router", "handler"))
@@ -77,7 +82,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             while (true) {
                 RequestSubcoroutine<LinkKeptAliveResponse> keepAliveRequestSubcoroutine
                         = new RequestSubcoroutine.Builder<LinkKeptAliveResponse>()
-                        .id(sourceId.appendSuffix("" + gen.generateId()))
+                        .id(sourceId.appendSuffix("" + state.nextRandomId()))
                         .request(new LinkKeepAliveRequest())
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)

@@ -48,12 +48,21 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
             } else if (msg instanceof LinkRequest) {
                 Address sourceAddress = ctx.getSource();
                 
+                // if we already have an active incominglinksubcoroutine for the sender, return its id 
+                Address updaterId = state.getIncomingLink(sourceAddress);
+                if (updaterId != null) {
+                    ctx.addOutgoingMessage(sourceId, sourceAddress, new LinkSuccessResponse(updaterId));
+                    continue;
+                }
+                
+                // if we don't have any more room for incoming connections, return failure
                 if (state.isIncomingLinksFull()) {
                     ctx.addOutgoingMessage(sourceId, sourceAddress, new LinkFailedResponse());
                     continue;
                 }
                 
-                Address updaterId = controller.getSourceId().appendSuffix("in" + state.nextRandomId());
+                // add the new incominglinksubcoroutine and return success
+                updaterId = controller.getSourceId().appendSuffix("in" + state.nextRandomId());
                 state.addIncomingLink(sourceAddress, updaterId);
                 
                 ctx.addOutgoingMessage(sourceId, sourceAddress, new LinkSuccessResponse(updaterId));

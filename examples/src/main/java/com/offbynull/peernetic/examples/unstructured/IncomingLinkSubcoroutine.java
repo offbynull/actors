@@ -37,19 +37,20 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
         Validate.isTrue(ctx.getIncomingMessage() instanceof LinkRequest);
         Address requesterAddress = ctx.getSource();
 
-        // In a loop -- wait up to 15 seconds for keepalive. If none arrived, remove incoming link and leave
-        while (true) {
-            Check check = new Check();
-            ctx.addOutgoingMessage(timerAddress.appendSuffix("15000"), check); // check interval
-            cnt.suspend();
-            
-            Object msg = ctx.getIncomingMessage();
-            if (msg == check) {
-                state.removeIncomingLink(requesterAddress);
-                return null;
+        try {
+            // In a loop -- wait up to 15 seconds for keepalive. If none arrived (or exception), remove incoming link and leave
+            while (true) {
+                Check check = new Check();
+                ctx.addOutgoingMessage(timerAddress.appendSuffix("15000"), check); // check interval
+                cnt.suspend();
+
+                Object msg = ctx.getIncomingMessage();
+                if (msg == check || !(msg instanceof LinkKeepAliveRequest)) {
+                    return null;
+                }
             }
-            
-            Validate.isTrue(msg instanceof LinkKeepAliveRequest);
+        } finally {
+            state.removeIncomingLink(requesterAddress);
         }
     }
 

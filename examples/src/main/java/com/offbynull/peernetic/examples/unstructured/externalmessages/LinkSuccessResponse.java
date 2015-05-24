@@ -7,15 +7,15 @@ import org.apache.commons.lang3.Validate;
 public final class LinkSuccessResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private final Address address;
+    private final Address id;
 
-    public LinkSuccessResponse(Address address) {
-        Validate.notNull(address);
-        this.address = address;
+    public LinkSuccessResponse(Address id) {
+        Validate.notNull(id);
+        this.id = id;
     }
 
-    public Address getAddress() {
-        return address;
+    public Address getId() {
+        return id;
     }
     
 }

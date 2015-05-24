@@ -48,9 +48,9 @@ final class GraphRunnable implements Runnable {
                 GraphApplication graph = GraphApplication.getInstance();
                 Validate.notNull(graph, "Graph application isn't running");
 
-                MultiMap<Address, Object> payloads = new MultiValueMap<>();
                 for (Object incomingObj : incomingObjects) {
                     if (incomingObj instanceof Message) {
+                        MultiMap<Address, Object> payloads = new MultiValueMap<>();
                         Message msg = (Message) incomingObj;
 
                         Address dst = msg.getDestinationAddress();

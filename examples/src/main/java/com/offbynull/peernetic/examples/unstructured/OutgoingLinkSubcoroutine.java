@@ -48,6 +48,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
         while (true) {
             while (!state.hasMoreCachedAddresses()) {
                 new SleepSubcoroutine.Builder()
+                        .id(sourceId.appendSuffix(state.nextRandomId()))
+                        .timerAddressPrefix(timerAddress)
                         .duration(Duration.ofSeconds(1L))
                         .build()
                         .run(cnt);
@@ -60,7 +62,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             boolean lineIsGreen = false;
 
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
-                    .id(sourceId.appendSuffix("" + state.nextRandomId()))
+                    .id(sourceId.appendSuffix(state.nextRandomId()))
                     .request(new LinkRequest())
                     .timerAddressPrefix(timerAddress)
                     .destinationAddress(address.appendSuffix("router", "handler"))
@@ -74,15 +76,22 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
                 continue reconnect;
             }
-
+            
             LinkSuccessResponse successResponse = (LinkSuccessResponse) response;
-            Address dstAddress = successResponse.getAddress();
+            Address dstAddress = address.appendSuffix(successResponse.getId());
 
             connected:
             while (true) {
+                new SleepSubcoroutine.Builder()
+                        .id(sourceId.appendSuffix(state.nextRandomId()))
+                        .timerAddressPrefix(timerAddress)
+                        .duration(Duration.ofSeconds(1L))
+                        .build()
+                        .run(cnt);
+                
                 RequestSubcoroutine<LinkKeptAliveResponse> keepAliveRequestSubcoroutine
                         = new RequestSubcoroutine.Builder<LinkKeptAliveResponse>()
-                        .id(sourceId.appendSuffix("" + state.nextRandomId()))
+                        .id(sourceId.appendSuffix(state.nextRandomId()))
                         .request(new LinkKeepAliveRequest())
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)
@@ -91,12 +100,16 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                         .build();
 
                 LinkKeptAliveResponse resp = keepAliveRequestSubcoroutine.run(cnt);
-                if (resp != null && !lineIsGreen) {
-                    ctx.addOutgoingMessage(graphAddress, new StyleEdge(ctx.getSelf().toString(), address.toString(), "-fx-stroke: green"));
-                    lineIsGreen = true;
-                } else {
+                if (resp == null) {
                     ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
                     continue reconnect;
+                }
+                
+                state.addCachedAddresses(resp.getLinks());
+                    
+                if (!lineIsGreen) {
+                    ctx.addOutgoingMessage(graphAddress, new StyleEdge(ctx.getSelf().toString(), address.toString(), "-fx-stroke: green"));
+                    lineIsGreen = true;
                 }
             }
         }

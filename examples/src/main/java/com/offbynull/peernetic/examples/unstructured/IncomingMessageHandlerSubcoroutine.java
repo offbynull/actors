@@ -40,6 +40,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
         Context ctx = (Context) cnt.getContext();
 
         while (true) {
+            cnt.suspend();
             Object msg = ctx.getIncomingMessage();
 
             if (msg instanceof QueryRequest) {
@@ -67,7 +68,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 
                 ctx.addOutgoingMessage(sourceId, sourceAddress, new LinkSuccessResponse(updaterId));
 
-                controller.add(new IncomingLinkSubcoroutine(updaterId, timerAddress, state), AddBehaviour.ADD_PRIME);
+                controller.add(new IncomingLinkSubcoroutine(updaterId, timerAddress, state), AddBehaviour.ADD_PRIME_NO_FINISH);
             }
         }
     }

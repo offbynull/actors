@@ -38,10 +38,10 @@ final class State {
         this.addressCache = new ArrayList<>(bootstrapAddresses);
     }
 
-    public long nextRandomId() {
+    public String nextRandomId() {
         long ret = ((long) random.nextInt()) << 32L | (long) counter;
         counter++;
-        return ret;
+        return "" + ret;
     }
 
     public Set<Address> getLinks() {
@@ -100,9 +100,22 @@ final class State {
         return ret;
     }
 
+    public void removeCachedAddress(Address address) {
+        Validate.notNull(address);
+        addressCache.remove(address);
+    }
+
     public Address getRandomCachedAddress() {
+        if (addressCache.isEmpty()) {
+            return null;
+        }
+        
         int idx = random.nextInt(addressCache.size());
         return addressCache.get(idx);
+    }
+    
+    public Set<Address> getCachedAddresses() {
+        return new HashSet<>(addressCache);
     }
 
     public void addCachedAddresses(Set<Address> addresses) {

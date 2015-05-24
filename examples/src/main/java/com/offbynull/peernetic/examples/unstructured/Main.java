@@ -26,7 +26,7 @@ public final class Main {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(0L, Address.of("timer"), Address.of("graph")));
-        for (int i = 1; i < 1024; i++) {
+        for (int i = 1; i < 3; i++) {
             String id = Integer.toString(i);
             String bootstrapAddress = "actor:" + rand.nextInt(i);
             

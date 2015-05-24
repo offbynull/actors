@@ -36,13 +36,14 @@ public final class UnstructuredClientCoroutine implements Coroutine {
                         random.nextInt(1400))
         );
 
-        SubcoroutineRouter outgoingLinkRouter = new SubcoroutineRouter(Address.of("router"), ctx);
+        Address routerId = Address.of("router");
+        SubcoroutineRouter outgoingLinkRouter = new SubcoroutineRouter(routerId, ctx);
         Controller controller = outgoingLinkRouter.getController();
         
         // start subcoroutine to deal with incoming requests
         controller.add(
                 new IncomingMessageHandlerSubcoroutine(
-                        Address.of("handler"),
+                        routerId.appendSuffix("handler"),
                         timerAddress,
                         state,
                         controller),
@@ -51,7 +52,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         // start subcoroutine to populate address cache
         controller.add(
                 new OutgoingQuerySubcoroutine(
-                        Address.of("querier"),
+                        routerId.appendSuffix("querier"),
                         timerAddress,
                         state),
                 AddBehaviour.ADD_PRIME_NO_FINISH);
@@ -60,7 +61,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         for (int i = 0; i < state.getMaxOutgoingLinks(); i++) {
             controller.add(
                     new OutgoingLinkSubcoroutine(
-                            Address.of("out" + state.nextRandomId()),
+                            routerId.appendSuffix("out" + state.nextRandomId()),
                             graphAddress,
                             timerAddress,
                             state),

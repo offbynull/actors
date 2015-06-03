@@ -86,7 +86,7 @@ public final class LogMessage implements Serializable {
      * @return new {@link LogMessage} instance
      * @throws NullPointerException if any argument is {@code null} (note that {@code arguments} can contain {@code null}s)
      */
-    public LogMessage trace(String message, Object... arguments) {
+    public static LogMessage trace(String message, Object... arguments) {
         return new LogMessage(Type.TRACE, message, arguments);
     }
 
@@ -97,7 +97,7 @@ public final class LogMessage implements Serializable {
      * @return new {@link LogMessage} instance
      * @throws NullPointerException if any argument is {@code null} (note that {@code arguments} can contain {@code null}s)
      */
-    public LogMessage debug(String message, Object... arguments) {
+    public static LogMessage debug(String message, Object... arguments) {
         return new LogMessage(Type.DEBUG, message, arguments);
     }
 
@@ -108,7 +108,7 @@ public final class LogMessage implements Serializable {
      * @return new {@link LogMessage} instance
      * @throws NullPointerException if any argument is {@code null} (note that {@code arguments} can contain {@code null}s)
      */
-    public LogMessage info(String message, Object... arguments) {
+    public static LogMessage info(String message, Object... arguments) {
         return new LogMessage(Type.INFO, message, arguments);
     }
 
@@ -119,7 +119,7 @@ public final class LogMessage implements Serializable {
      * @return new {@link LogMessage} instance
      * @throws NullPointerException if any argument is {@code null} (note that {@code arguments} can contain {@code null}s)
      */
-    public LogMessage warn(String message, Object... arguments) {
+    public static LogMessage warn(String message, Object... arguments) {
         return new LogMessage(Type.WARN, message, arguments);
     }
 
@@ -130,7 +130,7 @@ public final class LogMessage implements Serializable {
      * @return new {@link LogMessage} instance
      * @throws NullPointerException if any argument is {@code null} (note that {@code arguments} can contain {@code null}s)
      */
-    public LogMessage error(String message, Object... arguments) {
+    public static LogMessage error(String message, Object... arguments) {
         return new LogMessage(Type.ERROR, message, arguments);
     }
 

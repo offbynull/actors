@@ -13,16 +13,17 @@ public final class Start {
     private final long seed;
     private final Address timerPrefix;
     private final Address graphAddress;
+    private final Address logAddress;
 
-    public Start(long seed, Address timerPrefix, Address graphAddress) {
-        this(Collections.emptySet(), seed, timerPrefix, graphAddress);
+    public Start(long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
+        this(Collections.emptySet(), seed, timerPrefix, graphAddress, logAddress);
     }
     
-    public Start(Address bootstrapAddress, long seed, Address timerPrefix, Address graphAddress) {
-        this(Collections.singleton(bootstrapAddress), seed, timerPrefix, graphAddress);
+    public Start(Address bootstrapAddress, long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
+        this(Collections.singleton(bootstrapAddress), seed, timerPrefix, graphAddress, logAddress);
     }
     
-    public Start(Set<Address> bootstrapAddresses, long seed, Address timerPrefix, Address graphAddress) {
+    public Start(Set<Address> bootstrapAddresses, long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
         Validate.notNull(bootstrapAddresses);
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
@@ -31,6 +32,7 @@ public final class Start {
         this.seed = seed;
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;
+        this.logAddress = logAddress;
     }
 
     public UnmodifiableSet<Address> getBootstrapAddresses() {
@@ -47,6 +49,10 @@ public final class Start {
 
     public Address getGraphAddress() {
         return graphAddress;
+    }
+
+    public Address getLogAddress() {
+        return logAddress;
     }
 
 }

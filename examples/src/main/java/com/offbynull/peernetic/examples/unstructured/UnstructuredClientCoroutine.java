@@ -7,6 +7,8 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
@@ -22,6 +24,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Start start = ctx.getIncomingMessage();
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
+        Address logAddress = start.getLogAddress();
         UnmodifiableSet<Address> bootstrapAddresses = start.getBootstrapAddresses();
         long seed = start.getSeed();
 
@@ -29,6 +32,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
 
         State state = new State(seed, 3, 4, 256, bootstrapAddresses);
 
+        ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapAddresses));
         ctx.addOutgoingMessage(graphAddress, new AddNode(ctx.getSelf().toString()));
         ctx.addOutgoingMessage(graphAddress,
                 new MoveNode(ctx.getSelf().toString(),
@@ -41,29 +45,35 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Controller controller = outgoingLinkRouter.getController();
         
         // start subcoroutine to deal with incoming requests
+        ctx.addOutgoingMessage(logAddress, debug("Adding handler"));
         controller.add(
                 new IncomingMessageHandlerSubcoroutine(
                         routerId.appendSuffix("handler"),
                         timerAddress,
+                        logAddress,
                         state,
                         controller),
                 AddBehaviour.ADD_PRIME_NO_FINISH);
         
         // start subcoroutine to populate address cache
+        ctx.addOutgoingMessage(logAddress, debug("Adding querier"));
         controller.add(
                 new OutgoingQuerySubcoroutine(
                         routerId.appendSuffix("querier"),
                         timerAddress,
+                        logAddress,
                         state),
                 AddBehaviour.ADD_PRIME_NO_FINISH);
         
         // start subcoroutines to make and maintain outgoing connections
         for (int i = 0; i < state.getMaxOutgoingLinks(); i++) {
+            ctx.addOutgoingMessage(logAddress, debug("Adding outgoing link maintainer {}", i));
             controller.add(
                     new OutgoingLinkSubcoroutine(
-                            routerId.appendSuffix("out" + state.nextRandomId()),
+                            routerId.appendSuffix("out" + i),
                             graphAddress,
                             timerAddress,
+                            logAddress,
                             state),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
         }

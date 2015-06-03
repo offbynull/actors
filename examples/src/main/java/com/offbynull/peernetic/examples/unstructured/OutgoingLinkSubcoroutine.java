@@ -102,10 +102,12 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             Object response = linkRequestSubcoroutine.run(cnt);
 
             if (response == null) {
+                state.removePendingOutgoingLink(address);
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link", address));
                 ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
                 continue reconnect;
             } else if (response instanceof LinkFailedResponse) {
+                state.removePendingOutgoingLink(address);
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded with link failure", address));
                 ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
                 continue reconnect;

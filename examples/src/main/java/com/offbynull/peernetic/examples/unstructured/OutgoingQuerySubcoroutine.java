@@ -53,7 +53,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
 
-            Address address = state.getRandomCachedAddress();
+            Address address = state.getNextCachedAddress();
             ctx.addOutgoingMessage(sourceId, logAddress, info("Querying {}", address));
 
             QueryRequest request = new QueryRequest();
@@ -69,7 +69,6 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
             if (response == null) {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to query", address));
-                state.removeCachedAddress(address);
                 continue;
             }
 

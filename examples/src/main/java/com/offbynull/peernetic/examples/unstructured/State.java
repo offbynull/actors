@@ -17,6 +17,7 @@ final class State {
     private final int maxIncomingLinks;
     private final int maxOutgoingLinks;
     private int counter = 0;
+    private final Set<Address> pendingOutgoingLinks; // address to recver, connection not established yet
     private final Set<Address> outgoingLinks; // address to recver
     private final Map<Address, Address> incomingLinks; // address of sender -> incoming link subcoroutine source id
     private final int maxCachedAddresses;
@@ -32,10 +33,12 @@ final class State {
         random = new Random(seed);
         this.maxIncomingLinks = maxIncomingLinks;
         this.maxOutgoingLinks = maxOutgoingLinks;
+        pendingOutgoingLinks = new HashSet<>();
         outgoingLinks = new HashSet<>();
         incomingLinks = new HashMap<>();
         this.maxCachedAddresses = maxCachedAddresses;
-        this.addressCache = new ArrayList<>(bootstrapAddresses);
+        this.addressCache = new ArrayList<>(maxCachedAddresses);
+        this.addressCache.addAll(bootstrapAddresses);
     }
 
     public String nextRandomId() {
@@ -49,6 +52,10 @@ final class State {
         ret.addAll(outgoingLinks);
         ret.addAll(incomingLinks.keySet());
         return ret;
+    }
+
+    public Set<Address> getPendingOutgoingLinks() {
+        return new HashSet<>(pendingOutgoingLinks);
     }
 
     public int getMaxIncomingLinks() {
@@ -68,24 +75,40 @@ final class State {
     }
 
     public void addIncomingLink(Address sender, Address link) {
+        Validate.notNull(sender);
+        Validate.notNull(link);
         Validate.isTrue(incomingLinks.size() < maxIncomingLinks);
         incomingLinks.put(sender, link);
     }
 
     public void addOutgoingLink(Address recver) {
+        Validate.notNull(recver);
         Validate.isTrue(outgoingLinks.size() < maxOutgoingLinks);
         outgoingLinks.add(recver);
     }
 
+    public void addPendingOutgoingLink(Address recver) {
+        Validate.notNull(recver);
+        pendingOutgoingLinks.add(recver);
+    }
+
     public void removeIncomingLink(Address sender) {
+        Validate.notNull(sender);
         Validate.isTrue(incomingLinks.remove(sender) != null);
     }
 
     public void removeOutgoingLink(Address recver) {
+        Validate.notNull(recver);
         Validate.isTrue(outgoingLinks.remove(recver));
+    }
+
+    public void removePendingOutgoingLink(Address recver) {
+        Validate.notNull(recver);
+        Validate.isTrue(pendingOutgoingLinks.remove(recver));
     }
     
     public Address getIncomingLink(Address sender) {
+        Validate.notNull(sender);
         return incomingLinks.get(sender);
     }
 
@@ -93,25 +116,13 @@ final class State {
         return !addressCache.isEmpty();
     }
 
-    public Address removeNextCachedAddress() {
+    public Address getNextCachedAddress() {
+        // Does not actually remove, takes top item and moves it to the bottom of the list (top item is returned)
         Iterator<Address> it = addressCache.iterator();
         Address ret = it.next();
         it.remove();
+        addressCache.add(ret);
         return ret;
-    }
-
-    public void removeCachedAddress(Address address) {
-        Validate.notNull(address);
-        addressCache.remove(address);
-    }
-
-    public Address getRandomCachedAddress() {
-        if (addressCache.isEmpty()) {
-            return null;
-        }
-        
-        int idx = random.nextInt(addressCache.size());
-        return addressCache.get(idx);
     }
     
     public Set<Address> getCachedAddresses() {

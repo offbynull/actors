@@ -63,12 +63,22 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
             
-            Address address = state.removeNextCachedAddress();
+            Address address = state.getNextCachedAddress();
             
             // make sure address we're connecting to isn't an already we're already connected to
             for (Address link : state.getLinks()) {
                 if (address.isPrefixOf(link)) {
-                    ctx.addOutgoingMessage(sourceId, logAddress, warn("Rejecting to link to {} (already linked), trying again", address));
+                    ctx.addOutgoingMessage(sourceId, logAddress,
+                            warn("Rejecting to link to {} (already linked), trying again", address));
+                    continue reconnect;
+                }
+            }
+            
+            // make sure address we're conencting to isn't an already we're already CONNECTING TO (not connected to, but connecting to)
+            for (Address link : state.getPendingOutgoingLinks()) {
+                if (address.isPrefixOf(link)) {
+                    ctx.addOutgoingMessage(sourceId, logAddress,
+                            warn("Rejecting to link to {} (already attempting linking), trying again", address));
                     continue reconnect;
                 }
             }
@@ -78,6 +88,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             ctx.addOutgoingMessage(graphAddress, new StyleEdge(ctx.getSelf().toString(), address.toString(), "-fx-stroke: yellow"));
             boolean lineIsGreen = false;
 
+            state.addPendingOutgoingLink(address);
+            
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
                     .id(sourceId.appendSuffix(state.nextRandomId()))
                     .request(new LinkRequest())

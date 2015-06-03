@@ -29,14 +29,14 @@ public final class Main {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(0L, Address.of("timer"), Address.of("graph"), Address.of("log")));
-        for (int i = 1; i < 10; i++) {
+        for (int i = 1; i < 100; i++) {
             String id = Integer.toString(i);
             String bootstrapAddress = "actor:" + rand.nextInt(i);
             
             actorThread.addCoroutineActor(id, new UnstructuredClientCoroutine(),
                     new Start(Address.fromString(bootstrapAddress), (long) i, Address.of("timer"), Address.of("graph"), Address.of("log")));
             
-            Thread.sleep(1000L);
+            Thread.sleep(rand.nextInt(1000));
         }
         
         GraphGateway.awaitShutdown();

@@ -126,7 +126,7 @@ final class GraphStage extends Stage {
             label.layoutYProperty().set(0);
 
             Label existingLabel = nodes.putIfAbsent(id, label);
-            Validate.isTrue(existingLabel == null);
+            Validate.isTrue(existingLabel == null, "Node %s cannot be added because it already exists", id);
 
             graph.getChildren().add(label);
         };
@@ -142,7 +142,7 @@ final class GraphStage extends Stage {
 
         return () -> {
             Label label = nodes.get(id);
-            Validate.isTrue(label != null);
+            Validate.isTrue(label != null, "Node %s cannot be moved because it doesn't exist", id);
             label.layoutXProperty().set(x);
             label.layoutYProperty().set(y);
         };
@@ -157,7 +157,7 @@ final class GraphStage extends Stage {
 
         return () -> {
             Label label = nodes.get(id);
-            Validate.isTrue(label != null);
+            Validate.isTrue(label != null, "Node %s cannot be styled because it doesn't exist", id);
             
             label.setStyle(style);
         };
@@ -172,7 +172,7 @@ final class GraphStage extends Stage {
 
         return () -> {
             Label label = nodes.get(id);
-            Validate.isTrue(label != null);
+            Validate.isTrue(label != null, "Node %s cannot be removed because it doesn't exist", id);
             graph.getChildren().remove(label);
 
             Collection<Line> lines = (Collection<Line>) anchors.remove(label);
@@ -213,7 +213,7 @@ final class GraphStage extends Stage {
 
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
             Line existingLine = edges.putIfAbsent(key, line);
-            Validate.isTrue(existingLine == null);
+            Validate.isTrue(existingLine == null, "Edge %s -> %s cannot be created because it already exists", fromId, toId);
 
             anchors.put(fromLabel, line);
             anchors.put(toLabel, line);
@@ -233,7 +233,7 @@ final class GraphStage extends Stage {
         return () -> {
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
             Line line = edges.get(key);
-            Validate.isTrue(line != null);
+            Validate.isTrue(line != null, "Edge %s -> %s cannot be styled because it doesn't exist", fromId, toId);
 
             line.setStyle(style); // null is implicitly converted to an empty string
         };
@@ -255,7 +255,7 @@ final class GraphStage extends Stage {
 
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
             Line line = edges.remove(key);
-            Validate.isTrue(line != null);
+            Validate.isTrue(line != null, "Edge %s -> %s cannot be removed because it doesn't exist", fromId, toId);
             
             anchors.removeMapping(fromLabel, line);
             anchors.removeMapping(toLabel, line);

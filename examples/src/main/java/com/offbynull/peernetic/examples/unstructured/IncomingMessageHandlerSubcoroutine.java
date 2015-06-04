@@ -13,6 +13,7 @@ import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkReques
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkSuccessResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
+import com.sun.xml.internal.bind.v2.TODO;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
@@ -65,6 +66,10 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 // we need to strip out the router:in# and router:out#, which means we always need to remove the last 2 elements
                 Set<Address> savedLinks = state.getLinks();
                 Set<Address> correctedLinks = savedLinks.stream().map(x -> x.removeSuffix(2)).collect(Collectors.toSet());
+                
+                TODO: WHEN USING UNRELIABLE PROXY, ADDRESSES IN LINKS HAVE LINK TO THIS NODE'S UNRELIABLE PROXY...
+                e.g. if actor:0 has link to actor:1 via unreliable proxy, then link is actor:unrel0:actor:unrel1...
+                     passing back actor:unrel0:actor:unrel1 to other nodes is incorrect, because it points to actor 0's unreliable proxy
                 
                 QueryResponse resp = new QueryResponse(correctedLinks);
                 ctx.addOutgoingMessage(sourceId, ctx.getSource(), resp);

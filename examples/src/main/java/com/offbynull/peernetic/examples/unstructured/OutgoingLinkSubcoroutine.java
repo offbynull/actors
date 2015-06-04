@@ -17,23 +17,37 @@ import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
 import java.time.Duration;
+import java.util.function.Function;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
+    private final Function<Address, String> graphSelfMapper;
+    private final Function<Address, String> graphOtherMapper;
     private final Address graphAddress;
     private final Address timerAddress;
     private final Address logAddress;
     private final State state;
 
-    public OutgoingLinkSubcoroutine(Address sourceId, Address graphAddress, Address timerAddress, Address logAddress, State state) {
+    public OutgoingLinkSubcoroutine(
+            Address sourceId,
+            Function<Address, String> graphSelfMapper,
+            Function<Address, String> graphOtherMapper,
+            Address graphAddress,
+            Address timerAddress,
+            Address logAddress,
+            State state) {
         Validate.notNull(sourceId);
+        Validate.notNull(graphSelfMapper);
+        Validate.notNull(graphOtherMapper);
         Validate.notNull(graphAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(state);
         this.sourceId = sourceId;
+        this.graphSelfMapper = graphSelfMapper;
+        this.graphOtherMapper = graphOtherMapper;
         this.graphAddress = graphAddress;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -84,8 +98,19 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             }
 
             ctx.addOutgoingMessage(sourceId, logAddress, info("Linking to {}", address));
-            ctx.addOutgoingMessage(graphAddress, new AddEdge(ctx.getSelf().toString(), address.toString()));
-            ctx.addOutgoingMessage(graphAddress, new StyleEdge(ctx.getSelf().toString(), address.toString(), "-fx-stroke: yellow"));
+            ctx.addOutgoingMessage(graphAddress,
+                    new AddEdge(
+                            graphSelfMapper.apply(ctx.getSelf()),
+                            graphOtherMapper.apply(address)
+                    )
+            );
+            ctx.addOutgoingMessage(graphAddress,
+                    new StyleEdge(
+                            graphSelfMapper.apply(ctx.getSelf()),
+                            graphOtherMapper.apply(address),
+                            "-fx-stroke: yellow"
+                    )
+            );
             boolean lineIsGreen = false;
 
             state.addPendingOutgoingLink(address);
@@ -104,12 +129,22 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             if (response == null) {
                 state.removePendingOutgoingLink(address);
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link", address));
-                ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
+                ctx.addOutgoingMessage(graphAddress,
+                        new RemoveEdge(
+                            graphSelfMapper.apply(ctx.getSelf()),
+                            graphOtherMapper.apply(address)
+                        )
+                );
                 continue reconnect;
             } else if (response instanceof LinkFailedResponse) {
                 state.removePendingOutgoingLink(address);
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded with link failure", address));
-                ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
+                ctx.addOutgoingMessage(graphAddress,
+                        new RemoveEdge(
+                            graphSelfMapper.apply(ctx.getSelf()),
+                            graphOtherMapper.apply(address)
+                        )
+                );
                 continue reconnect;
             }
             
@@ -142,7 +177,12 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 
                 if (resp == null) {
                     ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link refresh", address));
-                    ctx.addOutgoingMessage(graphAddress, new RemoveEdge(ctx.getSelf().toString(), address.toString()));
+                    ctx.addOutgoingMessage(graphAddress,
+                            new RemoveEdge(
+                                    graphSelfMapper.apply(ctx.getSelf()),
+                                    graphOtherMapper.apply(address)
+                            )
+                    );
                     state.removeOutgoingLink(dstAddress);
                     continue reconnect;
                 }
@@ -151,7 +191,13 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 state.addCachedAddresses(resp.getLinks());
                     
                 if (!lineIsGreen) {
-                    ctx.addOutgoingMessage(graphAddress, new StyleEdge(ctx.getSelf().toString(), address.toString(), "-fx-stroke: green"));
+                    ctx.addOutgoingMessage(graphAddress,
+                            new StyleEdge(
+                                    graphSelfMapper.apply(ctx.getSelf()),
+                                    graphOtherMapper.apply(address),
+                                    "-fx-stroke: green"
+                            )
+                    );
                     lineIsGreen = true;
                 }
             }

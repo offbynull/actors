@@ -13,6 +13,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import java.util.Random;
+import java.util.function.Function;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class UnstructuredClientCoroutine implements Coroutine {
@@ -22,6 +23,8 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
 
         Start start = ctx.getIncomingMessage();
+        Function<Address, String> graphSelfMapper = start.getSelfAddressToGraphIdMapper();
+        Function<Address, String> graphOtherMapper = start.getRemoteAddressToGraphIdMapper();
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
@@ -33,11 +36,13 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         State state = new State(seed, 3, 4, 256, bootstrapAddresses);
 
         ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapAddresses));
-        ctx.addOutgoingMessage(graphAddress, new AddNode(ctx.getSelf().toString()));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(graphSelfMapper.apply(ctx.getSelf())));
         ctx.addOutgoingMessage(graphAddress,
-                new MoveNode(ctx.getSelf().toString(),
+                new MoveNode(
+                        graphSelfMapper.apply(ctx.getSelf()),
                         random.nextInt(1400),
-                        random.nextInt(1400))
+                        random.nextInt(1400)
+                )
         );
 
         Address routerId = Address.of("router");
@@ -71,6 +76,8 @@ public final class UnstructuredClientCoroutine implements Coroutine {
             controller.add(
                     new OutgoingLinkSubcoroutine(
                             routerId.appendSuffix("out" + i),
+                            graphSelfMapper,
+                            graphOtherMapper,
                             graphAddress,
                             timerAddress,
                             logAddress,

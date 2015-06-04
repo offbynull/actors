@@ -194,8 +194,8 @@ final class GraphStage extends Stage {
             Label fromLabel = nodes.get(fromId);
             Label toLabel = nodes.get(toId);
 
-            Validate.notNull(fromLabel);
-            Validate.notNull(toLabel);
+            Validate.notNull(fromLabel, "Edge %s -> %s cannot be created because start node does not exist", fromId, toId);
+            Validate.notNull(toLabel, "Edge %s -> %s cannot be created because end node does not exist", fromId, toId);
             
             Line line = new Line();
             DoubleBinding fromXBinding = doubleExpression(fromLabel.layoutXProperty())
@@ -250,8 +250,8 @@ final class GraphStage extends Stage {
             Label fromLabel = nodes.get(fromId);
             Label toLabel = nodes.get(toId);
 
-            Validate.notNull(fromLabel);
-            Validate.notNull(toLabel);
+            Validate.notNull(fromLabel, "Edge %s -> %s cannot be removed because start node does not exist", fromId, toId);
+            Validate.notNull(toLabel, "Edge %s -> %s cannot be removed because end node does not exist", fromId, toId);
 
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
             Line line = edges.remove(key);

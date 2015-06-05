@@ -16,13 +16,17 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
  * Remove a node from the graph.
  * @author Kasra Faghihi
  */
-public final class RemoveNode {
+public final class RemoveNode implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final String id;
 
     /**

@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import java.io.Serializable;
 import javafx.scene.shape.Line;
 import org.apache.commons.lang3.Validate;
 
@@ -23,7 +24,10 @@ import org.apache.commons.lang3.Validate;
  * Message to apply a JavaFX CSS effect to an edge.
  * @author Kasra Faghihi
  */
-public final class StyleEdge {
+public final class StyleEdge implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final String fromId;
     private final String toId;
     private final String style;

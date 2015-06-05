@@ -16,13 +16,17 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
  * Message to move a node in a graph.
  * @author Kasra Faghihi
  */
-public final class MoveNode {
+public final class MoveNode implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final String id;
     private final double x;
     private final double y;

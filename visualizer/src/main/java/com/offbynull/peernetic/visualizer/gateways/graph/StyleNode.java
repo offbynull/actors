@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import java.io.Serializable;
 import javafx.scene.control.Label;
 import org.apache.commons.lang3.Validate;
 
@@ -23,7 +24,10 @@ import org.apache.commons.lang3.Validate;
  * Message to apply a JavaFX CSS effect to a node.
  * @author Kasra Faghihi
  */
-public final class StyleNode {
+public final class StyleNode implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final String id;
     private final String style;
 

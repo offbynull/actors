@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
 import org.apache.commons.lang3.Validate;
 
 final class State {
@@ -22,9 +23,24 @@ final class State {
     private final Map<Address, Address> incomingLinks; // address of sender -> incoming link subcoroutine source id
     private final int maxCachedAddresses;
     private List<Address> addressCache; // address to handler
+    
+    private final Function<Address, String> selfAddressToIdMapper;
+    private final Function<Address, String> remoteAddressToIdMapper;
+    private final Function<String, Address> idToRemoteAddressMapper;
 
-    public State(long seed, int maxIncomingLinks, int maxOutgoingLinks, int maxCachedAddresses, Set<Address> bootstrapAddresses) {
+    public State(
+            long seed,
+            int maxIncomingLinks,
+            int maxOutgoingLinks,
+            int maxCachedAddresses,
+            Set<Address> bootstrapAddresses,
+            Function<Address, String> selfAddressToIdMapper,
+            Function<Address, String> remoteAddressToIdMapper,
+            Function<String, Address> idToRemoteAddressMapper) {
         Validate.notNull(bootstrapAddresses);
+        Validate.notNull(selfAddressToIdMapper);
+        Validate.notNull(remoteAddressToIdMapper);
+        Validate.notNull(idToRemoteAddressMapper);
         Validate.noNullElements(bootstrapAddresses);
         Validate.isTrue(maxIncomingLinks >= 0);
         Validate.isTrue(maxOutgoingLinks >= 0);
@@ -39,6 +55,10 @@ final class State {
         this.maxCachedAddresses = maxCachedAddresses;
         this.addressCache = new ArrayList<>(maxCachedAddresses);
         this.addressCache.addAll(bootstrapAddresses);
+        
+        this.selfAddressToIdMapper = selfAddressToIdMapper;
+        this.remoteAddressToIdMapper = remoteAddressToIdMapper;
+        this.idToRemoteAddressMapper = idToRemoteAddressMapper;
     }
 
     public String nextRandomId() {
@@ -141,5 +161,17 @@ final class State {
             // put in new arraylist because sublist retains original list
             addressCache = new ArrayList<>(addressCache.subList(addressCache.size() - maxCachedAddresses, addressCache.size()));
         }
+    }
+
+    public Function<Address, String> getSelfAddressToIdMapper() {
+        return selfAddressToIdMapper;
+    }
+
+    public Function<Address, String> getRemoteAddressToIdMapper() {
+        return remoteAddressToIdMapper;
+    }
+
+    public Function<String, Address> getIdToRemoteAddressMapper() {
+        return idToRemoteAddressMapper;
     }
 }

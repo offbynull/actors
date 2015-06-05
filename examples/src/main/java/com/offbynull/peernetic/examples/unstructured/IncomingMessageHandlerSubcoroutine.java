@@ -13,7 +13,6 @@ import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkReques
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkSuccessResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
-import com.sun.xml.internal.bind.v2.TODO;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
@@ -62,19 +61,17 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
             
 
             if (msg instanceof QueryRequest) {
-                // state.getLinks() will always be in the form actor:#:router:in# or actor:#:router:out#
+                // state.getLinkIds() will always be in the form actor:#:router:in# or actor:#:router:out#
                 // we need to strip out the router:in# and router:out#, which means we always need to remove the last 2 elements
-                Set<Address> savedLinks = state.getLinks();
-                Set<Address> correctedLinks = savedLinks.stream().map(x -> x.removeSuffix(2)).collect(Collectors.toSet());
+                Set<String> linkIds = state.getLinks().stream()
+                        .map(x -> x.removeSuffix(2))
+                        .map(state.getRemoteAddressToIdMapper())
+                        .collect(Collectors.toSet());
                 
-                TODO: WHEN USING UNRELIABLE PROXY, ADDRESSES IN LINKS HAVE LINK TO THIS NODE'S UNRELIABLE PROXY...
-                e.g. if actor:0 has link to actor:1 via unreliable proxy, then link is actor:unrel0:actor:unrel1...
-                     passing back actor:unrel0:actor:unrel1 to other nodes is incorrect, because it points to actor 0's unreliable proxy
-                
-                QueryResponse resp = new QueryResponse(correctedLinks);
+                QueryResponse resp = new QueryResponse(linkIds);
                 ctx.addOutgoingMessage(sourceId, ctx.getSource(), resp);
                 ctx.addOutgoingMessage(sourceId, logAddress,
-                        info("Incoming query request from {}, responding with {}", ctx.getSource(), correctedLinks));
+                        info("Incoming query request from {}, responding with {}", ctx.getSource(), linkIds));
             } else if (msg instanceof LinkRequest) {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("Incoming link request from {}", ctx.getSource()));
 

@@ -1,6 +1,5 @@
 package com.offbynull.peernetic.examples.unstructured.externalmessages;
 
-import com.offbynull.peernetic.core.shuttle.Address;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,15 +9,15 @@ import org.apache.commons.lang3.Validate;
 public final class QueryResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final UnmodifiableSet<Address> links;
+    private final UnmodifiableSet<String> linkIds;
 
-    public QueryResponse(Set<Address> links) {
-        Validate.notNull(links);
-        Validate.noNullElements(links);
-        this.links = (UnmodifiableSet<Address>) UnmodifiableSet.unmodifiableSet(new HashSet<Address>(links));
+    public QueryResponse(Set<String> linkIds) {
+        Validate.notNull(linkIds);
+        Validate.noNullElements(linkIds);
+        this.linkIds = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(linkIds));
     }
 
-    public UnmodifiableSet<Address> getLinks() {
-        return links;
+    public UnmodifiableSet<String> getLinkIds() {
+        return linkIds;
     }
 }

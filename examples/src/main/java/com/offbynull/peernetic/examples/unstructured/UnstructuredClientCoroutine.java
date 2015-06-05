@@ -23,23 +23,25 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
 
         Start start = ctx.getIncomingMessage();
-        Function<Address, String> graphSelfMapper = start.getSelfAddressToGraphIdMapper();
-        Function<Address, String> graphOtherMapper = start.getRemoteAddressToGraphIdMapper();
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         UnmodifiableSet<Address> bootstrapAddresses = start.getBootstrapAddresses();
+        Function<Address, String> selfAddressToIdMapper = start.getSelfAddressToIdMapper();
+        Function<Address, String> remoteAddressToIdMapper = start.getRemoteAddressToIdMapper();
+        Function<String, Address> idToRemoteAddressMapper = start.getIdToRemoteAddressMapper();
         long seed = start.getSeed();
 
         Random random = new Random(seed);
 
-        State state = new State(seed, 3, 4, 256, bootstrapAddresses);
+        State state = new State(seed, 3, 4, 256, bootstrapAddresses, selfAddressToIdMapper, remoteAddressToIdMapper,
+                idToRemoteAddressMapper);
 
         ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapAddresses));
-        ctx.addOutgoingMessage(graphAddress, new AddNode(graphSelfMapper.apply(ctx.getSelf())));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(selfAddressToIdMapper.apply(ctx.getSelf())));
         ctx.addOutgoingMessage(graphAddress,
                 new MoveNode(
-                        graphSelfMapper.apply(ctx.getSelf()),
+                        selfAddressToIdMapper.apply(ctx.getSelf()),
                         random.nextInt(1400),
                         random.nextInt(1400)
                 )
@@ -76,8 +78,6 @@ public final class UnstructuredClientCoroutine implements Coroutine {
             controller.add(
                     new OutgoingLinkSubcoroutine(
                             routerId.appendSuffix("out" + i),
-                            graphSelfMapper,
-                            graphOtherMapper,
                             graphAddress,
                             timerAddress,
                             logAddress,

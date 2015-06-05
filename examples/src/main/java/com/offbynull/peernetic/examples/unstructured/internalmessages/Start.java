@@ -10,8 +10,9 @@ import org.apache.commons.lang3.Validate;
 
 public final class Start {
 
-    private final Function<Address, String> selfAddressToGraphIdMapper;
-    private final Function<Address, String> remoteAddressToGraphIdMapper;
+    private final Function<Address, String> selfAddressToIdMapper;
+    private final Function<Address, String> remoteAddressToIdMapper;
+    private final Function<String, Address> idToRemoteAddressMapper;
     private final UnmodifiableSet<Address> bootstrapAddresses;
     private final long seed;
     private final Address timerPrefix;
@@ -19,14 +20,16 @@ public final class Start {
     private final Address logAddress;
 
     public Start(
-            Function<Address, String> selfAddressToGraphIdMapper,
-            Function<Address, String> remoteAddressToGraphIdMapper,
+            Function<Address, String> selfAddressToIdMapper,
+            Function<Address, String> remoteAddressToIdMapper,
+            Function<String, Address> idToRemoteAddressMapper,
             long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        this(selfAddressToGraphIdMapper,
-                remoteAddressToGraphIdMapper,
+        this(selfAddressToIdMapper,
+                remoteAddressToIdMapper,
+                idToRemoteAddressMapper,
                 Collections.emptySet(),
                 seed,
                 timerPrefix,
@@ -35,15 +38,17 @@ public final class Start {
     }
     
     public Start(
-            Function<Address, String> selfAddressToGraphIdMapper,
-            Function<Address, String> remoteAddressToGraphIdMapper,
+            Function<Address, String> selfAddressToIdMapper,
+            Function<Address, String> remoteAddressToIdMapper,
+            Function<String, Address> idToRemoteAddressMapper,
             Address bootstrapAddress,
             long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        this(selfAddressToGraphIdMapper,
-                remoteAddressToGraphIdMapper,
+        this(selfAddressToIdMapper,
+                remoteAddressToIdMapper,
+                idToRemoteAddressMapper,
                 Collections.singleton(bootstrapAddress),
                 seed,
                 timerPrefix,
@@ -52,21 +57,24 @@ public final class Start {
     }
     
     public Start(
-            Function<Address, String> selfAddressToGraphIdMapper,
-            Function<Address, String> remoteAddressToGraphIdMapper,
+            Function<Address, String> selfAddressToIdMapper,
+            Function<Address, String> remoteAddressToIdMapper,
+            Function<String, Address> idToRemoteAddressMapper,
             Set<Address> bootstrapAddresses,
             long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        Validate.notNull(selfAddressToGraphIdMapper);
-        Validate.notNull(remoteAddressToGraphIdMapper);
+        Validate.notNull(selfAddressToIdMapper);
+        Validate.notNull(remoteAddressToIdMapper);
+        Validate.notNull(idToRemoteAddressMapper);
         Validate.notNull(bootstrapAddresses);
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
         Validate.noNullElements(bootstrapAddresses);
-        this.selfAddressToGraphIdMapper = selfAddressToGraphIdMapper;
-        this.remoteAddressToGraphIdMapper = remoteAddressToGraphIdMapper;
+        this.selfAddressToIdMapper = selfAddressToIdMapper;
+        this.remoteAddressToIdMapper = remoteAddressToIdMapper;
+        this.idToRemoteAddressMapper = idToRemoteAddressMapper;
         this.bootstrapAddresses = (UnmodifiableSet<Address>) UnmodifiableSet.unmodifiableSet(new LinkedHashSet<Address>(bootstrapAddresses));
         this.seed = seed;
         this.timerPrefix = timerPrefix;
@@ -74,12 +82,16 @@ public final class Start {
         this.logAddress = logAddress;
     }
 
-    public Function<Address, String> getSelfAddressToGraphIdMapper() {
-        return selfAddressToGraphIdMapper;
+    public Function<Address, String> getSelfAddressToIdMapper() {
+        return selfAddressToIdMapper;
     }
 
-    public Function<Address, String> getRemoteAddressToGraphIdMapper() {
-        return remoteAddressToGraphIdMapper;
+    public Function<Address, String> getRemoteAddressToIdMapper() {
+        return remoteAddressToIdMapper;
+    }
+
+    public Function<String, Address> getIdToRemoteAddressMapper() {
+        return idToRemoteAddressMapper;
     }
 
     public UnmodifiableSet<Address> getBootstrapAddresses() {

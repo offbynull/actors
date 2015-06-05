@@ -9,9 +9,6 @@ import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkKeepAl
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkKeptAliveResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Check;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 
 final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
@@ -74,14 +71,9 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
                     
                     if (msg instanceof LinkKeepAliveRequest && sender.equals(requesterAddress)) { // if keepalive from source, queue up
                                                                                                   // response and continue to main loop
-                        // state.getLinks() will always be in the form actor:#:router:in# or actor:#:router:out#
-                        // we need to strip out the router:in# and router:out#, which means we always need to remove the last 2 elements
-                        Set<Address> savedLinks = state.getLinks();
-                        Set<Address> correctedLinks = savedLinks.stream().map(x -> x.removeSuffix(2)).collect(Collectors.toSet());
-                        
-                        ctx.addOutgoingMessage(ctx.getSource(), new LinkKeptAliveResponse(correctedLinks));
+                        ctx.addOutgoingMessage(ctx.getSource(), new LinkKeptAliveResponse());
                         ctx.addOutgoingMessage(sourceId, logAddress,
-                                info("Keepalive arrive from {}, responding with {}", ctx.getSource(), correctedLinks));
+                                info("Keepalive arrive from {}", ctx.getSource()));
                         break;
                     }
                 }

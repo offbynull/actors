@@ -17,14 +17,11 @@ import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
 import java.time.Duration;
-import java.util.function.Function;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
-    private final Function<Address, String> graphSelfMapper;
-    private final Function<Address, String> graphOtherMapper;
     private final Address graphAddress;
     private final Address timerAddress;
     private final Address logAddress;
@@ -32,22 +29,16 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
     public OutgoingLinkSubcoroutine(
             Address sourceId,
-            Function<Address, String> graphSelfMapper,
-            Function<Address, String> graphOtherMapper,
             Address graphAddress,
             Address timerAddress,
             Address logAddress,
             State state) {
         Validate.notNull(sourceId);
-        Validate.notNull(graphSelfMapper);
-        Validate.notNull(graphOtherMapper);
         Validate.notNull(graphAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(state);
         this.sourceId = sourceId;
-        this.graphSelfMapper = graphSelfMapper;
-        this.graphOtherMapper = graphOtherMapper;
         this.graphAddress = graphAddress;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -100,14 +91,14 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             ctx.addOutgoingMessage(sourceId, logAddress, info("Linking to {}", address));
             ctx.addOutgoingMessage(graphAddress,
                     new AddEdge(
-                            graphSelfMapper.apply(ctx.getSelf()),
-                            graphOtherMapper.apply(address)
+                            state.getSelfAddressToIdMapper().apply(ctx.getSelf()),
+                            state.getRemoteAddressToIdMapper().apply(address)
                     )
             );
             ctx.addOutgoingMessage(graphAddress,
                     new StyleEdge(
-                            graphSelfMapper.apply(ctx.getSelf()),
-                            graphOtherMapper.apply(address),
+                            state.getSelfAddressToIdMapper().apply(ctx.getSelf()),
+                            state.getRemoteAddressToIdMapper().apply(address),
                             "-fx-stroke: yellow"
                     )
             );
@@ -131,8 +122,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link", address));
                 ctx.addOutgoingMessage(graphAddress,
                         new RemoveEdge(
-                            graphSelfMapper.apply(ctx.getSelf()),
-                            graphOtherMapper.apply(address)
+                            state.getSelfAddressToIdMapper().apply(ctx.getSelf()),
+                            state.getRemoteAddressToIdMapper().apply(address)
                         )
                 );
                 continue reconnect;
@@ -141,8 +132,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded with link failure", address));
                 ctx.addOutgoingMessage(graphAddress,
                         new RemoveEdge(
-                            graphSelfMapper.apply(ctx.getSelf()),
-                            graphOtherMapper.apply(address)
+                            state.getSelfAddressToIdMapper().apply(ctx.getSelf()),
+                            state.getRemoteAddressToIdMapper().apply(address)
                         )
                 );
                 continue reconnect;
@@ -179,22 +170,21 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                     ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link refresh", address));
                     ctx.addOutgoingMessage(graphAddress,
                             new RemoveEdge(
-                                    graphSelfMapper.apply(ctx.getSelf()),
-                                    graphOtherMapper.apply(address)
+                                    state.getSelfAddressToIdMapper().apply(ctx.getSelf()),
+                                    state.getRemoteAddressToIdMapper().apply(address)
                             )
                     );
                     state.removeOutgoingLink(dstAddress);
                     continue reconnect;
                 }
                 
-                ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to link refresh with {}", address, resp.getLinks()));
-                state.addCachedAddresses(resp.getLinks());
+                ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to link refresh", address));
                     
                 if (!lineIsGreen) {
                     ctx.addOutgoingMessage(graphAddress,
                             new StyleEdge(
-                                    graphSelfMapper.apply(ctx.getSelf()),
-                                    graphOtherMapper.apply(address),
+                                    state.getSelfAddressToIdMapper().apply(ctx.getSelf()),
+                                    state.getRemoteAddressToIdMapper().apply(address),
                                     "-fx-stroke: green"
                             )
                     );

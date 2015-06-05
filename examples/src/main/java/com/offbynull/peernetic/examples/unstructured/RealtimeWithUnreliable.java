@@ -33,7 +33,7 @@ public final class RealtimeWithUnreliable {
         addSeedNode(actorThread, rand);
         
         // other actors + unrealiable proxies for those actors
-        for (int i = 1; i < 2; i++) {
+        for (int i = 1; i < 100; i++) {
             addNode(i, actorThread, rand);
 
             Thread.sleep(rand.nextInt(1000));
@@ -68,8 +68,9 @@ public final class RealtimeWithUnreliable {
                 id,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1),              // e.g. actor:0 -> 0
-                        addr -> addr.getElement(3).substring(5), // e.g. actor:unrel0:actor:unrel1 -> 1
+                        addr -> addr.getElement(1),                                      // e.g. actor:0 -> 0
+                        addr -> addr.getElement(3).substring(5),                         // e.g. actor:unrel0:actor:unrel1 -> 1
+                        str -> Address.of("actor", "unrel" + i, "actor", "unrel" + str), // e.g. 1 -> actor:unrel0:actor:unrel1
                         Address.of("actor", "unrel" + i, "actor", "unrel" + rand.nextInt(i)), // bootstrap proxy thru unreliable
                                                                                               // e.g. actor:unrel0:actor:unrel1
                         (long) i,
@@ -104,8 +105,9 @@ public final class RealtimeWithUnreliable {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1),              // e.g. actor:0 -> 0
-                        addr -> addr.getElement(3).substring(5), // e.g. actor:unrel0:actor:unrel1 -> 1
+                        addr -> addr.getElement(1),                                   // e.g. actor:0 -> 0
+                        addr -> addr.getElement(3).substring(5),                      // e.g. actor:unrel0:actor:unrel1 -> 1
+                        str -> Address.of("actor", "unrel0", "actor", "unrel" + str), // e.g. 1 -> actor:unrel0:actor:unrel1
                         0L,
                         Address.of("timer"),
                         Address.of("graph"),

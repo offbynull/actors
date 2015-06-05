@@ -42,8 +42,9 @@ public final class Realtime {
                 id,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1), // e.g. actor:0 -> 0
-                        addr -> addr.getElement(1), // e.g. actor:0 -> 0
+                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
+                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
+                        str -> Address.of("actor", str), // e.g. 0 -> actor:0
                         Address.of("actor", "" + rand.nextInt(i)),
                         (long) i,
                         Address.of("timer"),
@@ -58,8 +59,9 @@ public final class Realtime {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1), // e.g. actor:0 -> 0
-                        addr -> addr.getElement(1), // e.g. actor:0 -> 0
+                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
+                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
+                        str -> Address.of("actor", str), // e.g. 0 -> actor:0
                         Address.of("actor", "0"),
                         0L,
                         Address.of("timer"),

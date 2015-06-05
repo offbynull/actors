@@ -11,6 +11,8 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
 import java.time.Duration;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
@@ -72,8 +74,11 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
 
-            ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to query with {}", address, response.getLinks()));
-            state.addCachedAddresses(response.getLinks());
+            ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to query with {}", address, response.getLinkIds()));
+            Set<Address> links = response.getLinkIds().stream()
+                    .map(state.getIdToRemoteAddressMapper())
+                    .collect(Collectors.toSet());
+            state.addCachedAddresses(links);
         }
     }
 

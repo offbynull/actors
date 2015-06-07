@@ -23,18 +23,31 @@ import org.apache.commons.lang3.Validate;
 final class EncapsulatedMessage implements Serializable {
     private static final long serialVersionUID = 1L;
     
+    private final Address srcSuffix;
     private final Address dstSuffix;
     private final Object object;
 
-    public EncapsulatedMessage(Address dstSuffix, Object object) {
+    public EncapsulatedMessage(Address srcSuffix, Address dstSuffix, Object object) {
+        Validate.notNull(srcSuffix);
         Validate.notNull(dstSuffix);
         Validate.notNull(object);
         
-        this.dstSuffix = dstSuffix; // this can be null
-        this.object = object; // this technically shouldn't be null
+        this.srcSuffix = srcSuffix;
+        this.dstSuffix = dstSuffix;
+        this.object = object;
     }
 
-    public Address getAddressSuffix() {
+    public Address getSourceSuffix() {
+        // since this is an object that's sent by UDP transport, we should check here as well, because someone could easily serialize this
+        // field to be null
+        Validate.notNull(srcSuffix);
+        return srcSuffix;
+    }
+
+    public Address getDestinationSuffix() {
+        // since this is an object that's sent by UDP transport, we should check here as well, because someone could easily serialize this
+        // field to be null
+        Validate.notNull(dstSuffix);
         return dstSuffix;
     }
 

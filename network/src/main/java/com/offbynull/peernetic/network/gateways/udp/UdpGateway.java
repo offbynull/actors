@@ -120,19 +120,24 @@ public final class UdpGateway implements InputGateway {
      * @param bindAddress address to bind to
      * @param prefix address prefix for this gateway
      * @param outgoingShuttle shuttle to forward incoming messages to
-     * @param dstId address to forward incoming messages to
+     * @param outgoingAddress address to forward incoming messages to / address to accept incoming messages from
      * @param serializer serializer to use for serialization / deserialization
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code outgoingShuttle}'s address prefix is not a prefix of {@code dstId}
+     * @throws IllegalArgumentException if {@code outgoingShuttle}'s address prefix is not a prefix of {@code outgoingAddress}
      * @throws IllegalStateException if failed to set up UDP channel
      */
-    public UdpGateway(InetSocketAddress bindAddress, String prefix, Shuttle outgoingShuttle, Address dstId, Serializer serializer) {
+    public UdpGateway(
+            InetSocketAddress bindAddress,
+            String prefix,
+            Shuttle outgoingShuttle,
+            Address outgoingAddress,
+            Serializer serializer) {
         Validate.notNull(bindAddress);
         Validate.notNull(prefix);
         Validate.notNull(outgoingShuttle);
-        Validate.notNull(dstId);
+        Validate.notNull(outgoingAddress);
         Validate.notNull(serializer);
-        Validate.isTrue(Address.of(outgoingShuttle.getPrefix()).isPrefixOf(dstId));
+        Validate.isTrue(Address.of(outgoingShuttle.getPrefix()).isPrefixOf(outgoingAddress));
 
         this.eventLoopGroup = new NioEventLoopGroup(1, new DefaultThreadFactory(NioEventLoopGroup.class, true));
         this.closeEventLoopGroup = true;
@@ -148,7 +153,7 @@ public final class UdpGateway implements InputGateway {
                             ch.pipeline()
                                     .addLast(new SerializerEncodeHandler(serializer))
                                     .addLast(new SerializerDecodeHandler(serializer))
-                                    .addLast(new IncomingMessageShuttleHandler(Address.of(prefix), outgoingShuttle, dstId));
+                                    .addLast(new IncomingMessageShuttleHandler(Address.of(prefix), outgoingShuttle, outgoingAddress));
                         }
                     });
             channel = cb.bind(bindAddress).sync().channel();
@@ -165,7 +170,7 @@ public final class UdpGateway implements InputGateway {
         }
         
         this.channel = channel;
-        this.srcShuttle = new InternalShuttle(prefix, channel);
+        this.srcShuttle = new InternalShuttle(prefix, outgoingAddress, channel);
     }
     
     @Override

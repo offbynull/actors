@@ -35,21 +35,23 @@ final class InternalShuttle implements Shuttle {
 
     private static final Logger LOG = LoggerFactory.getLogger(InternalShuttle.class);
     
-    private String prefix;
+    private Address selfPrefix;
+    private Address senderPrefix;
     private Channel channel;
 
-    InternalShuttle(String prefix, Channel channel) {
-        Validate.notNull(prefix);
-        Validate.notEmpty(prefix);
+    InternalShuttle(String selfPrefix, Address senderPrefix, Channel channel) {
+        Validate.notNull(selfPrefix);
+        Validate.notNull(senderPrefix);
         Validate.notNull(channel);
 
-        this.prefix = prefix;
+        this.selfPrefix = Address.of(selfPrefix);
+        this.senderPrefix = senderPrefix;
         this.channel = channel;
     }
 
     @Override
     public String getPrefix() {
-        return prefix;
+        return selfPrefix.getElement(0);
     }
 
     @Override
@@ -59,18 +61,20 @@ final class InternalShuttle implements Shuttle {
 
         messages.forEach(x -> {
             try {
+                Address src = x.getSourceAddress();
                 Address dst = x.getDestinationAddress();
                 
+                Validate.isTrue(selfPrefix.isPrefixOf(dst));
                 Validate.isTrue(dst.size() >= 2);
                 String dstPrefix = dst.getElement(0);
                 String dstAddress = dst.getElement(1);
-                
-                Validate.isTrue(dstPrefix.equals(prefix));
-                
-                Address dstSuffix = dst.removePrefix(Address.of(dstPrefix, dstAddress));
-
                 InetSocketAddress dstAddr = fromShuttleAddress(dstAddress);
-                EncapsulatedMessage em = new EncapsulatedMessage(dstSuffix, x.getMessage());
+                Address dstSuffix = dst.removePrefix(Address.of(dstPrefix, dstAddress));
+                
+                Validate.isTrue(senderPrefix.isPrefixOf(src));
+                Address srcSuffix = src.removePrefix(senderPrefix);
+
+                EncapsulatedMessage em = new EncapsulatedMessage(srcSuffix, dstSuffix, x.getMessage());
                 DefaultAddressedEnvelope<Object, InetSocketAddress> datagramPacket = new DefaultAddressedEnvelope<>(em, dstAddr);
                 
                 LOG.debug("Outgoing packet to {}: {}", dstAddr, x.getMessage());

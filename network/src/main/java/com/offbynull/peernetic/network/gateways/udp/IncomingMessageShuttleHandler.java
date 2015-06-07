@@ -37,18 +37,18 @@ final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object
     
     private Address srcAddressPrefix;
     private Shuttle dstShuttle;
-    private Address dstAddress;
+    private Address dstAddressPrefix;
 
-    IncomingMessageShuttleHandler(Address srcAddressPrefix, Shuttle dstShuttle, Address dstAddress) {
+    IncomingMessageShuttleHandler(Address srcAddressPrefix, Shuttle dstShuttle, Address dstAddressPrefix) {
         Validate.notNull(srcAddressPrefix);
         Validate.notNull(dstShuttle);
-        Validate.notNull(dstAddress);
+        Validate.notNull(dstAddressPrefix);
         Validate.isTrue(!srcAddressPrefix.isEmpty());
-        Validate.isTrue(!dstAddress.isEmpty());
+        Validate.isTrue(!dstAddressPrefix.isEmpty());
 
         this.srcAddressPrefix = srcAddressPrefix;
         this.dstShuttle = dstShuttle;
-        this.dstAddress = dstAddress;
+        this.dstAddressPrefix = dstAddressPrefix;
     }
     
     @Override
@@ -75,7 +75,9 @@ final class IncomingMessageShuttleHandler extends MessageToMessageDecoder<Object
         EncapsulatedMessage em = (EncapsulatedMessage) obj;
         Address srcAddress = srcAddressPrefix
                 .appendSuffix(toShuttleAddress(remoteAddress))
-                .appendSuffix(em.getAddressSuffix());
+                .appendSuffix(em.getSourceSuffix());
+        Address dstAddress = dstAddressPrefix
+                .appendSuffix(em.getDestinationSuffix());
         
         Object msgObj = em.getObject();
         

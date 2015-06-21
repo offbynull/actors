@@ -18,7 +18,7 @@ import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import org.apache.commons.lang3.Validate;
 
-final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
+final class InitRouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
 
     private final Address sourceId;
     
@@ -28,7 +28,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
     private final ExternalPointer bootstrapNode;
     private final NodeId findId;
 
-    public InitRouteToSuccessorTask(Address sourceId, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
+    public InitRouteToSuccessorSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
             NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
@@ -100,7 +100,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
         Validate.notNull(findId);
         
         String idSuffix = "initroutetopred" + state.nextRandomId();
-        InitRouteToTask innerCoroutine = new InitRouteToTask(
+        InitRouteToSubcoroutine innerCoroutine = new InitRouteToSubcoroutine(
                 sourceId.appendSuffix(idSuffix),
                 state,
                 timerAddress,

@@ -17,7 +17,7 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import org.apache.commons.lang3.Validate;
 
-final class RouteToTask implements Subcoroutine<Pointer> {
+final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
 
     private final Address sourceId;
     private final State state;
@@ -26,7 +26,7 @@ final class RouteToTask implements Subcoroutine<Pointer> {
     
     private final NodeId findId;
 
-    public RouteToTask(Address sourceId, State state, Address timerAddress, Address logAddress, NodeId findId) {
+    public RouteToSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);

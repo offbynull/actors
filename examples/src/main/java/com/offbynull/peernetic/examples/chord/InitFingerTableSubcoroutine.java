@@ -15,7 +15,7 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import org.apache.commons.lang3.Validate;
 
-final class InitFingerTableTask implements Subcoroutine<Void> {
+final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
     
     private final Address sourceId;
     
@@ -25,7 +25,7 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
     
     private final Address bootstrapAddress;
 
-    public InitFingerTableTask(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
+    public InitFingerTableSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
@@ -106,7 +106,7 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
         Validate.notNull(findId);
         
         String idSuffix = "" + state.nextRandomId();
-        InitRouteToSuccessorTask innerCoroutine = new InitRouteToSuccessorTask(
+        InitRouteToSuccessorSubcoroutine innerCoroutine = new InitRouteToSuccessorSubcoroutine(
                 sourceId.appendSuffix(idSuffix),
                 state,
                 timerAddress,

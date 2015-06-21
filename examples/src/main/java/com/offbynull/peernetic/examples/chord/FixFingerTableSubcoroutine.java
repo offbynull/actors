@@ -15,7 +15,7 @@ import java.time.Duration;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-final class FixFingerTableTask implements Subcoroutine<Void> {
+final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
     
@@ -23,7 +23,7 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
     private final Address timerAddress;
     private final Address logAddress;
 
-    public FixFingerTableTask(Address sourceId, State state, Address timerAddress, Address logAddress) {
+    public FixFingerTableSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
@@ -110,7 +110,7 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
 
     private Pointer funnelToRouteToSuccessorCoroutine(Continuation cnt, NodeId findId) throws Exception {
         String idSuffix = "routetosucc" + state.nextRandomId();
-        RouteToSuccessorTask innerCoroutine = new RouteToSuccessorTask(
+        RouteToSuccessorSubcoroutine innerCoroutine = new RouteToSuccessorSubcoroutine(
                 sourceId.appendSuffix(idSuffix),
                 state,
                 timerAddress,

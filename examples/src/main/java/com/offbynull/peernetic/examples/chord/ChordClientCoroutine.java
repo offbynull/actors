@@ -57,7 +57,7 @@ public final class ChordClientCoroutine implements Coroutine {
 
             
             // Join (or just initialize if no bootstrap node is set)
-            JoinTask joinTask = new JoinTask(Address.of("join"), state, timerPrefix, logAddress, bootstrapAddress);
+            JoinSubcoroutine joinTask = new JoinSubcoroutine(Address.of("join"), state, timerPrefix, logAddress, bootstrapAddress);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
@@ -71,15 +71,15 @@ public final class ChordClientCoroutine implements Coroutine {
             Controller controller = router.getController();
             
             controller.add(
-                    new UpdateOthersTask(mainSourceId.appendSuffix("updateothers"), state, timerPrefix, logAddress),
+                    new UpdateOthersSubcoroutine(mainSourceId.appendSuffix("updateothers"), state, timerPrefix, logAddress),
                     AddBehaviour.ADD_PRIME); // notify our fingers
             controller.add(
-                    new FixFingerTableTask(mainSourceId.appendSuffix("fixfinger"), state, timerPrefix, logAddress),
+                    new FixFingerTableSubcoroutine(mainSourceId.appendSuffix("fixfinger"), state, timerPrefix, logAddress),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new StabilizeTask(mainSourceId.appendSuffix("stabilize"), state, timerPrefix, logAddress),
+                    new StabilizeSubcoroutine(mainSourceId.appendSuffix("stabilize"), state, timerPrefix, logAddress),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
-            controller.add(new CheckPredecessorTask(mainSourceId.appendSuffix("checkpred"), state, timerPrefix),
+            controller.add(new CheckPredecessorSubcoroutine(mainSourceId.appendSuffix("checkpred"), state, timerPrefix),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             
 

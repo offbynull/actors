@@ -32,7 +32,7 @@ public final class Main {
         
         
         
-        int bits = 7;
+        int bits = 2;
         int count = (1 << bits) - 1;
         
         for (int i = 0; i <= count; i++) {

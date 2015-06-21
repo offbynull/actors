@@ -14,14 +14,14 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
-final class CheckPredecessorTask implements Subcoroutine<Void> {
+final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
     
     private final State state;
     private final Address timerAddress;
 
-    public CheckPredecessorTask(Address sourceId, State state, Address timerAddress) {
+    public CheckPredecessorSubcoroutine(Address sourceId, State state, Address timerAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);

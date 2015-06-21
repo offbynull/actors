@@ -7,7 +7,7 @@ import com.offbynull.peernetic.examples.chord.model.FingerTable;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import org.apache.commons.lang3.Validate;
 
-final class JoinTask implements Coroutine {
+final class JoinSubcoroutine implements Coroutine {
 
     private final Address sourceId;
     
@@ -17,7 +17,7 @@ final class JoinTask implements Coroutine {
     
     private final Address bootstrapAddress;
 
-    public JoinTask(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
+    public JoinSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
@@ -56,7 +56,7 @@ final class JoinTask implements Coroutine {
         Validate.notNull(initialAddress);
         
         String idSuffix = "" + state.nextRandomId();
-        InitFingerTableTask innerCoroutine = new InitFingerTableTask(
+        InitFingerTableSubcoroutine innerCoroutine = new InitFingerTableSubcoroutine(
                 sourceId.appendSuffix(idSuffix),
                 state,
                 timerAddress,

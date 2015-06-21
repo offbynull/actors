@@ -15,14 +15,14 @@ import com.offbynull.peernetic.examples.chord.model.Pointer;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
-final class UpdateOthersTask implements Subcoroutine<Void> {
+final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
 
     private final Address sourceId;
     private final State state;
     private final Address logAddress;
     private final Address timerAddress;
 
-    public UpdateOthersTask(Address sourceId, State state, Address timerAddress, Address logAddress) {
+    public UpdateOthersSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
@@ -105,7 +105,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
         Validate.notNull(routerId);
 
         String idSuffix = "routeto" + state.nextRandomId();
-        RouteToTask innerCoroutine = new RouteToTask(
+        RouteToSubcoroutine innerCoroutine = new RouteToSubcoroutine(
                 sourceId.appendSuffix(idSuffix),
                 state,
                 timerAddress,

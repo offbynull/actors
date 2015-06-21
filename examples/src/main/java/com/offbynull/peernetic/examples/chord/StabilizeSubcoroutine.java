@@ -24,14 +24,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-final class StabilizeTask implements Subcoroutine<Void> {
+final class StabilizeSubcoroutine implements Subcoroutine<Void> {
     
     private final Address sourceId;
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
 
-    public StabilizeTask(Address sourceId, State state, Address timerAddress, Address logAddress) {
+    public StabilizeSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);

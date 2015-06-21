@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
@@ -34,12 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class ChordClientCoroutine implements Coroutine {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(ChordClientCoroutine.class);
 
     @Override
     public void run(Continuation cnt) throws Exception {
@@ -48,6 +45,7 @@ public final class ChordClientCoroutine implements Coroutine {
         Start start = ctx.getIncomingMessage();
         Address timerPrefix = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
+        Address logAddress = start.getLogAddress();
         NodeId selfId = start.getNodeId();
         Address bootstrapAddress = start.getBootstrapAddress();
 
@@ -55,11 +53,11 @@ public final class ChordClientCoroutine implements Coroutine {
         
         Set<Pointer> lastNotifiedPointers = new HashSet<>();
         try {
-            State state = new State(timerPrefix, selfId, bootstrapAddress);
+            State state = new State(selfId);
 
             
             // Join (or just initialize if no bootstrap node is set)
-            JoinTask joinTask = new JoinTask(Address.of("join"), state);
+            JoinTask joinTask = new JoinTask(Address.of("join"), state, timerPrefix, logAddress, bootstrapAddress);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
@@ -72,10 +70,17 @@ public final class ChordClientCoroutine implements Coroutine {
             SubcoroutineRouter router = new SubcoroutineRouter(mainSourceId, ctx);
             Controller controller = router.getController();
             
-            controller.add(new UpdateOthersTask(mainSourceId.appendSuffix("updateothers"), state), AddBehaviour.ADD_PRIME); // notify our fingers
-            controller.add(new FixFingerTableTask(mainSourceId.appendSuffix("fixfinger"), state), AddBehaviour.ADD_PRIME_NO_FINISH);
-            controller.add(new StabilizeTask(mainSourceId.appendSuffix("stabilize"), state), AddBehaviour.ADD_PRIME_NO_FINISH);
-            controller.add(new CheckPredecessorTask(mainSourceId.appendSuffix("checkpred"), state), AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(
+                    new UpdateOthersTask(mainSourceId.appendSuffix("updateothers"), state, timerPrefix, logAddress),
+                    AddBehaviour.ADD_PRIME); // notify our fingers
+            controller.add(
+                    new FixFingerTableTask(mainSourceId.appendSuffix("fixfinger"), state, timerPrefix, logAddress),
+                    AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(
+                    new StabilizeTask(mainSourceId.appendSuffix("stabilize"), state, timerPrefix, logAddress),
+                    AddBehaviour.ADD_PRIME_NO_FINISH);
+            controller.add(new CheckPredecessorTask(mainSourceId.appendSuffix("checkpred"), state, timerPrefix),
+                    AddBehaviour.ADD_PRIME_NO_FINISH);
             
 
             while (true) {
@@ -88,8 +93,8 @@ public final class ChordClientCoroutine implements Coroutine {
                     Object msg = ctx.getIncomingMessage();
                     Address fromAddress = ctx.getSource();
 
-                    LOG.debug("{} {} - Processing {} from {} to {}", state.getSelfId(), "", msg.getClass(), fromAddress,
-                            ctx.getDestination());
+                    ctx.addOutgoingMessage(logAddress, debug("{} {} - Processing {} from {} to {}", state.getSelfId(), "", msg.getClass(),
+                            fromAddress, ctx.getDestination()));
 
                     if (msg instanceof GetIdRequest) {
                         GetIdRequest extMsg = (GetIdRequest) msg;
@@ -153,8 +158,8 @@ public final class ChordClientCoroutine implements Coroutine {
                             List<Pointer> oldFingers = state.getFingers();
                             boolean replaced = state.replaceFinger(newFinger);
                             List<Pointer> newFingers = state.getFingers();
-                            LOG.debug("{} {} - Update finger with {}\nBefore: {}\nAfter: {}", state.getSelfId(), "",
-                                    newFinger, oldFingers, newFingers);
+                            ctx.addOutgoingMessage(logAddress, debug("{} {} - Update finger with {}\nBefore: {}\nAfter: {}",
+                                    state.getSelfId(), "", newFinger, oldFingers, newFingers));
 //                            ExternalPointer pred = state.getPredecessor();
 //                            if (replaced && pred != null) {
 //                                ctx.addOutgoingMessage(

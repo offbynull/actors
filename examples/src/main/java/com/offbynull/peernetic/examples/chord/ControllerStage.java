@@ -60,7 +60,8 @@ final class ControllerStage extends Stage {
                                     new NodeId(id, bits),
                                     new Random(id),
                                     Address.fromString("timer"),
-                                    Address.fromString("graph")
+                                    Address.fromString("graph"),
+                                    Address.fromString("log")
                             )
                     );
                 }

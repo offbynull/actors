@@ -14,21 +14,21 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class CheckPredecessorTask implements Subcoroutine<Void> {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(CheckPredecessorTask.class);
 
     private final Address sourceId;
+    
     private final State state;
+    private final Address timerAddress;
 
-    public CheckPredecessorTask(Address sourceId, State state) {
+    public CheckPredecessorTask(Address sourceId, State state, Address timerAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
     }
 
     @Override
@@ -77,7 +77,7 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
         new SleepSubcoroutine.Builder()
                 .id(sourceId)
                 .duration(duration)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .build()
                 .run(cnt);
     }
@@ -88,7 +88,7 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
                 .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

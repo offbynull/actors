@@ -4,6 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
@@ -14,23 +15,27 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class InitFingerTableTask implements Subcoroutine<Void> {
     
-    private static final Logger LOG = LoggerFactory.getLogger(InitFingerTableTask.class);
-
-    private final Address bootstrapAddress;
     private final Address sourceId;
+    
     private final State state;
+    private final Address timerAddress;
+    private final Address logAddress;
+    
+    private final Address bootstrapAddress;
 
-    public InitFingerTableTask(Address sourceId, State state, Address bootstrapAddress) {
+    public InitFingerTableTask(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
+        Validate.notNull(logAddress);
         Validate.notNull(bootstrapAddress);
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
+        this.logAddress = logAddress;
         this.bootstrapAddress = bootstrapAddress;
     }
 
@@ -49,7 +54,8 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
                 GetIdResponse.class);
         ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapAddress); // fails if id == self
         
-        LOG.debug("{} {} - Bootstrap node details: {}", state.getSelfId(), sourceId, bootstrapNode);
+        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Bootstrap node details: {}", state.getSelfId(), sourceId,
+                bootstrapNode));
         
         fingerTable.put(bootstrapNode);
         successorTable.updateTrim(bootstrapNode);
@@ -68,11 +74,13 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
             // set in to finger table
             state.validateExternalId(foundFinger);
             fingerTable.put((ExternalPointer) foundFinger);
-            
-            LOG.debug("{} {} - Found finger at index {} is {}", state.getSelfId(), sourceId, i, foundFinger);
+
+            ctx.addOutgoingMessage(sourceId, logAddress,
+                    debug("{} {} - Found finger at index {} is {}", state.getSelfId(), sourceId, i, foundFinger));
         }
-        
-        LOG.debug("{} {} - Initialization of finger table is complete: {}", state.getSelfId(), sourceId, state.getFingers());
+
+        ctx.addOutgoingMessage(sourceId, logAddress,
+                debug("{} {} - Initialization of finger table is complete: {}", state.getSelfId(), sourceId, state.getFingers()));
         
         return null;
     }
@@ -88,7 +96,7 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
                 .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);
@@ -102,6 +110,8 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
         InitRouteToSuccessorTask innerCoroutine = new InitRouteToSuccessorTask(
                 sourceId.appendSuffix(idSuffix),
                 state,
+                timerAddress,
+                logAddress,
                 bootstrapNode,
                 findId);
         return innerCoroutine.run(cnt);

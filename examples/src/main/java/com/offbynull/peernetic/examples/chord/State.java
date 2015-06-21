@@ -17,8 +17,6 @@ import org.apache.commons.lang3.Validate;
 
 final class State {
     
-    private final Address timerPrefix;
-    
     private ExternalMessageIdGenerator externalMessageIdGenerator = new ExternalMessageIdGenerator(new Random());
     
     private FingerTable fingerTable;
@@ -26,28 +24,16 @@ final class State {
     private ExternalPointer predecessor;
     
     private NodeId selfId;
-    private Address bootstrapAddress;
     
-    public State(Address timerPrefix, NodeId selfId, Address bootstrapAddress) {
-        Validate.notNull(timerPrefix);
+    public State(NodeId selfId) {
         Validate.notNull(selfId);
-        this.timerPrefix = timerPrefix;
         this.selfId = selfId;
-        this.bootstrapAddress = bootstrapAddress;
-    }
-
-    public Address getTimerPrefix() {
-        return timerPrefix;
     }
 
     public NodeId getSelfId() {
         return selfId;
     }
-
-    public Address getBootstrapAddress() {
-        return bootstrapAddress;
-    }
-
+    
     private FingerTable getFingerTable() {
         return fingerTable;
     }

@@ -4,6 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
@@ -17,26 +18,29 @@ import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(InitRouteToSuccessorTask.class);
 
+    private final Address sourceId;
+    
+    private final State state;
+    private final Address timerAddress;
+    private final Address logAddress;
     private final ExternalPointer bootstrapNode;
     private final NodeId findId;
-    
-    private final Address sourceId;
-    private final State state;
 
-    public InitRouteToSuccessorTask(Address sourceId, State state, ExternalPointer bootstrapNode, NodeId findId) {
+    public InitRouteToSuccessorTask(Address sourceId, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
+            NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
+        Validate.notNull(logAddress);
         Validate.notNull(bootstrapNode);
         Validate.notNull(findId);
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
+        this.logAddress = logAddress;
         this.bootstrapNode = bootstrapNode;
         this.findId = findId;
     }
@@ -45,14 +49,16 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
     public Pointer run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        LOG.debug("{} {} - Routing to predecessor of {}", state.getSelfId(), sourceId, findId);
+        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Routing to predecessor of {}", state.getSelfId(), sourceId, findId));
         ExternalPointer pointer = funnelToInitRouteToCoroutine(cnt, bootstrapNode, findId);
         if (pointer == null) {
-            LOG.debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), sourceId, findId);
+            ctx.addOutgoingMessage(sourceId, logAddress,
+                    debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), sourceId, findId));
             return null;
         }
         
-        LOG.debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer);
+        ctx.addOutgoingMessage(sourceId, logAddress,
+                debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer));
         Address ptrAddress = ((ExternalPointer) pointer).getAddress();
         GetSuccessorResponse gsr = funnelToRequestCoroutine(
                     cnt,
@@ -78,8 +84,9 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
                 new GetIdRequest(state.generateExternalMessageId()),
                 GetIdResponse.class);
         Pointer found = state.toPointer(gir.getChordId(), succAddress);
-        
-        LOG.debug("{} {} - Successor of {} routed to {}", state.getSelfId(), sourceId, findId, found);
+
+        ctx.addOutgoingMessage(sourceId, logAddress,
+                debug("{} {} - Successor of {} routed to {}", state.getSelfId(), sourceId, findId, found));
         return found;
     }
     
@@ -97,6 +104,8 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
         InitRouteToTask innerCoroutine = new InitRouteToTask(
                 sourceId.appendSuffix(idSuffix),
                 state,
+                timerAddress,
+                logAddress,
                 bootstrapNode,
                 findId);
         innerCoroutine.run(cnt);
@@ -109,7 +118,7 @@ final class InitRouteToSuccessorTask implements Subcoroutine<Pointer> {
                 .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

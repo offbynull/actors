@@ -1,8 +1,11 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
@@ -14,38 +17,43 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class RouteToTask implements Subcoroutine<Pointer> {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(RouteToTask.class);
 
-    private final NodeId findId;
-    
     private final Address sourceId;
     private final State state;
+    private final Address timerAddress;
+    private final Address logAddress;
+    
+    private final NodeId findId;
 
-    public RouteToTask(Address sourceId, State state, NodeId findId) {
+    public RouteToTask(Address sourceId, State state, Address timerAddress, Address logAddress, NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
+        Validate.notNull(logAddress);
         Validate.notNull(findId);
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
+        this.logAddress = logAddress;
         this.findId = findId;
     }
 
     @Override
     public Pointer run(Continuation cnt) throws Exception {
+        Context ctx = (Context) cnt.getContext();
+        
         NodeId selfId = state.getSelfId();
         
-        LOG.debug("{} {} - Routing to {}", state.getSelfId(), sourceId, findId);
+        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Routing to {}", state.getSelfId(), sourceId, findId));
         
         
         Pointer foundPointer;
         Pointer currentNode = state.getSelfPointer();
         while (true) {
-            LOG.debug("{} {} - Search for {} moving forward to {}", state.getSelfId(), sourceId, findId, currentNode);
+            ctx.addOutgoingMessage(sourceId, logAddress,
+                    debug("{} {} - Search for {} moving forward to {}", state.getSelfId(), sourceId, findId, currentNode));
             
             NodeId successorId;
             if (currentNode instanceof InternalPointer) {
@@ -68,7 +76,8 @@ final class RouteToTask implements Subcoroutine<Pointer> {
                                 GetSuccessorResponse.class);
                     successorId = gsr.getEntries().get(0).getChordId();
                 } catch (RuntimeException re) {
-                    LOG.warn("{} {} - Routing failed -- failed to get successor from {}", state.getSelfId(), sourceId, currentNode);
+                    ctx.addOutgoingMessage(sourceId, logAddress,
+                            warn("{} {} - Routing failed -- failed to get successor from {}", state.getSelfId(), sourceId, currentNode));
                     return null;
                 }
                 
@@ -87,7 +96,11 @@ final class RouteToTask implements Subcoroutine<Pointer> {
                                     findId),
                             GetClosestPrecedingFingerResponse.class);
                 } catch (RuntimeException re) {
-                    LOG.warn("{} {} - Routing failed -- failed to get closest finger from {}", state.getSelfId(), sourceId, currentNode);
+                    ctx.addOutgoingMessage(sourceId, logAddress,
+                            warn("{} {} - Routing failed -- failed to get closest finger from {}",
+                                    state.getSelfId(),
+                                    sourceId,
+                                    currentNode));
                     return null;
                 }
                 
@@ -105,7 +118,8 @@ final class RouteToTask implements Subcoroutine<Pointer> {
         }
 
         
-        LOG.debug("{} {} - Routing to {} resulted in {}", state.getSelfId(), sourceId, findId, foundPointer);
+        ctx.addOutgoingMessage(sourceId, logAddress,
+                debug("{} {} - Routing to {} resulted in {}", state.getSelfId(), sourceId, findId, foundPointer));
         return foundPointer;
     }
     
@@ -120,7 +134,7 @@ final class RouteToTask implements Subcoroutine<Pointer> {
                 .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

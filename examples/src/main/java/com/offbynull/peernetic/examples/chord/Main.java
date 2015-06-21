@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
@@ -20,10 +21,12 @@ public final class Main {
         GraphGateway.startApplication();
         
         GraphGateway graphGateway = new GraphGateway("graph");
+        LogGateway logGateway = new LogGateway("log");
         TimerGateway timerGateway = new TimerGateway("timer");
         ActorThread actorThread = ActorThread.create("actor");
         
         timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
+        actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
         actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
         actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
         

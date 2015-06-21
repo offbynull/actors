@@ -4,6 +4,7 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
@@ -18,26 +19,27 @@ import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
     
-    private static final Logger LOG = LoggerFactory.getLogger(RouteToSuccessorTask.class);
-
-    private final NodeId findId;
-    
-    private Pointer found;
-    
     private final Address sourceId;
     private final State state;
+    private final Address timerAddress;
+    private final Address logAddress;
+    
+    private final NodeId findId;
+    private Pointer found;
 
-    public RouteToSuccessorTask(Address sourceId, State state, NodeId findId) {
+    public RouteToSuccessorTask(Address sourceId, State state, Address timerAddress, Address logAddress, NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
+        Validate.notNull(logAddress);
         Validate.notNull(findId);
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
+        this.logAddress = logAddress;
         this.findId = findId;
     }
     
@@ -45,13 +47,15 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
     public Pointer run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        LOG.debug("{} {} - Routing to predecessor of {}", state.getSelfId(), sourceId, findId);
+        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Routing to predecessor of {}", state.getSelfId(), sourceId, findId));
         Pointer pointer = funnelToRouteToCoroutine(cnt, findId);
         if (pointer == null) {
-            LOG.debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), sourceId, findId);
+            ctx.addOutgoingMessage(sourceId, logAddress,
+                    debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), sourceId, findId));
             return null;
         }
-        LOG.debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer);
+        ctx.addOutgoingMessage(sourceId, logAddress,
+                debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer));
         
         if (pointer instanceof InternalPointer) {
             // If routed to self, return own successor
@@ -101,7 +105,8 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
             throw new IllegalArgumentException();
         }
         
-        LOG.debug("{} {} - Successor of {} routed to {}", state.getSelfId(), sourceId, findId, found);
+        ctx.addOutgoingMessage(sourceId, logAddress,
+                debug("{} {} - Successor of {} routed to {}", state.getSelfId(), sourceId, findId, found));
         return found;
     }
     
@@ -118,6 +123,8 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
         RouteToTask innerCoroutine = new RouteToTask(
                 sourceId.appendSuffix(idSuffix),
                 state,
+                timerAddress,
+                logAddress,
                 findId);
         return innerCoroutine.run(cnt);
     }
@@ -128,7 +135,7 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
                 .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

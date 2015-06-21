@@ -6,39 +6,45 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class JoinTask implements Coroutine {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(JoinTask.class);
 
     private final Address sourceId;
+    
     private final State state;
+    private final Address timerAddress;
+    private final Address logAddress;
+    
+    private final Address bootstrapAddress;
 
-    public JoinTask(Address sourceId, State state) {
+    public JoinTask(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
+        Validate.notNull(logAddress);
+//        Validate.notNull(bootstrapAddress); // can be null
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
+        this.logAddress = logAddress;
+        this.bootstrapAddress = bootstrapAddress;
     }
 
     @Override
     public void run(Continuation cnt) throws Exception {
         try {
             // initialize state
-            Address initialAddress = state.getBootstrapAddress();
             FingerTable fingerTable = new FingerTable(state.getSelfPointer());
             SuccessorTable successorTable = new SuccessorTable(state.getSelfPointer());
 
             // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
-            if (initialAddress == null) {
+            if (bootstrapAddress == null) {
                 state.setTables(fingerTable, successorTable);
                 return;
             }
 
 
-            funnelToInitFingerTableCoroutine(cnt, initialAddress);
+            funnelToInitFingerTableCoroutine(cnt, bootstrapAddress);
         } catch (RuntimeException coe) {
             // this is a critical operation. if any of the tasks/io fail, then send up the chain
             throw new IllegalStateException("Join failed.", coe);
@@ -53,6 +59,8 @@ final class JoinTask implements Coroutine {
         InitFingerTableTask innerCoroutine = new InitFingerTableTask(
                 sourceId.appendSuffix(idSuffix),
                 state,
+                timerAddress,
+                logAddress,
                 initialAddress);
         innerCoroutine.run(cnt);
     }

@@ -5,6 +5,8 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
+import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
@@ -22,21 +24,23 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class StabilizeTask implements Subcoroutine<Void> {
     
-    private static final Logger LOG = LoggerFactory.getLogger(StabilizeTask.class);
-    
     private final Address sourceId;
     private final State state;
+    private final Address timerAddress;
+    private final Address logAddress;
 
-    public StabilizeTask(Address sourceId, State state) {
+    public StabilizeTask(Address sourceId, State state, Address timerAddress, Address logAddress) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
+        Validate.notNull(timerAddress);
+        Validate.notNull(logAddress);
         this.sourceId = sourceId;
         this.state = state;
+        this.timerAddress = timerAddress;
+        this.logAddress = logAddress;
     }
 
     @Override
@@ -57,7 +61,8 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 // ask for successor's pred
                 Address successorAddress = ((ExternalPointer) successor).getAddress();
                 
-                LOG.debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), sourceId, successor);
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), sourceId, successor));
                 
                 GetPredecessorResponse gpr = funnelToRequestCoroutine(
                         cnt,
@@ -65,7 +70,8 @@ final class StabilizeTask implements Subcoroutine<Void> {
                         new GetPredecessorRequest(state.generateExternalMessageId()),
                         GetPredecessorResponse.class);
                 
-                LOG.debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId());
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId()));
 
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
@@ -85,7 +91,8 @@ final class StabilizeTask implements Subcoroutine<Void> {
 
                 // successor may have been updated by block above
                 // ask successor for its successors
-                LOG.debug("{} {} - Requesting successor's ({}) successor", state.getSelfId(), sourceId, successor);
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Requesting successor's ({}) successor", state.getSelfId(), sourceId, successor));
                 GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
                         successorAddress,
@@ -105,11 +112,13 @@ final class StabilizeTask implements Subcoroutine<Void> {
                     }
                 }).forEachOrdered(x -> subsequentSuccessors.add(x));
                 
-                LOG.debug("{} {} - Successor's ({}) successor is {}", state.getSelfId(), sourceId, successor, subsequentSuccessors);
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Successor's ({}) successor is {}", state.getSelfId(), sourceId, successor, subsequentSuccessors));
 
                 // mark it as our new successor
                 state.updateSuccessor((ExternalPointer) successor, subsequentSuccessors);
-                LOG.debug("{} {} - Successors after stabilization are {}", state.getSelfId(), sourceId, state.getSuccessors());
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Successors after stabilization are {}", state.getSelfId(), sourceId, state.getSuccessors()));
                 
                 
                 // notify it that we're its predecessor
@@ -117,9 +126,10 @@ final class StabilizeTask implements Subcoroutine<Void> {
                         ctx,
                         successorAddress,
                         new NotifyRequest(state.generateExternalMessageId(), selfId));
-                LOG.debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor());
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor()));
             } catch (RuntimeException re) {
-                LOG.warn("Failed to stabilize", re);
+                ctx.addOutgoingMessage(sourceId, logAddress, warn("Failed to stabilize", re));
             }
         }
     }
@@ -133,7 +143,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
         new SleepSubcoroutine.Builder()
                 .id(sourceId)
                 .duration(duration)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .build()
                 .run(cnt);
     }
@@ -144,7 +154,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 .id(sourceId.appendSuffix("" + message.getId()))
                 .destinationAddress(destination)
                 .request(message)
-                .timerAddressPrefix(state.getTimerPrefix())
+                .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

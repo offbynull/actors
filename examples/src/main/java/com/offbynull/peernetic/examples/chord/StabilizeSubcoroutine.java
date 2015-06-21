@@ -15,6 +15,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRespo
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse.ExternalSuccessorEntry;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse.InternalSuccessorEntry;
 import com.offbynull.peernetic.examples.chord.externalmessages.NotifyRequest;
+import com.offbynull.peernetic.examples.chord.externalmessages.NotifyResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
@@ -51,19 +52,19 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
         while (true) {
             funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
             
+            Pointer successor = state.getSuccessor();
+            if (state.isSelfId(successor.getId())) {
+                continue;
+            }
+            
+            // ask for successor's pred
+            Address successorAddress = ((ExternalPointer) successor).getAddress();
+            GetPredecessorResponse gpr;
             try {
-                Pointer successor = state.getSuccessor();
-                if (state.isSelfId(successor.getId())) {
-                    continue;
-                }
-
-                // ask for successor's pred
-                Address successorAddress = ((ExternalPointer) successor).getAddress();
-                
                 ctx.addOutgoingMessage(sourceId, logAddress,
                         debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), sourceId, successor));
                 
-                GetPredecessorResponse gpr = funnelToRequestCoroutine(
+                gpr = funnelToRequestCoroutine(
                         cnt,
                         successorAddress,
                         new GetPredecessorRequest(),
@@ -71,7 +72,14 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 
                 ctx.addOutgoingMessage(sourceId, logAddress,
                         debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId()));
+            } catch (Exception e) {
+                ctx.addOutgoingMessage(sourceId, logAddress,
+                        debug("{} {} - Successor did not respond as expected, moving to next successor", state.getSelfId(), sourceId));
+                state.moveToNextSuccessor();
+                continue;
+            }
 
+            try {
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
                     Address address = gpr.getAddress();
@@ -81,13 +89,12 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                     if (potentiallyNewSuccessorId.isWithin(selfId, false, existingSuccessorId, false)) {
                         // it is between us and our successor, so update
                         ExternalPointer newSuccessor = new ExternalPointer(potentiallyNewSuccessorId, address);
-                        state.setSuccessor(newSuccessor);
 
                         successor = newSuccessor;
                         successorAddress = newSuccessor.getAddress();
                     }
                 }
-
+                
                 // successor may have been updated by block above
                 // ask successor for its successors
                 ctx.addOutgoingMessage(sourceId, logAddress,
@@ -97,7 +104,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         successorAddress,
                         new GetSuccessorRequest(),
                         GetSuccessorResponse.class);
-
+                
                 List<Pointer> subsequentSuccessors = new ArrayList<>();
                 gsr.getEntries().stream().map(x -> {
                     NodeId id = x.getChordId();
@@ -121,10 +128,11 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 
                 
                 // notify it that we're its predecessor
-                addOutgoingExternalMessage(
-                        ctx,
+                funnelToRequestCoroutine(
+                        cnt,
                         successorAddress,
-                        new NotifyRequest(selfId));
+                        new NotifyRequest(selfId),
+                        NotifyResponse.class);
                 ctx.addOutgoingMessage(sourceId, logAddress,
                         debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor()));
             } catch (RuntimeException re) {

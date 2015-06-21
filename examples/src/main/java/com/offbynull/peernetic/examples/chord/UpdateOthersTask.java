@@ -12,7 +12,6 @@ import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
@@ -74,7 +73,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
                             debug("{} {} - Asking {} to put us in to its finger table", state.getSelfId(), sourceId, foundRouter));
                     addOutgoingExternalMessage(ctx,
                             ((ExternalPointer) foundRouter).getAddress(),
-                            new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
+                            new UpdateFingerTableRequest(selfId));
                 } else if (foundRouter instanceof InternalPointer) {
                     ExternalPointer pred = state.getPredecessor();
                     if (pred != null) {
@@ -82,7 +81,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
                                 debug("{} {} - {} routed to self, notifying predecessor {}", state.getSelfId(), sourceId, pred));
                         addOutgoingExternalMessage(ctx,
                                 pred.getAddress(),
-                                new UpdateFingerTableRequest(state.generateExternalMessageId(), selfId));
+                                new UpdateFingerTableRequest(selfId));
                     } else {
                         ctx.addOutgoingMessage(sourceId, logAddress,
                                 debug("{} {} - {} routed to self, but no predecessor to notify, so skipping", state.getSelfId(), sourceId));
@@ -105,7 +104,7 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
         Validate.notNull(cnt);
         Validate.notNull(routerId);
 
-        String idSuffix = "routeto" + state.generateExternalMessageId();
+        String idSuffix = "routeto" + state.nextRandomId();
         RouteToTask innerCoroutine = new RouteToTask(
                 sourceId.appendSuffix(idSuffix),
                 state,
@@ -128,13 +127,13 @@ final class UpdateOthersTask implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private void addOutgoingExternalMessage(Context ctx, Address destination, ExternalMessage message) {
+    private void addOutgoingExternalMessage(Context ctx, Address destination, Object message) {
         Validate.notNull(ctx);
         Validate.notNull(destination);
         Validate.notNull(message);
 
         ctx.addOutgoingMessage(
-                sourceId.appendSuffix("" + message.getId()),
+                sourceId.appendSuffix(state.nextRandomId()),
                 destination,
                 message);
     }

@@ -109,7 +109,7 @@ final class FixFingerTableTask implements Subcoroutine<Void> {
     }
 
     private Pointer funnelToRouteToSuccessorCoroutine(Continuation cnt, NodeId findId) throws Exception {
-        String idSuffix = "routetosucc" + state.generateExternalMessageId();
+        String idSuffix = "routetosucc" + state.nextRandomId();
         RouteToSuccessorTask innerCoroutine = new RouteToSuccessorTask(
                 sourceId.appendSuffix(idSuffix),
                 state,

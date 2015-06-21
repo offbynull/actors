@@ -16,13 +16,8 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
 
-public final class GetPredecessorRequest extends ExternalMessage implements Serializable {
+public final class GetPredecessorRequest implements Serializable {
     private static final long serialVersionUID = 1L;
-
-    public GetPredecessorRequest(long id) {
-        super(id);
-    }
 }

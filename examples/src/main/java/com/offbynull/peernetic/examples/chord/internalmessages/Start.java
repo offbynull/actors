@@ -9,26 +9,26 @@ public final class Start {
 
     private final Address bootstrapAddress;
     private final NodeId nodeId;
-    private final Random random;
+    private final long seed;
     private final Address timerPrefix;
     private final Address logAddress;
     private final Address graphAddress;
 
-    public Start(NodeId nodeId, Random random, Address timerPrefix, Address graphAddress, Address logAddress) {
-        this(null, nodeId, random, timerPrefix, graphAddress, logAddress);
+    public Start(NodeId nodeId, long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
+        this(null, nodeId, seed, timerPrefix, graphAddress, logAddress);
     }
     
-    public Start(Address bootstrapAddress, NodeId nodeId, Random random, Address timerPrefix, Address graphAddress, Address logAddress) {
+    public Start(Address bootstrapAddress, NodeId nodeId, long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
         // bootstrapAddress can be null
         Validate.notNull(nodeId);
-        Validate.notNull(random);
+        Validate.notNull(seed);
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
         
         this.bootstrapAddress = bootstrapAddress;
         this.nodeId = nodeId;
-        this.random = random;
+        this.seed = seed;
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
@@ -42,8 +42,8 @@ public final class Start {
         return nodeId;
     }
 
-    public Random getRandom() {
-        return random;
+    public long getSeed() {
+        return seed;
     }
 
     public Address getTimerPrefix() {

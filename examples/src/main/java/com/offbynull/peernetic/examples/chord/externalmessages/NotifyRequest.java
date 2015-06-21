@@ -17,17 +17,15 @@
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
-public final class NotifyRequest extends ExternalMessage implements Serializable {
+public final class NotifyRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private NodeId chordId;
 
-    public NotifyRequest(long id, NodeId chordId) {
-        super(id);
+    public NotifyRequest(NodeId chordId) {
         Validate.notNull(chordId);
         this.chordId = chordId;
     }

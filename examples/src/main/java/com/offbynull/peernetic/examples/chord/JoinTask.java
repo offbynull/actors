@@ -55,7 +55,7 @@ final class JoinTask implements Coroutine {
         Validate.notNull(cnt);
         Validate.notNull(initialAddress);
         
-        String idSuffix = "" + state.generateExternalMessageId();
+        String idSuffix = "" + state.nextRandomId();
         InitFingerTableTask innerCoroutine = new InitFingerTableTask(
                 sourceId.appendSuffix(idSuffix),
                 state,

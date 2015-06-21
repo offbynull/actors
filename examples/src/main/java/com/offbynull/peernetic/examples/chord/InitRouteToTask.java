@@ -13,7 +13,6 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorReque
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
 
 // unique to initialization phase in that it doesn't consider you as a node in the network (you're initializing, you haven't connected yet)
@@ -59,7 +58,7 @@ final class InitRouteToTask implements Coroutine {
                 gsr = funnelToRequestCoroutine(
                             cnt,
                             currentNode.getAddress(),
-                            new GetSuccessorRequest(state.generateExternalMessageId()),
+                            new GetSuccessorRequest(),
                             GetSuccessorResponse.class);
                 successorId = gsr.getEntries().get(0).getChordId();
             } catch (RuntimeException re) {
@@ -78,9 +77,7 @@ final class InitRouteToTask implements Coroutine {
             try {
                 gcpfr = funnelToRequestCoroutine(cnt,
                         currentNode.getAddress(),
-                        new GetClosestPrecedingFingerRequest(
-                                state.generateExternalMessageId(),
-                                findId),
+                        new GetClosestPrecedingFingerRequest(findId),
                         GetClosestPrecedingFingerResponse.class);
             } catch (RuntimeException re) {
                 ctx.addOutgoingMessage(sourceId, logAddress,
@@ -107,10 +104,10 @@ final class InitRouteToTask implements Coroutine {
         return foundPointer;
     }
     
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix("" + message.getId()))
+                .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(timerAddress)

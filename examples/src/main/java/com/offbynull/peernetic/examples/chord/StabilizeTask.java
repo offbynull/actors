@@ -19,7 +19,6 @@ import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +66,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 GetPredecessorResponse gpr = funnelToRequestCoroutine(
                         cnt,
                         successorAddress,
-                        new GetPredecessorRequest(state.generateExternalMessageId()),
+                        new GetPredecessorRequest(),
                         GetPredecessorResponse.class);
                 
                 ctx.addOutgoingMessage(sourceId, logAddress,
@@ -96,7 +95,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
                         successorAddress,
-                        new GetSuccessorRequest(state.generateExternalMessageId()),
+                        new GetSuccessorRequest(),
                         GetSuccessorResponse.class);
 
                 List<Pointer> subsequentSuccessors = new ArrayList<>();
@@ -125,7 +124,7 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 addOutgoingExternalMessage(
                         ctx,
                         successorAddress,
-                        new NotifyRequest(state.generateExternalMessageId(), selfId));
+                        new NotifyRequest(selfId));
                 ctx.addOutgoingMessage(sourceId, logAddress,
                         debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor()));
             } catch (RuntimeException re) {
@@ -148,10 +147,10 @@ final class StabilizeTask implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix("" + message.getId()))
+                .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(timerAddress)
@@ -160,9 +159,9 @@ final class StabilizeTask implements Subcoroutine<Void> {
         return requestSubcoroutine.run(cnt);
     }
     
-    private void addOutgoingExternalMessage(Context ctx, Address destination, ExternalMessage message) {
+    private void addOutgoingExternalMessage(Context ctx, Address destination, Object message) {
         ctx.addOutgoingMessage(
-                sourceId.appendSuffix("" + message.getId()),
+                sourceId.appendSuffix(state.nextRandomId()),
                 destination,
                 message);
     }

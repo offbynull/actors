@@ -10,14 +10,14 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeIdUtils;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
-import com.offbynull.peernetic.examples.common.request.ExternalMessageIdGenerator;
 import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class State {
     
-    private ExternalMessageIdGenerator externalMessageIdGenerator = new ExternalMessageIdGenerator(new Random());
+    private final Random random;
+    private int counter = 0;
     
     private FingerTable fingerTable;
     private SuccessorTable successorTable;
@@ -25,11 +25,18 @@ final class State {
     
     private NodeId selfId;
     
-    public State(NodeId selfId) {
+    public State(long seed, NodeId selfId) {
         Validate.notNull(selfId);
+        random = new Random(seed);
         this.selfId = selfId;
     }
 
+    public String nextRandomId() {
+        long ret = ((long) random.nextInt()) << 32L | (long) counter;
+        counter++;
+        return "" + ret;
+    }
+    
     public NodeId getSelfId() {
         return selfId;
     }
@@ -267,10 +274,6 @@ final class State {
     public void validateExternalId(Pointer ptr) {
         Validate.notNull(ptr);
         Validate.isTrue(!isSelfId(ptr.getId()));
-    }
-
-    public long generateExternalMessageId() {
-        return externalMessageIdGenerator.generateId();
     }
     
 }

@@ -13,7 +13,6 @@ import com.offbynull.peernetic.examples.chord.model.FingerTable;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
 
 final class InitFingerTableTask implements Subcoroutine<Void> {
@@ -50,7 +49,7 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
         GetIdResponse gir = funnelToRequestCoroutine(
                 cnt,
                 bootstrapAddress,
-                new GetIdRequest(state.generateExternalMessageId()),
+                new GetIdRequest(),
                 GetIdResponse.class);
         ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapAddress); // fails if id == self
         
@@ -90,10 +89,10 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
         return sourceId;
     }
     
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix("" + message.getId()))
+                .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(timerAddress)
@@ -106,7 +105,7 @@ final class InitFingerTableTask implements Subcoroutine<Void> {
         Validate.notNull(cnt);
         Validate.notNull(findId);
         
-        String idSuffix = "" + state.generateExternalMessageId();
+        String idSuffix = "" + state.nextRandomId();
         InitRouteToSuccessorTask innerCoroutine = new InitRouteToSuccessorTask(
                 sourceId.appendSuffix(idSuffix),
                 state,

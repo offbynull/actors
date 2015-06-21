@@ -11,7 +11,6 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 
@@ -51,7 +50,7 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
                 gir = funnelToRequestCoroutine(
                         cnt,
                         predecessor.getAddress(),
-                        new GetIdRequest(state.generateExternalMessageId()),
+                        new GetIdRequest(),
                         GetIdResponse.class);
             } catch (RuntimeException re) {
                 // predecessor didn't respond -- clear our predecessor
@@ -82,10 +81,10 @@ final class CheckPredecessorTask implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix("" + message.getId()))
+                .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(timerAddress)

@@ -17,7 +17,6 @@ import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import org.apache.commons.lang3.Validate;
 
 final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
@@ -66,7 +65,7 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
                 GetIdResponse gir = funnelToRequestCoroutine(
                         cnt,
                         ((ExternalPointer) successor).getAddress(),
-                        new GetIdRequest(state.generateExternalMessageId()),
+                        new GetIdRequest(),
                         GetIdResponse.class);
                 found = successor;
             } else if (successor instanceof InternalPointer) {
@@ -80,7 +79,7 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
             GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
                         ptrAddress,
-                        new GetSuccessorRequest(state.generateExternalMessageId()),
+                        new GetSuccessorRequest(),
                         GetSuccessorResponse.class);
             
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
@@ -98,7 +97,7 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
             GetIdResponse gir = funnelToRequestCoroutine(
                     cnt,
                     succAddress,
-                    new GetIdRequest(state.generateExternalMessageId()),
+                    new GetIdRequest(),
                     GetIdResponse.class);
             found = state.toPointer(gir.getChordId(), succAddress);
         } else {
@@ -119,7 +118,7 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
         Validate.notNull(cnt);
         Validate.notNull(findId);
         
-        String idSuffix = "routetopred" + state.generateExternalMessageId();
+        String idSuffix = "routetopred" + state.nextRandomId();
         RouteToTask innerCoroutine = new RouteToTask(
                 sourceId.appendSuffix(idSuffix),
                 state,
@@ -129,10 +128,10 @@ final class RouteToSuccessorTask implements Subcoroutine<Pointer> {
         return innerCoroutine.run(cnt);
     }
     
-    private <T extends ExternalMessage> T funnelToRequestCoroutine(Continuation cnt, Address destination, ExternalMessage message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix("" + message.getId()))
+                .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(timerAddress)

@@ -7,7 +7,6 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Collections;
-import java.util.Random;
 import java.util.regex.Pattern;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -58,7 +57,7 @@ final class ControllerStage extends Stage {
                             new Start(
                                     connIdStr == null ? null : Address.fromString(connIdStr),
                                     new NodeId(id, bits),
-                                    new Random(id),
+                                    id,
                                     Address.fromString("timer"),
                                     Address.fromString("graph"),
                                     Address.fromString("log")

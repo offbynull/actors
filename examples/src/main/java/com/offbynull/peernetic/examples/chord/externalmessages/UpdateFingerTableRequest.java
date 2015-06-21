@@ -17,17 +17,15 @@
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
-public final class UpdateFingerTableRequest extends ExternalMessage implements Serializable {
+public final class UpdateFingerTableRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private NodeId chordId;
 
-    public UpdateFingerTableRequest(long id, NodeId chordId) {
-        super(id);
+    public UpdateFingerTableRequest(NodeId chordId) {
         Validate.notNull(chordId);
         this.chordId = chordId;
     }

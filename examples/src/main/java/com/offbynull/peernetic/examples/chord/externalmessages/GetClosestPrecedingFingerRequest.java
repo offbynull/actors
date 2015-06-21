@@ -17,19 +17,17 @@
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-public final class GetClosestPrecedingFingerRequest extends ExternalMessage implements Serializable {
+public final class GetClosestPrecedingFingerRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private NodeId chordId;
     private NodeId[] ignoreIds;
 
-    public GetClosestPrecedingFingerRequest(long id, NodeId chordId, NodeId ... ignoreIds) {
-        super(id);
+    public GetClosestPrecedingFingerRequest(NodeId chordId, NodeId ... ignoreIds) {
         Validate.notNull(chordId);
         Validate.noNullElements(ignoreIds);
         this.chordId = chordId;

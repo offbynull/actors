@@ -25,7 +25,6 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
@@ -47,13 +46,14 @@ public final class ChordClientCoroutine implements Coroutine {
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         NodeId selfId = start.getNodeId();
+        long seed = start.getSeed();
         Address bootstrapAddress = start.getBootstrapAddress();
 
         switchToStartedOnGraph(ctx, selfId, graphAddress);
         
         Set<Pointer> lastNotifiedPointers = new HashSet<>();
         try {
-            State state = new State(selfId);
+            State state = new State(seed, selfId);
 
             
             // Join (or just initialize if no bootstrap node is set)
@@ -92,15 +92,16 @@ public final class ChordClientCoroutine implements Coroutine {
                 if (!forwarded) {
                     Object msg = ctx.getIncomingMessage();
                     Address fromAddress = ctx.getSource();
+                    Address toAddress = ctx.getSource();
 
                     ctx.addOutgoingMessage(logAddress, debug("{} {} - Processing {} from {} to {}", state.getSelfId(), "", msg.getClass(),
                             fromAddress, ctx.getDestination()));
 
                     if (msg instanceof GetIdRequest) {
-                        GetIdRequest extMsg = (GetIdRequest) msg;
                         addOutgoingExternalMessage(ctx,
+                                toAddress,
                                 fromAddress,
-                                new GetIdResponse(extMsg.getId(), state.getSelfId()));
+                                new GetIdResponse(state.getSelfId()));
                     } else if (msg instanceof GetClosestPrecedingFingerRequest) {
                         GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
 
@@ -109,26 +110,25 @@ public final class ChordClientCoroutine implements Coroutine {
                         Address address = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getAddress() : null;
 
                         addOutgoingExternalMessage(ctx,
+                                toAddress,
                                 fromAddress,
-                                new GetClosestPrecedingFingerResponse(extMsg.getId(), id, address));
+                                new GetClosestPrecedingFingerResponse(id, address));
                     } else if (msg instanceof GetPredecessorRequest) {
-                        GetPredecessorRequest extMsg = (GetPredecessorRequest) msg;
-
                         ExternalPointer pointer = state.getPredecessor();
                         NodeId id = pointer == null ? null : pointer.getId();
                         Address address = pointer == null ? null : pointer.getAddress();
 
                         addOutgoingExternalMessage(ctx,
+                                toAddress,
                                 fromAddress,
-                                new GetPredecessorResponse(extMsg.getId(), id, address));
+                                new GetPredecessorResponse(id, address));
                     } else if (msg instanceof GetSuccessorRequest) {
-                        GetSuccessorRequest extMsg = (GetSuccessorRequest) msg;
-
                         List<Pointer> successors = state.getSuccessors();
 
                         addOutgoingExternalMessage(ctx,
+                                toAddress,
                                 fromAddress,
-                                new GetSuccessorResponse(extMsg.getId(),successors));
+                                new GetSuccessorResponse(successors));
                     } else if (msg instanceof NotifyRequest) {
                         NotifyRequest extMsg = (NotifyRequest) msg;
 
@@ -146,8 +146,9 @@ public final class ChordClientCoroutine implements Coroutine {
                         Address address = pointer.getAddress();
 
                         addOutgoingExternalMessage(ctx,
+                                toAddress,
                                 fromAddress,
-                                new NotifyResponse(extMsg.getId(), id, address));
+                                new NotifyResponse(id, address));
                     } else if (msg instanceof UpdateFingerTableRequest) {
                         UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
                         NodeId id = extMsg.getChordId();
@@ -170,8 +171,9 @@ public final class ChordClientCoroutine implements Coroutine {
                         }
 
                         addOutgoingExternalMessage(ctx,
+                                toAddress,
                                 fromAddress,
-                                new UpdateFingerTableResponse(extMsg.getId()));
+                                new UpdateFingerTableResponse());
                     } else if (msg instanceof Kill) {
                         return;
                     }
@@ -232,13 +234,13 @@ public final class ChordClientCoroutine implements Coroutine {
         ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
     }
     
-    private void addOutgoingExternalMessage(Context ctx, Address destination, ExternalMessage message) {
+    private void addOutgoingExternalMessage(Context ctx, Address source, Address destination, Object message) {
         Validate.notNull(ctx);
         Validate.notNull(destination);
         Validate.notNull(message);
         
         ctx.addOutgoingMessage(
-                Address.of("" + message.getId()),
+                source,
                 destination,
                 message);
     }

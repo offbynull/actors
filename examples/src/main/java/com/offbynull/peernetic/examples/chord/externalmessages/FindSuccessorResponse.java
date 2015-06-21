@@ -18,17 +18,15 @@ package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.request.ExternalMessage;
 import java.io.Serializable;
 
-public final class FindSuccessorResponse extends ExternalMessage implements Serializable {
+public final class FindSuccessorResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private NodeId chordId;
     private Address address;
 
-    public FindSuccessorResponse(long id, NodeId chordId, Address address) {
-        super(id);
+    public FindSuccessorResponse(NodeId chordId, Address address) {
         this.chordId = chordId;
         this.address = address;
     }

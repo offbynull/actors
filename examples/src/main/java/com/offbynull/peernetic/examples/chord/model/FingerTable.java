@@ -146,6 +146,7 @@ public final class FingerTable {
      * Searches the finger table for the closest to the id being searched for (closest in terms of being {@code <}).
      *
      * @param id id being searched for
+     * @param ignoreIds list of ids to ignore when searching this finger table
      * @return closest preceding pointer, or maximum non-base if {@code id} is base id
      * @throws NullPointerException if any arguments are {@code null}
      * @throws IllegalArgumentException if {@code id}'s has a different limit bit size than base pointer's id
@@ -174,36 +175,6 @@ public final class FingerTable {
             // if finger[i] exists between n (exclusive) and id (exclusive)
             // then return it
             if (fingerId.isWithin(selfId, false, id, false)) {
-                foundEntry = ie;
-                break;
-            }
-        }
-
-        return foundEntry == null ? basePtr : foundEntry.pointer;
-    }
-
-    /**
-     * Searches the finger table for the closest id to the id being searched for (closest in terms of being {@code <=} to).
-     *
-     * @param id id being searched for
-     * @return closest pointer (closest in terms of being {@code <=} to)
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code id}'s has a different limit bit size than base pointer's id
-     */
-    public Pointer findClosest(NodeId id) {
-        Validate.notNull(id);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
-
-        NodeId selfId = basePtr.getId();
-
-        InternalEntry foundEntry = null;
-        ListIterator<InternalEntry> lit = table.listIterator(table.size());
-        while (lit.hasPrevious()) {
-            InternalEntry ie = lit.previous();
-            // if finger[i] exists between n (exclusive) and id (exclusive)
-            // then return it
-            NodeId fingerId = ie.pointer.getId();
-            if (fingerId.isWithin(selfId, false, id, true)) {
                 foundEntry = ie;
                 break;
             }
@@ -355,23 +326,6 @@ public final class FingerTable {
     }
 
     /**
-     * Get the base pointer.
-     * @return base pointer
-     */
-    public InternalPointer getBase() {
-        return basePtr;
-    }
-
-    /**
-     * Get the id from the base pointer. Equivalent to calling {@code getBase().getId()}.
-     *
-     * @return base pointer id
-     */
-    public NodeId getBaseId() {
-        return basePtr.getId();
-    }
-
-    /**
      * Get the last/maximum finger that isn't set to base. If no such finger is found, gives back {@code null}. See the
      * constraints/guarantees mentioned in the Javadoc header {@link FingerTable}.
      * @return last/max non-base finger, or {@code null} if no such finger exists
@@ -384,22 +338,6 @@ public final class FingerTable {
                                                                   // InternalPointer
                 return (ExternalPointer) ie.pointer;
             }
-        }
-
-        return null;
-    }
-
-    /**
-     * Get finger[0] if it doesn't match the base id. If it does match the base id, gives back {@code null}
-     * @return finger[0], or {@code null} if finger[0] is base
-     */
-    public ExternalPointer getMinimumNonBase() {
-        InternalEntry ie = table.get(0);
-
-        if (!(ie.pointer instanceof InternalPointer)) { // equiv to ie.actualPointer.getId().equals(basePtr.getId()), since we're
-                                                              // only ever allowed to have references to ourself / our own id via a
-                                                              // InternalPointer
-            return (ExternalPointer) ie.pointer;
         }
 
         return null;
@@ -447,7 +385,7 @@ public final class FingerTable {
         BigInteger data = BigInteger.ONE.shiftLeft(idx);
         byte[] offsetIdRaw = data.toByteArray();
         NodeId offsetId = new NodeId(offsetIdRaw, basePtr.getId().getLimitAsByteArray());
-        NodeId routerId = NodeId.subtract(getBaseId(), offsetId);
+        NodeId routerId = NodeId.subtract(basePtr.getId(), offsetId);
         
         return routerId;
     }
@@ -541,38 +479,6 @@ public final class FingerTable {
     }
 
     /**
-     * Gets finger before {@code id}.
-     *
-     * @param id id to search for
-     * @return finger before (@code id}, or {@code null} if not found
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code id} has a different limit bit size than base pointer's id, or if {@code id} is equivalent
-     * to base pointer's id
-     */
-    public Pointer getBefore(NodeId id) {
-        Validate.notNull(id);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
-
-        NodeId baseId = basePtr.getId();
-
-        if (id.equals(baseId)) {
-            throw new IllegalArgumentException();
-        }
-
-        ListIterator<InternalEntry> lit = table.listIterator(table.size());
-        while (lit.hasPrevious()) {
-            InternalEntry ie = lit.previous();
-            NodeId testId = ie.pointer.getId();
-
-            if (NodeId.comparePosition(baseId, id, testId) > 0) {
-                return lit.hasPrevious() ? lit.previous().pointer : null;
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Removes all fingers before {@code id} (does not remove {@code id} itself).
      *
      * @param id id of which all fingers before it will be removed
@@ -635,50 +541,6 @@ public final class FingerTable {
     }
 
     /**
-     * Removes all fingers after {@code id} (does not remove {@code id} itself).
-     * @param id id of which all fingers after it will be removed
-     * @return number of fingers that were cleared
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code id} has a different limit bit size than base pointer's id
-     */
-    public int clearAfter(NodeId id) {
-        Validate.notNull(id);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
-
-        NodeId baseId = basePtr.getId();
-
-        ListIterator<InternalEntry> lit = table.listIterator();
-        while (lit.hasNext()) {
-            InternalEntry ie = lit.next();
-            Pointer testPtr = ie.pointer;
-            NodeId testId = testPtr.getId();
-
-            if (NodeId.comparePosition(baseId, id, testId) < 0) {
-                int position = lit.nextIndex() - 1;
-                clearAfter(position);
-                return bitCount - position;
-            }
-        }
-
-        return 0;
-    }
-
-    /**
-     * Removes all fingers after position {@code idx} (does not remove finger at {@code idx}).
-     * @param idx position which all fingers after it will be removed
-     * @throws IllegalArgumentException if {@code idx < 0 || idx > table.size()}
-     */
-    private void clearAfter(int idx) {
-        Validate.inclusiveBetween(0, bitCount - 1, idx);
-
-        // replace entries with self id all the way till the end...
-        for (int i = idx; i < bitCount; i++) {
-            InternalEntry priorEntry = table.get(i);
-            priorEntry.pointer = basePtr;
-        }
-    }
-
-    /**
      * Clears the finger table. All fingers will be set to the base pointer.
      */
     public void clear() {
@@ -687,32 +549,6 @@ public final class FingerTable {
             InternalEntry priorEntry = table.get(i);
             priorEntry.pointer = basePtr;
         }
-    }
-    
-    /**
-     * Searches the finger table for the right-most occurrence of {@code ptr}.
-     * @param ptr pointer to search for
-     * @return index of occurrence, or -1 if not found
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code ptr}'s id has a different limit bit size than the base pointer's id
-     */
-    public int getMaximumIndex(Pointer ptr) {
-        Validate.notNull(ptr);
-        Validate.isTrue(NodeIdUtils.getBitLength(ptr.getId()) == bitCount);
-
-        NodeId id = ptr.getId();
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
-
-        ListIterator<InternalEntry> lit = table.listIterator(table.size());
-        while (lit.hasPrevious()) {
-            InternalEntry ie = lit.previous();
-            
-            if (ie.pointer.equals(ptr)) {
-                return lit.previousIndex() + 1;
-            }
-        }
-        
-        return -1;
     }
 
     /**
@@ -739,53 +575,6 @@ public final class FingerTable {
         }
         
         return -1;
-    }
-
-    /**
-     * Searches the finger table for {@code ptr}.
-     * @param ptr pointer to search for
-     * @return {@code true} if found, {@code false} otherwise
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code ptr}'s id has a different limit bit size than the base pointer's id
-     */
-    public boolean contains(Pointer ptr) {
-        return getMinimumIndex(ptr) != -1;
-    }
-
-    /**
-     * Searches the finger table for {@code id}.
-     * @param id id to search for
-     * @return {@code true} if found, {@code false} otherwise
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if {@code id} has a different limit bit size than the base pointer's id
-     */
-    public boolean contains(NodeId id) {
-        Validate.notNull(id);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
-
-        ListIterator<InternalEntry> lit = table.listIterator();
-        while (lit.hasNext()) {
-            InternalEntry ie = lit.next();
-            
-            if (ie.pointer.getId().equals(id)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
-     * Checks to see if all entries in the finger table are set to base pointer.
-     * @return {@code true} if all entries are set to base pointer, {@code false} otherwise
-     */
-    public boolean isPointingToBase() {
-        if (table.isEmpty()) {
-            return false;
-        }
-
-        InternalEntry ie = table.get(0);
-        return ie.pointer instanceof InternalPointer;
     }
 
     /**

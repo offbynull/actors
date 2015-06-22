@@ -61,22 +61,6 @@ public final class SuccessorTable {
     }
     
     /**
-     * Get the base pointer.
-     * @return base pointer
-     */
-    public InternalPointer getBase() {
-        return basePtr;
-    }
-    
-    /**
-     * Get the id from the base pointer. Equivalent to calling {@code getBase().getId()}.
-     * @return base pointer id
-     */
-    public NodeId getBaseId() {
-        return basePtr.getId();
-    }
-    
-    /**
      * Trims all successors below {@code successor}, then adds {@code successor} to the beginning of the successor list. If
      * {@code successor} is the base pointer, all other successors will be cleared out.
      * @param successor new immediate successor

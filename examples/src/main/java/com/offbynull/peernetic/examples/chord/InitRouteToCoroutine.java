@@ -16,7 +16,7 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import org.apache.commons.lang3.Validate;
 
 // unique to initialization phase in that it doesn't consider you as a node in the network (you're initializing, you haven't connected yet)
-final class InitRouteToSubcoroutine implements Coroutine {
+final class InitRouteToCoroutine implements Coroutine {
 
     private final Address sourceId;
     
@@ -28,7 +28,7 @@ final class InitRouteToSubcoroutine implements Coroutine {
 
     private ExternalPointer foundPointer;
 
-    public InitRouteToSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
+    public InitRouteToCoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
             NodeId findId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);

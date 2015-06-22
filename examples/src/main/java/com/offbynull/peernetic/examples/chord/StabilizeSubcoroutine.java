@@ -68,7 +68,8 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         cnt,
                         successorAddress,
                         new GetPredecessorRequest(),
-                        GetPredecessorResponse.class);
+                        GetPredecessorResponse.class,
+                        true);
                 
                 ctx.addOutgoingMessage(sourceId, logAddress,
                         debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId()));
@@ -103,7 +104,8 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         cnt,
                         successorAddress,
                         new GetSuccessorRequest(),
-                        GetSuccessorResponse.class);
+                        GetSuccessorResponse.class,
+                        true);
                 
                 List<Pointer> subsequentSuccessors = new ArrayList<>();
                 gsr.getEntries().stream().map(x -> {
@@ -132,7 +134,8 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         cnt,
                         successorAddress,
                         new NotifyRequest(selfId),
-                        NotifyResponse.class);
+                        NotifyResponse.class,
+                        false);
                 ctx.addOutgoingMessage(sourceId, logAddress,
                         debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor()));
             } catch (RuntimeException re) {
@@ -155,22 +158,16 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
-            Class<T> expectedResponseClass) throws Exception {
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message, Class<T> expectedResponseClass,
+            boolean exceptionOnBadResponse) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination)
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
+                .throwExceptionIfNoResponse(exceptionOnBadResponse)
                 .build();
         return requestSubcoroutine.run(cnt);
-    }
-    
-    private void addOutgoingExternalMessage(Context ctx, Address destination, Object message) {
-        ctx.addOutgoingMessage(
-                sourceId.appendSuffix(state.nextRandomId()),
-                destination,
-                message);
     }
 }

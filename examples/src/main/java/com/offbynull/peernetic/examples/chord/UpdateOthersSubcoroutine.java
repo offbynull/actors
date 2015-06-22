@@ -2,12 +2,14 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
+import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
@@ -71,17 +73,21 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                 if (foundRouter instanceof ExternalPointer) {
                     ctx.addOutgoingMessage(sourceId, logAddress,
                             debug("{} {} - Asking {} to put us in to its finger table", state.getSelfId(), sourceId, foundRouter));
-                    addOutgoingExternalMessage(ctx,
+                    funnelToRequestCoroutine(cnt,
                             ((ExternalPointer) foundRouter).getAddress(),
-                            new UpdateFingerTableRequest(selfId));
+                            new UpdateFingerTableRequest(selfId),
+                            UpdateFingerTableResponse.class,
+                            false);
                 } else if (foundRouter instanceof InternalPointer) {
                     ExternalPointer pred = state.getPredecessor();
                     if (pred != null) {
                         ctx.addOutgoingMessage(sourceId, logAddress,
                                 debug("{} {} - {} routed to self, notifying predecessor {}", state.getSelfId(), sourceId, pred));
-                        addOutgoingExternalMessage(ctx,
+                        funnelToRequestCoroutine(cnt,
                                 pred.getAddress(),
-                                new UpdateFingerTableRequest(selfId));
+                                new UpdateFingerTableRequest(selfId),
+                                UpdateFingerTableResponse.class,
+                                false);
                     } else {
                         ctx.addOutgoingMessage(sourceId, logAddress,
                                 debug("{} {} - {} routed to self, but no predecessor to notify, so skipping", state.getSelfId(), sourceId));
@@ -127,14 +133,16 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private void addOutgoingExternalMessage(Context ctx, Address destination, Object message) {
-        Validate.notNull(ctx);
-        Validate.notNull(destination);
-        Validate.notNull(message);
-
-        ctx.addOutgoingMessage(
-                sourceId.appendSuffix(state.nextRandomId()),
-                destination,
-                message);
+    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message, Class<T> expectedResponseClass,
+            boolean exceptionOnBadResponse) throws Exception {
+        RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
+                .id(sourceId.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination)
+                .request(message)
+                .timerAddressPrefix(timerAddress)
+                .addExpectedResponseType(expectedResponseClass)
+                .throwExceptionIfNoResponse(exceptionOnBadResponse)
+                .build();
+        return requestSubcoroutine.run(cnt);
     }
 }

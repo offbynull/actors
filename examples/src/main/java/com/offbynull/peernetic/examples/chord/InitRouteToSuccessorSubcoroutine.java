@@ -100,7 +100,7 @@ final class InitRouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
         Validate.notNull(findId);
         
         String idSuffix = "initroutetopred" + state.nextRandomId();
-        InitRouteToSubcoroutine innerCoroutine = new InitRouteToSubcoroutine(
+        InitRouteToCoroutine innerCoroutine = new InitRouteToCoroutine(
                 sourceId.appendSuffix(idSuffix),
                 state,
                 timerAddress,

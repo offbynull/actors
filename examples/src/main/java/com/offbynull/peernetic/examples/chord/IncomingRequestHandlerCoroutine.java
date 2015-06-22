@@ -24,13 +24,13 @@ import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-final class IncomingMessageHandlerCoroutine implements Coroutine {
+final class IncomingRequestHandlerCoroutine implements Coroutine {
 
     private final State state;
 
     private final Address logAddress;
 
-    public IncomingMessageHandlerCoroutine(State state, Address logAddress) {
+    public IncomingRequestHandlerCoroutine(State state, Address logAddress) {
         Validate.notNull(state);
         Validate.notNull(logAddress);
         this.state = state;
@@ -41,10 +41,20 @@ final class IncomingMessageHandlerCoroutine implements Coroutine {
     public void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
 
+        Address self = ctx.getSelf();
+        
         while (true) {
+            cnt.suspend();
+            
             Object msg = ctx.getIncomingMessage();
             Address fromAddress = ctx.getSource();
             Address toAddress = ctx.getDestination();
+            
+            if (!self.equals(toAddress)) {
+                ctx.addOutgoingMessage(logAddress, debug("{} {} - Skipping message from {} to {}", state.getSelfId(), "", msg.getClass(),
+                        fromAddress, toAddress));
+                continue;
+            }
 
             ctx.addOutgoingMessage(logAddress, debug("{} {} - Processing {} from {} to {}", state.getSelfId(), "", msg.getClass(),
                     fromAddress, toAddress));
@@ -52,6 +62,9 @@ final class IncomingMessageHandlerCoroutine implements Coroutine {
             if (msg instanceof GetIdRequest) {
                 ctx.addOutgoingMessage(toAddress, fromAddress, new GetIdResponse(state.getSelfId()));
             } else if (msg instanceof GetClosestPrecedingFingerRequest) {
+                if (!toAddress.equals(ctx.getSelf())) {
+                    System.out.println("hi");
+                }
                 GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
 
                 Pointer pointer = state.getClosestPrecedingFinger(extMsg.getChordId(), extMsg.getIgnoreIds());
@@ -73,7 +86,7 @@ final class IncomingMessageHandlerCoroutine implements Coroutine {
                 NotifyRequest extMsg = (NotifyRequest) msg;
 
                 NodeId requesterId = extMsg.getChordId();
-                Address requesterAddress = fromAddress.removeSuffix(2);
+                Address requesterAddress = fromAddress.removeSuffix(3);
 
                 ExternalPointer newPredecessor = new ExternalPointer(requesterId, requesterAddress);
                 ExternalPointer existingPredecessor = state.getPredecessor();
@@ -89,7 +102,7 @@ final class IncomingMessageHandlerCoroutine implements Coroutine {
             } else if (msg instanceof UpdateFingerTableRequest) {
                 UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
                 NodeId id = extMsg.getChordId();
-                Address address = fromAddress.removeSuffix(2);
+                Address address = fromAddress.removeSuffix(3);
                 ExternalPointer newFinger = new ExternalPointer(id, address);
 
                 if (!state.isSelfId(id)) {
@@ -104,8 +117,6 @@ final class IncomingMessageHandlerCoroutine implements Coroutine {
             } else if (msg instanceof Kill) {
                 throw new RuntimeException("Kill command arrived");
             }
-            
-            cnt.suspend();
         }
     }
 }

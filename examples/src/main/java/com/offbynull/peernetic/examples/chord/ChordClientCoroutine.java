@@ -71,8 +71,9 @@ public final class ChordClientCoroutine implements Coroutine {
             
 
             // Create incoming request handler
-            CoroutineRunner handlerRunner = new CoroutineRunner(new IncomingMessageHandlerCoroutine(state, logAddress));
-            handlerRunner.setContext(ctx);
+            CoroutineRunner requestHandlerRunner = new CoroutineRunner(new IncomingRequestHandlerCoroutine(state, logAddress));
+            requestHandlerRunner.setContext(ctx);
+            requestHandlerRunner.execute(); // priming
             
             
             // Process messages
@@ -82,7 +83,7 @@ public final class ChordClientCoroutine implements Coroutine {
                 // if sent to main address then forward to incoming request handler, otherwise forward to router
                 boolean forwardedToRouter = router.forward();
                 if (!forwardedToRouter) {
-                    handlerRunner.execute();
+                    requestHandlerRunner.execute();
                 }
                 
                 lastNotifiedPointers = updateOutgoingLinksOnGraph(state, lastNotifiedPointers, ctx, selfId, graphAddress);

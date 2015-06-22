@@ -179,10 +179,8 @@ public final class SuccessorTable {
      * successor table
      */
     public void moveToNextSucessor() {
+        Validate.isTrue(table.size() > 1); // if you only have 1 left and you remove it, you have no successor (which is not allowed)
         table.removeFirst();
-        if (table.isEmpty()) {
-            table.add(basePtr);
-        }
     }
     
     /**

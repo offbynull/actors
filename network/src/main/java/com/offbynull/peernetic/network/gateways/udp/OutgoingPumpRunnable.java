@@ -17,9 +17,15 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class OutgoingMessagePumpRunnable implements Runnable {
+// What's the point of this thread? The point is that we never want a Shuttle implementation that directly wakes up the selector, because we
+// don't know how the selector performs (its dependent on platform/drivers). We never want a Shuttle to block.
+//
+// This thread is basically an intermediary between the Shuttle and NIO. If wakeup ever slows down or blocks it won't effect the shuttle
+// pushing messages to this intermediary. Additional messages can still be added to the shuttle, it'll just be queued until this thread gets
+// a chance to read.
+final class OutgoingPumpRunnable implements Runnable {
     
-    private static final Logger LOG = LoggerFactory.getLogger(OutgoingMessagePumpRunnable.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OutgoingPumpRunnable.class);
 
     private final Address selfPrefix;
     private final Address senderPrefix;
@@ -33,7 +39,7 @@ final class OutgoingMessagePumpRunnable implements Runnable {
     private final LinkedBlockingQueue<Object> outQueue;
     private final Selector outSelector; // selector is what blocks in the NIO thread
 
-    public OutgoingMessagePumpRunnable(String selfPrefix, Address senderPrefix, Serializer serializer, Bus inBus,
+    public OutgoingPumpRunnable(String selfPrefix, Address senderPrefix, Serializer serializer, Bus inBus,
             LinkedBlockingQueue<Object> outQueue, Selector outSelector) {
         Validate.notNull(selfPrefix);
         Validate.notNull(senderPrefix);

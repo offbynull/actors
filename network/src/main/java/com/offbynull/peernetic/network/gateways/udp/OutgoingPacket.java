@@ -6,22 +6,27 @@ import org.apache.commons.lang3.Validate;
 
 final class OutgoingPacket {
     private final byte[] packet;
-    private final InetSocketAddress destination;
+    private final InetSocketAddress destinationSocketAddress;
 
-    public OutgoingPacket(byte[] packet, InetSocketAddress destination) {
+    public OutgoingPacket(byte[] packet, InetSocketAddress destinationSocketAddress) {
         Validate.notNull(packet);
-        Validate.notNull(destination);
+        Validate.notNull(destinationSocketAddress);
         
         this.packet = Arrays.copyOf(packet, packet.length);
-        this.destination = destination;
+        this.destinationSocketAddress = destinationSocketAddress;
     }
 
     public byte[] getPacket() {
         return Arrays.copyOf(packet, packet.length);
     }
 
-    public InetSocketAddress getDestination() {
-        return destination;
+    public InetSocketAddress getDestinationSocketAddress() {
+        return destinationSocketAddress;
+    }
+
+    @Override
+    public String toString() {
+        return "OutgoingPacket{" + "packet=" + Arrays.toString(packet) + ", destinationSocketAddress=" + destinationSocketAddress + '}';
     }
     
 }

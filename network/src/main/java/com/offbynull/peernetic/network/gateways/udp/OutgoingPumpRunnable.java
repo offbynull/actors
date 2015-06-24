@@ -29,7 +29,6 @@ final class OutgoingPumpRunnable implements Runnable {
 
     private final Address selfPrefix;
     private final Address senderPrefix;
-    
     private final Serializer serializer;
     
     // from Shuttle to this pump

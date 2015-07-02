@@ -28,28 +28,25 @@ final class OutgoingPumpRunnable implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(OutgoingPumpRunnable.class);
 
     private final Address selfPrefix;
-    private final Address senderPrefix;
     private final Serializer serializer;
     
-    // from Shuttle to this pump
-    private final Bus inBus;
+    // from this gateway's Shuttle to this pump
+    private final Bus bus;
     
     // from this pump to the udp NIO thread
-    private final LinkedBlockingQueue<Object> outQueue;
+    private final LinkedBlockingQueue<OutgoingPacket> outQueue;
     private final Selector outSelector; // selector is what blocks in the NIO thread
 
-    public OutgoingPumpRunnable(String selfPrefix, Address senderPrefix, Serializer serializer, Bus inBus,
-            LinkedBlockingQueue<Object> outQueue, Selector outSelector) {
+    public OutgoingPumpRunnable(Address selfPrefix, Serializer serializer, Bus bus, LinkedBlockingQueue<OutgoingPacket> outQueue,
+            Selector outSelector) {
         Validate.notNull(selfPrefix);
-        Validate.notNull(senderPrefix);
         Validate.notNull(serializer);
-        Validate.notNull(inBus);
+        Validate.notNull(bus);
         Validate.notNull(outQueue);
         Validate.notNull(outSelector);
-        this.selfPrefix = Address.of(selfPrefix);
-        this.senderPrefix = senderPrefix;
+        this.selfPrefix = selfPrefix;
         this.serializer = serializer;
-        this.inBus = inBus;
+        this.bus = bus;
         this.outQueue = outQueue;
         this.outSelector = outSelector;
     }
@@ -59,8 +56,8 @@ final class OutgoingPumpRunnable implements Runnable {
         try {
             
             while (true) {
-                // Poll for new messages
-                List<Object> incomingObjects = inBus.pull();
+                // Poll for new messages from this gateway's shuttle
+                List<Object> incomingObjects = bus.pull();
                 Validate.notNull(incomingObjects);
                 Validate.noNullElements(incomingObjects);
 
@@ -82,14 +79,14 @@ final class OutgoingPumpRunnable implements Runnable {
                             InetSocketAddress dstAddr = fromShuttleAddress(dstAddress);
                             Address dstSuffix = dst.removePrefix(Address.of(dstPrefix, dstAddress));
 
-                            Validate.isTrue(senderPrefix.isPrefixOf(src));
-                            Address srcSuffix = src.removePrefix(senderPrefix);
+                            Validate.isTrue(selfPrefix.isPrefixOf(src));
+                            Address srcSuffix = src.removePrefix(selfPrefix);
 
                             EncapsulatedMessage em = new EncapsulatedMessage(srcSuffix, dstSuffix, payload);
                             byte[] serializedEm = serializer.serialize(em);
                             
-                            OutgoingPacket outgoingPAcket = new OutgoingPacket(serializedEm, dstAddr);
-                            outgoingPackets.add(outgoingPAcket);
+                            OutgoingPacket outgoingPacket = new OutgoingPacket(serializedEm, dstAddr);
+                            outgoingPackets.add(outgoingPacket);
 
                             LOG.debug("Outgoing packet to {}: {}", dstAddr, msg.getMessage());
                         } catch (Exception e) {
@@ -113,7 +110,7 @@ final class OutgoingPumpRunnable implements Runnable {
         } catch (Exception e) {
             LOG.error("Internal error encountered", e);
         } finally {
-            inBus.close();
+            bus.close();
         }
     }
     

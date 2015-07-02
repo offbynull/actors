@@ -4,11 +4,12 @@ import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -27,27 +28,26 @@ final class IncomingPumpRunnable implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(IncomingPumpRunnable.class);
 
     private final Address selfPrefix;
-    private final Address recverPrefix;
+    private final Address toPrefix;
     private final Serializer serializer;
     
     // from udp NIO thread to this pump
-    private final Bus inBus; // this bus is not linked to any shuttle... it's only being used instead of a linkedblockingqueue because
-                             // we have the ability to close it and not cause a memory leak if we encounter an error in this thread
-    
-    // from this pump to a Shuttle
+    private final LinkedBlockingQueue<IncomingPacket> inQueue;
     private final Shuttle outShuttle;
     
-    public IncomingPumpRunnable(String selfPrefix, Address recverPrefix, Serializer serializer, Bus inQueue, Shuttle outShuttle) {
+    public IncomingPumpRunnable(Address selfPrefix, Address toPrefix, Serializer serializer, LinkedBlockingQueue<IncomingPacket> inQueue,
+            Shuttle outShuttle) {
         Validate.notNull(selfPrefix);
-        Validate.notNull(recverPrefix);
+        Validate.notNull(toPrefix);
         Validate.notNull(serializer);
         Validate.notNull(inQueue);
         Validate.notNull(outShuttle);
-        this.selfPrefix = Address.of(selfPrefix);
-        this.recverPrefix = recverPrefix;
+        this.selfPrefix = selfPrefix;
+        this.toPrefix = toPrefix; // the address we're suppose to funnel stuff in to, should be a child of outShuttle's address
         this.serializer = serializer;
-        this.inBus = inQueue;
+        this.inQueue = inQueue;
         this.outShuttle = outShuttle;
+        Validate.isTrue(Address.of(outShuttle.getPrefix()).isPrefixOf(toPrefix));
     }
     
     @Override
@@ -55,8 +55,12 @@ final class IncomingPumpRunnable implements Runnable {
         try {
             
             while (true) {
+                List<IncomingPacket> incomingPackets = new LinkedList<>();
+                
                 // Poll for new packets
-                List<Object> incomingPackets = inBus.pull();
+                IncomingPacket first = inQueue.take();
+                incomingPackets.add(first);
+                inQueue.drainTo(incomingPackets);
                 
                 Validate.notNull(incomingPackets);
                 Validate.noNullElements(incomingPackets);
@@ -64,9 +68,9 @@ final class IncomingPumpRunnable implements Runnable {
                 // Process messages
                 List<Message> outgoingMessages = new ArrayList<>(incomingPackets.size());
                 
-                for (Object incomingPacketObj : incomingPackets) {
+                for (IncomingPacket incomingPacketObj : incomingPackets) {
                     try {
-                        IncomingPacket incomingPacket = (IncomingPacket) incomingPacketObj;
+                        IncomingPacket incomingPacket = incomingPacketObj;
                         
                         byte[] packet = incomingPacket.getPacket();
                         InetSocketAddress srcSocketAddr = incomingPacket.getSourceSocketAddress();
@@ -76,7 +80,7 @@ final class IncomingPumpRunnable implements Runnable {
                         Address srcAddress = selfPrefix
                                 .appendSuffix(toShuttleAddress(srcSocketAddr))
                                 .appendSuffix(em.getSourceSuffix());
-                        Address dstAddress = recverPrefix
+                        Address dstAddress = toPrefix
                                 .appendSuffix(em.getDestinationSuffix());
                         Object payload = em.getObject();
 
@@ -97,8 +101,6 @@ final class IncomingPumpRunnable implements Runnable {
             Thread.interrupted();
         } catch (Exception e) {
             LOG.error("Internal error encountered", e);
-        } finally {
-            inBus.close();
         }
     }
     

@@ -23,13 +23,8 @@ import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.util.concurrent.DefaultThreadFactory;
+import com.offbynull.peernetic.core.shuttles.simple.Bus;
+import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import java.net.InetSocketAddress;
 import org.apache.commons.lang3.Validate;
 
@@ -108,11 +103,8 @@ import org.apache.commons.lang3.Validate;
  */
 public final class UdpGateway implements InputGateway {
 
-    private final Shuttle srcShuttle;
-    
-    private final Channel channel;
-    private final EventLoopGroup eventLoopGroup;
-    private final boolean closeEventLoopGroup;
+    private final SimpleShuttle srcShuttle;
+    private final Thread nioUdpThread;
     
     
     /**
@@ -137,40 +129,16 @@ public final class UdpGateway implements InputGateway {
         Validate.notNull(outgoingShuttle);
         Validate.notNull(outgoingAddress);
         Validate.notNull(serializer);
-        Validate.isTrue(Address.of(outgoingShuttle.getPrefix()).isPrefixOf(outgoingAddress));
-
-        this.eventLoopGroup = new NioEventLoopGroup(1, new DefaultThreadFactory(NioEventLoopGroup.class, true));
-        this.closeEventLoopGroup = true;
-
-        Channel channel = null;
-        try {
-            Bootstrap cb = new Bootstrap();
-            cb.group(this.eventLoopGroup)
-                    .channel(NioDatagramChannel.class)
-                    .handler(new ChannelInitializer<NioDatagramChannel>() {
-                        @Override
-                        public void initChannel(NioDatagramChannel ch) throws Exception {
-                            ch.pipeline()
-                                    .addLast(new SerializerEncodeHandler(serializer))
-                                    .addLast(new SerializerDecodeHandler(serializer))
-                                    .addLast(new IncomingMessageShuttleHandler(Address.of(prefix), outgoingShuttle, outgoingAddress));
-                        }
-                    });
-            channel = cb.bind(bindAddress).sync().channel();
-        } catch (Exception e) {
-            Thread.interrupted(); // incase we were interrupted
-            if (closeEventLoopGroup) {
-                this.eventLoopGroup.shutdownGracefully();
-            }
-            // This is not required, if cb.bind.sync.channel fails channel will never be set for it to be closed
-//            if (channel != null) {
-//                channel.close();
-//            }
-            throw new IllegalStateException("Failed to build Channel", e);
-        }
         
-        this.channel = channel;
-        this.srcShuttle = new InternalShuttle(prefix, outgoingAddress, channel);
+        Address prefixAddress = Address.of(outgoingShuttle.getPrefix());
+        Validate.isTrue(prefixAddress.isPrefixOf(outgoingAddress));
+        
+        Bus bus = new Bus();
+        srcShuttle = new SimpleShuttle(prefix, bus);
+        
+        NioUdpRunnable runnable = new NioUdpRunnable(outgoingAddress, prefixAddress, outgoingShuttle, bus, serializer, bindAddress, 65535);
+        nioUdpThread = new Thread(runnable);
+        nioUdpThread.start();
     }
     
     @Override
@@ -180,9 +148,7 @@ public final class UdpGateway implements InputGateway {
 
     @Override
     public void close() throws Exception {
-        if (closeEventLoopGroup) {
-            this.eventLoopGroup.shutdownGracefully();
-        }
-        channel.close().sync();
+        nioUdpThread.interrupt();
+        nioUdpThread.join();
     }
 }

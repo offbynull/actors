@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.network.gateways.udp;
 
 import com.offbynull.peernetic.core.common.Serializer;
@@ -27,27 +43,30 @@ final class NioUdpRunnable implements Runnable {
     private final int bufferSize;
 
     private final Address selfPrefix;
-    private final Address toPrefix;
-    private final Shuttle outShuttle; // output shuttle where messages are supposed to go
+    private final Address proxyPrefix;
+    private final Shuttle proxyShuttle; // output shuttle where messages are supposed to go
     private final Bus bus; // bus from this gateway's shuttle
     private final Serializer serializer;
     
     private final LinkedBlockingQueue<IncomingPacket> incomingPacketQueue;
     private final LinkedBlockingQueue<OutgoingPacket> outgoingPacketQueue;
+    
+    private final Selector selector;
+    private final DatagramChannel channel;
 
-    public NioUdpRunnable(Address selfPrefix, Address toPrefix, Shuttle outShuttle, Bus bus, Serializer serializer,
+    public NioUdpRunnable(Address selfPrefix, Address proxyPrefix, Shuttle proxyShuttle, Bus bus, Serializer serializer,
             InetSocketAddress bindAddress, int bufferSize) {
         Validate.notNull(selfPrefix);
-        Validate.notNull(toPrefix);
-        Validate.notNull(outShuttle);
+        Validate.notNull(proxyPrefix);
+        Validate.notNull(proxyShuttle);
         Validate.notNull(bus);
         Validate.notNull(serializer);
         Validate.notNull(bindAddress);
         Validate.isTrue(bufferSize > 0);
         
         this.selfPrefix = selfPrefix;
-        this.toPrefix = toPrefix;
-        this.outShuttle = outShuttle;
+        this.proxyPrefix = proxyPrefix;
+        this.proxyShuttle = proxyShuttle;
         this.bus = bus;
         this.serializer = serializer;
         this.bindAddress = bindAddress;
@@ -55,6 +74,20 @@ final class NioUdpRunnable implements Runnable {
         
         this.incomingPacketQueue = new LinkedBlockingQueue<>();
         this.outgoingPacketQueue = new LinkedBlockingQueue<>();
+        
+        Selector selector = null;
+        DatagramChannel channel = null;
+        try {
+            selector = Selector.open();
+            channel = DatagramChannel.open();
+        } catch (IOException e) {
+            IOUtils.closeQuietly(selector);
+            IOUtils.closeQuietly(channel);
+            throw new IllegalStateException(e);
+        }
+        
+        this.selector = selector;
+        this.channel = channel;
     }
 
     @Override
@@ -63,12 +96,8 @@ final class NioUdpRunnable implements Runnable {
         
         
         LOG.info("Setting up channel and selector");
-        Selector selector = null;
-        DatagramChannel channel = null;
         SelectionKey selectionKey = null;
         try {
-            selector = Selector.open();
-            channel = DatagramChannel.open();
             channel.socket().bind(bindAddress);
             channel.configureBlocking(false);
             selectionKey = channel.register(selector, SelectionKey.OP_READ);
@@ -83,12 +112,14 @@ final class NioUdpRunnable implements Runnable {
         LOG.info("Creating message pump threads");
         // incoming messages that get funneled from the datagramchannel out to some destination shuttle
         LinkedList<IncomingPacket> incomingPackets = new LinkedList<>();
-        Runnable inRunnable = new IncomingPumpRunnable(selfPrefix, toPrefix, serializer, incomingPacketQueue, outShuttle);
-        Thread inThread = new Thread(inRunnable);
+        Runnable inRunnable = new IncomingPumpRunnable(selfPrefix, proxyPrefix, proxyShuttle, serializer, incomingPacketQueue);
+        Thread inThread = new Thread(inRunnable, "NIO UDP In Msg Pump - " + bindAddress);
+        inThread.setDaemon(true);
         // outgoing messages that go from our shuttle to the datagramchannel
         LinkedList<OutgoingPacket> outgoingPackets = new LinkedList<>();
-        Runnable outRunnable = new OutgoingPumpRunnable(selfPrefix, serializer, bus, outgoingPacketQueue, selector);
-        Thread outThread = new Thread(outRunnable);
+        Runnable outRunnable = new OutgoingPumpRunnable(selfPrefix, proxyPrefix, serializer, bus, outgoingPacketQueue, selector);
+        Thread outThread = new Thread(outRunnable, "NIO UDP Out Msg Pump - " + bindAddress);
+        outThread.setDaemon(true);
 
         
         try {
@@ -110,9 +141,10 @@ final class NioUdpRunnable implements Runnable {
                     ops |= SelectionKey.OP_WRITE;
                 }
 
-                // Register ops -- some locking probably happens in interestOps(), so check to make sure value is different before registering
+                // Register ops -- some locking probably happens in interestOps, so check to make sure value is different before registering
                 if (ops != lastOps) {
                     selectionKey.interestOps(ops);
+                    lastOps = ops;
                 }
 
                 // Select
@@ -197,6 +229,14 @@ final class NioUdpRunnable implements Runnable {
                 Thread.interrupted();
                 LOG.warn("Interrupted while waiting for output message pump shutdown");
             }
+        }
+    }
+    
+    public void close() {
+        try {
+            selector.close();
+        } catch (IOException ioe) {
+            LOG.warn("Failed to close", ioe);
         }
     }
 }

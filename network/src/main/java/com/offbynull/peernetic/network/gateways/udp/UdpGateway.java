@@ -104,40 +104,44 @@ import org.apache.commons.lang3.Validate;
 public final class UdpGateway implements InputGateway {
 
     private final SimpleShuttle srcShuttle;
+    private final NioUdpRunnable nioUdpRunnable;
     private final Thread nioUdpThread;
     
     
     /**
      * Constructs a {@link UdpGateway} instance.
-     * @param bindAddress address to bind to
+     * @param bindAddress internet address to bind UDP socket to
      * @param prefix address prefix for this gateway
-     * @param outgoingShuttle shuttle to forward incoming messages to
-     * @param outgoingAddress address to forward incoming messages to / address to accept incoming messages from
+     * @param proxyShuttle shuttle to forward incoming messages to / shuttle to accept outgoing messagse from
+     * @param proxyAddress address to forward incoming messages to / address to accept outgoing messages from
      * @param serializer serializer to use for serialization / deserialization
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code outgoingShuttle}'s address prefix is not a prefix of {@code outgoingAddress}
+     * @throws IllegalArgumentException if {@code proxyShuttle}'s address prefix is not a prefix of {@code proxyAddress}
      * @throws IllegalStateException if failed to set up UDP channel
      */
     public UdpGateway(
             InetSocketAddress bindAddress,
             String prefix,
-            Shuttle outgoingShuttle,
-            Address outgoingAddress,
+            Shuttle proxyShuttle,
+            Address proxyAddress,
             Serializer serializer) {
         Validate.notNull(bindAddress);
         Validate.notNull(prefix);
-        Validate.notNull(outgoingShuttle);
-        Validate.notNull(outgoingAddress);
+        Validate.notNull(proxyShuttle);
+        Validate.notNull(proxyAddress);
         Validate.notNull(serializer);
         
-        Address prefixAddress = Address.of(outgoingShuttle.getPrefix());
-        Validate.isTrue(prefixAddress.isPrefixOf(outgoingAddress));
+        // Validate outgoingAddress is for outgoignShuttle
+        Address outgoingPrefix = Address.of(proxyShuttle.getPrefix());
+        Validate.isTrue(outgoingPrefix.isPrefixOf(proxyAddress));
         
         Bus bus = new Bus();
         srcShuttle = new SimpleShuttle(prefix, bus);
+        Address selfPrefix = Address.of(prefix);
         
-        NioUdpRunnable runnable = new NioUdpRunnable(outgoingAddress, prefixAddress, outgoingShuttle, bus, serializer, bindAddress, 65535);
-        nioUdpThread = new Thread(runnable);
+        nioUdpRunnable = new NioUdpRunnable(selfPrefix, proxyAddress, proxyShuttle, bus, serializer, bindAddress, 65535);
+        nioUdpThread = new Thread(nioUdpRunnable, "NIO UDP - " + bindAddress);
+        nioUdpThread.setDaemon(true);
         nioUdpThread.start();
     }
     
@@ -148,7 +152,7 @@ public final class UdpGateway implements InputGateway {
 
     @Override
     public void close() throws Exception {
-        nioUdpThread.interrupt();
+        nioUdpRunnable.close();
         nioUdpThread.join();
     }
 }

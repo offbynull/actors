@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.network.gateways.udp;
 
 import com.offbynull.peernetic.core.common.Serializer;
@@ -28,26 +44,26 @@ final class IncomingPumpRunnable implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(IncomingPumpRunnable.class);
 
     private final Address selfPrefix;
-    private final Address toPrefix;
+    private final Address proxyPrefix;
     private final Serializer serializer;
     
     // from udp NIO thread to this pump
     private final LinkedBlockingQueue<IncomingPacket> inQueue;
     private final Shuttle outShuttle;
     
-    public IncomingPumpRunnable(Address selfPrefix, Address toPrefix, Serializer serializer, LinkedBlockingQueue<IncomingPacket> inQueue,
-            Shuttle outShuttle) {
+    public IncomingPumpRunnable(Address selfPrefix, Address proxyPrefix, Shuttle proxyShuttle, Serializer serializer,
+            LinkedBlockingQueue<IncomingPacket> inQueue) {
         Validate.notNull(selfPrefix);
-        Validate.notNull(toPrefix);
+        Validate.notNull(proxyPrefix);
+        Validate.notNull(proxyShuttle);
         Validate.notNull(serializer);
         Validate.notNull(inQueue);
-        Validate.notNull(outShuttle);
         this.selfPrefix = selfPrefix;
-        this.toPrefix = toPrefix; // the address we're suppose to funnel stuff in to, should be a child of outShuttle's address
+        this.proxyPrefix = proxyPrefix; // the address we're suppose to funnel stuff in to, should be a child of proxyShuttle's address
+        this.outShuttle = proxyShuttle;
         this.serializer = serializer;
         this.inQueue = inQueue;
-        this.outShuttle = outShuttle;
-        Validate.isTrue(Address.of(outShuttle.getPrefix()).isPrefixOf(toPrefix));
+        Validate.isTrue(Address.of(proxyShuttle.getPrefix()).isPrefixOf(proxyPrefix));
     }
     
     @Override
@@ -80,12 +96,12 @@ final class IncomingPumpRunnable implements Runnable {
                         Address srcAddress = selfPrefix
                                 .appendSuffix(toShuttleAddress(srcSocketAddr))
                                 .appendSuffix(em.getSourceSuffix());
-                        Address dstAddress = toPrefix
+                        Address dstAddress = proxyPrefix
                                 .appendSuffix(em.getDestinationSuffix());
                         Object payload = em.getObject();
 
                         Message msg = new Message(srcAddress, dstAddress, payload);
-                        outgoingMessages.add(new Message(srcAddress, dstAddress, msg));
+                        outgoingMessages.add(msg);
                         
                         LOG.debug("Incoming packet from {}: {}", srcSocketAddr, msg);
                     } catch (Exception e) {

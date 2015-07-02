@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.
+ */
 package com.offbynull.peernetic.network.gateways.udp;
 
 import com.offbynull.peernetic.core.common.Serializer;
@@ -28,6 +44,7 @@ final class OutgoingPumpRunnable implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(OutgoingPumpRunnable.class);
 
     private final Address selfPrefix;
+    private final Address proxyPrefix;
     private final Serializer serializer;
     
     // from this gateway's Shuttle to this pump
@@ -37,14 +54,16 @@ final class OutgoingPumpRunnable implements Runnable {
     private final LinkedBlockingQueue<OutgoingPacket> outQueue;
     private final Selector outSelector; // selector is what blocks in the NIO thread
 
-    public OutgoingPumpRunnable(Address selfPrefix, Serializer serializer, Bus bus, LinkedBlockingQueue<OutgoingPacket> outQueue,
-            Selector outSelector) {
+    public OutgoingPumpRunnable(Address selfPrefix, Address proxyPrefix, Serializer serializer, Bus bus,
+            LinkedBlockingQueue<OutgoingPacket> outQueue, Selector outSelector) {
         Validate.notNull(selfPrefix);
+        Validate.notNull(proxyPrefix);
         Validate.notNull(serializer);
         Validate.notNull(bus);
         Validate.notNull(outQueue);
         Validate.notNull(outSelector);
         this.selfPrefix = selfPrefix;
+        this.proxyPrefix = proxyPrefix;
         this.serializer = serializer;
         this.bus = bus;
         this.outQueue = outQueue;
@@ -79,8 +98,8 @@ final class OutgoingPumpRunnable implements Runnable {
                             InetSocketAddress dstAddr = fromShuttleAddress(dstAddress);
                             Address dstSuffix = dst.removePrefix(Address.of(dstPrefix, dstAddress));
 
-                            Validate.isTrue(selfPrefix.isPrefixOf(src));
-                            Address srcSuffix = src.removePrefix(selfPrefix);
+                            Validate.isTrue(proxyPrefix.isPrefixOf(src));
+                            Address srcSuffix = src.removePrefix(proxyPrefix);
 
                             EncapsulatedMessage em = new EncapsulatedMessage(srcSuffix, dstSuffix, payload);
                             byte[] serializedEm = serializer.serialize(em);

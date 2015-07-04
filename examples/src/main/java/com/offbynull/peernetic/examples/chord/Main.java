@@ -55,12 +55,13 @@ public final class Main {
         int bits = Integer.numberOfTrailingZeros(size); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
         // ring-space is 3. Nodes will start from 0 to 15.
 
+        int graphRadius = Math.max(300, size * 4);
         for (int i = 0; i < size; i++) {
             NodeId selfId = new NodeId(i, bits);
             BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
             BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
             double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
-            Point newPoint = PositionUtils.pointOnCircle(500, percentage);
+            Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
             graphGateway.getIncomingShuttle().send(Arrays.asList(
                     new Message(Address.of(""), Address.of("graph"), new AddNode(selfId.toString())),
                     new Message(Address.of(""), Address.of("graph"), new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY())),

@@ -8,7 +8,7 @@ import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.error;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import java.time.Duration;

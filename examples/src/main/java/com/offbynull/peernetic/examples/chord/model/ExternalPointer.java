@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.examples.chord.model;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.chord;
 
+import com.offbynull.peernetic.examples.common.ConsoleStage;
 import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
@@ -7,7 +8,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;

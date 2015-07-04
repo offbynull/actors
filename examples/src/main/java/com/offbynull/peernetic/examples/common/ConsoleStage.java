@@ -1,4 +1,4 @@
-package com.offbynull.peernetic.examples.chord;
+package com.offbynull.peernetic.examples.common;
 
 // Created this to avoid mixing commands to run the example with log output to the console
 import java.util.concurrent.ArrayBlockingQueue;
@@ -14,14 +14,14 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
-final class ConsoleStage extends Stage {
+public final class ConsoleStage extends Stage {
 
     private static final ArrayBlockingQueue<ConsoleStage> SINGLETON_QUEUE = new ArrayBlockingQueue<>(1);
 
     private final Lock lock;
     private final TextArea outputTextArea;
     private final TextField inputTextField;
-    private CommandProcessor commandProcessor;
+    private ConsoleCommandProcessor commandProcessor;
 
     public ConsoleStage() {
         lock = new ReentrantLock();
@@ -84,7 +84,7 @@ final class ConsoleStage extends Stage {
         });
     }
 
-    public void setCommandProcessor(CommandProcessor commandProcessor) {
+    public void setCommandProcessor(ConsoleCommandProcessor commandProcessor) {
         lock.lock();
         try {
             this.commandProcessor = commandProcessor;
@@ -97,8 +97,4 @@ final class ConsoleStage extends Stage {
         return SINGLETON_QUEUE.take();
     }
 
-    interface CommandProcessor {
-
-        String commandEntered(String input);
-    }
 }

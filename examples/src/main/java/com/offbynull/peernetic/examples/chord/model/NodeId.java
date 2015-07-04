@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.peernetic.examples.common.nodeid;
+package com.offbynull.peernetic.examples.chord.model;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -55,7 +55,7 @@ public final class NodeId implements Serializable {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code data > limit}
      */
-    public NodeId(byte[] data, byte[] limit) {
+    private NodeId(byte[] data, byte[] limit) {
         this(new BigInteger(1, data), new BigInteger(1, limit)); 
     }
 
@@ -263,6 +263,34 @@ public final class NodeId implements Serializable {
      */
     public byte[] getLimitAsByteArray() {
         return limit.toByteArray();
+    }
+    
+    /**
+     * Checks if the limit of this id passed in satisfies {@code 2^n-1}. In other words, ensures that all bits making up the limit are
+     * {@code 1}.
+     * @return {@code true} if limit of this id matches {@code 2^n-1}, {@code false} otherwise.
+     */
+    private boolean isUseableId() {
+        BigInteger limit = getLimitAsBigInteger();
+        int bitLength = limit.bitLength();
+        
+        for (int i = 0; i < bitLength; i++) {
+            if (!limit.testBit(i)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Gets the bit size of the limit of the of this id.
+     * @return bit length of this id
+     */
+    public int getBitLength() {
+        Validate.isTrue(isUseableId()); // sanity check
+        BigInteger limit = this.getLimitAsBigInteger();
+        return limit.not().getLowestSetBit();
     }
     
     @Override

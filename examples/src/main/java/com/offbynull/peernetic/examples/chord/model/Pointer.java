@@ -17,8 +17,6 @@
 
 package com.offbynull.peernetic.examples.chord.model;
 
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-
 /**
  * Represents a pointer.
  * @author Kasra Faghihi

@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 

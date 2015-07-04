@@ -16,8 +16,6 @@
  */
 package com.offbynull.peernetic.examples.chord.model;
 
-import com.offbynull.peernetic.examples.common.nodeid.NodeIdUtils;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,10 +49,10 @@ public final class SuccessorTable {
     public SuccessorTable(InternalPointer basePtr) {
         Validate.notNull(basePtr);
         NodeId baseId = basePtr.getId();
-        Validate.isTrue(NodeIdUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
+//        Validate.isTrue(NodeIdUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
         
         this.basePtr = basePtr;
-        limit = NodeIdUtils.getBitLength(baseId);
+        limit = baseId.getBitLength();
         
         table = new ArrayDeque<>(limit);
         table.add(basePtr);
@@ -73,7 +71,7 @@ public final class SuccessorTable {
         NodeId baseId = basePtr.getId();
         NodeId successorId = successor.getId();
         
-        Validate.isTrue(NodeIdUtils.getBitLength(successorId) == limit);
+        Validate.isTrue(successorId.getBitLength() == limit);
         
         if (baseId.equals(successorId)) { // test above makes sure if this is true, successor will be of correct type
             table = new ArrayDeque<>();
@@ -116,7 +114,7 @@ public final class SuccessorTable {
         NodeId baseId = basePtr.getId();
         NodeId successorId = successor.getId();
         
-        Validate.isTrue(NodeIdUtils.getBitLength(successorId) == limit);
+        Validate.isTrue(successorId.getBitLength() == limit);
         
         if (table.size() > limit) {
             table = table.subList(0, limit);
@@ -128,7 +126,7 @@ public final class SuccessorTable {
         for (Pointer ptrSuccessor : table) {
             NodeId ptrSuccessorId = ptrSuccessor.getId();
             
-            Validate.isTrue(NodeIdUtils.getBitLength(ptrSuccessorId) == limit);
+            Validate.isTrue(ptrSuccessorId.getBitLength() == limit);
             
             if (baseId.equals(ptrSuccessorId)) {
                 lastTableIdx = idx;

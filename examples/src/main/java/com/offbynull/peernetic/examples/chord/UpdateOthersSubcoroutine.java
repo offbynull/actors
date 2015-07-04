@@ -12,7 +12,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTable
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;

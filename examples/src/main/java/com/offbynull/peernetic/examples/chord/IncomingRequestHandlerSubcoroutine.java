@@ -20,7 +20,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTable
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 

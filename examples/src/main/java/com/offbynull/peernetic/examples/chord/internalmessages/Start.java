@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.examples.chord.internalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {

@@ -11,7 +11,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import org.apache.commons.lang3.Validate;
 

@@ -10,7 +10,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import java.time.Duration;
 import org.apache.commons.lang3.Validate;
 

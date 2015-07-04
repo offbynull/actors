@@ -17,8 +17,6 @@
 package com.offbynull.peernetic.examples.chord.model;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.nodeid.NodeIdUtils;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -120,18 +118,18 @@ public final class FingerTable {
     public FingerTable(InternalPointer basePtr) {
         Validate.notNull(basePtr);
         NodeId baseId = basePtr.getId();
-        Validate.isTrue(NodeIdUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
+//        Validate.isTrue(NodeIdUtils.isUseableId(baseId)); // make sure satisfies 2^n-1
 
         this.basePtr = basePtr;
 
-        this.bitCount = NodeIdUtils.getBitLength(baseId);
+        this.bitCount = baseId.getBitLength();
         byte[] limit = baseId.getLimitAsByteArray();
 
         table = new ArrayList<>(bitCount);
         for (int i = 0; i < bitCount; i++) {
             BigInteger data = BigInteger.ONE.shiftLeft(i);
             byte[] offsetIdRaw = data.toByteArray();
-            NodeId offsetId = new NodeId(offsetIdRaw, limit);
+            NodeId offsetId = new NodeId(offsetIdRaw, bitCount);
             NodeId expectedId = NodeId.add(baseId, offsetId);
 
             InternalEntry te = new InternalEntry();
@@ -154,7 +152,7 @@ public final class FingerTable {
     public Pointer findClosestPreceding(NodeId id, NodeId ... ignoreIds) {
         Validate.notNull(id);
         Validate.noNullElements(ignoreIds);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(id.getBitLength() == bitCount);
 
         List<NodeId> skipIdList = Arrays.asList(ignoreIds);
         NodeId selfId = basePtr.getId();
@@ -200,7 +198,7 @@ public final class FingerTable {
         NodeId id = ptr.getId();
         NodeId baseId = basePtr.getId();
 
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(id.getBitLength() == bitCount);
         Validate.isTrue(!id.equals(baseId));
 
         // search for position to insert to
@@ -273,12 +271,12 @@ public final class FingerTable {
      */
     public boolean replace(ExternalPointer ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(NodeIdUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(ptr.getId().getBitLength() == bitCount);
 
         NodeId id = ptr.getId();
         NodeId baseId = basePtr.getId();
 
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(id.getBitLength() == bitCount);
         Validate.isTrue(!id.equals(baseId));
 
         // search for position to insert to
@@ -384,7 +382,7 @@ public final class FingerTable {
 
         BigInteger data = BigInteger.ONE.shiftLeft(idx);
         byte[] offsetIdRaw = data.toByteArray();
-        NodeId offsetId = new NodeId(offsetIdRaw, basePtr.getId().getLimitAsByteArray());
+        NodeId offsetId = new NodeId(offsetIdRaw, basePtr.getId().getBitLength());
         NodeId routerId = NodeId.subtract(basePtr.getId(), offsetId);
         
         return routerId;
@@ -400,13 +398,13 @@ public final class FingerTable {
      */
     public void remove(ExternalPointer ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(NodeIdUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(ptr.getId().getBitLength() == bitCount);
 
         NodeId id = ptr.getId();
         Address address = ptr.getAddress();
         NodeId baseId = basePtr.getId();
 
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(id.getBitLength() == bitCount);
         Validate.isTrue(!id.equals(baseId));
 
         ListIterator<InternalEntry> lit = table.listIterator(table.size());
@@ -489,7 +487,7 @@ public final class FingerTable {
      */
     public int clearBefore(NodeId id) {
         Validate.notNull(id);
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(id.getBitLength() == bitCount);
 
         NodeId baseId = basePtr.getId();
 
@@ -560,10 +558,10 @@ public final class FingerTable {
      */
     public int getMinimumIndex(Pointer ptr) {
         Validate.notNull(ptr);
-        Validate.isTrue(NodeIdUtils.getBitLength(ptr.getId()) == bitCount);
+        Validate.isTrue(ptr.getId().getBitLength() == bitCount);
 
         NodeId id = ptr.getId();
-        Validate.isTrue(NodeIdUtils.getBitLength(id) == bitCount);
+        Validate.isTrue(id.getBitLength() == bitCount);
 
         ListIterator<InternalEntry> lit = table.listIterator();
         while (lit.hasNext()) {

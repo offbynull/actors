@@ -16,7 +16,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRespo
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import org.apache.commons.lang3.Validate;
 
 final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {

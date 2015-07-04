@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import java.io.Serializable;
 
 public final class NotifyResponse implements Serializable {

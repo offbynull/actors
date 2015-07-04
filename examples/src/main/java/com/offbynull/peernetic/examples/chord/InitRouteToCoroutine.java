@@ -12,7 +12,7 @@ import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedi
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import org.apache.commons.lang3.Validate;
 
 // unique to initialization phase in that it doesn't consider you as a node in the network (you're initializing, you haven't connected yet)

@@ -12,7 +12,7 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;

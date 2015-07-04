@@ -3,8 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
-import com.offbynull.peernetic.examples.common.nodeid.NodeId;
-import com.offbynull.peernetic.examples.common.nodeid.NodeIdUtils;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
@@ -72,7 +71,7 @@ final class State {
     }
     
     public int getFingerTableLength() {
-        return NodeIdUtils.getBitLength(getSelfId());
+        return getSelfId().getBitLength();
     }
 
     public Pointer getFinger(int idx) {

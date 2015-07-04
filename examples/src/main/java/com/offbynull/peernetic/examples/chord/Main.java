@@ -42,14 +42,14 @@ public final class Main {
         ConsoleStage consoleStage = ConsoleStage.getInstance();
 
         ArrayBlockingQueue<Integer> sizeContainer = new ArrayBlockingQueue<>(1);
-        consoleStage.outputLine("Enter size of ring (must be power of 2)");
+        consoleStage.outputLine("Enter size of Chord ring (must be power of 2)");
         consoleStage.setCommandProcessor((input) -> {
             sizeContainer.add(Integer.parseInt(input));
             return "Creating " + input + " nodes";
         });
         int size = sizeContainer.take();
         
-        Validate.isTrue(size > 0, "Negative size");
+        Validate.isTrue(size > 0, "Bad size");
         Validate.isTrue(Integer.bitCount(size) == 1, "Not power of 2");
 
         int bits = Integer.numberOfTrailingZeros(size); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
@@ -69,6 +69,12 @@ public final class Main {
             ));
         }
 
+        consoleStage.outputLine("Node colors");
+        consoleStage.outputLine("-----------");
+        consoleStage.outputLine("Red = Not active");
+        consoleStage.outputLine("Yellow = Initializing");
+        consoleStage.outputLine("Green = Active");
+        consoleStage.outputLine("");
         consoleStage.outputLine("Line colors");
         consoleStage.outputLine("-----------");
         consoleStage.outputLine("Red = Finger");
@@ -129,6 +135,9 @@ public final class Main {
                 case "stop": {
                     int startId = scanner.nextInt();
                     int endId = scanner.nextInt();
+                    
+                    Validate.isTrue(startId <= endId);
+                    
                     for (int id = startId; id <= endId; id++) {
                         actorThread.getIncomingShuttle().send(
                                 Collections.singleton(

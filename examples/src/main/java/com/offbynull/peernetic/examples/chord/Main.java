@@ -137,6 +137,10 @@ public final class Main {
                     }
                     return "Executed command: " + input;
                 }
+                case "exit": {
+                    GraphGateway.exitApplication();
+                    return "Executed command: " + input;
+                }
                 default: {
                     return "Unknown command: " + input;
                 }

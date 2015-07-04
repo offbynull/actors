@@ -49,7 +49,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
                 fixFinger(cnt, i);
             }
 
-            ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Fix finger cycle\nBefore: {}\nAfter: {}", state.getSelfId(),
+            ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Fix finger cycle \\ Before: {} \\ After: {}", state.getSelfId(),
                     sourceId, oldFingers, state.getFingers()));
             funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
         }
@@ -90,7 +90,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
             throw new IllegalStateException();
         }
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Finger index {} updated\nExpected: {}\nBefore: {}\nAfter: {}",
+        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Finger index {} updated \\ Expected: {} \\ Before: {} \\ After: {}",
                 state.getSelfId(), sourceId, i, findId, oldFinger, foundFinger));
     }
     

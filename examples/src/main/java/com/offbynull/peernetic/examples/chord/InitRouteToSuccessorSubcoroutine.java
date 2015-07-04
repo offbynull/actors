@@ -115,7 +115,7 @@ final class InitRouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             Class<T> expectedResponseClass) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination)
+                .destinationAddress(destination.appendSuffix("router", "handler"))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

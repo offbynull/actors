@@ -7,7 +7,6 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.common.nodeid.NodeId;
 import java.util.Collections;
-import java.util.regex.Pattern;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
@@ -20,8 +19,6 @@ import org.apache.commons.lang3.Validate;
 
 final class ControllerStage extends Stage {
 
-    private static final Pattern ADD_PATTERN = Pattern.compile("\\s*(\\d+)-(\\d+)\\s*(\\d*)\\s*");
-    private static final Pattern REMOVE_PATTERN = Pattern.compile("\\s*(\\d+)-(\\d+)\\s*");
     public ControllerStage(ActorThread actorThread, int bits) {
         Validate.notNull(actorThread);
 
@@ -45,17 +42,12 @@ final class ControllerStage extends Stage {
                 int startId = Integer.parseInt(addStartTextField.getText());
                 int endId = Integer.parseInt(addEndTextField.getText());
                 
-                String connIdStr = addConnTextField.getText();
-                if (connIdStr.isEmpty()) {
-                    connIdStr = null;
-                } else {
-                    connIdStr = "actor:" + connIdStr;
-                }
+                String connectToId = addConnTextField.getText();
                 
                 for (int id = startId; id <= endId; id++) {
                     actorThread.addCoroutineActor("" + id, new ChordClientCoroutine(),
                             new Start(
-                                    connIdStr == null ? null : Address.fromString(connIdStr),
+                                    connectToId.isEmpty() ? null : Address.of("actor", connectToId),
                                     new NodeId(id, bits),
                                     id,
                                     Address.fromString("timer"),
@@ -83,8 +75,8 @@ final class ControllerStage extends Stage {
                 actorThread.getIncomingShuttle().send(
                         Collections.singleton(
                                 new Message(
-                                        Address.of(""),
-                                        Address.fromString("actor:" + id),
+                                        Address.of("actor", "" + id),
+                                        Address.of("actor", "" + id),
                                         new Kill()
                                 )
                         )

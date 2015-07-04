@@ -2,13 +2,13 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.error;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
@@ -68,12 +68,9 @@ public final class ChordClientCoroutine implements Coroutine {
             controller.add(
                     new CheckPredecessorSubcoroutine(mainSourceId.appendSuffix("checkpred"), state, timerPrefix),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
-            
-
-            // Create incoming request handler
-            CoroutineRunner requestHandlerRunner = new CoroutineRunner(new IncomingRequestHandlerCoroutine(state, logAddress));
-            requestHandlerRunner.setContext(ctx);
-            requestHandlerRunner.execute(); // priming
+            controller.add(
+                    new IncomingRequestHandlerSubcoroutine(mainSourceId.appendSuffix("handler"), state, logAddress),
+                    AddBehaviour.ADD);
             
             
             // Process messages
@@ -83,7 +80,11 @@ public final class ChordClientCoroutine implements Coroutine {
                 // if sent to main address then forward to incoming request handler, otherwise forward to router
                 boolean forwardedToRouter = router.forward();
                 if (!forwardedToRouter) {
-                    requestHandlerRunner.execute();
+                    Object msg = ctx.getIncomingMessage();
+                    boolean isFromSelf = ctx.getSource().equals(ctx.getSelf());
+                    if (isFromSelf && msg instanceof Kill) {
+                        throw new RuntimeException("Kill message encountered");
+                    }
                 }
                 
                 lastNotifiedPointers = updateOutgoingLinksOnGraph(state, lastNotifiedPointers, ctx, selfId, graphAddress);

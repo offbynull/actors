@@ -137,7 +137,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
             boolean exceptionOnBadResponse) throws Exception {
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination)
+                .destinationAddress(destination.appendSuffix("router", "handler"))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

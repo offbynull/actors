@@ -68,18 +68,21 @@ public final class Main {
             ));
         }
 
-
+        consoleStage.outputLine("Line colors");
+        consoleStage.outputLine("-----------");
+        consoleStage.outputLine("Red = Finger");
+        consoleStage.outputLine("Green = Successor");
+        consoleStage.outputLine("Blue = Predecessor");
+        consoleStage.outputLine("Yellow (Red+Green) = Finger+Successor");
+        consoleStage.outputLine("Purple (Red+Blue) = Finger+Predecessor");
+        consoleStage.outputLine("White (Red+Green+Blue) = Finger+Successor+Predecessor");
+        consoleStage.outputLine("");
         consoleStage.outputLine("Available commands");
         consoleStage.outputLine("------------------");
         consoleStage.outputLine("Bootstrap node: boot <id>");
         consoleStage.outputLine("Connect nodes: start <start_id> <end_id> <connect_id>");
         consoleStage.outputLine("Stop nodes: stop <start_id> <end_id>");
         consoleStage.outputLine("To shutdown: exit");
-        consoleStage.outputLine("");
-        consoleStage.outputLine("For example, to add node 0 as the inital network in a node and then have nodes 1 to 10 join it use the "
-                + "following commands...");
-        consoleStage.outputLine("boot 0");
-        consoleStage.outputLine("start 1 10 0");
         consoleStage.outputLine("");
 
         consoleStage.setCommandProcessor((input) -> {

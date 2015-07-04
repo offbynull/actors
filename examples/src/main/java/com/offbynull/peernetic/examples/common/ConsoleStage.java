@@ -64,7 +64,9 @@ public final class ConsoleStage extends Stage {
         borderPane.setCenter(outputTextArea);
         borderPane.setBottom(inputTextField);
 
-        setTitle("Controller");
+        inputTextField.requestFocus();
+
+        setTitle("Console");
         setWidth(300);
         setHeight(400);
 

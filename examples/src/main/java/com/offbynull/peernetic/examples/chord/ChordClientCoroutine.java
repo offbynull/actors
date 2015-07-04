@@ -11,15 +11,17 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
-import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
-import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.Validate;
 
 public final class ChordClientCoroutine implements Coroutine {
 
@@ -36,23 +38,21 @@ public final class ChordClientCoroutine implements Coroutine {
         Address bootstrapAddress = start.getBootstrapAddress();
 
         switchToStartedOnGraph(ctx, selfId, graphAddress);
-        
-        Set<Pointer> lastNotifiedPointers = new HashSet<>();
+
+        Set<GraphLink> lastOutgoingLinks = new HashSet<>();
         try {
             State state = new State(seed, selfId);
 
-            
             // Join (or just initialize if no bootstrap node is set)
             JoinSubcoroutine joinTask = new JoinSubcoroutine(Address.of("join"), state, timerPrefix, logAddress, bootstrapAddress);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
-            lastNotifiedPointers = updateOutgoingLinksOnGraph(state, lastNotifiedPointers, ctx, selfId, graphAddress);
+            lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, selfId, graphAddress);
 
-            
             // Create maintanence tasks that are supposed to run in parallel
             Address mainSourceId = Address.of("router");
-            
+
             SubcoroutineRouter router = new SubcoroutineRouter(mainSourceId, ctx);
             Controller controller = router.getController();
 
@@ -71,8 +71,7 @@ public final class ChordClientCoroutine implements Coroutine {
             controller.add(
                     new IncomingRequestHandlerSubcoroutine(mainSourceId.appendSuffix("handler"), state, logAddress),
                     AddBehaviour.ADD);
-            
-            
+
             // Process messages
             while (true) {
                 cnt.suspend();
@@ -86,37 +85,71 @@ public final class ChordClientCoroutine implements Coroutine {
                         throw new RuntimeException("Kill message encountered");
                     }
                 }
-                
-                lastNotifiedPointers = updateOutgoingLinksOnGraph(state, lastNotifiedPointers, ctx, selfId, graphAddress);
+
+                lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, selfId, graphAddress);
             }
         } catch (Exception e) {
             ctx.addOutgoingMessage(logAddress, error("Shutting down client {} -- {}", ctx.getSelf(), e));
         } finally {
-            for (Pointer ptr : lastNotifiedPointers) {
-                disconnectOnGraph(ctx, selfId, ptr.getId(), graphAddress);
+            for (GraphLink link : lastOutgoingLinks) {
+                disconnectOnGraph(ctx, selfId, link.getExternalPointer().getId(), graphAddress);
             }
             switchToDeadOnGraph(ctx, selfId, graphAddress);
         }
     }
 
-    private Set<Pointer> updateOutgoingLinksOnGraph(State state, Set<Pointer> lastNotifiedPointers, Context ctx, NodeId selfId, Address graphAddress) {
+    private Set<GraphLink> updateOutgoingLinksOnGraph(State state, Set<GraphLink> lastOutgoingLinks, Context ctx, NodeId selfId,
+            Address graphAddress) {
         // Send link changes to graph
-        Set<Pointer> newPointers = new HashSet<>(Arrays.<Pointer>asList(
-                state.getFingers().stream().filter(x -> x instanceof ExternalPointer).toArray(x -> new Pointer[x])));
-        if (state.getPredecessor() != null) {
-            newPointers.add(state.getPredecessor());
+        Set<GraphLink> newLinks = new HashSet<>();
+
+        Set<ExternalPointer> fingers = state.getFingers().stream()
+                .filter(x -> x instanceof ExternalPointer)
+                .map(x -> (ExternalPointer) x)
+                .collect(Collectors.toSet());
+        Set<ExternalPointer> successors = state.getSuccessors().stream()
+                .filter(x -> x instanceof ExternalPointer)
+                .map(x -> (ExternalPointer) x)
+                .collect(Collectors.toSet());
+        ExternalPointer predecessor = state.getPredecessor();
+
+        // Line colors change depending on what kind of link it is
+        // 
+        // If it's a finger, the red component will be set
+        // If it's a successor, the green component will be set
+        // If it's a predecssor, the blue component will be set
+        //
+        // Finger = red
+        // Successor = green
+        // Predecessor = blue
+        // Finger + Successor =  red + green = yellow
+        // Finger + Predecssor = red + blue = purple
+        // Finger + Successor + Predecssor = red + green + blue = white
+        Consumer<ExternalPointer> addToNewLinksConsumer = x -> {
+            String color = "rgb("
+                        + (fingers.contains(x) ? "255" : "0") + ", "
+                        + (successors.contains(x) ? "255" : "0") + ", "
+                        + (x.equals(predecessor) ? "255" : "0")
+                        + ");";
+            newLinks.add(new GraphLink(x, color));
+        };
+        
+        fingers.stream().forEach(addToNewLinksConsumer);
+        successors.stream().forEach(addToNewLinksConsumer);
+        if (predecessor != null) {
+            addToNewLinksConsumer.accept(predecessor);
         }
-        
-        Set<Pointer> addedPointers = new HashSet<>(newPointers);
-        addedPointers.removeAll(lastNotifiedPointers);
-        addedPointers.forEach(x -> connectOnGraph(ctx, selfId, x.getId(), graphAddress));
-        
-        Set<Pointer> removedPointers = new HashSet<>(lastNotifiedPointers);
-        removedPointers.removeAll(newPointers);
-        removedPointers.forEach(x -> disconnectOnGraph(ctx, selfId, x.getId(), graphAddress));
-        
-        lastNotifiedPointers = newPointers;
-        return lastNotifiedPointers;
+
+        Set<GraphLink> removedPointers = new HashSet<>(lastOutgoingLinks);
+        removedPointers.removeAll(newLinks);
+        removedPointers.forEach(x -> disconnectOnGraph(ctx, selfId, x.getExternalPointer().getId(), graphAddress));
+
+        Set<GraphLink> addedPointers = new HashSet<>(newLinks);
+        addedPointers.removeAll(lastOutgoingLinks);
+        addedPointers.forEach(x -> connectOnGraph(ctx, selfId, x.getExternalPointer().getId(), x.getColor(), graphAddress));
+
+        lastOutgoingLinks = newLinks;
+        return lastOutgoingLinks;
     }
 
     private void switchToStartedOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
@@ -130,14 +163,63 @@ public final class ChordClientCoroutine implements Coroutine {
     private void switchToDeadOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: red"));
     }
-    
-    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, Address graphAddress) {
+
+    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String color,
+            Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
         ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(),
-                "-fx-stroke: rgba(0, 0, 0, .5); -fx-stroke-width: 3;"));
+                " -fx-stroke-width: 3; -fx-stroke: " + color));
     }
 
     private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
+    }
+
+    private static final class GraphLink {
+
+        private final ExternalPointer externalPointer;
+        private final String color;
+
+        public GraphLink(ExternalPointer externalPointer, String color) {
+            Validate.notNull(externalPointer);
+            Validate.notNull(color);
+            this.externalPointer = externalPointer;
+            this.color = color;
+        }
+
+        public ExternalPointer getExternalPointer() {
+            return externalPointer;
+        }
+
+        public String getColor() {
+            return color;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 37 * hash + Objects.hashCode(this.externalPointer);
+            hash = 37 * hash + Objects.hashCode(this.color);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final GraphLink other = (GraphLink) obj;
+            if (!Objects.equals(this.externalPointer, other.externalPointer)) {
+                return false;
+            }
+            if (!Objects.equals(this.color, other.color)) {
+                return false;
+            }
+            return true;
+        }
+
     }
 }

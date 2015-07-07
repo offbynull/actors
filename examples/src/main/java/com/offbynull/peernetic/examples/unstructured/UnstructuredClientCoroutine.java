@@ -10,10 +10,10 @@ import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.common.AddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import java.util.Random;
-import java.util.function.Function;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class UnstructuredClientCoroutine implements Coroutine {
@@ -27,21 +27,18 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         UnmodifiableSet<Address> bootstrapAddresses = start.getBootstrapAddresses();
-        Function<Address, String> selfAddressToIdMapper = start.getSelfAddressToIdMapper();
-        Function<Address, String> remoteAddressToIdMapper = start.getRemoteAddressToIdMapper();
-        Function<String, Address> idToRemoteAddressMapper = start.getIdToRemoteAddressMapper();
+        AddressTransformer addressTransformer = start.getAddressTransformer();
         long seed = start.getSeed();
 
         Random random = new Random(seed);
 
-        State state = new State(seed, 3, 4, 256, bootstrapAddresses, selfAddressToIdMapper, remoteAddressToIdMapper,
-                idToRemoteAddressMapper);
+        State state = new State(seed, 3, 4, 256, bootstrapAddresses, addressTransformer);
 
         ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapAddresses));
-        ctx.addOutgoingMessage(graphAddress, new AddNode(selfAddressToIdMapper.apply(ctx.getSelf())));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(addressTransformer.selfAddressToId(ctx.getSelf())));
         ctx.addOutgoingMessage(graphAddress,
                 new MoveNode(
-                        selfAddressToIdMapper.apply(ctx.getSelf()),
+                        addressTransformer.selfAddressToId(ctx.getSelf()),
                         random.nextInt(1400),
                         random.nextInt(1400)
                 )

@@ -65,7 +65,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 // we need to strip out the router:in# and router:out#, which means we always need to remove the last 2 elements
                 Set<String> linkIds = state.getLinks().stream()
                         .map(x -> x.removeSuffix(2))
-                        .map(state.getRemoteAddressToIdMapper())
+                        .map(x -> state.getAddressTransformer().selfAddressToId(x))
                         .collect(Collectors.toSet());
                 
                 QueryResponse resp = new QueryResponse(linkIds);

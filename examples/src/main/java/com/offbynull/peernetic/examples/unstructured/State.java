@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.common.AddressTransformer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,9 +25,7 @@ final class State {
     private final int maxCachedAddresses;
     private List<Address> addressCache; // address to handler
     
-    private final Function<Address, String> selfAddressToIdMapper;
-    private final Function<Address, String> remoteAddressToIdMapper;
-    private final Function<String, Address> idToRemoteAddressMapper;
+    private final AddressTransformer addressTransformer;
 
     public State(
             long seed,
@@ -34,13 +33,9 @@ final class State {
             int maxOutgoingLinks,
             int maxCachedAddresses,
             Set<Address> bootstrapAddresses,
-            Function<Address, String> selfAddressToIdMapper,
-            Function<Address, String> remoteAddressToIdMapper,
-            Function<String, Address> idToRemoteAddressMapper) {
+            AddressTransformer addressTransformer) {
         Validate.notNull(bootstrapAddresses);
-        Validate.notNull(selfAddressToIdMapper);
-        Validate.notNull(remoteAddressToIdMapper);
-        Validate.notNull(idToRemoteAddressMapper);
+        Validate.notNull(addressTransformer);
         Validate.noNullElements(bootstrapAddresses);
         Validate.isTrue(maxIncomingLinks >= 0);
         Validate.isTrue(maxOutgoingLinks >= 0);
@@ -56,9 +51,7 @@ final class State {
         this.addressCache = new ArrayList<>(maxCachedAddresses);
         this.addressCache.addAll(bootstrapAddresses);
         
-        this.selfAddressToIdMapper = selfAddressToIdMapper;
-        this.remoteAddressToIdMapper = remoteAddressToIdMapper;
-        this.idToRemoteAddressMapper = idToRemoteAddressMapper;
+        this.addressTransformer = addressTransformer;
     }
 
     public String nextRandomId() {
@@ -163,15 +156,7 @@ final class State {
         }
     }
 
-    public Function<Address, String> getSelfAddressToIdMapper() {
-        return selfAddressToIdMapper;
-    }
-
-    public Function<Address, String> getRemoteAddressToIdMapper() {
-        return remoteAddressToIdMapper;
-    }
-
-    public Function<String, Address> getIdToRemoteAddressMapper() {
-        return idToRemoteAddressMapper;
+    public AddressTransformer getAddressTransformer() {
+        return addressTransformer;
     }
 }

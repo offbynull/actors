@@ -76,7 +76,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
             ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to query with {}", address, response.getLinkIds()));
             Set<Address> links = response.getLinkIds().stream()
-                    .map(state.getIdToRemoteAddressMapper())
+                    .map(x -> state.getAddressTransformer().idToRemoteAddress(x))
                     .collect(Collectors.toSet());
             state.addCachedAddresses(links);
         }

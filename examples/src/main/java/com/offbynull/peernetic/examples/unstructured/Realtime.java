@@ -4,6 +4,7 @@ import com.offbynull.peernetic.core.actor.ActorThread;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import java.util.Random;
@@ -42,9 +43,7 @@ public final class Realtime {
                 id,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
-                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
-                        str -> Address.of("actor", str), // e.g. 0 -> actor:0
+                        new SimpleAddressTransformer(Address.of("actor"), id),
                         Address.of("actor", "" + rand.nextInt(i)),
                         (long) i,
                         Address.of("timer"),
@@ -59,9 +58,7 @@ public final class Realtime {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
-                        addr -> addr.getElement(1),      // e.g. actor:0 -> 0
-                        str -> Address.of("actor", str), // e.g. 0 -> actor:0
+                        new SimpleAddressTransformer(Address.of("actor"), "0"),
                         Address.of("actor", "0"),
                         0L,
                         Address.of("timer"),

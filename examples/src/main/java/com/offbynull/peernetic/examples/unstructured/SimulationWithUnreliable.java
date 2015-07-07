@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.simulator.MessageSink;
 import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.simulator.Simulator;
+import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
@@ -104,11 +105,9 @@ public final class SimulationWithUnreliable {
                 Duration.ZERO,
                 time,
                 new Start(
-                        addr -> addr.getElement(0),                    // e.g. 0 -> 0
-                        addr -> addr.getElement(1).substring(5),       // e.g. unrel0:unrel1 -> 1
-                        str -> Address.of("unrel" + i, "unrel" + str), // e.g. 1 -> unrel0:unrel1
-                        Address.of("unrel" + i, "unrel" + rand.nextInt(i)), // bootstrap proxy thru unreliable
-                                                                            // e.g. unrel0:unrel1
+                        new SimpleAddressTransformer(Address.of(unreliableId), unreliableId),
+                        Address.of(unreliableId, "unrel" + rand.nextInt(i)), // bootstrap proxy thru unreliable
+                                                                             // e.g. unrel0:unrel1
                         (long) i,
                         Address.of("timer"),
                         Address.of("graph"),
@@ -144,9 +143,7 @@ public final class SimulationWithUnreliable {
                 Duration.ZERO,
                 time,
                 new Start(
-                        addr -> addr.getElement(0),                 // e.g. 0 -> 0
-                        addr -> addr.getElement(0).substring(5),    // e.g. unrel0 -> 0
-                        str -> Address.of("unrel0", "unrel" + str), // e.g. 1 -> unrel0:unrel1
+                        new SimpleAddressTransformer(Address.of("unrel0"), "unrel0"),
                         0L,
                         Address.of("timer"),
                         Address.of("graph"),

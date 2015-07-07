@@ -5,6 +5,7 @@ import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
@@ -53,9 +54,7 @@ public final class RealtimeViaUdp {
                 id,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> "7f000001." + (10000 + Integer.valueOf(addr.getElement(1))), // e.g. actor:0 -> 7f000001.10000
-                        addr -> addr.getElement(1),                                          // e.g. udp0:7f000001.10001 -> 7f000001.10001
-                        str -> Address.of("udp" + i, str),                                   // e.g. 7f000001.10001 -> udp0:7f000001.10001
+                        new SimpleAddressTransformer(Address.of("udp" + i), "7f000001." + (10000 + i)),
                         Address.of("udp" + i, "7f000001." + (10000 + rand.nextInt(i))),
                         (long) i,
                         Address.of("timer"),
@@ -77,9 +76,7 @@ public final class RealtimeViaUdp {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> "7f000001." + (10000 + Integer.valueOf(addr.getElement(1))), // e.g. actor:0 -> 7f000001.10000
-                        addr -> addr.getElement(1),                                          // e.g. udp0:7f000001.10001 -> 7f000001.10001
-                        str -> Address.of("udp0", str),                                      // e.g. 7f000001.10001 -> udp0:7f000001.10001
+                        new SimpleAddressTransformer(Address.of("udp0"), "7f000001.10000"),
                         10000L,
                         Address.of("timer"),
                         Address.of("graph"),

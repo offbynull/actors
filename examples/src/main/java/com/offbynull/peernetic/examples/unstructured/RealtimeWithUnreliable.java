@@ -5,6 +5,7 @@ import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
@@ -68,11 +69,9 @@ public final class RealtimeWithUnreliable {
                 id,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1),                                      // e.g. actor:0 -> 0
-                        addr -> addr.getElement(3).substring(5),                         // e.g. actor:unrel0:actor:unrel1 -> 1
-                        str -> Address.of("actor", "unrel" + i, "actor", "unrel" + str), // e.g. 1 -> actor:unrel0:actor:unrel1
-                        Address.of("actor", "unrel" + i, "actor", "unrel" + rand.nextInt(i)), // bootstrap proxy thru unreliable
-                                                                                              // e.g. actor:unrel0:actor:unrel1
+                        new SimpleAddressTransformer(Address.of("actor", unreliableId, "actor"), unreliableId),
+                        Address.of("actor", unreliableId, "actor", "unrel" + rand.nextInt(i)), // bootstrap proxy thru unreliable
+                                                                                               // e.g. actor:unrel0:actor:unrel1
                         (long) i,
                         Address.of("timer"),
                         Address.of("graph"),
@@ -105,9 +104,7 @@ public final class RealtimeWithUnreliable {
                 "0",
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        addr -> addr.getElement(1),                                   // e.g. actor:0 -> 0
-                        addr -> addr.getElement(3).substring(5),                      // e.g. actor:unrel0:actor:unrel1 -> 1
-                        str -> Address.of("actor", "unrel0", "actor", "unrel" + str), // e.g. 1 -> actor:unrel0:actor:unrel1
+                        new SimpleAddressTransformer(Address.of("actor", "unrel0", "actor"), "unrel0"),
                         0L,
                         Address.of("timer"),
                         Address.of("graph"),

@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.simulator.MessageSink;
 import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.simulator.Simulator;
+import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.io.File;
@@ -80,9 +81,7 @@ public final class Simulation {
                 Duration.ZERO,
                 time,
                 new Start(
-                        addr -> addr.getElement(0), // e.g. 0 -> 0
-                        addr -> addr.getElement(0), // e.g. 0 -> 0
-                        str -> Address.of(str), // e.g. 0 -> 0
+                        new SimpleAddressTransformer(Address.of(), id),
                         Address.of("" + rand.nextInt(i)),
                         (long) i,
                         Address.of("timer"),
@@ -99,9 +98,7 @@ public final class Simulation {
                 Duration.ZERO,
                 time,
                 new Start(
-                        addr -> addr.getElement(0), // e.g. 0 -> 0
-                        addr -> addr.getElement(0), // e.g. 0 -> 0
-                        str -> Address.of(str), // e.g. 0 -> 0
+                        new SimpleAddressTransformer(Address.of(), "0"),
                         0L,
                         Address.of("timer"),
                         Address.of("graph"),

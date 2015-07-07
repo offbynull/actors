@@ -1,18 +1,16 @@
 package com.offbynull.peernetic.examples.unstructured.internalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.common.AddressTransformer;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Function;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
 
-    private final Function<Address, String> selfAddressToIdMapper;
-    private final Function<Address, String> remoteAddressToIdMapper;
-    private final Function<String, Address> idToRemoteAddressMapper;
+    private final AddressTransformer addressTransformer;
     private final UnmodifiableSet<Address> bootstrapAddresses;
     private final long seed;
     private final Address timerPrefix;
@@ -20,16 +18,12 @@ public final class Start {
     private final Address logAddress;
 
     public Start(
-            Function<Address, String> selfAddressToIdMapper,
-            Function<Address, String> remoteAddressToIdMapper,
-            Function<String, Address> idToRemoteAddressMapper,
+            AddressTransformer addressTransformer,
             long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        this(selfAddressToIdMapper,
-                remoteAddressToIdMapper,
-                idToRemoteAddressMapper,
+        this(addressTransformer,
                 Collections.emptySet(),
                 seed,
                 timerPrefix,
@@ -38,17 +32,13 @@ public final class Start {
     }
     
     public Start(
-            Function<Address, String> selfAddressToIdMapper,
-            Function<Address, String> remoteAddressToIdMapper,
-            Function<String, Address> idToRemoteAddressMapper,
+            AddressTransformer addressTransformer,
             Address bootstrapAddress,
             long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        this(selfAddressToIdMapper,
-                remoteAddressToIdMapper,
-                idToRemoteAddressMapper,
+        this(addressTransformer,
                 Collections.singleton(bootstrapAddress),
                 seed,
                 timerPrefix,
@@ -57,24 +47,18 @@ public final class Start {
     }
     
     public Start(
-            Function<Address, String> selfAddressToIdMapper,
-            Function<Address, String> remoteAddressToIdMapper,
-            Function<String, Address> idToRemoteAddressMapper,
+            AddressTransformer addressTransformer,
             Set<Address> bootstrapAddresses,
             long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        Validate.notNull(selfAddressToIdMapper);
-        Validate.notNull(remoteAddressToIdMapper);
-        Validate.notNull(idToRemoteAddressMapper);
+        Validate.notNull(addressTransformer);
         Validate.notNull(bootstrapAddresses);
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
         Validate.noNullElements(bootstrapAddresses);
-        this.selfAddressToIdMapper = selfAddressToIdMapper;
-        this.remoteAddressToIdMapper = remoteAddressToIdMapper;
-        this.idToRemoteAddressMapper = idToRemoteAddressMapper;
+        this.addressTransformer = addressTransformer;
         this.bootstrapAddresses = (UnmodifiableSet<Address>) UnmodifiableSet.unmodifiableSet(new LinkedHashSet<Address>(bootstrapAddresses));
         this.seed = seed;
         this.timerPrefix = timerPrefix;
@@ -82,16 +66,8 @@ public final class Start {
         this.logAddress = logAddress;
     }
 
-    public Function<Address, String> getSelfAddressToIdMapper() {
-        return selfAddressToIdMapper;
-    }
-
-    public Function<Address, String> getRemoteAddressToIdMapper() {
-        return remoteAddressToIdMapper;
-    }
-
-    public Function<String, Address> getIdToRemoteAddressMapper() {
-        return idToRemoteAddressMapper;
+    public AddressTransformer getAddressTransformer() {
+        return addressTransformer;
     }
 
     public UnmodifiableSet<Address> getBootstrapAddresses() {

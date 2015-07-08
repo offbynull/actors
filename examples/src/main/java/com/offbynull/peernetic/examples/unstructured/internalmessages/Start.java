@@ -39,7 +39,7 @@ public final class Start {
             Address graphAddress,
             Address logAddress) {
         this(addressTransformer,
-                Collections.singleton(bootstrapAddress),
+                bootstrapAddress == null ? Collections.emptySet() : Collections.singleton(bootstrapAddress),
                 seed,
                 timerPrefix,
                 graphAddress,

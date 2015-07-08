@@ -1,10 +1,12 @@
 package com.offbynull.peernetic.examples.common;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import java.util.function.Function;
 import org.apache.commons.lang3.Validate;
 
-// AddressTransformer that takes the suffix out of an address and uses it as the id
+/**
+ * An {@link AddressTransformer} that takes the last element out of a remote address and uses it as the id (and vice-versa).
+ * @author Kasra Faghihi
+ */
 public final class SimpleAddressTransformer implements AddressTransformer {
 
     private final Address remoteBase;

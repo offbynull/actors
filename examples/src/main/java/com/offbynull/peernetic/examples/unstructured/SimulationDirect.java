@@ -15,19 +15,32 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Random;
 
-public final class Simulation {
+public final class SimulationDirect {
 
+    private static final String BASE_GRAPH_ADDRESS_STRING = "graph";
+    private static final String BASE_TIMER_ADDRESS_STRING = "timer";
+    private static final String BASE_LOG_ADDRESS_STRING = "log";
+    
+    private static final Address BASE_GRAPH_ADDRESS = Address.of(BASE_GRAPH_ADDRESS_STRING);
+    private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
+    private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
+    
+    private static final Address EMPTY_ADDRESS = Address.of();
+    
+    private static final int MAX_NODES = 100;
+    private static final int MAX_WAIT_PER_NODE_ADD = 1000; // in milliseconds
+    
     public static void main(String[] args) throws Exception {
         // Create simulator
         Instant time = Instant.ofEpochMilli(0L);
         Simulator simulator = new Simulator(time);
 
         // Instruct simulator to save messages to graph
-        File tempFile = File.createTempFile(Simulation.class.getSimpleName(), ".graphmsgs");
-        MessageSink sink = new RecordMessageSink("graph", tempFile, new SimpleSerializer());
+        File tempFile = File.createTempFile(SimulationDirect.class.getSimpleName(), ".graphmsgs");
+        MessageSink sink = new RecordMessageSink(BASE_GRAPH_ADDRESS_STRING, tempFile, new SimpleSerializer());
         simulator.addMessageSink(sink, time); // add sink
         simulator.addCoroutineActor(          // add fake actor for "graph" so sink above actually gets sent msgs by simulator --
-                "graph",                        // simulator will not send messagesto sink if actor isn't present
+                BASE_GRAPH_ADDRESS_STRING,     // simulator will not send messagesto sink if actor isn't present
                 cnt -> {
                     while (true) {
                         cnt.suspend();
@@ -37,14 +50,14 @@ public final class Simulation {
                 time);
 
         // Instruct simulator to add timer
-        simulator.addTimer("timer", time);
+        simulator.addTimer(BASE_TIMER_ADDRESS_STRING, time);
 
         // Instruct simulator to add nodes
         Random rand = new Random(12345);
-        addSeedNode(simulator, time);
-        for (int i = 1; i < 100; i++) {
-            time = time.plus(rand.nextInt(1000), ChronoUnit.MILLIS);
-            addNode(i, simulator, rand, time);
+        addNode(0, null, simulator, time);
+        for (int i = 1; i < MAX_NODES; i++) {
+            time = time.plus(rand.nextInt(MAX_WAIT_PER_NODE_ADD), ChronoUnit.MILLIS);
+            addNode(i, 0, simulator, time);
         }
 
         // Run simulation  (NOTE: enabling logging slows this simulation to a crawl, use slf4j-nop for best performance)
@@ -61,10 +74,10 @@ public final class Simulation {
         
         // Replay saved graph messages from simulation to a real graph
         GraphGateway.startApplication();
-        GraphGateway graphGateway = new GraphGateway("graph");
+        GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         ReplayerGateway replayerGateway = ReplayerGateway.replay(
                 graphGateway.getIncomingShuttle(),
-                Address.of("graph"),
+                BASE_GRAPH_ADDRESS,
                 tempFile,
                 new SimpleSerializer());
 
@@ -72,37 +85,25 @@ public final class Simulation {
         GraphGateway.awaitShutdown();
     }
 
-    private static void addNode(int i, Simulator simulator, Random rand, Instant time) {
-        String id = Integer.toString(i);
+    private static void addNode(int id, Integer connId, Simulator simulator, Instant time) {
+        String idStr = Integer.toString(id);
+        Address connIdAddr = null;
+        if (connId != null) {
+            connIdAddr = Address.of(connId.toString());
+        }
 
         simulator.addCoroutineActor(
-                id,
+                idStr,
                 new UnstructuredClientCoroutine(),
                 Duration.ZERO,
                 time,
                 new Start(
-                        new SimpleAddressTransformer(Address.of(), id),
-                        Address.of("" + rand.nextInt(i)),
-                        (long) i,
-                        Address.of("timer"),
-                        Address.of("graph"),
-                        Address.of("log")
-                )
-        );
-    }
-
-    private static void addSeedNode(Simulator simulator, Instant time) {
-        simulator.addCoroutineActor(
-                "0",
-                new UnstructuredClientCoroutine(),
-                Duration.ZERO,
-                time,
-                new Start(
-                        new SimpleAddressTransformer(Address.of(), "0"),
-                        0L,
-                        Address.of("timer"),
-                        Address.of("graph"),
-                        Address.of("log")
+                        new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
+                        connIdAddr,
+                        (long) id,
+                        BASE_TIMER_ADDRESS,
+                        BASE_GRAPH_ADDRESS,
+                        BASE_LOG_ADDRESS
                 )
         );
     }

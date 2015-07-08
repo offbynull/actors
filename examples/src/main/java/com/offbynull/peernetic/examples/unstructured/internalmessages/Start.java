@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.unstructured.internalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.AddressTransformer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -16,20 +17,6 @@ public final class Start {
     private final Address timerPrefix;
     private final Address graphAddress;
     private final Address logAddress;
-
-    public Start(
-            AddressTransformer addressTransformer,
-            long seed,
-            Address timerPrefix,
-            Address graphAddress,
-            Address logAddress) {
-        this(addressTransformer,
-                Collections.emptySet(),
-                seed,
-                timerPrefix,
-                graphAddress,
-                logAddress);
-    }
     
     public Start(
             AddressTransformer addressTransformer,
@@ -38,28 +25,13 @@ public final class Start {
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
-        this(addressTransformer,
-                bootstrapAddress == null ? Collections.emptySet() : Collections.singleton(bootstrapAddress),
-                seed,
-                timerPrefix,
-                graphAddress,
-                logAddress);
-    }
-    
-    public Start(
-            AddressTransformer addressTransformer,
-            Set<Address> bootstrapAddresses,
-            long seed,
-            Address timerPrefix,
-            Address graphAddress,
-            Address logAddress) {
         Validate.notNull(addressTransformer);
-        Validate.notNull(bootstrapAddresses);
+        // bootstrapAddress can be null
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
-        Validate.noNullElements(bootstrapAddresses);
         this.addressTransformer = addressTransformer;
-        this.bootstrapAddresses = (UnmodifiableSet<Address>) UnmodifiableSet.unmodifiableSet(new LinkedHashSet<Address>(bootstrapAddresses));
+        this.bootstrapAddresses = (UnmodifiableSet<Address>)
+                UnmodifiableSet.unmodifiableSet(new LinkedHashSet<Address>(Arrays.asList(bootstrapAddress)));
         this.seed = seed;
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;

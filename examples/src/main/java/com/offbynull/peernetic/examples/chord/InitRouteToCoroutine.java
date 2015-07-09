@@ -57,7 +57,7 @@ final class InitRouteToCoroutine implements Coroutine {
             try {
                 gsr = funnelToRequestCoroutine(
                             cnt,
-                            currentNode.getAddress(),
+                            currentNode.getLinkId(),
                             new GetSuccessorRequest(),
                             GetSuccessorResponse.class);
                 successorId = gsr.getEntries().get(0).getChordId();
@@ -76,7 +76,7 @@ final class InitRouteToCoroutine implements Coroutine {
             GetClosestPrecedingFingerResponse gcpfr;
             try {
                 gcpfr = funnelToRequestCoroutine(cnt,
-                        currentNode.getAddress(),
+                        currentNode.getLinkId(),
                         new GetClosestPrecedingFingerRequest(findId),
                         GetClosestPrecedingFingerResponse.class);
             } catch (RuntimeException re) {
@@ -87,7 +87,7 @@ final class InitRouteToCoroutine implements Coroutine {
 
                 // special case -- if node we're querying returns itself for closest preceding finger, it means that its finger table its
             // empty (it is likely the first node making up the network). As such, if self, mark as found and return
-            ExternalPointer newNode = state.toExternalPointer(gcpfr.getChordId(), gcpfr.getAddress(), currentNode.getAddress());
+            ExternalPointer newNode = state.toExternalPointer(gcpfr.getChordId(), gcpfr.getLinkId(), currentNode.getLinkId());
             if (newNode.equals(currentNode)) {
                 foundPointer = newNode;
                 break;
@@ -104,8 +104,9 @@ final class InitRouteToCoroutine implements Coroutine {
         return foundPointer;
     }
     
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
+        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix("router", "handler"))

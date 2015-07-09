@@ -12,6 +12,7 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
+import com.offbynull.peernetic.examples.common.AddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
@@ -35,16 +36,17 @@ public final class ChordClientCoroutine implements Coroutine {
         Address logAddress = start.getLogAddress();
         NodeId selfId = start.getNodeId();
         long seed = start.getSeed();
-        Address bootstrapAddress = start.getBootstrapAddress();
+        String bootstrapLinkId = start.getBootstrapLinkId();
+        AddressTransformer addressTransformer = start.getAddressTransformer();
 
         switchToStartedOnGraph(ctx, selfId, graphAddress);
 
         Set<GraphLink> lastOutgoingLinks = new HashSet<>();
         try {
-            State state = new State(seed, selfId);
+            State state = new State(seed, selfId, addressTransformer);
 
             // Join (or just initialize if no bootstrap node is set)
-            JoinSubcoroutine joinTask = new JoinSubcoroutine(Address.of("join"), state, timerPrefix, logAddress, bootstrapAddress);
+            JoinSubcoroutine joinTask = new JoinSubcoroutine(Address.of("join"), state, timerPrefix, logAddress, bootstrapLinkId);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);

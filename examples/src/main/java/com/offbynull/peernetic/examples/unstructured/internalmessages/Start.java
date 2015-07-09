@@ -3,9 +3,7 @@ package com.offbynull.peernetic.examples.unstructured.internalmessages;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.AddressTransformer;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 

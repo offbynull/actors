@@ -24,7 +24,7 @@ public final class SimpleAddressTransformer implements AddressTransformer {
     // e.g. remoteBase=udp0, selfId=7f000001.10000           actor:0 -> 7f000001.10000
     // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:0 -> unrel0
     @Override
-    public String selfAddressToId(Address address) {
+    public String selfAddressToLinkId(Address address) {
         Validate.notNull(address);
         return selfId;
     }
@@ -33,7 +33,7 @@ public final class SimpleAddressTransformer implements AddressTransformer {
     // e.g. remoteBase=udp0, selfId=7f000001.10000           udp0:7f000001.10001 -> 7f000001.10001
     // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:unrel0:actor:unrel1 -> unrel1
     @Override
-    public String remoteAddressToId(Address address) {
+    public String remoteAddressToLinkId(Address address) {
         Validate.notNull(address);
         Validate.isTrue(remoteBase.isPrefixOf(address));
         Validate.isTrue(address.size() == remoteBase.size() + 1);
@@ -44,7 +44,7 @@ public final class SimpleAddressTransformer implements AddressTransformer {
     // e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -> udp0:7f000001.10001
     // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -> actor:unrel0:actor:unrel1
     @Override
-    public Address idToRemoteAddress(String id) {
+    public Address linkIdToRemoteAddress(String id) {
         Validate.notNull(id);
         return remoteBase.appendSuffix(id);
     }

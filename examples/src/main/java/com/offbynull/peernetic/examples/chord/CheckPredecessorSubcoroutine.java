@@ -49,7 +49,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
             try {
                 gir = funnelToRequestCoroutine(
                         cnt,
-                        predecessor.getAddress(),
+                        predecessor.getLinkId(),
                         new GetIdRequest(),
                         GetIdResponse.class);
             } catch (RuntimeException re) {
@@ -81,8 +81,9 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
+        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix("router", "handler"))

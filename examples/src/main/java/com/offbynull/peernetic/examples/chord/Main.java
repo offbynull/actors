@@ -9,6 +9,7 @@ import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
+import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
@@ -25,13 +26,23 @@ import org.apache.commons.lang3.Validate;
 
 public final class Main {
 
+    private static final String BASE_ACTOR_ADDRESS_STRING = "actor";
+    private static final String BASE_GRAPH_ADDRESS_STRING = "graph";
+    private static final String BASE_TIMER_ADDRESS_STRING = "timer";
+    private static final String BASE_LOG_ADDRESS_STRING = "log";
+    
+    private static final Address BASE_ACTOR_ADDRESS = Address.of(BASE_ACTOR_ADDRESS_STRING);
+    private static final Address BASE_GRAPH_ADDRESS = Address.of(BASE_GRAPH_ADDRESS_STRING);
+    private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
+    private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
+    
     public static void main(String[] args) throws Exception {
         GraphGateway.startApplication();
 
-        GraphGateway graphGateway = new GraphGateway("graph");
-        LogGateway logGateway = new LogGateway("log");
-        TimerGateway timerGateway = new TimerGateway("timer");
-        ActorThread actorThread = ActorThread.create("actor");
+        GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
+        LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
+        TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
+        ActorThread actorThread = ActorThread.create(BASE_ACTOR_ADDRESS_STRING);
 
         timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
         actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
@@ -99,14 +110,16 @@ public final class Main {
             switch (scanner.next().toLowerCase()) {
                 case "boot": {
                     int id = scanner.nextInt();
-                    actorThread.addCoroutineActor("" + id, new ChordClientCoroutine(),
+                    String idStr = Integer.toString(id);
+                    actorThread.addCoroutineActor(idStr, new ChordClientCoroutine(),
                             new Start(
+                                    new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
                                     null,
                                     new NodeId(id, bits),
                                     id,
-                                    Address.fromString("timer"),
-                                    Address.fromString("graph"),
-                                    Address.fromString("log")
+                                    BASE_TIMER_ADDRESS,
+                                    BASE_GRAPH_ADDRESS,
+                                    BASE_LOG_ADDRESS
                             )
                     );
                     return "Executed command: " + input;
@@ -118,15 +131,18 @@ public final class Main {
 
                     Validate.isTrue(startId <= endId);
 
+                    String connectIdStr = Integer.toString(connectId);
                     for (int id = startId; id <= endId; id++) {
-                        actorThread.addCoroutineActor("" + id, new ChordClientCoroutine(),
+                        String idStr = Integer.toString(id);
+                        actorThread.addCoroutineActor(idStr, new ChordClientCoroutine(),
                                 new Start(
-                                        Address.of("actor", "" + connectId),
+                                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
+                                        connectIdStr,
                                         new NodeId(id, bits),
                                         id,
-                                        Address.fromString("timer"),
-                                        Address.fromString("graph"),
-                                        Address.fromString("log")
+                                        BASE_TIMER_ADDRESS,
+                                        BASE_GRAPH_ADDRESS,
+                                        BASE_LOG_ADDRESS
                                 )
                         );
                     }

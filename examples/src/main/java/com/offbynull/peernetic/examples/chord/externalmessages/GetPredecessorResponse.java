@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
-import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import java.io.Serializable;
 
@@ -24,18 +23,18 @@ public final class GetPredecessorResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private NodeId chordId;
-    private Address address;
+    private String linkId;
 
-    public GetPredecessorResponse(NodeId chordId, Address address) {
+    public GetPredecessorResponse(NodeId chordId, String linkId) {
         this.chordId = chordId;
-        this.address = address;
+        this.linkId = linkId;
     }
 
     public NodeId getChordId() {
         return chordId;
     }
 
-    public Address getAddress() {
-        return address;
+    public String getLinkId() {
+        return linkId;
     }
 }

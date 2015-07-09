@@ -35,10 +35,10 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         State state = new State(seed, 3, 4, 256, bootstrapAddresses, addressTransformer);
 
         ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapAddresses));
-        ctx.addOutgoingMessage(graphAddress, new AddNode(addressTransformer.selfAddressToId(ctx.getSelf())));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(addressTransformer.selfAddressToLinkId(ctx.getSelf())));
         ctx.addOutgoingMessage(graphAddress,
                 new MoveNode(
-                        addressTransformer.selfAddressToId(ctx.getSelf()),
+                        addressTransformer.selfAddressToLinkId(ctx.getSelf()),
                         random.nextInt(1400),
                         random.nextInt(1400)
                 )

@@ -40,7 +40,7 @@ public final class GetSuccessorResponse implements Serializable {
             if (x instanceof InternalPointer) {
                 return new InternalSuccessorEntry(x.getId());
             } else if (x instanceof ExternalPointer) {
-                return new ExternalSuccessorEntry(x.getId(), ((ExternalPointer) x).getAddress());
+                return new ExternalSuccessorEntry(x.getId(), ((ExternalPointer) x).getLinkId());
             } else {
                 throw new IllegalArgumentException();
             }
@@ -84,16 +84,16 @@ public final class GetSuccessorResponse implements Serializable {
 
     public static final class ExternalSuccessorEntry extends SuccessorEntry {
 
-        private Address address;
+        private String linkId;
 
-        public ExternalSuccessorEntry(NodeId chordId, Address address) {
+        public ExternalSuccessorEntry(NodeId chordId, String linkId) {
             super(chordId);
-            Validate.notNull(address);
-            this.address = address;
+            Validate.notNull(linkId);
+            this.linkId = linkId;
         }
 
-        public Address getAddress() {
-            return address;
+        public String getLinkId() {
+            return linkId;
         }
 
     }

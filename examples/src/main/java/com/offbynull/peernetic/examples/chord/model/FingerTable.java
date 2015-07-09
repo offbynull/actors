@@ -401,7 +401,7 @@ public final class FingerTable {
         Validate.isTrue(ptr.getId().getBitLength() == bitCount);
 
         NodeId id = ptr.getId();
-        Address address = ptr.getAddress();
+        String address = ptr.getLinkId();
         NodeId baseId = basePtr.getId();
 
         Validate.isTrue(id.getBitLength() == bitCount);
@@ -418,7 +418,7 @@ public final class FingerTable {
             
             ExternalPointer testPtr = (ExternalPointer) ie.pointer;
             NodeId testId = testPtr.getId();
-            Address testAddress = testPtr.getAddress();
+            String testAddress = testPtr.getLinkId();
 
             if (id.equals(testId) && address.equals(testAddress)) {
                 remove(lit.previousIndex() + 1);

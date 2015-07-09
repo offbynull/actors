@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
  */
 public final class ExternalPointer implements Pointer {
     private NodeId id;
-    private Address address;
+    private String address;
 
     /**
      * Constructs a {@link Pointer} object.
@@ -34,7 +34,7 @@ public final class ExternalPointer implements Pointer {
      * @param address address
      * @throws NullPointerException if any arguments are {@code null}
      */
-    public ExternalPointer(NodeId id, Address address) {
+    public ExternalPointer(NodeId id, String address) {
         Validate.notNull(id);
         Validate.notNull(address);
         
@@ -52,10 +52,10 @@ public final class ExternalPointer implements Pointer {
     }
 
     /**
-     * Get address.
-     * @return address
+     * Get link id.
+     * @return link
      */
-    public Address getAddress() {
+    public String getLinkId() {
         return address;
     }
 

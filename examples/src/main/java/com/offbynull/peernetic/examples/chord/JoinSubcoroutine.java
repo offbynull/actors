@@ -15,9 +15,9 @@ final class JoinSubcoroutine implements Coroutine {
     private final Address timerAddress;
     private final Address logAddress;
     
-    private final Address bootstrapAddress;
+    private final String bootstrapLinkId;
 
-    public JoinSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
+    public JoinSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
@@ -27,7 +27,7 @@ final class JoinSubcoroutine implements Coroutine {
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
-        this.bootstrapAddress = bootstrapAddress;
+        this.bootstrapLinkId = bootstrapLinkId;
     }
 
     @Override
@@ -38,22 +38,22 @@ final class JoinSubcoroutine implements Coroutine {
             SuccessorTable successorTable = new SuccessorTable(state.getSelfPointer());
 
             // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
-            if (bootstrapAddress == null) {
+            if (bootstrapLinkId == null) {
                 state.setTables(fingerTable, successorTable);
                 return;
             }
 
 
-            funnelToInitFingerTableCoroutine(cnt, bootstrapAddress);
+            funnelToInitFingerTableCoroutine(cnt, bootstrapLinkId);
         } catch (RuntimeException coe) {
             // this is a critical operation. if any of the tasks/io fail, then send up the chain
             throw new IllegalStateException("Join failed.", coe);
         }
     }
 
-    private void funnelToInitFingerTableCoroutine(Continuation cnt, Address initialAddress) throws Exception {
+    private void funnelToInitFingerTableCoroutine(Continuation cnt, String initialLinkId) throws Exception {
         Validate.notNull(cnt);
-        Validate.notNull(initialAddress);
+        Validate.notNull(initialLinkId);
         
         String idSuffix = "" + state.nextRandomId();
         InitFingerTableSubcoroutine innerCoroutine = new InitFingerTableSubcoroutine(
@@ -61,7 +61,7 @@ final class JoinSubcoroutine implements Coroutine {
                 state,
                 timerAddress,
                 logAddress,
-                initialAddress);
+                initialLinkId);
         innerCoroutine.run(cnt);
     }
 }

@@ -74,7 +74,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                     ctx.addOutgoingMessage(sourceId, logAddress,
                             debug("{} {} - Asking {} to put us in to its finger table", state.getSelfId(), sourceId, foundRouter));
                     funnelToRequestCoroutine(cnt,
-                            ((ExternalPointer) foundRouter).getAddress(),
+                            ((ExternalPointer) foundRouter).getLinkId(),
                             new UpdateFingerTableRequest(selfId),
                             UpdateFingerTableResponse.class,
                             false);
@@ -84,7 +84,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                         ctx.addOutgoingMessage(sourceId, logAddress,
                                 debug("{} {} - {} routed to self, notifying predecessor {}", state.getSelfId(), sourceId, pred));
                         funnelToRequestCoroutine(cnt,
-                                pred.getAddress(),
+                                pred.getLinkId(),
                                 new UpdateFingerTableRequest(selfId),
                                 UpdateFingerTableResponse.class,
                                 false);
@@ -133,8 +133,9 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message, Class<T> expectedResponseClass,
-            boolean exceptionOnBadResponse) throws Exception {
+    private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
+            Class<T> expectedResponseClass, boolean exceptionOnBadResponse) throws Exception {
+        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix("router", "handler"))

@@ -11,7 +11,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
  * @author Kasra Faghihi
  */
 public interface AddressTransformer {
-    String selfAddressToId(Address address);
-    String remoteAddressToId(Address address);
-    Address idToRemoteAddress(String id);
+    String selfAddressToLinkId(Address address);
+    String remoteAddressToLinkId(Address address);
+    Address linkIdToRemoteAddress(String id);
 }

@@ -91,14 +91,14 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             ctx.addOutgoingMessage(sourceId, logAddress, info("Linking to {}", address));
             ctx.addOutgoingMessage(graphAddress,
                     new AddEdge(
-                            state.getAddressTransformer().selfAddressToId(ctx.getSelf()),
-                            state.getAddressTransformer().remoteAddressToId(address)
+                            state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf()),
+                            state.getAddressTransformer().remoteAddressToLinkId(address)
                     )
             );
             ctx.addOutgoingMessage(graphAddress,
                     new StyleEdge(
-                            state.getAddressTransformer().selfAddressToId(ctx.getSelf()),
-                            state.getAddressTransformer().remoteAddressToId(address),
+                            state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf()),
+                            state.getAddressTransformer().remoteAddressToLinkId(address),
                             "-fx-stroke: yellow"
                     )
             );
@@ -122,8 +122,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link", address));
                 ctx.addOutgoingMessage(graphAddress,
                         new RemoveEdge(
-                            state.getAddressTransformer().selfAddressToId(ctx.getSelf()),
-                            state.getAddressTransformer().remoteAddressToId(address)
+                            state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf()),
+                            state.getAddressTransformer().remoteAddressToLinkId(address)
                         )
                 );
                 continue reconnect;
@@ -132,8 +132,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded with link failure", address));
                 ctx.addOutgoingMessage(graphAddress,
                         new RemoveEdge(
-                            state.getAddressTransformer().selfAddressToId(ctx.getSelf()),
-                            state.getAddressTransformer().remoteAddressToId(address)
+                            state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf()),
+                            state.getAddressTransformer().remoteAddressToLinkId(address)
                         )
                 );
                 continue reconnect;
@@ -170,8 +170,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                     ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link refresh", address));
                     ctx.addOutgoingMessage(graphAddress,
                             new RemoveEdge(
-                                    state.getAddressTransformer().selfAddressToId(ctx.getSelf()),
-                                    state.getAddressTransformer().remoteAddressToId(address)
+                                    state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf()),
+                                    state.getAddressTransformer().remoteAddressToLinkId(address)
                             )
                     );
                     state.removeOutgoingLink(dstAddress);
@@ -183,8 +183,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 if (!lineIsGreen) {
                     ctx.addOutgoingMessage(graphAddress,
                             new StyleEdge(
-                                    state.getAddressTransformer().selfAddressToId(ctx.getSelf()),
-                                    state.getAddressTransformer().remoteAddressToId(address),
+                                    state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf()),
+                                    state.getAddressTransformer().remoteAddressToLinkId(address),
                                     "-fx-stroke: green"
                             )
                     );

@@ -1,12 +1,12 @@
 package com.offbynull.peernetic.examples.chord;
 
-import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
+import com.offbynull.peernetic.examples.common.AddressTransformer;
 import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
@@ -22,10 +22,14 @@ final class State {
     
     private NodeId selfId;
     
-    public State(long seed, NodeId selfId) {
+    private final AddressTransformer addressTransformer;
+    
+    public State(long seed, NodeId selfId, AddressTransformer addressTransformer) {
         Validate.notNull(selfId);
+        Validate.notNull(addressTransformer);
         random = new Random(seed);
         this.selfId = selfId;
+        this.addressTransformer = addressTransformer;
     }
 
     public String nextRandomId() {
@@ -155,37 +159,37 @@ final class State {
         return id.equals(selfId);
     }
     
-    public ExternalPointer toExternalPointer(NodeId idData, Address address, Address defaultAddress) {
+    public ExternalPointer toExternalPointer(NodeId idData, String linkId, String defaultLinkId) {
         Validate.notNull(idData);
-        Validate.notNull(defaultAddress);
+        Validate.notNull(defaultLinkId);
         // address can be null
 
-        if (address != null) {
-            return new ExternalPointer(idData, address);
+        if (linkId != null) {
+            return new ExternalPointer(idData, linkId);
         } else {
-            return new ExternalPointer(idData, defaultAddress);
+            return new ExternalPointer(idData, defaultLinkId);
         }
     }
     
-    public Pointer toPointer(NodeId idData, Address address) {
+    public Pointer toPointer(NodeId idData, String linkId) {
         Validate.notNull(idData);
         Validate.isTrue(idData.getLimitAsBigInteger().equals(selfId.getLimitAsBigInteger()));
         // address can be null
 
         Pointer ret;
-        if (address == null) {
+        if (linkId == null) {
             ret = new InternalPointer(idData);
         } else {
             Validate.isTrue(!idData.equals(selfId));
-            ret = new ExternalPointer(idData, address);
+            ret = new ExternalPointer(idData, linkId);
         }
         
         return ret;
     }
 
-    public ExternalPointer toExternalPointer(NodeId idData, Address address) {
+    public ExternalPointer toExternalPointer(NodeId idData, String linkId) {
         Validate.notNull(idData);
-        Pointer ret = toPointer(idData, address);
+        Pointer ret = toPointer(idData, linkId);
         Validate.isTrue(ret instanceof ExternalPointer);
         
         return (ExternalPointer) ret;
@@ -196,4 +200,7 @@ final class State {
         Validate.isTrue(!isSelfId(ptr.getId()));
     }
     
+    public AddressTransformer getAddressTransformer() {
+        return addressTransformer;
+    }
 }

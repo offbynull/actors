@@ -23,19 +23,19 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
     private final Address timerAddress;
     private final Address logAddress;
     
-    private final Address bootstrapAddress;
+    private final String bootstrapLinkId;
 
-    public InitFingerTableSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, Address bootstrapAddress) {
+    public InitFingerTableSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
         Validate.notNull(sourceId);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
-        Validate.notNull(bootstrapAddress);
+        Validate.notNull(bootstrapLinkId);
         this.sourceId = sourceId;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
-        this.bootstrapAddress = bootstrapAddress;
+        this.bootstrapLinkId = bootstrapLinkId;
     }
 
     @Override
@@ -48,10 +48,10 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
         
         GetIdResponse gir = funnelToRequestCoroutine(
                 cnt,
-                bootstrapAddress,
+                bootstrapLinkId,
                 new GetIdRequest(),
                 GetIdResponse.class);
-        ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapAddress); // fails if id == self
+        ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapLinkId); // fails if id == self
         
         ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Bootstrap node details: {}", state.getSelfId(), sourceId,
                 bootstrapNode));
@@ -89,8 +89,9 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
         return sourceId;
     }
     
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
+        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix("router", "handler"))

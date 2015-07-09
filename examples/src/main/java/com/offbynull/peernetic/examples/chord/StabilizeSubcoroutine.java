@@ -58,7 +58,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
             }
             
             // ask for successor's pred
-            Address successorAddress = ((ExternalPointer) successor).getAddress();
+            String successorLinkId = ((ExternalPointer) successor).getLinkId();
             GetPredecessorResponse gpr;
             try {
                 ctx.addOutgoingMessage(sourceId, logAddress,
@@ -66,7 +66,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 
                 gpr = funnelToRequestCoroutine(
                         cnt,
-                        successorAddress,
+                        successorLinkId,
                         new GetPredecessorRequest(),
                         GetPredecessorResponse.class,
                         true);
@@ -83,16 +83,16 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
             try {
                 // check to see if predecessor is between us and our successor
                 if (gpr.getChordId() != null) {
-                    Address address = gpr.getAddress();
+                    String linkId = gpr.getLinkId();
                     NodeId potentiallyNewSuccessorId = gpr.getChordId();
                     NodeId existingSuccessorId = ((ExternalPointer) successor).getId();
 
                     if (potentiallyNewSuccessorId.isWithin(selfId, false, existingSuccessorId, false)) {
                         // it is between us and our successor, so update
-                        ExternalPointer newSuccessor = new ExternalPointer(potentiallyNewSuccessorId, address);
+                        ExternalPointer newSuccessor = new ExternalPointer(potentiallyNewSuccessorId, linkId);
 
                         successor = newSuccessor;
-                        successorAddress = newSuccessor.getAddress();
+                        successorLinkId = newSuccessor.getLinkId();
                     }
                 }
                 
@@ -102,7 +102,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         debug("{} {} - Requesting successor's ({}) successor", state.getSelfId(), sourceId, successor));
                 GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
-                        successorAddress,
+                        successorLinkId,
                         new GetSuccessorRequest(),
                         GetSuccessorResponse.class,
                         true);
@@ -114,7 +114,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                     if (x instanceof InternalSuccessorEntry) {
                         return new InternalPointer(id);
                     } else if (x instanceof ExternalSuccessorEntry) {
-                        return new ExternalPointer(id, ((ExternalSuccessorEntry) x).getAddress());
+                        return new ExternalPointer(id, ((ExternalSuccessorEntry) x).getLinkId());
                     } else {
                         throw new IllegalStateException();
                     }
@@ -132,7 +132,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 // notify it that we're its predecessor
                 funnelToRequestCoroutine(
                         cnt,
-                        successorAddress,
+                        successorLinkId,
                         new NotifyRequest(selfId),
                         NotifyResponse.class,
                         false);
@@ -158,8 +158,9 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 .run(cnt);
     }
 
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message, Class<T> expectedResponseClass,
-            boolean exceptionOnBadResponse) throws Exception {
+    private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
+            Class<T> expectedResponseClass, boolean exceptionOnBadResponse) throws Exception {
+        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix("router", "handler"))

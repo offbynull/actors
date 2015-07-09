@@ -64,7 +64,7 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             if (successor instanceof ExternalPointer) {
                 GetIdResponse gir = funnelToRequestCoroutine(
                         cnt,
-                        ((ExternalPointer) successor).getAddress(),
+                        ((ExternalPointer) successor).getLinkId(),
                         new GetIdRequest(),
                         GetIdResponse.class);
                 found = successor;
@@ -75,20 +75,20 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             }
         } else if (pointer instanceof ExternalPointer) {
             // If routed to external node, ask external node for successor details
-            Address ptrAddress = ((ExternalPointer) pointer).getAddress();
+            String ptrLinkId = ((ExternalPointer) pointer).getLinkId();
             GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
-                        ptrAddress,
+                        ptrLinkId,
                         new GetSuccessorRequest(),
                         GetSuccessorResponse.class);
             
             SuccessorEntry successorEntry = gsr.getEntries().get(0);
 
-            Address succAddress;
+            String succLinkId;
             if (successorEntry instanceof InternalSuccessorEntry) { // this means the successor to the node is itself
-                succAddress = ptrAddress;
+                succLinkId = ptrLinkId;
             } else if (successorEntry instanceof ExternalSuccessorEntry) {
-                succAddress = ((ExternalSuccessorEntry) successorEntry).getAddress();
+                succLinkId = ((ExternalSuccessorEntry) successorEntry).getLinkId();
             } else {
                 throw new IllegalStateException();
             }
@@ -96,10 +96,10 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             // ask for that successor's id, wait for response here
             GetIdResponse gir = funnelToRequestCoroutine(
                     cnt,
-                    succAddress,
+                    succLinkId,
                     new GetIdRequest(),
                     GetIdResponse.class);
-            found = state.toPointer(gir.getChordId(), succAddress);
+            found = state.toPointer(gir.getChordId(), succLinkId);
         } else {
             throw new IllegalArgumentException();
         }
@@ -128,8 +128,9 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
         return innerCoroutine.run(cnt);
     }
     
-    private <T> T funnelToRequestCoroutine(Continuation cnt, Address destination, Object message,
+    private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
+        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .id(sourceId.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix("router", "handler"))

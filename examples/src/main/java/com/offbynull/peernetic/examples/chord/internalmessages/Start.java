@@ -2,22 +2,28 @@ package com.offbynull.peernetic.examples.chord.internalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
+import com.offbynull.peernetic.examples.common.AddressTransformer;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
 
-    private final Address bootstrapAddress;
+    private final AddressTransformer addressTransformer;
+    private final String bootstrapLinkId;
     private final NodeId nodeId;
     private final long seed;
     private final Address timerPrefix;
     private final Address logAddress;
     private final Address graphAddress;
-
-    public Start(NodeId nodeId, long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
-        this(null, nodeId, seed, timerPrefix, graphAddress, logAddress);
-    }
     
-    public Start(Address bootstrapAddress, NodeId nodeId, long seed, Address timerPrefix, Address graphAddress, Address logAddress) {
+    public Start(
+            AddressTransformer addressTransformer,
+            String bootstrapLinkId,
+            NodeId nodeId,
+            long seed,
+            Address timerPrefix,
+            Address graphAddress,
+            Address logAddress) {
+        Validate.notNull(addressTransformer);
         // bootstrapAddress can be null
         Validate.notNull(nodeId);
         Validate.notNull(seed);
@@ -25,7 +31,8 @@ public final class Start {
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
         
-        this.bootstrapAddress = bootstrapAddress;
+        this.addressTransformer = addressTransformer;
+        this.bootstrapLinkId = bootstrapLinkId;
         this.nodeId = nodeId;
         this.seed = seed;
         this.timerPrefix = timerPrefix;
@@ -33,8 +40,12 @@ public final class Start {
         this.logAddress = logAddress;
     }
 
-    public Address getBootstrapAddress() {
-        return bootstrapAddress;
+    public AddressTransformer getAddressTransformer() {
+        return addressTransformer;
+    }
+
+    public String getBootstrapLinkId() {
+        return bootstrapLinkId;
     }
 
     public NodeId getNodeId() {

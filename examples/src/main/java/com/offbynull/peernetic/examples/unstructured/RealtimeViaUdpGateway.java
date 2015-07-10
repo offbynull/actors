@@ -82,11 +82,7 @@ public final class RealtimeViaUdpGateway {
         String selfLinkId = LOCALHOST_HEX + "." + (START_PORT + id);
         String baseUdpAddressStr = String.format(BASE_UDP_ADDRESS_STRING_FORMAT, id);
         Address baseUdpAddress = Address.of(baseUdpAddressStr);
-        Address connIdAddr = null;
-        if (connId != null) {
-            int connIdPort = START_PORT + connId;
-            connIdAddr = baseUdpAddress.appendSuffix(LOCALHOST_HEX + "." + connIdPort);
-        }
+        String connIdStr = connId == null ? null : LOCALHOST_HEX + "." + (START_PORT + connId);
 
         
         actorThread.addCoroutineActor(
@@ -94,7 +90,7 @@ public final class RealtimeViaUdpGateway {
                 new UnstructuredClientCoroutine(),
                 new Start(
                         new SimpleAddressTransformer(baseUdpAddress, selfLinkId),
-                        connIdAddr,
+                        connIdStr,
                         (long) id,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,

@@ -38,18 +38,23 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
     public Void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
+        
         // Validate initial msg is a link request
         Validate.isTrue(ctx.getIncomingMessage() instanceof LinkRequest);
-        Address requesterAddress = ctx.getSource();
+        Address initiatorSourceAddress = ctx.getSource();
         
-        // remove last element of sourceAddress, as its a temporary identifier used by requestsubcoroutine to identify responses
-        // e.g. actor:1:router:out0:7515937758611767298 -> actor:1:router:out0
-        requesterAddress = requesterAddress.removeSuffix(1);
+        // e.g. actor:1:router:out0:7515937758611767298 -> actor:1
+        Address initiatorRootSourceAddress = initiatorSourceAddress.removeSuffix(3); 
+        // e.g. actor:1 -> 1
+        String initiatorLinkId = state.getAddressTransformer().remoteAddressToLinkId(initiatorRootSourceAddress);
+        // e.g. actor:1:router:out0:7515937758611767298 -> router:out0
+        Address initiatorSuffix = initiatorSourceAddress.removeSuffix(1).removePrefix(initiatorRootSourceAddress);
 
+        
         // In a loop -- wait up to 15 seconds for keepalive. If none arrived (or exception), remove incoming link and leave
         try {
             while (true) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Waiting for keepalive from {}", requesterAddress));
+                ctx.addOutgoingMessage(sourceId, logAddress, info("Waiting for keepalive from {}", initiatorLinkId));
                 
                 Check check = new Check();
                 ctx.addOutgoingMessage(sourceId, timerAddress.appendSuffix("15000"), check); // check interval
@@ -61,25 +66,31 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
                     Object msg = ctx.getIncomingMessage();
                     if (msg == check) { // kill this incominglinksubcoroutine on timeout
                         // stop
-                        ctx.addOutgoingMessage(sourceId, logAddress, info("No keepalive from {}, killing incoming link", requesterAddress));
+                        ctx.addOutgoingMessage(sourceId, logAddress, info("No keepalive from {}, killing incoming link", initiatorLinkId));
                         return null;
                     }
-
-                    // remove last element of source, as its a temporary identifier used by requestsubcoroutine to identify responses
-                    // e.g. actor:1:router:out0:7515937758611767298 -> actor:1:router:out0
-                    Address sender = ctx.getSource().removeSuffix(1);
                     
-                    if (msg instanceof LinkKeepAliveRequest && sender.equals(requesterAddress)) { // if keepalive from source, queue up
-                                                                                                  // response and continue to main loop
-                        ctx.addOutgoingMessage(ctx.getSource(), new LinkKeptAliveResponse());
-                        ctx.addOutgoingMessage(sourceId, logAddress,
-                                info("Keepalive arrive from {}", ctx.getSource()));
-                        break;
+                    // if keepalive from source, queue up response and continue to main loop
+                    if (msg instanceof LinkKeepAliveRequest) {
+                        Address updaterSourceAddress = ctx.getSource();
+
+                        // e.g. actor:1:router:out0:7515937758611767298 -> actor:1
+                        Address updaterRootSourceAddress = updaterSourceAddress.removeSuffix(3); 
+                        // e.g. actor:1 -> 1
+                        String updaterLinkId = state.getAddressTransformer().remoteAddressToLinkId(updaterRootSourceAddress);
+                        // e.g. actor:1:router:out0:7515937758611767298 -> router:out0
+                        Address updaterSuffix = updaterSourceAddress.removeSuffix(1).removePrefix(updaterRootSourceAddress);
+                        
+                        if (updaterLinkId.equals(initiatorLinkId) && initiatorSuffix.equals(updaterSuffix)) {
+                            ctx.addOutgoingMessage(ctx.getSource(), new LinkKeptAliveResponse());
+                            ctx.addOutgoingMessage(sourceId, logAddress, info("Keepalive arrive from {}", updaterLinkId));
+                            break;
+                        }
                     }
                 }
             }
         } finally {
-            state.removeIncomingLink(requesterAddress);
+            state.removeIncomingLink(initiatorLinkId);
         }
     }
 

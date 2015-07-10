@@ -4,13 +4,14 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.common.AddressTransformer;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
 
     private final AddressTransformer addressTransformer;
-    private final UnmodifiableSet<Address> bootstrapAddresses;
+    private final UnmodifiableSet<String> bootstrapLinks;
     private final long seed;
     private final Address timerPrefix;
     private final Address graphAddress;
@@ -18,7 +19,7 @@ public final class Start {
     
     public Start(
             AddressTransformer addressTransformer,
-            Address bootstrapAddress,
+            String bootstrapLink,
             long seed,
             Address timerPrefix,
             Address graphAddress,
@@ -28,8 +29,11 @@ public final class Start {
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
         this.addressTransformer = addressTransformer;
-        this.bootstrapAddresses = (UnmodifiableSet<Address>)
-                UnmodifiableSet.unmodifiableSet(new LinkedHashSet<Address>(Arrays.asList(bootstrapAddress)));
+        Set<String> bootstrapLinkSet = new LinkedHashSet<>();
+        if (bootstrapLink != null) {
+            bootstrapLinkSet.add(bootstrapLink);
+        }
+        this.bootstrapLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(bootstrapLinkSet);
         this.seed = seed;
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;
@@ -40,8 +44,8 @@ public final class Start {
         return addressTransformer;
     }
 
-    public UnmodifiableSet<Address> getBootstrapAddresses() {
-        return bootstrapAddresses;
+    public UnmodifiableSet<String> getBootstrapLinks() {
+        return bootstrapLinks;
     }
 
     public long getSeed() {

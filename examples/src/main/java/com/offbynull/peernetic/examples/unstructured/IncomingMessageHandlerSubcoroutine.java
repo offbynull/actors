@@ -14,7 +14,6 @@ import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkSucces
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 
 final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
@@ -61,12 +60,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
             
 
             if (msg instanceof QueryRequest) {
-                // state.getLinkIds() will always be in the form actor:#:router:in# or actor:#:router:out#
-                // we need to strip out the router:in# and router:out#, which means we always need to remove the last 2 elements
-                Set<String> linkIds = state.getLinks().stream()
-                        .map(x -> x.removeSuffix(2))
-                        .map(x -> state.getAddressTransformer().remoteAddressToLinkId(x))
-                        .collect(Collectors.toSet());
+                Set<String> linkIds = state.getLinks();
                 
                 QueryResponse resp = new QueryResponse(linkIds);
                 ctx.addOutgoingMessage(sourceId, ctx.getSource(), resp);
@@ -76,25 +70,23 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(sourceId, logAddress, info("Incoming link request from {}", ctx.getSource()));
 
                 // remove suffix of sourceAddress
-                Address mainSourceAddress = ctx.getSource().removeSuffix(3);    // e.g. actor:1:router:out0:1234 -> actor:1
-                Address outSlotSourceAddress = ctx.getSource().removeSuffix(1); // e.g. actor:1:router:out0:1234 -> actor:1:router:out0
+                Address reqSourceAddress = ctx.getSource().removeSuffix(3);    // e.g. actor:1:router:out0:1234 -> actor:1
+                String reqLinkId = state.getAddressTransformer().remoteAddressToLinkId(reqSourceAddress);
 
                 // if we already have an active incominglinksubcoroutine for the sender, return its id 
-                Address keepAliveId = state.getIncomingLink(outSlotSourceAddress);
-                if (keepAliveId != null) {
-                    ctx.addOutgoingMessage(sourceId, logAddress, info("Already have an incoming link with id {}", keepAliveId));
-                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(keepAliveId));
+                Address reqSuffix = state.getIncomingLinkSuffix(reqLinkId);
+                if (reqSuffix != null) {
+                    ctx.addOutgoingMessage(sourceId, logAddress, info("Already have an incoming link with id {}", reqSuffix));
+                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
                     continue;
                 }
 
                 // if we already have a link in place for the sender, return a failure
-                for (Address link : state.getLinks()) {
-                    if (mainSourceAddress.isPrefixOf(link)) {
-                        ctx.addOutgoingMessage(sourceId, logAddress,
-                                warn("Rejecting link from {} (already linked), trying again", mainSourceAddress));
-                        ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkFailedResponse());
-                        continue top;
-                    }
+                if (state.getLinks().contains(reqLinkId)) {
+                    ctx.addOutgoingMessage(sourceId, logAddress,
+                            warn("Rejecting link from {} (already linked), trying again", reqSourceAddress));
+                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkFailedResponse());
+                    continue top;
                 }
             
                 // if we don't have any more room for incoming connections, return failure
@@ -105,15 +97,15 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 }
 
                 // add the new incominglinksubcoroutine and return success
-                keepAliveId = controller.getSourceId().appendSuffix("in" + keepAliveCounter);
-                state.addIncomingLink(outSlotSourceAddress, keepAliveId);
+                reqSuffix = controller.getSourceId().appendSuffix("in" + keepAliveCounter);
+                state.addIncomingLink(reqLinkId, reqSuffix);
 
                 keepAliveCounter++;
 
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Added incoming link slot with id {}", keepAliveId));
-                ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(keepAliveId));
+                ctx.addOutgoingMessage(sourceId, logAddress, info("Added incoming link slot with id {}", reqSuffix));
+                ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
 
-                controller.add(new IncomingLinkSubcoroutine(keepAliveId, timerAddress, logAddress, state), AddBehaviour.ADD_PRIME_NO_FINISH);
+                controller.add(new IncomingLinkSubcoroutine(reqSuffix, timerAddress, logAddress, state), AddBehaviour.ADD_PRIME_NO_FINISH);
             }
         }
     }

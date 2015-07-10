@@ -18,11 +18,11 @@ final class State {
     private final int maxIncomingLinks;
     private final int maxOutgoingLinks;
     private int counter = 0;
-    private final Set<Address> pendingOutgoingLinks; // address to recver, connection not established yet
-    private final Set<Address> outgoingLinks; // address to recver
-    private final Map<Address, Address> incomingLinks; // address of sender -> incoming link subcoroutine source id
+    private final Set<String> pendingOutgoingLinks; // pending outgoing links (outgoing linkids), connection not established yet
+    private final Map<String, Address> outgoingLinks; // active outgoing links... key=outgoing linkid, value=address suffix
+    private final Map<String, Address> incomingLinks; // active incoming links... key=incoming linkid, value=address suffix
     private final int maxCachedAddresses;
-    private List<Address> addressCache; // address to handler
+    private List<String> addressCache; // address to handler
     
     private final AddressTransformer addressTransformer;
 
@@ -31,24 +31,24 @@ final class State {
             int maxIncomingLinks,
             int maxOutgoingLinks,
             int maxCachedAddresses,
-            Set<Address> bootstrapAddresses,
+            Set<String> bootstrapLinkIds,
             AddressTransformer addressTransformer) {
-        Validate.notNull(bootstrapAddresses);
+        Validate.notNull(bootstrapLinkIds);
         Validate.notNull(addressTransformer);
-        Validate.noNullElements(bootstrapAddresses);
+        Validate.noNullElements(bootstrapLinkIds);
         Validate.isTrue(maxIncomingLinks >= 0);
         Validate.isTrue(maxOutgoingLinks >= 0);
         Validate.isTrue(maxCachedAddresses >= 0);
-        Validate.isTrue(bootstrapAddresses.size() <= maxCachedAddresses);
+        Validate.isTrue(bootstrapLinkIds.size() <= maxCachedAddresses);
         random = new Random(seed);
         this.maxIncomingLinks = maxIncomingLinks;
         this.maxOutgoingLinks = maxOutgoingLinks;
         pendingOutgoingLinks = new HashSet<>();
-        outgoingLinks = new HashSet<>();
+        outgoingLinks = new HashMap<>();
         incomingLinks = new HashMap<>();
         this.maxCachedAddresses = maxCachedAddresses;
         this.addressCache = new ArrayList<>(maxCachedAddresses);
-        this.addressCache.addAll(bootstrapAddresses);
+        this.addressCache.addAll(bootstrapLinkIds);
         
         this.addressTransformer = addressTransformer;
     }
@@ -59,14 +59,14 @@ final class State {
         return "" + ret;
     }
 
-    public Set<Address> getLinks() {
-        Set<Address> ret = new HashSet<>();
-        ret.addAll(outgoingLinks);
+    public Set<String> getLinks() {
+        Set<String> ret = new HashSet<>();
+        ret.addAll(outgoingLinks.keySet());
         ret.addAll(incomingLinks.keySet());
         return ret;
     }
 
-    public Set<Address> getPendingOutgoingLinks() {
+    public Set<String> getPendingOutgoingLinks() {
         return new HashSet<>(pendingOutgoingLinks);
     }
 
@@ -86,62 +86,63 @@ final class State {
         return outgoingLinks.size() == maxOutgoingLinks;
     }
 
-    public void addIncomingLink(Address sender, Address link) {
-        Validate.notNull(sender);
-        Validate.notNull(link);
+    public void addIncomingLink(String linkId, Address suffix) {
+        Validate.notNull(linkId);
+        Validate.notNull(suffix);
         Validate.isTrue(incomingLinks.size() < maxIncomingLinks);
-        incomingLinks.put(sender, link);
+        incomingLinks.put(linkId, suffix);
     }
 
-    public void addOutgoingLink(Address recver) {
-        Validate.notNull(recver);
+    public void addOutgoingLink(String linkId, Address suffix) {
+        Validate.notNull(linkId);
+        Validate.notNull(suffix);
         Validate.isTrue(outgoingLinks.size() < maxOutgoingLinks);
-        outgoingLinks.add(recver);
+        outgoingLinks.put(linkId, suffix);
     }
 
-    public void addPendingOutgoingLink(Address recver) {
-        Validate.notNull(recver);
-        pendingOutgoingLinks.add(recver);
+    public void addPendingOutgoingLink(String linkId) {
+        Validate.notNull(linkId);
+        pendingOutgoingLinks.add(linkId);
     }
 
-    public void removeIncomingLink(Address sender) {
-        Validate.notNull(sender);
-        Validate.isTrue(incomingLinks.remove(sender) != null);
+    public void removeIncomingLink(String linkId) {
+        Validate.notNull(linkId);
+        Validate.isTrue(incomingLinks.remove(linkId) != null);
     }
 
-    public void removeOutgoingLink(Address recver) {
-        Validate.notNull(recver);
-        Validate.isTrue(outgoingLinks.remove(recver));
+    public void removeOutgoingLink(String linkId) {
+        Validate.notNull(linkId);
+        Validate.isTrue(outgoingLinks.remove(linkId) != null);
     }
 
-    public void removePendingOutgoingLink(Address recver) {
-        Validate.notNull(recver);
-        Validate.isTrue(pendingOutgoingLinks.remove(recver));
+    public void removePendingOutgoingLink(String linkId) {
+        Validate.notNull(linkId);
+        Validate.isTrue(pendingOutgoingLinks.remove(linkId));
     }
     
-    public Address getIncomingLink(Address sender) {
-        Validate.notNull(sender);
-        return incomingLinks.get(sender);
+    public Address getIncomingLinkSuffix(String linkId) {
+        Validate.notNull(linkId);
+        return incomingLinks.get(linkId);
     }
 
     public boolean hasMoreCachedAddresses() {
         return !addressCache.isEmpty();
     }
 
-    public Address getNextCachedAddress() {
+    public String getNextCachedLinkId() {
         // Does not actually remove, takes top item and moves it to the bottom of the list (top item is returned)
-        Iterator<Address> it = addressCache.iterator();
-        Address ret = it.next();
+        Iterator<String> it = addressCache.iterator();
+        String ret = it.next();
         it.remove();
         addressCache.add(ret);
         return ret;
     }
     
-    public Set<Address> getCachedAddresses() {
+    public Set<String> getCachedAddresses() {
         return new HashSet<>(addressCache);
     }
 
-    public void addCachedAddresses(Set<Address> addresses) {
+    public void addCachedLinkIds(Set<String> addresses) {
         Validate.notNull(addresses);
         Validate.noNullElements(addresses);
 

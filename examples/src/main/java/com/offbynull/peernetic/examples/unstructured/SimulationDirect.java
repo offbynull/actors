@@ -87,10 +87,7 @@ public final class SimulationDirect {
 
     private static void addNode(int id, Integer connId, Simulator simulator, Instant time) {
         String idStr = Integer.toString(id);
-        Address connIdAddr = null;
-        if (connId != null) {
-            connIdAddr = Address.of(connId.toString());
-        }
+        String connIdStr = connId == null ? null : connId.toString();
 
         simulator.addCoroutineActor(
                 idStr,
@@ -99,7 +96,7 @@ public final class SimulationDirect {
                 time,
                 new Start(
                         new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
-                        connIdAddr,
+                        connIdStr,
                         (long) id,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,

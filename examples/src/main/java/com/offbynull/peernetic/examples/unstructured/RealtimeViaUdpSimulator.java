@@ -86,27 +86,17 @@ public final class RealtimeViaUdpSimulator {
     private static void addNode(int id, Integer connId, ActorThread actorThread) {
         String idStr = Integer.toString(id);
         String unreliableIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
-        
         Address remoteBaseAddr = BASE_ACTOR_ADDRESS
                     .appendSuffix(unreliableIdStr)
                     .appendSuffix(BASE_ACTOR_ADDRESS);
-        Address connIdAddr = null;
-        if (connId != null) {
-            // bootstrap proxy thru unreliable
-            // e.g. actor:unrel0:actor:unrel1
-            String unreliableConnIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
-            connIdAddr = BASE_ACTOR_ADDRESS
-                    .appendSuffix(unreliableIdStr)
-                    .appendSuffix(BASE_ACTOR_ADDRESS)
-                    .appendSuffix(unreliableConnIdStr);
-        }
+        String connIdStr = connId == null ? null : String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
 
         actorThread.addCoroutineActor(
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(
                         new SimpleAddressTransformer(remoteBaseAddr, unreliableIdStr),
-                        connIdAddr,                                                 
+                        connIdStr,                                                 
                         (long) id,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,

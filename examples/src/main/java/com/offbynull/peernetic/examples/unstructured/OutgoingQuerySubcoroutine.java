@@ -8,11 +8,11 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.unstructured.AddressConstants.HANDLER_ADDRESS_SUFFIX;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
 import java.time.Duration;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 
 final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
@@ -55,30 +55,29 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
 
-            Address address = state.getNextCachedAddress();
-            ctx.addOutgoingMessage(sourceId, logAddress, info("Querying {}", address));
+            String linkId = state.getNextCachedLinkId();
+            Address destination = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
+            ctx.addOutgoingMessage(sourceId, logAddress, info("Querying {}", linkId));
 
             QueryRequest request = new QueryRequest();
             RequestSubcoroutine<QueryResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<QueryResponse>()
                     .id(sourceId.appendSuffix(state.nextRandomId()))
                     .request(request)
                     .timerAddressPrefix(timerAddress)
-                    .destinationAddress(address.appendSuffix("router", "handler"))
+                    .destinationAddress(destination.appendSuffix(HANDLER_ADDRESS_SUFFIX))
                     .throwExceptionIfNoResponse(false)
                     .addExpectedResponseType(QueryResponse.class)
                     .build();
             QueryResponse response = requestSubcoroutine.run(cnt);
 
             if (response == null) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to query", address));
+                ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to query", linkId));
                 continue;
             }
 
-            ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to query with {}", address, response.getLinkIds()));
-            Set<Address> links = response.getLinkIds().stream()
-                    .map(x -> state.getAddressTransformer().linkIdToRemoteAddress(x))
-                    .collect(Collectors.toSet());
-            state.addCachedAddresses(links);
+            ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to query with {}", linkId, response.getLinkIds()));
+            Set<String> newLinkIds = response.getLinkIds();
+            state.addCachedLinkIds(newLinkIds);
         }
     }
 

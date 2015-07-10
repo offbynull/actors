@@ -53,14 +53,14 @@ public final class RealtimeDirect {
 
     private static void addNode(int id, Integer connId, ActorThread actorThread) {
         String idStr = Integer.toString(id);
-        Address connIdAddr = connId == null ? null : BASE_ACTOR_ADDRESS.appendSuffix(connId.toString());
+        String connIdStr = connId == null ? null : connId.toString();
         
         actorThread.addCoroutineActor(
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
-                        connIdAddr,
+                        connIdStr,
                         (long) id,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,

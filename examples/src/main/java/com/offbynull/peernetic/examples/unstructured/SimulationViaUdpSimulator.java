@@ -30,8 +30,6 @@ public final class SimulationViaUdpSimulator {
     private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
     
-    private static final Address EMPTY_ADDRESS = Address.of();
-    
     private static final int MAX_NODES = 100;
     private static final int MAX_WAIT_PER_NODE_ADD = 1000; // in milliseconds
 
@@ -120,15 +118,8 @@ public final class SimulationViaUdpSimulator {
     private static void addNode(int id, Integer connId, Simulator simulator, Instant time) {
         String idStr = Integer.toString(id);
         String unreliableIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
-
         Address remoteBaseAddr = Address.of(unreliableIdStr);
-        Address connIdAddr = null;
-        if (connId != null) {
-            // bootstrap proxy thru unreliable
-            // e.g. unrel0:unrel1
-            String unreliableConnIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
-            connIdAddr = Address.of(unreliableIdStr, unreliableConnIdStr);
-        }
+        String connIdStr = connId == null ? null : String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
 
         simulator.addCoroutineActor(
                 idStr,
@@ -137,8 +128,7 @@ public final class SimulationViaUdpSimulator {
                 time,
                 new Start(
                         new SimpleAddressTransformer(remoteBaseAddr, unreliableIdStr),
-                        connIdAddr, // bootstrap proxy thru unreliable
-                                    // e.g. unrel0:unrel1
+                        connIdStr,
                         (long) id,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,

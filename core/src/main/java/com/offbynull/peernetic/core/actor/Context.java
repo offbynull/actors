@@ -46,15 +46,15 @@ public interface Context {
 
     /**
      * Queue up an outgoing message.
-     * @param sourceId id which this message is from. In this case, id refers to the suffix of the source address which the outgoing message
-     * is sent from. So for example, if {@link #getSelf() } returns "actor:1" and this is set to "id1:id2", the source address for the
-     * outgoing message being sent will be "actor:1:id1:id2".
+     * @param sourceRelative address which this message is from (relative to {@link #getSelf()}). For example, if {@link #getSelf() }
+     * returns "actor:1" and this is parameter is set to "id1:id2", the source address for the outgoing message being sent will be
+     * "actor:1:id1:id2".
      * @param destination destination address
      * @param message outgoing message
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code destination} is empty
      */
-    void addOutgoingMessage(Address sourceId, Address destination, Object message);
+    void addOutgoingMessage(Address sourceRelative, Address destination, Object message);
     
     /**
      * Returns an unmodifiable list of outgoing messages. This list stays in sync as more outgoing messages are added.

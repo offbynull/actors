@@ -47,12 +47,12 @@ public final class RealtimeViaUdpSimulator {
         Random rand = new Random(12345);
 
         // Seed node
-        addUnreliableProxy(0, actorThread, 0);
+        addUdpSimulatorProxy(0, actorThread, 0);
         addNode(0, null, actorThread);
         
         // Connecting nodes
         for (int i = 1; i < MAX_NODES; i++) {
-            addUnreliableProxy(i, actorThread, i);
+            addUdpSimulatorProxy(i, actorThread, i);
             addNode(i, 0, actorThread);
             Thread.sleep(rand.nextInt(MAX_WAIT_PER_NODE_ADD));
         }
@@ -60,7 +60,7 @@ public final class RealtimeViaUdpSimulator {
         GraphGateway.awaitShutdown();
     }
 
-    private static void addUnreliableProxy(int id, ActorThread actorThread, int randomSeed) {
+    private static void addUdpSimulatorProxy(int id, ActorThread actorThread, int randomSeed) {
         String idStr = Integer.toString(id);
         String unreliableIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         
@@ -80,14 +80,14 @@ public final class RealtimeViaUdpSimulator {
                                 16 * 1024,
                                 new SimpleSerializer())
                 )
-        );        
+        );
     }
     
     private static void addNode(int id, Integer connId, ActorThread actorThread) {
         String idStr = Integer.toString(id);
-        String unreliableIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
+        String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         Address remoteBaseAddr = BASE_ACTOR_ADDRESS
-                    .appendSuffix(unreliableIdStr)
+                    .appendSuffix(udpSimProxyIdStr)
                     .appendSuffix(BASE_ACTOR_ADDRESS);
         String connIdStr = connId == null ? null : String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
 
@@ -95,7 +95,7 @@ public final class RealtimeViaUdpSimulator {
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(remoteBaseAddr, unreliableIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
                         connIdStr,                                                 
                         (long) id,
                         BASE_TIMER_ADDRESS,

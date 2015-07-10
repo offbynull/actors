@@ -1,22 +1,31 @@
-package com.offbynull.peernetic.examples.unstructured;
+package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.simulator.MessageSink;
 import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.simulator.Simulator;
+import com.offbynull.peernetic.examples.chord.internalmessages.Start;
+import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
-import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
+import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
+import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
+import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
+import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
+import java.awt.Point;
 import java.io.File;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Random;
+import java.util.Arrays;
+import org.apache.commons.lang3.Validate;
 
 public final class SimulationViaUdpSimulator {
 
@@ -30,9 +39,8 @@ public final class SimulationViaUdpSimulator {
     private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
     
-    private static final int MAX_NODES = 100;
-    private static final int MAX_WAIT_PER_NODE_ADD = 1000; // in milliseconds
-
+    private static final int NUM_NODES = 8;
+    
     public static void main(String[] args) throws Exception {
         // Create simulator
         Instant time = Instant.ofEpochMilli(0L);
@@ -55,14 +63,18 @@ public final class SimulationViaUdpSimulator {
         // Instruct simulator to add timer
         simulator.addTimer(BASE_TIMER_ADDRESS_STRING, time);
 
+        // Calculate ring size in bits
+        Validate.isTrue(NUM_NODES > 0, "Bad size");
+        Validate.isTrue(Integer.bitCount(NUM_NODES) == 1, "Not power of 2");
+        int bits = Integer.numberOfTrailingZeros(NUM_NODES); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
+                                                             // ring-space is 3. Nodes will start from 0 to 15.
+        
         // Instruct simulator to add nodes
-        Random rand = new Random(12345);
         addUdpSimulatorProxy(0, simulator, time, 0);
-        addNode(0, null, simulator, time);
-        for (int i = 1; i < MAX_NODES; i++) {
-            time = time.plus(rand.nextInt(MAX_WAIT_PER_NODE_ADD), ChronoUnit.MILLIS);
+        addNode(0, null, bits, simulator, time);
+        for (int i = 1; i < NUM_NODES; i++) {
             addUdpSimulatorProxy(i, simulator, time, i);
-            addNode(i, 0, simulator, time);
+            addNode(i, 0, bits, simulator, time);
         }
 
         // Run simulation  (NOTE: enabling logging slows this simulation to a crawl, use slf4j-nop for best performance)
@@ -80,6 +92,14 @@ public final class SimulationViaUdpSimulator {
         // Replay saved graph messages from simulation to a real graph
         GraphGateway.startApplication();
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
+        
+           // Manually add nodes to graph before replaying
+        int graphRadius = Math.max(300, NUM_NODES * 4);
+        for (int i = 0; i < NUM_NODES; i++) {
+            addNodeToGraph(i, bits, graphRadius, graphGateway);
+        }
+        
+          // Replay
         ReplayerGateway replayerGateway = ReplayerGateway.replay(
                 graphGateway.getIncomingShuttle(),
                 BASE_GRAPH_ADDRESS,
@@ -90,12 +110,29 @@ public final class SimulationViaUdpSimulator {
         GraphGateway.awaitShutdown();
     }
 
+    private static void addNodeToGraph(int id, int bits, int graphRadius, GraphGateway graphGateway) {
+        NodeId selfId = new NodeId(id, bits);
+        String selfIdStr = selfId.toString();
+        
+        BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
+        BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
+        double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
+        
+        Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
+        
+        graphGateway.getIncomingShuttle().send(Arrays.asList(
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfIdStr)),
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfIdStr, newPoint.getX(), newPoint.getY())),
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfIdStr, "-fx-background-color: red"))
+        ));
+    }
+
     private static void addUdpSimulatorProxy(int id, Simulator simulator, Instant time, int randomSeed) {
         String idStr = Integer.toString(id);
-        String unreliableIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
+        String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         
         simulator.addCoroutineActor(
-                unreliableIdStr,
+                udpSimProxyIdStr,
                 new UdpSimulatorCoroutine(),
                 Duration.ZERO,
                 time,
@@ -114,22 +151,23 @@ public final class SimulationViaUdpSimulator {
                 )
         );
     }
-    
-    private static void addNode(int id, Integer connId, Simulator simulator, Instant time) {
+
+    private static void addNode(int id, Integer connId, int bits, Simulator simulator, Instant time) {
         String idStr = Integer.toString(id);
-        String unreliableIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
-        Address remoteBaseAddr = Address.of(unreliableIdStr);
+        String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
+        Address remoteBaseAddr = Address.of(udpSimProxyIdStr);
         String connIdStr = connId == null ? null : String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
 
         simulator.addCoroutineActor(
                 idStr,
-                new UnstructuredClientCoroutine(),
+                new ChordClientCoroutine(),
                 Duration.ZERO,
                 time,
                 new Start(
-                        new SimpleAddressTransformer(remoteBaseAddr, unreliableIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
                         connIdStr,
-                        (long) id,
+                        new NodeId(id, bits),
+                        id,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS

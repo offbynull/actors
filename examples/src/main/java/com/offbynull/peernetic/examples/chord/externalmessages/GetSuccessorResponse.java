@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.examples.chord.externalmessages;
 
-import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
@@ -60,7 +59,8 @@ public final class GetSuccessorResponse implements Serializable {
 //        Validate.isTrue(!entries.isEmpty());
 //    }
 
-    public static abstract class SuccessorEntry {
+    public static abstract class SuccessorEntry implements Serializable {
+        private static final long serialVersionUID = 1L;
 
         private NodeId chordId;
 
@@ -75,14 +75,16 @@ public final class GetSuccessorResponse implements Serializable {
 
     }
 
-    public static final class InternalSuccessorEntry extends SuccessorEntry {
+    public static final class InternalSuccessorEntry extends SuccessorEntry implements Serializable {
+        private static final long serialVersionUID = 1L;
 
         public InternalSuccessorEntry(NodeId chordId) {
             super(chordId);
         }
     }
 
-    public static final class ExternalSuccessorEntry extends SuccessorEntry {
+    public static final class ExternalSuccessorEntry extends SuccessorEntry implements Serializable {
+        private static final long serialVersionUID = 1L;
 
         private String linkId;
 

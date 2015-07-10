@@ -24,18 +24,18 @@ import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.commons.lang3.Validate;
 
-public final class Main {
+public final class RealtimeDirect {
 
     private static final String BASE_ACTOR_ADDRESS_STRING = "actor";
     private static final String BASE_GRAPH_ADDRESS_STRING = "graph";
     private static final String BASE_TIMER_ADDRESS_STRING = "timer";
     private static final String BASE_LOG_ADDRESS_STRING = "log";
-    
+
     private static final Address BASE_ACTOR_ADDRESS = Address.of(BASE_ACTOR_ADDRESS_STRING);
     private static final Address BASE_GRAPH_ADDRESS = Address.of(BASE_GRAPH_ADDRESS_STRING);
     private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
-    
+
     public static void main(String[] args) throws Exception {
         GraphGateway.startApplication();
 
@@ -59,7 +59,7 @@ public final class Main {
             return "Creating " + input + " nodes";
         });
         int size = sizeContainer.take();
-        
+
         Validate.isTrue(size > 0, "Bad size");
         Validate.isTrue(Integer.bitCount(size) == 1, "Not power of 2");
 
@@ -68,16 +68,7 @@ public final class Main {
 
         int graphRadius = Math.max(300, size * 4);
         for (int i = 0; i < size; i++) {
-            NodeId selfId = new NodeId(i, bits);
-            BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
-            BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
-            double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
-            Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
-            graphGateway.getIncomingShuttle().send(Arrays.asList(
-                    new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfId.toString())),
-                    new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY())),
-                    new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfId.toString(), "-fx-background-color: red"))
-            ));
+            addNodeToGraph(i, bits, graphRadius, graphGateway);
         }
 
         consoleStage.outputLine("Node colors");
@@ -110,18 +101,7 @@ public final class Main {
             switch (scanner.next().toLowerCase()) {
                 case "boot": {
                     int id = scanner.nextInt();
-                    String idStr = Integer.toString(id);
-                    actorThread.addCoroutineActor(idStr, new ChordClientCoroutine(),
-                            new Start(
-                                    new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
-                                    null,
-                                    new NodeId(id, bits),
-                                    id,
-                                    BASE_TIMER_ADDRESS,
-                                    BASE_GRAPH_ADDRESS,
-                                    BASE_LOG_ADDRESS
-                            )
-                    );
+                    addNode(id, null, bits, actorThread);
                     return "Executed command: " + input;
                 }
                 case "start": {
@@ -131,39 +111,19 @@ public final class Main {
 
                     Validate.isTrue(startId <= endId);
 
-                    String connectIdStr = Integer.toString(connectId);
                     for (int id = startId; id <= endId; id++) {
-                        String idStr = Integer.toString(id);
-                        actorThread.addCoroutineActor(idStr, new ChordClientCoroutine(),
-                                new Start(
-                                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
-                                        connectIdStr,
-                                        new NodeId(id, bits),
-                                        id,
-                                        BASE_TIMER_ADDRESS,
-                                        BASE_GRAPH_ADDRESS,
-                                        BASE_LOG_ADDRESS
-                                )
-                        );
+                        addNode(id, connectId, bits, actorThread);
                     }
                     return "Executed command: " + input;
                 }
                 case "stop": {
                     int startId = scanner.nextInt();
                     int endId = scanner.nextInt();
-                    
+
                     Validate.isTrue(startId <= endId);
-                    
+
                     for (int id = startId; id <= endId; id++) {
-                        actorThread.getIncomingShuttle().send(
-                                Collections.singleton(
-                                        new Message(
-                                                Address.of("actor", "" + id),
-                                                Address.of("actor", "" + id),
-                                                new Kill()
-                                        )
-                                )
-                        );
+                        removeNode(id, actorThread);
                     }
                     return "Executed command: " + input;
                 }
@@ -178,5 +138,55 @@ public final class Main {
         });
 
         GraphGateway.awaitShutdown();
+    }
+
+    private static void addNodeToGraph(int id, int bits, int graphRadius, GraphGateway graphGateway) {
+        NodeId selfId = new NodeId(id, bits);
+        String selfIdStr = selfId.toString();
+        
+        BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
+        BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
+        double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
+        
+        Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
+        
+        graphGateway.getIncomingShuttle().send(Arrays.asList(
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfIdStr)),
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfIdStr, newPoint.getX(), newPoint.getY())),
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfIdStr, "-fx-background-color: red"))
+        ));
+    }
+    
+    private static void addNode(int id, Integer connId, int bits, ActorThread actorThread) {
+        String idStr = Integer.toString(id);
+        String connIdStr = connId == null ? null : connId.toString();
+
+        actorThread.addCoroutineActor(
+                idStr,
+                new ChordClientCoroutine(),
+                new Start(
+                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
+                        connIdStr,
+                        new NodeId(id, bits),
+                        id,
+                        BASE_TIMER_ADDRESS,
+                        BASE_GRAPH_ADDRESS,
+                        BASE_LOG_ADDRESS
+                )
+        );
+    }
+
+    private static void removeNode(int id, ActorThread actorThread) {
+        String idStr = Integer.toString(id);
+
+        actorThread.getIncomingShuttle().send(
+                Collections.singleton(
+                        new Message(
+                                BASE_ACTOR_ADDRESS.appendSuffix(idStr),
+                                BASE_ACTOR_ADDRESS.appendSuffix(idStr),
+                                new Kill()
+                        )
+                )
+        );
     }
 }

@@ -114,7 +114,9 @@ public final class ChordClientCoroutine implements Coroutine {
                 .filter(x -> x instanceof ExternalPointer)
                 .map(x -> (ExternalPointer) x)
                 .collect(Collectors.toSet());
-        Set<ExternalPointer> successors = state.getSuccessors().stream()
+        // for visualization purposes, only use the immediate successor -- the visualization makes more sense this way because the paper
+        // for the most part only talks about having 1 successor when its describing the algorithm (a successor table is described later on)
+        Set<ExternalPointer> successors = state.getSuccessors().subList(0, 1).stream()
                 .filter(x -> x instanceof ExternalPointer)
                 .map(x -> (ExternalPointer) x)
                 .collect(Collectors.toSet());

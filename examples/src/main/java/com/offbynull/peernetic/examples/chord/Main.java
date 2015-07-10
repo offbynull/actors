@@ -74,9 +74,9 @@ public final class Main {
             double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
             Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
             graphGateway.getIncomingShuttle().send(Arrays.asList(
-                    new Message(Address.of(""), Address.of("graph"), new AddNode(selfId.toString())),
-                    new Message(Address.of(""), Address.of("graph"), new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY())),
-                    new Message(Address.of(""), Address.of("graph"), new StyleNode(selfId.toString(), "-fx-background-color: red"))
+                    new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfId.toString())),
+                    new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfId.toString(), newPoint.getX(), newPoint.getY())),
+                    new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfId.toString(), "-fx-background-color: red"))
             ));
         }
 

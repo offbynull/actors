@@ -144,7 +144,8 @@ public final class ActorThread implements AutoCloseable {
      * known to the caller. On error (e.g. actor with same id already exists), this {@link ActorThread} terminates.
      * <p>
      * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
-     * @param id id to use for {@code actor}
+     * @param id id to use for {@code actor}. For example, if the prefix for this ActorThread is "actorthread", and the id of the actor
+     * being add in is "test", that actor will be accessible via the address "actorthread:test".
      * @param actor actor being added
      * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
@@ -160,7 +161,8 @@ public final class ActorThread implements AutoCloseable {
     /**
      * Queue a coroutine-based actor to be added. Equivalent to calling
      * {@code addActor(id, new CoroutineActor(coroutine), primingMessages)}.
-     * @param id id to use for actor being added
+     * @param id id to use for actor being added. For example, if the prefix for this ActorThread is "actorthread", and the id of the actor
+     * being add in is "test", that actor will be accessible via the address "actorthread:test".
      * @param coroutine coroutine for actor being added
      * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}

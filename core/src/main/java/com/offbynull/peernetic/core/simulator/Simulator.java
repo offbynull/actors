@@ -90,7 +90,7 @@ import org.slf4j.LoggerFactory;
  * <li><b>Messages are passed between actors and (mocked) gateways instantly,</b> meaning that you cannot use the simulator to simulate
  * message delays (e.g. simulating a system under heavy load). However, delays caused by the execution of an actor can be simulated. See
  * {@link ActorDurationCalculator} and
- * {@link #Simulator(java.time.Instant, com.offbynull.peernetic.core.simulation.ActorDurationCalculator) } for more detail.</li>
+ * {@link #Simulator(java.time.Instant, com.offbynull.peernetic.core.simulator.ActorDurationCalculator) } for more detail.</li>
  * <li><b>The time one actor takes to process an incoming message has no effect on the other actors in the simulation.</b> For example,
  * imagine that {@code actor1} and {@code actor2} both receive a message at the same time. {@code actor1} processes its message first and
  * takes 5 milliseconds to do so. {@code actor2} then processes its message <u>from the same point in time</u> (without the 5 milliseconds

@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.CoroutineRunner;
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.HashMap;
@@ -25,42 +24,52 @@ import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Forwards an incoming message to a {@link Subcoroutine} based on the destination id of that incoming message.
+ * Forwards incoming messages to different {@link Subcoroutine}s based on the destination address. Use {@link #getController() } to add or
+ * remove subcoroutines from this router.
  * <p>
- * For example, imagine this router has the id "myrouter" and is owned by an {@link Actor} with the address "local:myactor". This router has
- * one {@link Subcoroutine} assigned to it with the id "child1". A message arrives with the destination address
- * "local:myactor:myrouter:child1". The actor should forward that message to this router, and this router should forward that message to the
- * {@link Subcoroutine} with the id "child1".
+ * For example, imagine that this router belongs to an actor with the address "actor:0". To initialize a router under the address suffix
+ * "router" ...
+ * <pre>
+ * SubcoroutineRouter router = new SubcoroutineRouter(Address.of("router"));
+ * </pre>
+ * To add a subcoroutine to that router ...
+ * <pre>
+ * Subcoroutine mySubcoroutine = ...; // this subcoroutine's relative address is "router:mysub"
+ * router.getController().add(mySubcoroutine, AddBehaviour.ADD_PRIME); // primes mySubcoroutine with the current incoming message
+ * </pre>
+ * To remove the subcoroutine that was added above ...
+ * <pre>
+ * router.getController().remove(mySubcoroutine.getAddress());
+ * </pre>
  * @author Kasra Faghihi
  */
 public final class SubcoroutineRouter {
 
-    private final Address id;
+    private final Address address;
     private final Context context;
     private final Map<String, CoroutineRunner> idMap;
     private final Controller controller;
 
     /**
      * Constructs a {@link SubcoroutineRouter}.
-     * @param id of this router -- incoming messages destined for this id should trigger this router
+     * @param address relative address of this router (relative to the calling actor's self address)
      * @param context actor context
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code id} is empty
      */
-    public SubcoroutineRouter(Address id, Context context) {
-        Validate.notNull(id);
+    public SubcoroutineRouter(Address address, Context context) {
+        Validate.notNull(address);
         Validate.notNull(context);
-        Validate.isTrue(!id.isEmpty());
-        this.id = id;
+        Validate.isTrue(!address.isEmpty());
+        this.address = address;
         this.context = context;
         idMap = new HashMap<>();
         controller = new Controller();
     }
 
     /**
-     * Get the controller for this router. The controller allows you to add {@link Subcoroutine}s to and remove {@link Subcoroutine}s from
-     * this router. It is safe to use this class to add/remove {@link Subcoroutine}s even if doing so from within a {@link Subcoroutine}
-     * invoked by the router that owns this controller.
+     * Get the controller for this router. The controller allows you to add subcoroutines to and remove subcoroutines from this router. It
+     * is safe to use the returned controller to add/remove subcoroutines from within a subcoroutines invoked by this subcoroutine router.
      * @return controller for this router
      */
     public Controller getController() {
@@ -68,18 +77,18 @@ public final class SubcoroutineRouter {
     }
 
     /**
-     * Route the current incoming message to the appropriate {@link Subcoroutine}. If id of the incoming message doesn't map to any
-     * {@link Subcoroutine} assigned to this router, this method returns without throwing an exception.
-     * @return {@code true} if the forward was routed to a {@link Subcoroutine}, {@code false} otherwise
-     * @throws Exception if the {@link Subcoroutine} forwarded to threw an exception
+     * Forward the current incoming message to the appropriate subcoroutine. If address of the incoming message doesn't map to a
+     * subcoroutine assigned to this router, this method will return without forwarding the incoming message.
+     * @return {@code true} if the forward was routed to a subcoroutine, {@code false} otherwise
+     * @throws Exception if the subcoroutine that the incoming message was forwarded to threw an exception
      */
     public boolean forward() throws Exception {
-        Address incomingId = context.getDestination().removePrefix(context.getSelf());
-        if (!id.isPrefixOf(incomingId)) {
+        Address relativeDestinationAddress = context.getDestination().removePrefix(context.getSelf());
+        if (!address.isPrefixOf(relativeDestinationAddress)) {
             return false;
         }
         
-        Address subId = incomingId.removePrefix(id);
+        Address subId = relativeDestinationAddress.removePrefix(address);
         if (subId.isEmpty()) {
             return false;
         }
@@ -101,22 +110,21 @@ public final class SubcoroutineRouter {
     }
 
     /**
-     * Get the id of this router. Incoming messages destined for this id should trigger this router to run. The id returned must be an
-     * absolute id, not a relative id. Meaning that if there's a hierarchy, each one should return the full id, not the id relative to its
-     * parent.
-     * @return id
+     * Get the address of this router. Incoming messages destined for this address should trigger this router to run. The address returned
+     * by this method must be relative to the calling actor's self address (relative to {@link Context#getSelf()}).
+     * @return absolute relative address of this router
      */
-    public Address getId() {
-        return id;
+    public Address getAddress() {
+        return address;
     }
     
     /**
-     * Controller to add {@link Subcoroutine}s to and remove {@link Subcoroutine}s from a router. It is safe to use this class to add/remove
-     * {@link Subcoroutine}s even if doing so from within a {@link Subcoroutine} invoked by the router that owns this controller.
+     * Controller to add subcoroutines to and remove subcoroutines from the router that this controller is assigned to. It is safe to use
+     * this class to add/remove subcoroutines from within a subcoroutine invoked by the router that owns this controller.
      */
     public final class Controller {
         /**
-         * Add a {@link Subcoroutine} to the router that owns this controller. If you choose to prime the {@link Subcoroutine} that's being
+         * Add a subcoroutine to the router that owns this controller. If you choose to prime the subcoroutine that's being
          * added (by choosing either {@link AddBehaviour#ADD_PRIME} or {@link AddBehaviour#ADD_PRIME_NO_FINISH} for {@code addBehaviour}),
          * this method will forward the current incoming message to it.
          * @param subcoroutine subcoroutine to add
@@ -133,8 +141,8 @@ public final class SubcoroutineRouter {
             Validate.notNull(subcoroutine);
             Validate.notNull(addBehaviour);
 
-            Address subcoroutineId = subcoroutine.getId();
-            Address suffix = subcoroutineId.removePrefix(id);
+            Address subcoroutineId = subcoroutine.getAddress();
+            Address suffix = subcoroutineId.removePrefix(address);
             Validate.isTrue(suffix.size() == 1);
             
             String key = suffix.getElement(0);
@@ -159,7 +167,7 @@ public final class SubcoroutineRouter {
         }
         
         /**
-         * Removes a {@link Subcoroutine} from the router that owns this controller.
+         * Removes a subcoroutine from the router that owns this controller.
          * @param id id of subcoroutine to remove
          * @throws NullPointerException if any argument is {@code null}
          * @throws IllegalArgumentException if a subcoroutine with this id is not assigned to the owning router, or if {@code id} isn't a
@@ -168,7 +176,7 @@ public final class SubcoroutineRouter {
         public void remove(Address id) {
             Validate.notNull(id);
             
-            Address suffix = id.removePrefix(SubcoroutineRouter.this.id);
+            Address suffix = id.removePrefix(SubcoroutineRouter.this.address);
             Validate.isTrue(suffix.size() == 1);
             
             String key = suffix.getElement(0);
@@ -178,7 +186,7 @@ public final class SubcoroutineRouter {
         }
         
         /**
-         * Get the number of {@link Subcoroutine}s assigned to the router that owns this controller.
+         * Get the number of subcoroutines assigned to the router that owns this controller.
          * @return number of subcoroutines
          */
         public int size() {
@@ -190,7 +198,7 @@ public final class SubcoroutineRouter {
          * @return source id of router
          */
         public Address getSourceId() {
-            return SubcoroutineRouter.this.id;
+            return SubcoroutineRouter.this.address;
         }
         
         private boolean forceForward(String id, boolean mustNotFinish) throws Exception {
@@ -218,16 +226,16 @@ public final class SubcoroutineRouter {
      */
     public enum AddBehaviour {
         /**
-         * Add the {@link Subcoroutine} to {@link SubcoroutineRouter}.
+         * Add the subcoroutine to the router.
          */
         ADD,
         /**
-         * Add the {@link Subcoroutine} to {@link SubcoroutineRouter}, and prime it with the current incoming message.
+         * Add the subcoroutine to the router, and prime it with the current incoming message.
          */
         ADD_PRIME,
         /**
-         * Add the {@link Subcoroutine} to {@link SubcoroutineRouter}, prime it with the current incoming message, and make sure it doesn't
-         * finish after priming.
+         * Add the subcoroutine to router, prime it with the current incoming message, and make sure the subcoroutine is still running after
+         * priming.
          */
         ADD_PRIME_NO_FINISH;
     }

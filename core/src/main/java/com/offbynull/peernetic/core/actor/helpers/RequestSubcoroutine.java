@@ -136,7 +136,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
     }
 
     @Override
-    public Address getId() {
+    public Address getAddress() {
         return id;
     }
     
@@ -155,12 +155,13 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         private boolean throwExceptionIfNoResponse = true;
 
         /**
-         * Set the id. Defaults to {@code null}.
-         * @param id id
+         * Set the address. The address set by this method must be relative to the calling actor's self address (relative to
+         * {@link Context#getSelf()}). Defaults to {@code null}.
+         * @param address relative address
          * @return this builder
          */
-        public Builder<T> id(Address id) {
-            this.id = id;
+        public Builder<T> address(Address address) {
+            this.id = address;
             return this;
         }
 
@@ -252,7 +253,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @return a new instance of {@link RequestSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
          * @throws IllegalArgumentException if {@code attemptInterval} parameter was set to a negative duration, or if {@code maxAttempts}
-         * was set to 0, or if either {@code id} or {@code destinationAddress} or {@code timeAddressPrefix} is set to empty
+         * was set to 0, or if either {@code address} or {@code destinationAddress} or {@code timeAddressPrefix} is set to empty
          */
         public RequestSubcoroutine<T> build() {
             return new RequestSubcoroutine<>(id, destinationAddress, timerAddressPrefix, request, maxAttempts, attemptInterval,

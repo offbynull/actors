@@ -17,18 +17,18 @@ import org.apache.commons.lang3.Validate;
 
 final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
 
-    public FixFingerTableSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress) {
-        Validate.notNull(sourceId);
+    public FixFingerTableSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -38,19 +38,19 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     public Void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Starting fix finger task", state.getSelfId(), sourceId));
+        ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Starting fix finger task", state.getSelfId(), subAddress));
         
         int len = state.getFingerTableLength();
 
         while (true) {
             List<Pointer> oldFingers = state.getFingers();
             for (int i = 1; i < len; i++) {
-                ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Fixing finger {}", state.getSelfId(), sourceId, i));
+                ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Fixing finger {}", state.getSelfId(), subAddress, i));
                 fixFinger(cnt, i);
             }
 
-            ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Fix finger cycle \\ Before: {} \\ After: {}", state.getSelfId(),
-                    sourceId, oldFingers, state.getFingers()));
+            ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Fix finger cycle \\ Before: {} \\ After: {}", state.getSelfId(),
+                    subAddress, oldFingers, state.getFingers()));
             funnelToSleepCoroutine(cnt, Duration.ofSeconds(1L));
         }
     }
@@ -58,15 +58,15 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     private void fixFinger(Continuation cnt, int i) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        // get expected id of entry in finger table
+        // get expected address of entry in finger table
         NodeId findId = state.getExpectedFingerId(i);
 
-        // route to id
+        // route to address
         Pointer foundFinger;
         try {
             foundFinger = funnelToRouteToSuccessorCoroutine(cnt, findId);
         } catch (RuntimeException re) {
-            ctx.addOutgoingMessage(sourceId, logAddress, error("{} {} - Error while finding index for {}", state.getSelfId(), sourceId, i));
+            ctx.addOutgoingMessage(subAddress, logAddress, error("{} {} - Error while finding index for {}", state.getSelfId(), subAddress, i));
             return;
         }
         
@@ -90,18 +90,18 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
             throw new IllegalStateException();
         }
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Finger index {} updated \\ Expected: {} \\ Before: {} \\ After: {}",
-                state.getSelfId(), sourceId, i, findId, oldFinger, foundFinger));
+        ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Finger index {} updated \\ Expected: {} \\ Before: {} \\ After: {}",
+                state.getSelfId(), subAddress, i, findId, oldFinger, foundFinger));
     }
     
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
     
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         new SleepSubcoroutine.Builder()
-                .id(sourceId)
+                .address(subAddress)
                 .duration(duration)
                 .timerAddressPrefix(timerAddress)
                 .build()
@@ -111,7 +111,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     private Pointer funnelToRouteToSuccessorCoroutine(Continuation cnt, NodeId findId) throws Exception {
         String idSuffix = "routetosucc" + state.nextRandomId();
         RouteToSuccessorSubcoroutine innerCoroutine = new RouteToSuccessorSubcoroutine(
-                sourceId.appendSuffix(idSuffix),
+                subAddress.appendSuffix(idSuffix),
                 state,
                 timerAddress,
                 logAddress,

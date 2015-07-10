@@ -8,6 +8,13 @@ import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviou
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.error;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.JOIN_RELATIVE_ADDRESS;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_CHECKPRED_RELATIVE_ADDRESS;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_FIXFINGER_RELATIVE_ADDRESS;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_RELATIVE_ADDRESS;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_STABILIZE_RELATIVE_ADDRESS;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_UPDATEOTHERS_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -46,32 +53,30 @@ public final class ChordClientCoroutine implements Coroutine {
             State state = new State(seed, selfId, addressTransformer);
 
             // Join (or just initialize if no bootstrap node is set)
-            JoinSubcoroutine joinTask = new JoinSubcoroutine(Address.of("join"), state, timerPrefix, logAddress, bootstrapLinkId);
+            JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, timerPrefix, logAddress, bootstrapLinkId);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
             lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, selfId, graphAddress);
 
             // Create maintanence tasks that are supposed to run in parallel
-            Address mainSourceId = Address.of("router");
-
-            SubcoroutineRouter router = new SubcoroutineRouter(mainSourceId, ctx);
+            SubcoroutineRouter router = new SubcoroutineRouter(ROUTER_RELATIVE_ADDRESS, ctx);
             Controller controller = router.getController();
 
             controller.add(
-                    new UpdateOthersSubcoroutine(mainSourceId.appendSuffix("updateothers"), state, timerPrefix, logAddress),
+                    new UpdateOthersSubcoroutine(ROUTER_UPDATEOTHERS_RELATIVE_ADDRESS, state, timerPrefix, logAddress),
                     AddBehaviour.ADD_PRIME);
             controller.add(
-                    new FixFingerTableSubcoroutine(mainSourceId.appendSuffix("fixfinger"), state, timerPrefix, logAddress),
+                    new FixFingerTableSubcoroutine(ROUTER_FIXFINGER_RELATIVE_ADDRESS, state, timerPrefix, logAddress),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new StabilizeSubcoroutine(mainSourceId.appendSuffix("stabilize"), state, timerPrefix, logAddress),
+                    new StabilizeSubcoroutine(ROUTER_STABILIZE_RELATIVE_ADDRESS, state, timerPrefix, logAddress),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new CheckPredecessorSubcoroutine(mainSourceId.appendSuffix("checkpred"), state, timerPrefix),
+                    new CheckPredecessorSubcoroutine(ROUTER_CHECKPRED_RELATIVE_ADDRESS, state, timerPrefix),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new IncomingRequestHandlerSubcoroutine(mainSourceId.appendSuffix("handler"), state, logAddress),
+                    new IncomingRequestHandlerSubcoroutine(ROUTER_HANDLER_RELATIVE_ADDRESS, state, logAddress),
                     AddBehaviour.ADD);
 
             // Process messages

@@ -8,6 +8,7 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.UpdateFingerTableResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -19,17 +20,17 @@ import org.apache.commons.lang3.Validate;
 
 final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     private final State state;
     private final Address logAddress;
     private final Address timerAddress;
 
-    public UpdateOthersSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress) {
-        Validate.notNull(sourceId);
+    public UpdateOthersSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -45,13 +46,13 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
         
         while (true) {
             for (int i = 0; i < maxIdx; i++) {
-                // get id of node that should have us in its finger table at index i
+                // get address of node that should have us in its finger table at index i
                 NodeId routerId = state.getIdThatShouldHaveThisNodeAsFinger(i);
                 
-                ctx.addOutgoingMessage(sourceId, logAddress,
+                ctx.addOutgoingMessage(subAddress, logAddress,
                         debug("{} {} - Attempting to find {} and inform it that we are one if it's fingers ({}}",
                                 state.getSelfId(),
-                                sourceId,
+                                subAddress,
                                 routerId,
                                 i));
 
@@ -59,20 +60,20 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                 try {
                     foundRouter = funnelToRouteToCoroutine(cnt, routerId);
                 } catch (RuntimeException re) {
-                    ctx.addOutgoingMessage(sourceId, logAddress,
-                            warn("{} {} - Unable to route to predecessor: {}", state.getSelfId(), sourceId, re));
+                    ctx.addOutgoingMessage(subAddress, logAddress,
+                            warn("{} {} - Unable to route to predecessor: {}", state.getSelfId(), subAddress, re));
                     continue;
                 }
                 
                 if (foundRouter == null) {
-                    ctx.addOutgoingMessage(sourceId, logAddress,
-                            warn("{} {} - Route to predecessor failed", state.getSelfId(), sourceId));
+                    ctx.addOutgoingMessage(subAddress, logAddress,
+                            warn("{} {} - Route to predecessor failed", state.getSelfId(), subAddress));
                     continue;
                 }
 
                 if (foundRouter instanceof ExternalPointer) {
-                    ctx.addOutgoingMessage(sourceId, logAddress,
-                            debug("{} {} - Asking {} to put us in to its finger table", state.getSelfId(), sourceId, foundRouter));
+                    ctx.addOutgoingMessage(subAddress, logAddress,
+                            debug("{} {} - Asking {} to put us in to its finger table", state.getSelfId(), subAddress, foundRouter));
                     funnelToRequestCoroutine(cnt,
                             ((ExternalPointer) foundRouter).getLinkId(),
                             new UpdateFingerTableRequest(selfId),
@@ -81,16 +82,16 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                 } else if (foundRouter instanceof InternalPointer) {
                     ExternalPointer pred = state.getPredecessor();
                     if (pred != null) {
-                        ctx.addOutgoingMessage(sourceId, logAddress,
-                                debug("{} {} - {} routed to self, notifying predecessor {}", state.getSelfId(), sourceId, pred));
+                        ctx.addOutgoingMessage(subAddress, logAddress,
+                                debug("{} {} - {} routed to self, notifying predecessor {}", state.getSelfId(), subAddress, pred));
                         funnelToRequestCoroutine(cnt,
                                 pred.getLinkId(),
                                 new UpdateFingerTableRequest(selfId),
                                 UpdateFingerTableResponse.class,
                                 false);
                     } else {
-                        ctx.addOutgoingMessage(sourceId, logAddress,
-                                debug("{} {} - {} routed to self, but no predecessor to notify, so skipping", state.getSelfId(), sourceId));
+                        ctx.addOutgoingMessage(subAddress, logAddress,
+                                debug("{} {} - {} routed to self, but no predecessor to notify, so skipping", state.getSelfId(), subAddress));
                     }
                 } else {
                     throw new IllegalStateException();
@@ -102,8 +103,8 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
     }
 
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
     
     private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId routerId) throws Exception {
@@ -112,7 +113,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
 
         String idSuffix = "routeto" + state.nextRandomId();
         RouteToSubcoroutine innerCoroutine = new RouteToSubcoroutine(
-                sourceId.appendSuffix(idSuffix),
+                subAddress.appendSuffix(idSuffix),
                 state,
                 timerAddress,
                 logAddress,
@@ -126,7 +127,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
         Validate.isTrue(!duration.isNegative());
 
         new SleepSubcoroutine.Builder()
-                .id(sourceId)
+                .address(subAddress)
                 .duration(duration)
                 .timerAddressPrefix(timerAddress)
                 .build()
@@ -137,8 +138,8 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
             Class<T> expectedResponseClass, boolean exceptionOnBadResponse) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

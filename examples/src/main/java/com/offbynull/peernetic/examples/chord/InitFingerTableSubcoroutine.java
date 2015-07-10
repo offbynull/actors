@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -17,7 +18,7 @@ import org.apache.commons.lang3.Validate;
 
 final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
     
-    private final Address sourceId;
+    private final Address subAddress;
     
     private final State state;
     private final Address timerAddress;
@@ -25,13 +26,13 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
     
     private final String bootstrapLinkId;
 
-    public InitFingerTableSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
-        Validate.notNull(sourceId);
+    public InitFingerTableSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(bootstrapLinkId);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -51,9 +52,9 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
                 bootstrapLinkId,
                 new GetIdRequest(),
                 GetIdResponse.class);
-        ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapLinkId); // fails if id == self
+        ExternalPointer bootstrapNode = state.toExternalPointer(gir.getChordId(), bootstrapLinkId); // fails if address == self
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Bootstrap node details: {}", state.getSelfId(), sourceId,
+        ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Bootstrap node details: {}", state.getSelfId(), subAddress,
                 bootstrapNode));
         
         fingerTable.put(bootstrapNode);
@@ -74,27 +75,27 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
             state.validateExternalId(foundFinger);
             fingerTable.put((ExternalPointer) foundFinger);
 
-            ctx.addOutgoingMessage(sourceId, logAddress,
-                    debug("{} {} - Found finger at index {} is {}", state.getSelfId(), sourceId, i, foundFinger));
+            ctx.addOutgoingMessage(subAddress, logAddress,
+                    debug("{} {} - Found finger at index {} is {}", state.getSelfId(), subAddress, i, foundFinger));
         }
 
-        ctx.addOutgoingMessage(sourceId, logAddress,
-                debug("{} {} - Initialization of finger table is complete: {}", state.getSelfId(), sourceId, state.getFingers()));
+        ctx.addOutgoingMessage(subAddress, logAddress,
+                debug("{} {} - Initialization of finger table is complete: {}", state.getSelfId(), subAddress, state.getFingers()));
         
         return null;
     }
     
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
     
     private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
@@ -108,7 +109,7 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
         
         String idSuffix = "" + state.nextRandomId();
         InitRouteToSuccessorSubcoroutine innerCoroutine = new InitRouteToSuccessorSubcoroutine(
-                sourceId.appendSuffix(idSuffix),
+                subAddress.appendSuffix(idSuffix),
                 state,
                 timerAddress,
                 logAddress,

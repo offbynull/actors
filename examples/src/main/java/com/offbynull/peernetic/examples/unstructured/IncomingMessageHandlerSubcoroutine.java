@@ -18,19 +18,19 @@ import org.apache.commons.lang3.Validate;
 
 final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     private final Address timerAddress;
     private final Address logAddress;
     private final State state;
     private final Controller controller;
 
-    public IncomingMessageHandlerSubcoroutine(Address sourceId, Address timerAddress, Address logAddress, State state,
+    public IncomingMessageHandlerSubcoroutine(Address subAddress, Address timerAddress, Address logAddress, State state,
             Controller controller) {
-        Validate.notNull(sourceId);
+        Validate.notNull(subAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(state);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
         this.state = state;
@@ -38,8 +38,8 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
     }
 
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
 
     @Override
@@ -54,7 +54,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
             Object msg = ctx.getIncomingMessage();
             
             if (ctx.getSelf().isPrefixOf(ctx.getSource())) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Message from self ({}) ignored: {}", ctx.getSource(), msg));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Message from self ({}) ignored: {}", ctx.getSource(), msg));
                 continue;
             }
             
@@ -63,11 +63,11 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 Set<String> linkIds = state.getLinks();
                 
                 QueryResponse resp = new QueryResponse(linkIds);
-                ctx.addOutgoingMessage(sourceId, ctx.getSource(), resp);
-                ctx.addOutgoingMessage(sourceId, logAddress,
+                ctx.addOutgoingMessage(subAddress, ctx.getSource(), resp);
+                ctx.addOutgoingMessage(subAddress, logAddress,
                         info("Incoming query request from {}, responding with {}", ctx.getSource(), linkIds));
             } else if (msg instanceof LinkRequest) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Incoming link request from {}", ctx.getSource()));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming link request from {}", ctx.getSource()));
 
                 // remove suffix of sourceAddress
                 Address reqSourceAddress = ctx.getSource().removeSuffix(3);    // e.g. actor:1:router:out0:1234 -> actor:1
@@ -76,23 +76,23 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 // if we already have an active incominglinksubcoroutine for the sender, return its id 
                 Address reqSuffix = state.getIncomingLinkSuffix(reqLinkId);
                 if (reqSuffix != null) {
-                    ctx.addOutgoingMessage(sourceId, logAddress, info("Already have an incoming link with id {}", reqSuffix));
-                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("Already have an incoming link with id {}", reqSuffix));
+                    ctx.addOutgoingMessage(subAddress, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
                     continue;
                 }
 
                 // if we already have a link in place for the sender, return a failure
                 if (state.getLinks().contains(reqLinkId)) {
-                    ctx.addOutgoingMessage(sourceId, logAddress,
+                    ctx.addOutgoingMessage(subAddress, logAddress,
                             warn("Rejecting link from {} (already linked), trying again", reqSourceAddress));
-                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkFailedResponse());
+                    ctx.addOutgoingMessage(subAddress, ctx.getSource(), new LinkFailedResponse());
                     continue top;
                 }
             
                 // if we don't have any more room for incoming connections, return failure
                 if (state.isIncomingLinksFull()) {
-                    ctx.addOutgoingMessage(sourceId, logAddress, info("No free incoming link slots available"));
-                    ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkFailedResponse());
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("No free incoming link slots available"));
+                    ctx.addOutgoingMessage(subAddress, ctx.getSource(), new LinkFailedResponse());
                     continue;
                 }
 
@@ -102,8 +102,8 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
 
                 keepAliveCounter++;
 
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Added incoming link slot with id {}", reqSuffix));
-                ctx.addOutgoingMessage(sourceId, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Added incoming link slot with id {}", reqSuffix));
+                ctx.addOutgoingMessage(subAddress, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
 
                 controller.add(new IncomingLinkSubcoroutine(reqSuffix, timerAddress, logAddress, state), AddBehaviour.ADD_PRIME_NO_FINISH);
             }

@@ -1,15 +1,15 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import org.apache.commons.lang3.Validate;
 
-final class JoinSubcoroutine implements Coroutine {
+final class JoinSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     
     private final State state;
     private final Address timerAddress;
@@ -17,21 +17,27 @@ final class JoinSubcoroutine implements Coroutine {
     
     private final String bootstrapLinkId;
 
-    public JoinSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
-        Validate.notNull(sourceId);
+    public JoinSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
 //        Validate.notNull(bootstrapAddress); // can be null
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
         this.bootstrapLinkId = bootstrapLinkId;
     }
 
+
     @Override
-    public void run(Continuation cnt) throws Exception {
+    public Address getAddress() {
+        return subAddress;
+    }
+    
+    @Override
+    public Void run(Continuation cnt) throws Exception {
         try {
             // initialize state
             FingerTable fingerTable = new FingerTable(state.getSelfPointer());
@@ -40,7 +46,7 @@ final class JoinSubcoroutine implements Coroutine {
             // if no bootstrap address, we're the originator node, so initial successortable+fingertable is what we want.
             if (bootstrapLinkId == null) {
                 state.setTables(fingerTable, successorTable);
-                return;
+                return null;
             }
 
 
@@ -49,6 +55,8 @@ final class JoinSubcoroutine implements Coroutine {
             // this is a critical operation. if any of the tasks/io fail, then send up the chain
             throw new IllegalStateException("Join failed.", coe);
         }
+        
+        return null;
     }
 
     private void funnelToInitFingerTableCoroutine(Continuation cnt, String initialLinkId) throws Exception {
@@ -57,7 +65,7 @@ final class JoinSubcoroutine implements Coroutine {
         
         String idSuffix = "" + state.nextRandomId();
         InitFingerTableSubcoroutine innerCoroutine = new InitFingerTableSubcoroutine(
-                sourceId.appendSuffix(idSuffix),
+                subAddress.appendSuffix(idSuffix),
                 state,
                 timerAddress,
                 logAddress,

@@ -9,10 +9,13 @@ final class AddressConstants {
     private AddressConstants() {
     }
     
-    public static final String ROUTER_ADDRESS_ELEMENT_NAME = "router";
-    public static final String HANDLER_ADDRESS_ELEMENT_NAME = "handler";
+    public static final String ROUTER_ELEMENT_NAME = "router";
+    public static final String HANDLER_ELEMENT_NAME = "handler";
+    public static final String QUERIER_ELEMENT_NAME = "querier";
+    public static final String OUT_ELEMENT_NAME_FORMAT = "out%d";
     
-    public static final Address ROUTER_ADDRESS_SUFFIX = Address.of(ROUTER_ADDRESS_ELEMENT_NAME);
-    public static final Address HANDLER_ADDRESS_SUFFIX = Address.of(ROUTER_ADDRESS_ELEMENT_NAME, HANDLER_ADDRESS_ELEMENT_NAME);
+    public static final Address ROUTER_RELATIVE_ADDRESS = Address.of(ROUTER_ELEMENT_NAME);
+    public static final Address ROUTER_HANDLER_RELATIVE_ADDRESS = Address.of(ROUTER_ELEMENT_NAME, HANDLER_ELEMENT_NAME);
+    public static final Address ROUTER_QUERIER_RELATIVE_ADDRESS = Address.of(ROUTER_ELEMENT_NAME, QUERIER_ELEMENT_NAME);
     
 }

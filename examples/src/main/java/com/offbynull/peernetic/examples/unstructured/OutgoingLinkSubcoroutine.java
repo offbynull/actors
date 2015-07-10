@@ -8,7 +8,7 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
-import static com.offbynull.peernetic.examples.unstructured.AddressConstants.HANDLER_ADDRESS_SUFFIX;
+import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkFailedResponse;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.LinkKeepAliveRequest;
@@ -22,24 +22,24 @@ import org.apache.commons.lang3.Validate;
 
 final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     private final Address graphAddress;
     private final Address timerAddress;
     private final Address logAddress;
     private final State state;
 
     public OutgoingLinkSubcoroutine(
-            Address sourceId,
+            Address subAddress,
             Address graphAddress,
             Address timerAddress,
             Address logAddress,
             State state) {
-        Validate.notNull(sourceId);
+        Validate.notNull(subAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(state);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.graphAddress = graphAddress;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -47,8 +47,8 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
     }
 
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
 
     @Override
@@ -58,14 +58,14 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
         reconnect:
         while (true) {
             new SleepSubcoroutine.Builder()
-                    .id(sourceId.appendSuffix(state.nextRandomId()))
+                    .address(subAddress.appendSuffix(state.nextRandomId()))
                     .timerAddressPrefix(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
                     .run(cnt);
             
             if (!state.hasMoreCachedAddresses()) {
-                ctx.addOutgoingMessage(sourceId, logAddress, warn("No further cached addresses are available"));
+                ctx.addOutgoingMessage(subAddress, logAddress, warn("No further cached addresses are available"));
                 continue;
             }
             
@@ -74,18 +74,18 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             
             // make sure address we're connecting to isn't an already we're already connected to
             if (state.getLinks().contains(outLinkId)) {
-                ctx.addOutgoingMessage(sourceId, logAddress, warn("Rejecting to link to {} (already linked), trying again", outLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, warn("Rejecting to link to {} (already linked), trying again", outLinkId));
                 continue;
             }
             
             // make sure address we're conencting to isn't an already we're already CONNECTING TO (not connected to, but connecting to)
             if (state.getPendingOutgoingLinks().contains(outLinkId)) {
-                ctx.addOutgoingMessage(sourceId, logAddress,
+                ctx.addOutgoingMessage(subAddress, logAddress,
                         warn("Rejecting to link to {} (already attempting linking), trying again", outLinkId));
                 continue;
             }
 
-            ctx.addOutgoingMessage(sourceId, logAddress, info("Linking to {}", outLinkId));
+            ctx.addOutgoingMessage(subAddress, logAddress, info("Linking to {}", outLinkId));
             ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLinkId, outLinkId));
             ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfLinkId, outLinkId, "-fx-stroke: yellow"));
             boolean lineIsGreen = false;
@@ -95,10 +95,10 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             Address baseAddr = state.getAddressTransformer().linkIdToRemoteAddress(outLinkId);
             
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
-                    .id(sourceId.appendSuffix(state.nextRandomId()))
+                    .address(subAddress.appendSuffix(state.nextRandomId()))
                     .request(new LinkRequest())
                     .timerAddressPrefix(timerAddress)
-                    .destinationAddress(baseAddr.appendSuffix(HANDLER_ADDRESS_SUFFIX))
+                    .destinationAddress(baseAddr.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                     .throwExceptionIfNoResponse(false)
                     .addExpectedResponseType(LinkSuccessResponse.class)
                     .addExpectedResponseType(LinkFailedResponse.class)
@@ -107,12 +107,12 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
             if (response == null) {
                 state.removePendingOutgoingLink(outLinkId);
-                ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link", outLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("{} did not respond to link", outLinkId));
                 ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLinkId, outLinkId));
                 continue;
             } else if (response instanceof LinkFailedResponse) {
                 state.removePendingOutgoingLink(outLinkId);
-                ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded with link failure", outLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("{} responded with link failure", outLinkId));
                 ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLinkId, outLinkId));
                 continue;
             }
@@ -125,19 +125,19 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
             connected:
             while (true) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Waiting to refresh link to {}", outLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Waiting to refresh link to {}", outLinkId));
                 new SleepSubcoroutine.Builder()
-                        .id(sourceId.appendSuffix(state.nextRandomId()))
+                        .address(subAddress.appendSuffix(state.nextRandomId()))
                         .timerAddressPrefix(timerAddress)
                         .duration(Duration.ofSeconds(1L))
                         .build()
                         .run(cnt);
                 
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Refreshing link to {}", outLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Refreshing link to {}", outLinkId));
                 
                 RequestSubcoroutine<LinkKeptAliveResponse> keepAliveRequestSubcoroutine
                         = new RequestSubcoroutine.Builder<LinkKeptAliveResponse>()
-                        .id(sourceId.appendSuffix(state.nextRandomId()))
+                        .address(subAddress.appendSuffix(state.nextRandomId()))
                         .request(new LinkKeepAliveRequest())
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(updateAddr)
@@ -147,13 +147,13 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 LinkKeptAliveResponse resp = keepAliveRequestSubcoroutine.run(cnt);
                 
                 if (resp == null) {
-                    ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to link refresh", outLinkId));
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("{} did not respond to link refresh", outLinkId));
                     ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLinkId, outLinkId));
                     state.removeOutgoingLink(outLinkId);
                     continue reconnect;
                 }
                 
-                ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to link refresh", outLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("{} responded to link refresh", outLinkId));
                     
                 if (!lineIsGreen) {
                     ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfLinkId, outLinkId, "-fx-stroke: green"));

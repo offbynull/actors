@@ -7,6 +7,7 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -19,20 +20,20 @@ import org.apache.commons.lang3.Validate;
 
 final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
     
     private final NodeId findId;
 
-    public RouteToSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, NodeId findId) {
-        Validate.notNull(sourceId);
+    public RouteToSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, NodeId findId) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(findId);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -45,14 +46,14 @@ final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
         
         NodeId selfId = state.getSelfId();
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Routing to {}", state.getSelfId(), sourceId, findId));
+        ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Routing to {}", state.getSelfId(), subAddress, findId));
         
         
         Pointer foundPointer;
         Pointer currentNode = state.getSelfPointer();
         while (true) {
-            ctx.addOutgoingMessage(sourceId, logAddress,
-                    debug("{} {} - Search for {} moving forward to {}", state.getSelfId(), sourceId, findId, currentNode));
+            ctx.addOutgoingMessage(subAddress, logAddress,
+                    debug("{} {} - Search for {} moving forward to {}", state.getSelfId(), subAddress, findId, currentNode));
             
             NodeId successorId;
             if (currentNode instanceof InternalPointer) {
@@ -75,8 +76,8 @@ final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
                                 GetSuccessorResponse.class);
                     successorId = gsr.getEntries().get(0).getChordId();
                 } catch (RuntimeException re) {
-                    ctx.addOutgoingMessage(sourceId, logAddress,
-                            warn("{} {} - Routing failed -- failed to get successor from {}", state.getSelfId(), sourceId, currentNode));
+                    ctx.addOutgoingMessage(subAddress, logAddress,
+                            warn("{} {} - Routing failed -- failed to get successor from {}", state.getSelfId(), subAddress, currentNode));
                     return null;
                 }
                 
@@ -93,10 +94,10 @@ final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
                             new GetClosestPrecedingFingerRequest(findId),
                             GetClosestPrecedingFingerResponse.class);
                 } catch (RuntimeException re) {
-                    ctx.addOutgoingMessage(sourceId, logAddress,
+                    ctx.addOutgoingMessage(subAddress, logAddress,
                             warn("{} {} - Routing failed -- failed to get closest finger from {}",
                                     state.getSelfId(),
-                                    sourceId,
+                                    subAddress,
                                     currentNode));
                     return null;
                 }
@@ -115,22 +116,22 @@ final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
         }
 
         
-        ctx.addOutgoingMessage(sourceId, logAddress,
-                debug("{} {} - Routing to {} resulted in {}", state.getSelfId(), sourceId, findId, foundPointer));
+        ctx.addOutgoingMessage(subAddress, logAddress,
+                debug("{} {} - Routing to {} resulted in {}", state.getSelfId(), subAddress, findId, foundPointer));
         return foundPointer;
     }
     
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
     
     private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

@@ -8,7 +8,7 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
-import static com.offbynull.peernetic.examples.unstructured.AddressConstants.HANDLER_ADDRESS_SUFFIX;
+import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryRequest;
 import com.offbynull.peernetic.examples.unstructured.externalmessages.QueryResponse;
 import java.time.Duration;
@@ -17,25 +17,25 @@ import org.apache.commons.lang3.Validate;
 
 final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     private final Address timerAddress;
     private final Address logAddress;
     private final State state;
 
-    public OutgoingQuerySubcoroutine(Address sourceId, Address timerAddress, Address logAddress, State state) {
-        Validate.notNull(sourceId);
+    public OutgoingQuerySubcoroutine(Address subAddress, Address timerAddress, Address logAddress, State state) {
+        Validate.notNull(subAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(state);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
         this.state = state;
     }
 
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
 
     @Override
@@ -44,38 +44,38 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
         while (true) {
             new SleepSubcoroutine.Builder()
-                    .id(sourceId.appendSuffix(state.nextRandomId()))
+                    .address(subAddress.appendSuffix(state.nextRandomId()))
                     .timerAddressPrefix(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
                     .run(cnt);
 
             if (!state.hasMoreCachedAddresses()) {
-                ctx.addOutgoingMessage(sourceId, logAddress, warn("No further cached addresses are available."));
+                ctx.addOutgoingMessage(subAddress, logAddress, warn("No further cached addresses are available."));
                 continue;
             }
 
             String linkId = state.getNextCachedLinkId();
             Address destination = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
-            ctx.addOutgoingMessage(sourceId, logAddress, info("Querying {}", linkId));
+            ctx.addOutgoingMessage(subAddress, logAddress, info("Querying {}", linkId));
 
             QueryRequest request = new QueryRequest();
             RequestSubcoroutine<QueryResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<QueryResponse>()
-                    .id(sourceId.appendSuffix(state.nextRandomId()))
+                    .address(subAddress.appendSuffix(state.nextRandomId()))
                     .request(request)
                     .timerAddressPrefix(timerAddress)
-                    .destinationAddress(destination.appendSuffix(HANDLER_ADDRESS_SUFFIX))
+                    .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                     .throwExceptionIfNoResponse(false)
                     .addExpectedResponseType(QueryResponse.class)
                     .build();
             QueryResponse response = requestSubcoroutine.run(cnt);
 
             if (response == null) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("{} did not respond to query", linkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("{} did not respond to query", linkId));
                 continue;
             }
 
-            ctx.addOutgoingMessage(sourceId, logAddress, info("{} responded to query with {}", linkId, response.getLinkIds()));
+            ctx.addOutgoingMessage(subAddress, logAddress, info("{} responded to query with {}", linkId, response.getLinkIds()));
             Set<String> newLinkIds = response.getLinkIds();
             state.addCachedLinkIds(newLinkIds);
         }

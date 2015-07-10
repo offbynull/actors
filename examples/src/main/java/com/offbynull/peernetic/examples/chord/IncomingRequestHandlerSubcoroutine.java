@@ -26,17 +26,17 @@ import org.apache.commons.lang3.Validate;
 
 final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     
     private final State state;
 
     private final Address logAddress;
 
-    public IncomingRequestHandlerSubcoroutine(Address sourceId, State state, Address logAddress) {
-        Validate.notNull(sourceId);
+    public IncomingRequestHandlerSubcoroutine(Address subAddress, State state, Address logAddress) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(logAddress);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.logAddress = logAddress;
     }
@@ -54,11 +54,11 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
             Address fromAddress = ctx.getSource();
             Address toAddress = ctx.getDestination();
 
-            ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Processing {} from {} to {}", state.getSelfId(), sourceId,
+            ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Processing {} from {} to {}", state.getSelfId(), subAddress,
                     msg.getClass(), fromAddress, toAddress));
 
             if (msg instanceof GetIdRequest) {
-                ctx.addOutgoingMessage(sourceId, fromAddress, new GetIdResponse(state.getSelfId()));
+                ctx.addOutgoingMessage(subAddress, fromAddress, new GetIdResponse(state.getSelfId()));
             } else if (msg instanceof GetClosestPrecedingFingerRequest) {
                 GetClosestPrecedingFingerRequest extMsg = (GetClosestPrecedingFingerRequest) msg;
 
@@ -66,17 +66,17 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
                 NodeId id = pointer.getId();
                 String linkId = pointer instanceof ExternalPointer ? ((ExternalPointer) pointer).getLinkId() : null;
 
-                ctx.addOutgoingMessage(sourceId, fromAddress, new GetClosestPrecedingFingerResponse(id, linkId));
+                ctx.addOutgoingMessage(subAddress, fromAddress, new GetClosestPrecedingFingerResponse(id, linkId));
             } else if (msg instanceof GetPredecessorRequest) {
                 ExternalPointer pointer = state.getPredecessor();
                 NodeId id = pointer == null ? null : pointer.getId();
                 String linkId = pointer == null ? null : pointer.getLinkId();
 
-                ctx.addOutgoingMessage(sourceId, fromAddress, new GetPredecessorResponse(id, linkId));
+                ctx.addOutgoingMessage(subAddress, fromAddress, new GetPredecessorResponse(id, linkId));
             } else if (msg instanceof GetSuccessorRequest) {
                 List<Pointer> successors = state.getSuccessors();
 
-                ctx.addOutgoingMessage(sourceId, fromAddress, new GetSuccessorResponse(successors));
+                ctx.addOutgoingMessage(subAddress, fromAddress, new GetSuccessorResponse(successors));
             } else if (msg instanceof NotifyRequest) {
                 NotifyRequest extMsg = (NotifyRequest) msg;
 
@@ -94,7 +94,7 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
                 NodeId id = pointer.getId();
                 String linkId = pointer.getLinkId();
 
-                ctx.addOutgoingMessage(sourceId, fromAddress, new NotifyResponse(id, linkId));
+                ctx.addOutgoingMessage(subAddress, fromAddress, new NotifyResponse(id, linkId));
             } else if (msg instanceof UpdateFingerTableRequest) {
                 UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
                 NodeId id = extMsg.getChordId();
@@ -106,20 +106,20 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
                     List<Pointer> oldFingers = state.getFingers();
                     boolean replaced = state.replaceFinger(newFinger);
                     List<Pointer> newFingers = state.getFingers();
-                    ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Update finger with {}\nBefore: {}\nAfter: {}",
-                            state.getSelfId(), sourceId, newFinger, oldFingers, newFingers));
+                    ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Update finger with {}\nBefore: {}\nAfter: {}",
+                            state.getSelfId(), subAddress, newFinger, oldFingers, newFingers));
                 }
 
-                ctx.addOutgoingMessage(sourceId, fromAddress, new UpdateFingerTableResponse());
+                ctx.addOutgoingMessage(subAddress, fromAddress, new UpdateFingerTableResponse());
             } else {
-                ctx.addOutgoingMessage(sourceId, logAddress, warn("{} {} - Unrecognized message from {}: {}", state.getSelfId(), sourceId,
+                ctx.addOutgoingMessage(subAddress, logAddress, warn("{} {} - Unrecognized message from {}: {}", state.getSelfId(), subAddress,
                         msg.getClass(), fromAddress, toAddress));
             }
         }
     }
 
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
 }

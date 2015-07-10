@@ -51,7 +51,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return CHILD_ID;
             }
 
@@ -79,7 +79,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return CHILD_ID;
             }
 
@@ -104,7 +104,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return CHILD_ID;
             }
 
@@ -140,7 +140,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return CHILD_ID;
             }
 
@@ -165,7 +165,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return CHILD_ID;
             }
 
@@ -189,7 +189,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return CHILD_ID;
             }
 
@@ -210,7 +210,7 @@ public class SubcoroutineRouterTest {
         Subcoroutine<Void> subcoroutine = new Subcoroutine<Void>() {
 
             @Override
-            public Address getId() {
+            public Address getAddress() {
                 return Address.of("badid");
             }
 

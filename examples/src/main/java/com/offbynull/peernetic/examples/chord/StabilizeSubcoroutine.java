@@ -8,6 +8,7 @@ import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetPredecessorResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -27,17 +28,17 @@ import org.apache.commons.lang3.Validate;
 
 final class StabilizeSubcoroutine implements Subcoroutine<Void> {
     
-    private final Address sourceId;
+    private final Address subAddress;
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
 
-    public StabilizeSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress) {
-        Validate.notNull(sourceId);
+    public StabilizeSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -61,8 +62,8 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
             String successorLinkId = ((ExternalPointer) successor).getLinkId();
             GetPredecessorResponse gpr;
             try {
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), sourceId, successor));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Requesting successor's ({}) predecessor", state.getSelfId(), subAddress, successor));
                 
                 gpr = funnelToRequestCoroutine(
                         cnt,
@@ -71,11 +72,11 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         GetPredecessorResponse.class,
                         true);
                 
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), sourceId, successor, gpr.getChordId()));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Successor's ({}) predecessor is {}", state.getSelfId(), subAddress, successor, gpr.getChordId()));
             } catch (Exception e) {
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Successor did not respond as expected, moving to next successor", state.getSelfId(), sourceId));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Successor did not respond as expected, moving to next successor", state.getSelfId(), subAddress));
                 state.moveToNextSuccessor();
                 continue;
             }
@@ -98,8 +99,8 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 
                 // successor may have been updated by block above
                 // ask successor for its successors
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Requesting successor's ({}) successor", state.getSelfId(), sourceId, successor));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Requesting successor's ({}) successor", state.getSelfId(), subAddress, successor));
                 GetSuccessorResponse gsr = funnelToRequestCoroutine(
                         cnt,
                         successorLinkId,
@@ -120,13 +121,13 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                     }
                 }).forEachOrdered(x -> subsequentSuccessors.add(x));
                 
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Successor's ({}) successor is {}", state.getSelfId(), sourceId, successor, subsequentSuccessors));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Successor's ({}) successor is {}", state.getSelfId(), subAddress, successor, subsequentSuccessors));
 
                 // mark it as our new successor
                 state.updateSuccessor((ExternalPointer) successor, subsequentSuccessors);
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Successors after stabilization are {}", state.getSelfId(), sourceId, state.getSuccessors()));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Successors after stabilization are {}", state.getSelfId(), subAddress, state.getSuccessors()));
                 
                 
                 // notify it that we're its predecessor
@@ -136,22 +137,22 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                         new NotifyRequest(selfId),
                         NotifyResponse.class,
                         false);
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        debug("{} {} - Notified {} that we're its successor", state.getSelfId(), sourceId, state.getSuccessor()));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        debug("{} {} - Notified {} that we're its successor", state.getSelfId(), subAddress, state.getSuccessor()));
             } catch (RuntimeException re) {
-                ctx.addOutgoingMessage(sourceId, logAddress, warn("Failed to stabilize", re));
+                ctx.addOutgoingMessage(subAddress, logAddress, warn("Failed to stabilize", re));
             }
         }
     }
     
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
 
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         new SleepSubcoroutine.Builder()
-                .id(sourceId)
+                .address(subAddress)
                 .duration(duration)
                 .timerAddressPrefix(timerAddress)
                 .build()
@@ -162,8 +163,8 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
             Class<T> expectedResponseClass, boolean exceptionOnBadResponse) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

@@ -31,7 +31,7 @@ public class RequestSubcoroutineTest {
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
-                    .id(Address.of("fakeid"))
+                    .address(Address.of("fakeid"))
                     .request("reqmsg")
                     .destinationAddress(Address.of("rcvr"))
                     .timerAddressPrefix(Address.of("timer"))
@@ -70,7 +70,7 @@ public class RequestSubcoroutineTest {
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
-                    .id(Address.of("fakeid"))
+                    .address(Address.of("fakeid"))
                     .request("reqmsg")
                     .destinationAddress(Address.of("rcvr"))
                     .timerAddressPrefix(Address.of("timer"))
@@ -110,7 +110,7 @@ public class RequestSubcoroutineTest {
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
-                    .id(Address.of("fakeid"))
+                    .address(Address.of("fakeid"))
                     .request("reqmsg")
                     .destinationAddress(Address.of("rcvr"))
                     .timerAddressPrefix(Address.of("timer"))

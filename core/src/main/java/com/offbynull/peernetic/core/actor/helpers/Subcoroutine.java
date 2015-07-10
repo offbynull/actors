@@ -17,26 +17,23 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 
 /**
- * Interface for a child coroutine, intended to be run as part of an {@link Actor}.
- * <p>
- * @see SubcoroutineRouter
+ * Interface for a child coroutine.
  * @author Kasra Faghihi
  * @param <T> result type
  */
 public interface Subcoroutine<T> {
     /**
-     * Get the id of this subcoroutine. Incoming messages destined for this id should trigger this subcoroutine to run. The id returned must
-     * be an absolute id, not a relative id. Meaning that if there's a hierarchy, each invocation in the chain one should return the full
-     * id, not the id relative to its parent.
-     * @return id
+     * Get the address of this subcoroutine. Incoming messages destined for this address should trigger this subcoroutine to run. The
+     * address returned by this method must be relative to the calling actor's self address (relative to {@link Context#getSelf()}).
+     * @return relative address of this subcoroutine
      */
-    Address getId();
+    Address getAddress();
     /**
-     * Entry point of subcoroutine.
+     * Entry point of this subcoroutine.
      * @param cnt used to suspend/yield this subcoroutine
      * @return result of this subcoroutine
      * @throws Exception if a problem occurs

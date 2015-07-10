@@ -13,25 +13,25 @@ import org.apache.commons.lang3.Validate;
 
 final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     private final Address timerAddress;
     private final Address logAddress;
     private final State state;
 
-    public IncomingLinkSubcoroutine(Address sourceId, Address timerAddress, Address logAddress, State state) {
-        Validate.notNull(sourceId);
+    public IncomingLinkSubcoroutine(Address subAddress, Address timerAddress, Address logAddress, State state) {
+        Validate.notNull(subAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(state);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
         this.state = state;
     }
 
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
 
     @Override
@@ -54,10 +54,10 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
         // In a loop -- wait up to 15 seconds for keepalive. If none arrived (or exception), remove incoming link and leave
         try {
             while (true) {
-                ctx.addOutgoingMessage(sourceId, logAddress, info("Waiting for keepalive from {}", initiatorLinkId));
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Waiting for keepalive from {}", initiatorLinkId));
                 
                 Check check = new Check();
-                ctx.addOutgoingMessage(sourceId, timerAddress.appendSuffix("15000"), check); // check interval
+                ctx.addOutgoingMessage(subAddress, timerAddress.appendSuffix("15000"), check); // check interval
 
                 // Keep reading in msg until keepalive or timeout
                 while (true) {
@@ -66,7 +66,7 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
                     Object msg = ctx.getIncomingMessage();
                     if (msg == check) { // kill this incominglinksubcoroutine on timeout
                         // stop
-                        ctx.addOutgoingMessage(sourceId, logAddress, info("No keepalive from {}, killing incoming link", initiatorLinkId));
+                        ctx.addOutgoingMessage(subAddress, logAddress, info("No keepalive from {}, killing incoming link", initiatorLinkId));
                         return null;
                     }
                     
@@ -83,7 +83,7 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
                         
                         if (updaterLinkId.equals(initiatorLinkId) && initiatorSuffix.equals(updaterSuffix)) {
                             ctx.addOutgoingMessage(ctx.getSource(), new LinkKeptAliveResponse());
-                            ctx.addOutgoingMessage(sourceId, logAddress, info("Keepalive arrive from {}", updaterLinkId));
+                            ctx.addOutgoingMessage(subAddress, logAddress, info("Keepalive arrive from {}", updaterLinkId));
                             break;
                         }
                     }

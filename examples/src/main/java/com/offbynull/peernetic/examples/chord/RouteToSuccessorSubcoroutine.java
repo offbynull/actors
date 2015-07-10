@@ -6,6 +6,7 @@ import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -21,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
     
-    private final Address sourceId;
+    private final Address subAddress;
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
@@ -29,13 +30,13 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
     private final NodeId findId;
     private Pointer found;
 
-    public RouteToSuccessorSubcoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, NodeId findId) {
-        Validate.notNull(sourceId);
+    public RouteToSuccessorSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, NodeId findId) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(findId);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -46,15 +47,15 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
     public Pointer run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Routing to predecessor of {}", state.getSelfId(), sourceId, findId));
+        ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Routing to predecessor of {}", state.getSelfId(), subAddress, findId));
         Pointer pointer = funnelToRouteToCoroutine(cnt, findId);
         if (pointer == null) {
-            ctx.addOutgoingMessage(sourceId, logAddress,
-                    debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), sourceId, findId));
+            ctx.addOutgoingMessage(subAddress, logAddress,
+                    debug("{} {} - Failed to route to predecessor of {}", state.getSelfId(), subAddress, findId));
             return null;
         }
-        ctx.addOutgoingMessage(sourceId, logAddress,
-                debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), sourceId, findId, pointer));
+        ctx.addOutgoingMessage(subAddress, logAddress,
+                debug("{} {} - Predecessor of {} routed to {}", state.getSelfId(), subAddress, findId, pointer));
         
         if (pointer instanceof InternalPointer) {
             // If routed to self, return own successor
@@ -93,7 +94,7 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
                 throw new IllegalStateException();
             }
 
-            // ask for that successor's id, wait for response here
+            // ask for that successor's address, wait for response here
             GetIdResponse gir = funnelToRequestCoroutine(
                     cnt,
                     succLinkId,
@@ -104,14 +105,14 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             throw new IllegalArgumentException();
         }
         
-        ctx.addOutgoingMessage(sourceId, logAddress,
-                debug("{} {} - Successor of {} routed to {}", state.getSelfId(), sourceId, findId, found));
+        ctx.addOutgoingMessage(subAddress, logAddress,
+                debug("{} {} - Successor of {} routed to {}", state.getSelfId(), subAddress, findId, found));
         return found;
     }
     
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
     
     private Pointer funnelToRouteToCoroutine(Continuation cnt, NodeId findId) throws Exception {
@@ -120,7 +121,7 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
         
         String idSuffix = "routetopred" + state.nextRandomId();
         RouteToSubcoroutine innerCoroutine = new RouteToSubcoroutine(
-                sourceId.appendSuffix(idSuffix),
+                subAddress.appendSuffix(idSuffix),
                 state,
                 timerAddress,
                 logAddress,
@@ -132,8 +133,8 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

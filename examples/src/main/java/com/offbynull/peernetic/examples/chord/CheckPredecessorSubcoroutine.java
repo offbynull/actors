@@ -7,6 +7,7 @@ import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetIdResponse;
 import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
@@ -16,16 +17,16 @@ import org.apache.commons.lang3.Validate;
 
 final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address sourceId;
+    private final Address subAddress;
     
     private final State state;
     private final Address timerAddress;
 
-    public CheckPredecessorSubcoroutine(Address sourceId, State state, Address timerAddress) {
-        Validate.notNull(sourceId);
+    public CheckPredecessorSubcoroutine(Address subAddress, State state, Address timerAddress) {
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
     }
@@ -44,7 +45,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
             
-            // ask for our predecessor's id
+            // ask for our predecessor's address
             GetIdResponse gir;
             try {
                 gir = funnelToRequestCoroutine(
@@ -59,22 +60,22 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
             }
             
             NodeId id = gir.getChordId();
-            // TODO: Is it worth checking to see if this new id is between the old id and the us? if it is, set it as the new pred???
+            // TODO: Is it worth checking to see if this new address is between the old address and the us? if it is, set it as the new pred???
             if (!id.equals(predecessor.getId())) {
-                // predecessor responded with unexpected id -- clear our predecessor
+                // predecessor responded with unexpected address -- clear our predecessor
                 state.clearPredecessor();
             }
         }
     }
     
     @Override
-    public Address getId() {
-        return sourceId;
+    public Address getAddress() {
+        return subAddress;
     }
     
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         new SleepSubcoroutine.Builder()
-                .id(sourceId)
+                .address(subAddress)
                 .duration(duration)
                 .timerAddressPrefix(timerAddress)
                 .build()
@@ -85,8 +86,8 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

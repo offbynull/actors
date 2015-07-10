@@ -7,6 +7,7 @@ import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.chord.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerRequest;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetClosestPrecedingFingerResponse;
 import com.offbynull.peernetic.examples.chord.externalmessages.GetSuccessorRequest;
@@ -18,7 +19,7 @@ import org.apache.commons.lang3.Validate;
 // unique to initialization phase in that it doesn't consider you as a node in the network (you're initializing, you haven't connected yet)
 final class InitRouteToCoroutine implements Coroutine {
 
-    private final Address sourceId;
+    private final Address subAddress;
     
     private final State state;
     private final Address timerAddress;
@@ -28,15 +29,15 @@ final class InitRouteToCoroutine implements Coroutine {
 
     private ExternalPointer foundPointer;
 
-    public InitRouteToCoroutine(Address sourceId, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
+    public InitRouteToCoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
             NodeId findId) {
-        Validate.notNull(sourceId);
+        Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(timerAddress);
         Validate.notNull(logAddress);
         Validate.notNull(bootstrapNode);
         Validate.notNull(findId);
-        this.sourceId = sourceId;
+        this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = timerAddress;
         this.logAddress = logAddress;
@@ -48,7 +49,7 @@ final class InitRouteToCoroutine implements Coroutine {
     public void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        ctx.addOutgoingMessage(sourceId, logAddress, debug("{} {} - Routing to {}", state.getSelfId(), sourceId, findId));
+        ctx.addOutgoingMessage(subAddress, logAddress, debug("{} {} - Routing to {}", state.getSelfId(), subAddress, findId));
         
         ExternalPointer currentNode = bootstrapNode;
         while (true) {
@@ -62,8 +63,8 @@ final class InitRouteToCoroutine implements Coroutine {
                             GetSuccessorResponse.class);
                 successorId = gsr.getEntries().get(0).getChordId();
             } catch (RuntimeException re) {
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        warn("{} {} - Routing failed -- failed to get successor from {}", state.getSelfId(), sourceId, currentNode));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        warn("{} {} - Routing failed -- failed to get successor from {}", state.getSelfId(), subAddress, currentNode));
                 return;
             }
 
@@ -80,8 +81,8 @@ final class InitRouteToCoroutine implements Coroutine {
                         new GetClosestPrecedingFingerRequest(findId),
                         GetClosestPrecedingFingerResponse.class);
             } catch (RuntimeException re) {
-                ctx.addOutgoingMessage(sourceId, logAddress,
-                        warn("{} {} - Routing failed -- failed to get closest finger from {}", state.getSelfId(), sourceId, currentNode));
+                ctx.addOutgoingMessage(subAddress, logAddress,
+                        warn("{} {} - Routing failed -- failed to get closest finger from {}", state.getSelfId(), subAddress, currentNode));
                 return;
             }
 
@@ -96,8 +97,8 @@ final class InitRouteToCoroutine implements Coroutine {
             currentNode = newNode;
         }
 
-        ctx.addOutgoingMessage(sourceId, logAddress,
-                debug("{} {} - Routing to {} resulting in {} at {}", state.getSelfId(), sourceId, findId, foundPointer));
+        ctx.addOutgoingMessage(subAddress, logAddress,
+                debug("{} {} - Routing to {} resulting in {} at {}", state.getSelfId(), subAddress, findId, foundPointer));
     }
 
     public ExternalPointer getResult() {
@@ -108,8 +109,8 @@ final class InitRouteToCoroutine implements Coroutine {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .id(sourceId.appendSuffix(state.nextRandomId()))
-                .destinationAddress(destination.appendSuffix("router", "handler"))
+                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddressPrefix(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)

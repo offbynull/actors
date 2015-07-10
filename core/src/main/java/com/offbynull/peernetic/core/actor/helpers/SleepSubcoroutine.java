@@ -31,7 +31,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class SleepSubcoroutine implements Subcoroutine<Void> {
-    private final Address id;
+    private final Address address;
     private final Address timerAddressPrefix;
     private final Duration timeoutDuration;
 
@@ -42,7 +42,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         Validate.isTrue(!id.isEmpty());
         Validate.isTrue(!timerAddressPrefix.isEmpty());
         Validate.isTrue(!timeoutDuration.isNegative());
-        this.id = id;
+        this.address = id;
         this.timerAddressPrefix = timerAddressPrefix;
         this.timeoutDuration = timeoutDuration;
     }
@@ -54,7 +54,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         Object timeoutMarker = new Object();
         
         ctx.addOutgoingMessage(
-                id,
+                address,
                 timerAddressPrefix.appendSuffix("" + timeoutDuration.toMillis()),
                 timeoutMarker);
         
@@ -68,8 +68,8 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
     }
 
     @Override
-    public Address getId() {
-        return id;
+    public Address getAddress() {
+        return address;
     }
     
     /**
@@ -81,12 +81,13 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         private Duration duration;
 
         /**
-         * Set the id. Defaults to {@code null}.
-         * @param id id
+         * Set the address. The address set by this method must be relative to the calling actor's self address (relative to
+         * {@link Context#getSelf()}). Defaults to {@code null}.
+         * @param address relative address
          * @return this builder
          */
-        public Builder id(Address id) {
-            this.id = id;
+        public Builder address(Address address) {
+            this.id = address;
             return this;
         }
 
@@ -114,7 +115,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * Build a {@link SleepSubcoroutine} instance.
          * @return a new instance of {@link SleepSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
-         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration, or if {@code id} or
+         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration, or if {@code address} or
          * {@code timeAddressPrefix} was set to empty
          */
         public SleepSubcoroutine build() {

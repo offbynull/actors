@@ -9,7 +9,7 @@ import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
-import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;

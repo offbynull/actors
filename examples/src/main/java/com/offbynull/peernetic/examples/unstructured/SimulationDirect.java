@@ -6,7 +6,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.simulator.MessageSink;
 import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.simulator.Simulator;
-import com.offbynull.peernetic.examples.common.SimpleAddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.io.File;

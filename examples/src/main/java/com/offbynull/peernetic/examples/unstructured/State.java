@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

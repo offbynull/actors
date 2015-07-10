@@ -10,7 +10,7 @@ import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.common.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import static com.offbynull.peernetic.examples.unstructured.AddressConstants.OUT_ELEMENT_NAME_FORMAT;
 import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROUTER_QUERIER_RELATIVE_ADDRESS;

@@ -6,7 +6,7 @@ import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
-import com.offbynull.peernetic.examples.common.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;

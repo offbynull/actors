@@ -58,5 +58,10 @@ public final class RemoveEdge implements Serializable {
     public String getToId() {
         return toId;
     }
+
+    @Override
+    public String toString() {
+        return "RemoveEdge{" + "fromId=" + fromId + ", toId=" + toId + '}';
+    }
     
 }

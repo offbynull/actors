@@ -46,5 +46,10 @@ public final class AddNode implements Serializable {
     public String getId() {
         return id;
     }
+
+    @Override
+    public String toString() {
+        return "AddNode{" + "id=" + id + '}';
+    }
     
 }

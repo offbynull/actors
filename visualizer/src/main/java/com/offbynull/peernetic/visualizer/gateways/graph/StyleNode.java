@@ -59,5 +59,10 @@ public final class StyleNode implements Serializable {
     public String getStyle() {
         return style;
     }
+
+    @Override
+    public String toString() {
+        return "StyleNode{" + "id=" + id + ", style=" + style + '}';
+    }
     
 }

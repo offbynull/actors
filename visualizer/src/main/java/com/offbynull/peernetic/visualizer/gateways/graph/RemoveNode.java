@@ -46,4 +46,9 @@ public final class RemoveNode implements Serializable {
     public String getId() {
         return id;
     }
+
+    @Override
+    public String toString() {
+        return "RemoveNode{" + "id=" + id + '}';
+    }
 }

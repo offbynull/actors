@@ -72,5 +72,10 @@ public final class StyleEdge implements Serializable {
     public String getStyle() {
         return style;
     }
+
+    @Override
+    public String toString() {
+        return "StyleEdge{" + "fromId=" + fromId + ", toId=" + toId + ", style=" + style + '}';
+    }
     
 }

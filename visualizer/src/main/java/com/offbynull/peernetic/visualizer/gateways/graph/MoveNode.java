@@ -71,5 +71,10 @@ public final class MoveNode implements Serializable {
     public double getY() {
         return y;
     }
+
+    @Override
+    public String toString() {
+        return "MoveNode{" + "id=" + id + ", x=" + x + ", y=" + y + '}';
+    }
     
 }

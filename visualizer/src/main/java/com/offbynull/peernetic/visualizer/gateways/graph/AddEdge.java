@@ -58,5 +58,10 @@ public final class AddEdge implements Serializable {
     public String getToId() {
         return toId;
     }
+
+    @Override
+    public String toString() {
+        return "AddEdge{" + "fromId=" + fromId + ", toId=" + toId + '}';
+    }
     
 }

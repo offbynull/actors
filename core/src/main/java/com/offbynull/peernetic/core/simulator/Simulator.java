@@ -845,7 +845,8 @@ public final class Simulator {
         
         // All messages going out from this onStep() call go out at the end, which means that their arrival time needs to have execDuration
         // added to it as well.
-        for (BatchedOutgoingMessage batchedOutMsg : context.copyAndClearOutgoingMessages()) {
+        List<BatchedOutgoingMessage> batchedOutMsgs = context.copyAndClearOutgoingMessages();
+        for (BatchedOutgoingMessage batchedOutMsg : batchedOutMsgs) {
             Address outSrc = address;
             Address outSrcId = batchedOutMsg.getSourceId();
             if (outSrcId != null) {
@@ -861,11 +862,20 @@ public final class Simulator {
         Iterator<Event> it = events.iterator();
         while (it.hasNext()) {
             Event event = it.next();
+            
+//          THE BLOCK BELOW HAS BEEN COMMENTED OUT BECAUSE IT IS INCORRECT. PriorityQueue.iterator() DOES NOT RETURN ELEMENTS IN ORDER. THIS
+//          IS A REMINDER NOT TO PUT IT BACK IN!!!! ANOTHER IF BLOCK WAS ADDED BELOW THAT WILL SKIP THE ENTRY VIA continue; RATHER THAN
+//          STOP THE LOOP VIA break;
+//            // Events queue is ordered. If the event we're looking at right now is >= to the earliest possible onstep time, it means that
+//            // this event and all events after it don't need to be rescheduled, so stop checking here.
+//            if (!earliestPossibleOnStepTime.isAfter(event.getTriggerTime())) {
+//                break;
+//            }
 
-            // Events queue is ordered. If the event we're looking at right now is >= to the earliest possible onstep time, it means that
-            // this event and all events after it don't need to be rescheduled, so stop checking here.
-            if (earliestPossibleOnStepTime.isBefore(event.getTriggerTime())) {
-                break;
+            // If the event we're looking at right now is >= to the earliest possible onstep time, it means that this event doesn't need to
+            // be rescheduled, so skip this event and go to the next one.
+            if (!earliestPossibleOnStepTime.isAfter(event.getTriggerTime())) {
+                continue;
             }
 
             // We only care about MessageEvents because they're the ones that trigger calls to onStep(). If the event is a MessageEvent and

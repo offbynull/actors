@@ -20,11 +20,12 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 abstract class Event implements Comparable<Event> {
+
     private final Instant triggerTime;
     private final long seqNum; // An automatically-incremented sequence number as a secondary key. Used to break ties when
-                                       // triggerTimes are equal.
-                                       //
-                                       // http://stackoverflow.com/questions/15731967/priorityqueue-has-objects-with-the-same-priority
+    // triggerTimes are equal.
+    //
+    // http://stackoverflow.com/questions/15731967/priorityqueue-has-objects-with-the-same-priority
 
     public Event(Instant triggerTime, long sequenceNumber) {
         Validate.notNull(triggerTime);
@@ -47,11 +48,12 @@ abstract class Event implements Comparable<Event> {
 
     @Override
     public int compareTo(Event o) {
-        if (!triggerTime.equals(o.triggerTime)) {
-            return triggerTime.compareTo(o.triggerTime); // smallest time to largest time
-        } else {
-            return Long.compare(seqNum, o.seqNum);
+        int res = triggerTime.compareTo(o.triggerTime);
+        if (res == 0) {
+            res = Long.compare(seqNum, o.seqNum);
         }
+        
+        return res;
     }
-    
+
 }

@@ -61,6 +61,58 @@ public class SimulatorTest {
     }
 
     @Test
+    public void mustShuttleBatchedMessagesBetweenActors() {
+        List<Integer> result = new ArrayList<>();
+
+        Coroutine sender = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            Address dstAddr = ctx.getIncomingMessage();
+
+            ctx.addOutgoingMessage(dstAddr, 0);
+            ctx.addOutgoingMessage(dstAddr, 1);
+            ctx.addOutgoingMessage(dstAddr, 2);
+            ctx.addOutgoingMessage(Address.fromString("timer:2000"), new Object());
+            ctx.addOutgoingMessage(dstAddr, 100);
+            ctx.addOutgoingMessage(dstAddr, 101);
+            ctx.addOutgoingMessage(dstAddr, 102);
+
+            for (int i = 0; i < 3; i++) {
+                cnt.suspend();
+                result.add((Integer) ctx.getIncomingMessage());
+            }
+            
+            for (int i = 0; i < 3; i++) {
+                cnt.suspend();
+                result.add((Integer) ctx.getIncomingMessage());
+            }
+            
+            cnt.suspend(); // wait for timer msg in 2 scs before stoping
+        };
+
+        Coroutine echoer = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+
+            while (true) {
+                Address src = ctx.getSource();
+                Object msg = ctx.getIncomingMessage();
+                ctx.addOutgoingMessage(src, msg);
+                cnt.suspend();
+            }
+        };
+
+        Simulator fixture = new Simulator();
+        fixture.addCoroutineActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
+        fixture.addCoroutineActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        fixture.addTimer("timer", Instant.ofEpochMilli(0L));
+
+        while (fixture.hasMore()) {
+            fixture.process();
+        }
+
+        assertEquals(Arrays.asList(0, 1, 2, 100, 101, 102), result);
+    }
+
+    @Test
     public void mustShuttleMessagesBetweenActorsWithTimeOffsets() {
         List<Integer> result = new ArrayList<>();
         List<Instant> senderTimes = new ArrayList<>();

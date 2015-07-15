@@ -5,11 +5,14 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.peernetic.examples.raft.externalmessages.HeartbeatRequest;
+import com.offbynull.peernetic.examples.raft.internalmessages.ElectionTimeout;
 import com.offbynull.peernetic.examples.raft.internalmessages.Start;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
+import org.apache.commons.lang3.Validate;
 
 public final class RaftServerCoroutine implements Coroutine {
 
@@ -25,16 +28,54 @@ public final class RaftServerCoroutine implements Coroutine {
         AddressTransformer addressTransformer = start.getAddressTransformer();
         long seed = start.getSeed();
 
-        Random random = new Random(seed);
-        Set<String> otherNodeLinks = new HashSet<>(nodeLinks);
-        
         Address self = ctx.getSelf();
+        
+        Random random = new Random(seed);
+        String selfLink = addressTransformer.selfAddressToLinkId(self);
+        Set<String> otherNodeLinks = new HashSet<>(nodeLinks);
+        Validate.isTrue(otherNodeLinks.contains(selfLink));
+        otherNodeLinks.remove(selfLink);
+        
+
         int term = 0;
-        State state = State.UNINITIALIZED;
+        State state = State.FOLLOWER;
+        
+        top:
+        while (true) {
+            switch (state) {
+                case FOLLOWER: {
+                    ElectionTimeout timeoutObj = new ElectionTimeout();
+                    Address timeoutAddress = timerAddress.appendSuffix("" + randBetween(random, 150, 300));
+                    ctx.addOutgoingMessage(timeoutAddress, timeoutObj);
+
+                    while (true) {
+                        cnt.suspend();
+                        Object incomingMsg = ctx.getIncomingMessage();
+                        if (incomingMsg == timeoutObj) {
+                            // The timeout has been hit without a heartbeat coming in. Switch to candidate mode.
+                            state = State.CANDIDATE;
+                            continue top;
+                        } else if (incomingMsg instanceof HeartbeatRequest) {
+                            // A heartbeat message as come in, reset.
+                            continue top;
+                        }
+                    }
+                }
+                case CANDIDATE: {
+                    break;
+                }
+                case LEADER: {
+                    break;
+                }
+            }
+        }
+    }
+    
+    private int randBetween(Random random, int start, int end) {
+        return random.nextInt(end - start) + start;
     }
     
     private enum State {
-        UNINITIALIZED,
         FOLLOWER,
         CANDIDATE,
         LEADER

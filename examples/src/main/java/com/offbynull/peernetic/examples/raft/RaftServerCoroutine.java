@@ -4,15 +4,15 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
+import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD;
+import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD_PRIME_NO_FINISH;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.examples.raft.externalmessages.HeartbeatRequest;
-import com.offbynull.peernetic.examples.raft.internalmessages.ElectionTimeout;
+import static com.offbynull.peernetic.examples.raft.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
+import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
 import com.offbynull.peernetic.examples.raft.internalmessages.Start;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
-import org.apache.commons.lang3.Validate;
 
 public final class RaftServerCoroutine implements Coroutine {
 
@@ -29,56 +29,29 @@ public final class RaftServerCoroutine implements Coroutine {
         long seed = start.getSeed();
 
         Address self = ctx.getSelf();
-        
-        Random random = new Random(seed);
         String selfLink = addressTransformer.selfAddressToLinkId(self);
-        Set<String> otherNodeLinks = new HashSet<>(nodeLinks);
-        Validate.isTrue(otherNodeLinks.contains(selfLink));
-        otherNodeLinks.remove(selfLink);
         
+        SubcoroutineRouter router = new SubcoroutineRouter(ROUTER_HANDLER_RELATIVE_ADDRESS, ctx);
+        Controller routerController = router.getController();
+        
+        State state = new State(timerAddress, graphAddress, logAddress, seed, selfLink, nodeLinks, addressTransformer, routerController);
 
-        int term = 0;
-        State state = State.FOLLOWER;
+        routerController.add(new IncomingRequestHandlerSubcoroutine(state), ADD);
+        routerController.add(new FollowerSubcoroutine(state), ADD_PRIME_NO_FINISH);
         
-        top:
+        // Process messages
         while (true) {
-            switch (state) {
-                case FOLLOWER: {
-                    ElectionTimeout timeoutObj = new ElectionTimeout();
-                    Address timeoutAddress = timerAddress.appendSuffix("" + randBetween(random, 150, 300));
-                    ctx.addOutgoingMessage(timeoutAddress, timeoutObj);
+            cnt.suspend();
 
-                    while (true) {
-                        cnt.suspend();
-                        Object incomingMsg = ctx.getIncomingMessage();
-                        if (incomingMsg == timeoutObj) {
-                            // The timeout has been hit without a heartbeat coming in. Switch to candidate mode.
-                            state = State.CANDIDATE;
-                            continue top;
-                        } else if (incomingMsg instanceof HeartbeatRequest) {
-                            // A heartbeat message as come in, reset.
-                            continue top;
-                        }
-                    }
-                }
-                case CANDIDATE: {
-                    break;
-                }
-                case LEADER: {
-                    break;
+            // if sent to main address then forward to incoming request handler, otherwise forward to router
+            boolean forwardedToRouter = router.forward();
+            if (!forwardedToRouter) {
+                Object msg = ctx.getIncomingMessage();
+                boolean isFromSelf = ctx.getSource().equals(ctx.getSelf());
+                if (isFromSelf && msg instanceof Kill) {
+                    throw new RuntimeException("Kill message encountered");
                 }
             }
         }
     }
-    
-    private int randBetween(Random random, int start, int end) {
-        return random.nextInt(end - start) + start;
-    }
-    
-    private enum State {
-        FOLLOWER,
-        CANDIDATE,
-        LEADER
-    }
-    
 }

@@ -5,6 +5,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD_PRIME;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD_PRIME_NO_FINISH;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.ForwardResult;
 import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.mutable.MutableInt;
 import static org.junit.Assert.assertEquals;
@@ -40,9 +41,9 @@ public class SubcoroutineRouterTest {
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
         when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
-        boolean forwarded = fixture.forward();
+        ForwardResult res = fixture.forward();
 
-        assertFalse(forwarded);
+        assertFalse(res.isForwarded());
     }
 
     @Test
@@ -67,9 +68,9 @@ public class SubcoroutineRouterTest {
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
         when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
-        boolean forwarded = fixture.forward();
+        ForwardResult res = fixture.forward();
 
-        assertTrue(forwarded);
+        assertTrue(res.isForwarded());
         assertEquals(1, mutableInt.intValue());
     }
 
@@ -121,16 +122,16 @@ public class SubcoroutineRouterTest {
         when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
         when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
         when(context.getIncomingMessage()).thenReturn(new Object());
-        boolean forwarded = fixture.forward();
+        ForwardResult res = fixture.forward();
 
-        assertTrue(forwarded);
+        assertTrue(res.isForwarded());
         assertEquals(1, mutableInt.intValue());
         
         
         fixture.getController().remove(CHILD_ID);
         
-        forwarded = fixture.forward();
-        assertFalse(forwarded);
+        res = fixture.forward();
+        assertFalse(res.isForwarded());
         assertEquals(1, mutableInt.intValue());
     }
 

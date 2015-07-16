@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.core.actor.helpers;
 
+import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -47,7 +49,7 @@ public final class SubcoroutineRouter {
 
     private final Address address;
     private final Context context;
-    private final Map<String, CoroutineRunner> idMap;
+    private final Map<String, RouterEntry> idMap;
     private final Controller controller;
 
     /**
@@ -79,34 +81,43 @@ public final class SubcoroutineRouter {
     /**
      * Forward the current incoming message to the appropriate subcoroutine. If address of the incoming message doesn't map to a
      * subcoroutine assigned to this router, this method will return without forwarding the incoming message.
-     * @return {@code true} if the forward was routed to a subcoroutine, {@code false} otherwise
+     * @return a {@link ForwardResult} object that provides information on what this call to forward did (if it was forwarded, if the
+     * subcoroutine it got forwarded to completed, etc..)
      * @throws Exception if the subcoroutine that the incoming message was forwarded to threw an exception
+     * @throws IllegalStateException if the destination address of the current incoming message was not intended for a subcoroutine under
+     * this router, or if the destination address of the current incoming message was not intended for the actor this router is apart of
      */
-    public boolean forward() throws Exception {
-        Address relativeDestinationAddress = context.getDestination().removePrefix(context.getSelf());
-        if (!address.isPrefixOf(relativeDestinationAddress)) {
-            return false;
+    public ForwardResult forward() throws Exception {
+        String key;
+        try {
+            Address relativeDestinationAddress = context.getDestination().removePrefix(context.getSelf());
+            Validate.isTrue(address.isPrefixOf(relativeDestinationAddress));
+            
+            Address subId = relativeDestinationAddress.removePrefix(address);
+            Validate.isTrue(!subId.isEmpty());
+            
+            key = subId.getElement(0);
+        } catch (IllegalArgumentException iae) {
+            throw new IllegalStateException(iae);
         }
-        
-        Address subId = relativeDestinationAddress.removePrefix(address);
-        if (subId.isEmpty()) {
-            return false;
-        }
-        
-        String key = subId.getElement(0);
 
-        CoroutineRunner runner = idMap.get(key);
+        RouterEntry container = idMap.get(key);
 
-        boolean forwarded = false;
-        if (runner != null) {
-            boolean running = runner.execute();
-            if (!running) {
+        if (container != null) {
+            CoroutineRunner runner = container.getCoroutineRunner();
+            RouterCoroutine coroutine = container.getRouterCoroutine();
+            
+            boolean completed = !runner.execute();
+            Object result = null;
+            if (completed) {
                 idMap.remove(key);
+                result = coroutine.getResult();
             }
-            forwarded = true;
+            
+            return new ForwardResult(coroutine.getSubcoroutine(), result, completed);
+        } else {
+            return new ForwardResult(null, null, false);
         }
-        
-        return forwarded;
     }
 
     /**
@@ -116,6 +127,82 @@ public final class SubcoroutineRouter {
      */
     public Address getAddress() {
         return address;
+    }
+    
+    public static final class ForwardResult {
+        private final Subcoroutine<?> subcoroutine;
+        private final Object result;
+        private final boolean completed;
+
+        private ForwardResult(Subcoroutine<?> subcoroutine, Object result, boolean completed) {
+            Validate.notNull(subcoroutine);
+            
+            this.subcoroutine = subcoroutine;
+            this.result = result;
+            this.completed = completed;
+        }
+
+        public boolean isForwarded() {
+            return subcoroutine != null;
+        }
+
+        public boolean isCompleted() {
+            Validate.isTrue(subcoroutine != null);
+            return completed;
+        }
+        
+        public Subcoroutine<?> getSubcoroutine() {
+            Validate.isTrue(subcoroutine != null);
+            return subcoroutine;
+        }
+
+        public Object getResult() {
+            Validate.isTrue(subcoroutine != null);
+            return result;
+        }
+    }
+    
+    private static final class RouterEntry {
+        private final RouterCoroutine routerCoroutine;
+        private final CoroutineRunner coroutineRunner;
+
+        public RouterEntry(RouterCoroutine routerCoroutine, CoroutineRunner coroutineRunner) {
+            Validate.notNull(routerCoroutine);
+            Validate.notNull(coroutineRunner);
+            this.routerCoroutine = routerCoroutine;
+            this.coroutineRunner = coroutineRunner;
+        }
+
+        public RouterCoroutine getRouterCoroutine() {
+            return routerCoroutine;
+        }
+
+        public CoroutineRunner getCoroutineRunner() {
+            return coroutineRunner;
+        }
+    }
+    
+    private static final class RouterCoroutine implements Coroutine {
+        private final Subcoroutine<?> subcoroutine;
+        private Object result;
+
+        public RouterCoroutine(Subcoroutine<?> subcoroutine) {
+            this.subcoroutine = subcoroutine;
+        }
+
+        @Override
+        public void run(Continuation cnt) throws Exception {
+            result = subcoroutine.run(cnt);
+        }
+
+        public Subcoroutine<?> getSubcoroutine() {
+            return subcoroutine;
+        }
+
+        public Object getResult() {
+            return result;
+        }
+        
     }
     
     /**
@@ -129,7 +216,7 @@ public final class SubcoroutineRouter {
          * this method will forward the current incoming message to it.
          * @param subcoroutine subcoroutine to add
          * @param addBehaviour add behaviour
-         * @throws NullPointerException if any argument is {@code null}
+         * @throws NullPointerException if any argument is {@code null}, or if {@code subcoroutine.getAddress()} returns {@code null}
          * @throws IllegalArgumentException if a subcoroutine with this id already assigned to the owning router, or if the id of
          * {@code subcoroutine} isn't a <b>direct</b> child of the owning router
          * @throws IllegalStateException if {@code addBehaviour} was set to {@link AddBehaviour#ADD_PRIME_NO_FINISH}, but
@@ -142,15 +229,18 @@ public final class SubcoroutineRouter {
             Validate.notNull(addBehaviour);
 
             Address subcoroutineId = subcoroutine.getAddress();
+            Validate.notNull(subcoroutineId);
             Address suffix = subcoroutineId.removePrefix(address);
             Validate.isTrue(suffix.size() == 1);
             
             String key = suffix.getElement(0);
 
-            CoroutineRunner newRunner = new CoroutineRunner(x -> subcoroutine.run(x));
-            newRunner.setContext(context);
-            CoroutineRunner existing = idMap.putIfAbsent(key, newRunner);
-            Validate.isTrue(existing == null);
+            RouterCoroutine coroutine = new RouterCoroutine(subcoroutine);
+            CoroutineRunner runner = new CoroutineRunner(coroutine);
+            runner.setContext(context);
+            RouterEntry container = new RouterEntry(coroutine, runner);
+            RouterEntry existingContainer = idMap.putIfAbsent(key, container);
+            Validate.isTrue(existingContainer == null);
 
             switch (addBehaviour) {
                 case ADD:
@@ -181,7 +271,7 @@ public final class SubcoroutineRouter {
             
             String key = suffix.getElement(0);
             
-            CoroutineRunner old = idMap.remove(key);
+            RouterEntry old = idMap.remove(key);
             Validate.isTrue(old != null);
         }
         
@@ -204,13 +294,13 @@ public final class SubcoroutineRouter {
         private boolean forceForward(String id, boolean mustNotFinish) throws Exception {
             Validate.notNull(id);
 
-            CoroutineRunner runner = idMap.get(id);
+            RouterEntry entry = idMap.get(id);
 
             boolean forwarded = false;
-            if (runner != null) {
-                boolean running = runner.execute();
+            if (entry != null) {
+                boolean running = entry.getCoroutineRunner().execute();
                 if (!running) {
-                    Validate.validState(!mustNotFinish, "Runner pointed to by suffix was not supposed to finish");
+                    Validate.validState(!mustNotFinish, "Entry pointed to by suffix was not supposed to finish");
                     idMap.remove(id);
                 }
                 forwarded = true;

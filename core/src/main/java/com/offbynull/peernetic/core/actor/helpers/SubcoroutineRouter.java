@@ -129,35 +129,61 @@ public final class SubcoroutineRouter {
         return address;
     }
     
+    /**
+     * Holds results of call to {@link SubcoroutineRouter#forward() }.
+     */
     public static final class ForwardResult {
         private final Subcoroutine<?> subcoroutine;
         private final Object result;
         private final boolean completed;
 
         private ForwardResult(Subcoroutine<?> subcoroutine, Object result, boolean completed) {
-            Validate.notNull(subcoroutine);
-            
+            if (result != null || completed) {
+                Validate.validState(subcoroutine != null);
+            }
             this.subcoroutine = subcoroutine;
             this.result = result;
             this.completed = completed;
         }
 
+        /**
+         * Returns {@code true} if the incoming message routed to a subcoroutine, or {@code false} if no subcoroutine existed at the
+         * destination address.
+         * @return {@code true} if the incoming message routed to a subcoroutine
+         */
         public boolean isForwarded() {
             return subcoroutine != null;
         }
 
+        /**
+         * Returns {@code true} if the subcoroutine routed to completed.
+         * @return {@code true} if the subcoroutine routed to completed
+         * @throws IllegalArgumentException if {@link #isForwarded() } returns {@code false}
+         */
         public boolean isCompleted() {
             Validate.isTrue(subcoroutine != null);
             return completed;
         }
-        
+
+        /**
+         * Gets the subcoroutine that was executed by the incoming message.
+         * @return subcoroutine that was executed by the incoming message
+         * @throws IllegalArgumentException if {@link #isForwarded() } returns {@code false}
+         */
         public Subcoroutine<?> getSubcoroutine() {
             Validate.isTrue(subcoroutine != null);
             return subcoroutine;
         }
 
+        /**
+         * Gets the result of the subcoroutine that was executed and completed by the incoming message.
+         * @return result of the compelted subcoroutine that was executed by the incoming message
+         * @throws IllegalArgumentException if {@link #isForwarded() } returns {@code false}, or if {@link #isCompleted() } returns
+         * {@code false}
+         */
         public Object getResult() {
             Validate.isTrue(subcoroutine != null);
+            Validate.isTrue(completed);
             return result;
         }
     }

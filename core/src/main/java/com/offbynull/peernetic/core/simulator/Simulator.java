@@ -823,6 +823,7 @@ public final class Simulator {
         try {
             stopped = !actor.onStep(context.toNormalContext());
         } catch (Exception e) {
+            LOG.warn("Actor " + destHolder.getAddress() + " threw an exception", e);
             stopped = true;
         }
         Instant execEndTime = Instant.now();

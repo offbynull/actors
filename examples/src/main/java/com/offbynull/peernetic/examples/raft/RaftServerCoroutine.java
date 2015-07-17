@@ -44,7 +44,7 @@ public final class RaftServerCoroutine implements Coroutine {
             cnt.suspend();
 
             // if sent to main address then forward to incoming request handler, otherwise forward to router
-            boolean forwardedToRouter = router.forward();
+            boolean forwardedToRouter = router.forward().isForwarded();
             if (!forwardedToRouter) {
                 Object msg = ctx.getIncomingMessage();
                 boolean isFromSelf = ctx.getSource().equals(ctx.getSelf());

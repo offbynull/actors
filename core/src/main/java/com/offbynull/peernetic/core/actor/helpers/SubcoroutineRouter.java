@@ -84,8 +84,6 @@ public final class SubcoroutineRouter {
      * @return a {@link ForwardResult} object that provides information on what this call to forward did (if it was forwarded, if the
      * subcoroutine it got forwarded to completed, etc..)
      * @throws Exception if the subcoroutine that the incoming message was forwarded to threw an exception
-     * @throws IllegalStateException if the destination address of the current incoming message was not intended for a subcoroutine under
-     * this router, or if the destination address of the current incoming message was not intended for the actor this router is apart of
      */
     public ForwardResult forward() throws Exception {
         String key;
@@ -98,7 +96,7 @@ public final class SubcoroutineRouter {
             
             key = subId.getElement(0);
         } catch (IllegalArgumentException iae) {
-            throw new IllegalStateException(iae);
+            return new ForwardResult(null, null, false);
         }
 
         RouterEntry container = idMap.get(key);

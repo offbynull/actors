@@ -99,13 +99,19 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
 
                 Object incomingMessage = ctx.getIncomingMessage();
 
-                // If timedout, reattempt
-                if (timerAddressPrefix.isPrefixOf(ctx.getSource()) && incomingMessage == timeoutMarker) {
-                    continue reattempt;
+                // If incoming message is from timer ...
+                if (timerAddressPrefix.isPrefixOf(ctx.getSource())) {
+                    // Re-attempt if the incoming message is the current timeoutmarker (timeout for this iteration), otherwise ignore and
+                    // get next message
+                    if (incomingMessage == timeoutMarker) {
+                        continue reattempt;
+                    } else {
+                        continue;
+                    }
                 }
 
                 // If not a response from location we sent to
-                if (ctx.getSource().equals(destinationAddress) && incomingMessage == timeoutMarker) {
+                if (!ctx.getSource().equals(destinationAddress)) {
                     continue reattempt;
                 }
                 

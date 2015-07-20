@@ -10,38 +10,41 @@ import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 final class State {
-
+    
+    private final Random random;
+    private int counter = 0;
+    
     private final Address timerAddress;
     private final Address graphAddress;
     private final Address logAddress;
-    private final Random random;
-    private final String selfLink;
-    private final UnmodifiableSet<String> otherNodeLinks; // does not include self
-
-    private final AddressTransformer addressTransformer;
     
+    private final String selfLinkId;
+    private final UnmodifiableSet<String> otherNodeLinkIds; // does not include self
+    private final AddressTransformer addressTransformer;
     private final Controller routerController;
+    
+    private int term = 0;
 
-    public State(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLink,
-            UnmodifiableSet<String> nodeLinks, AddressTransformer addressTransformer, Controller routerController) {
+    public State(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLinkId,
+            UnmodifiableSet<String> nodeLinkIds, AddressTransformer addressTransformer, Controller routerController) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
-        Validate.notNull(selfLink);
-        Validate.notNull(nodeLinks);
+        Validate.notNull(selfLinkId);
+        Validate.notNull(nodeLinkIds);
         Validate.notNull(addressTransformer);
         Validate.notNull(routerController);
-        Validate.isTrue(nodeLinks.contains(selfLink));
-        Validate.isTrue(nodeLinks.size() >= 2);
+        Validate.isTrue(nodeLinkIds.contains(selfLinkId));
+        Validate.isTrue(nodeLinkIds.size() >= 2);
         
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
         this.random = new Random(seed);
-        this.selfLink = selfLink;
-        Set<String> modifiedNodeLinks = new HashSet<>(nodeLinks);
-        modifiedNodeLinks.remove(selfLink);
-        this.otherNodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(modifiedNodeLinks));
+        this.selfLinkId = selfLinkId;
+        Set<String> modifiedNodeLinks = new HashSet<>(nodeLinkIds);
+        modifiedNodeLinks.remove(selfLinkId);
+        this.otherNodeLinkIds = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(modifiedNodeLinks));
         this.addressTransformer = addressTransformer;
         this.routerController = routerController;
     }
@@ -63,11 +66,11 @@ final class State {
     }
 
     public String getSelfLink() {
-        return selfLink;
+        return selfLinkId;
     }
 
-    public UnmodifiableSet<String> getOtherNodeLinks() {
-        return otherNodeLinks;
+    public UnmodifiableSet<String> getOtherNodeLinkIds() {
+        return otherNodeLinkIds;
     }
 
     public AddressTransformer getAddressTransformer() {
@@ -78,5 +81,19 @@ final class State {
         return routerController;
     }
 
+    public String nextRandomId() {
+        long ret = ((long) random.nextInt()) << 32L | (long) counter;
+        counter++;
+        return "" + ret;
+    }
 
+    public int incrementTerm() {
+        term++;
+        return term;
+    }
+    
+    public int getTerm() {
+        return term;
+    }
+    
 }

@@ -3,7 +3,11 @@ package com.offbynull.peernetic.examples.raft;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
@@ -23,7 +27,20 @@ final class State {
     private final AddressTransformer addressTransformer;
     private final Controller routerController;
     
-    private int term = 0;
+    // persistent state (not really persistent in this example, but whatever)
+    private int currentTerm;
+    private String votedForLinkId;
+    private List<LogEntry> log;
+    
+    // volatile state on all servers
+    private int commitIndex;
+    private int lastApplied;
+    
+    // volatile state on leaders (reinitialized after election)
+    private Map<String, Integer> nextIndex; // key = node link id, value = idx of next log entry to send to that node
+                                            // (init to leader last log index + 1)
+    private Map<String, Integer> matchIndex; // key = node link id, value = idx of highest log entry known to be replicated on server
+                                            // (init to 0, increases monotonically) 
 
     public State(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLinkId,
             UnmodifiableSet<String> nodeLinkIds, AddressTransformer addressTransformer, Controller routerController) {
@@ -47,6 +64,16 @@ final class State {
         this.otherNodeLinkIds = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(modifiedNodeLinks));
         this.addressTransformer = addressTransformer;
         this.routerController = routerController;
+
+        currentTerm = 0;
+        votedForLinkId = null; // can be null
+        log = new LinkedList<>();
+
+        commitIndex = 0;
+        lastApplied = 0;
+
+        nextIndex = new HashMap<>();
+        matchIndex = new HashMap<>();
     }
 
     public Address getTimerAddress() {
@@ -65,7 +92,7 @@ final class State {
         return random;
     }
 
-    public String getSelfLink() {
+    public String getSelfLinkId() {
         return selfLinkId;
     }
 
@@ -87,13 +114,22 @@ final class State {
         return "" + ret;
     }
 
-    public int incrementTerm() {
-        term++;
-        return term;
+    public int incrementCurrentTerm() {
+        currentTerm++;
+        return currentTerm;
     }
     
-    public int getTerm() {
-        return term;
+    public int getCurrentTerm() {
+        return currentTerm;
     }
-    
+
+    public String getVotedForLinkId() {
+        return votedForLinkId;
+    }
+
+    public void setVotedForLinkId(String votedForLinkId) {
+        this.votedForLinkId = votedForLinkId; // can be null
+    }
+
+
 }

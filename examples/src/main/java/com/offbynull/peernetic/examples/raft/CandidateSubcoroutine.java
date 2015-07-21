@@ -45,7 +45,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
         Context ctx = (Context) cnt.getContext();
         
         while (true) {
-            int newTerm = state.incrementTerm();
+            int newTerm = state.incrementCurrentTerm();
 
             UnmodifiableSet<String> otherLinkIds = state.getOtherNodeLinkIds();
             

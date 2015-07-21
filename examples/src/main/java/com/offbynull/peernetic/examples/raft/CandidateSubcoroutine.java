@@ -61,8 +61,8 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
                     .request(new RequestVoteRequest(newTerm))
                     .addExpectedResponseType(RequestVoteResponse.class)
                     .individualResponseListener(x -> {
-                        // This IndividualResponseListener will stop the MultiRequestSubcoroutine once more of the responses come back as
-                        // "successful"
+                        // This IndividualResponseListener will stop the MultiRequestSubcoroutine once more than half of the responses come
+                        // back as "successful"
                         RequestVoteResponse response = x.getResponse();
                         if (response.isSuccess()) {
                             successfulCount.increment();
@@ -84,7 +84,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
             }
 
             MultiRequestSubcoroutine<RequestVoteResponse> multiReq = builder.build();
-             multiReq.run(cnt);
+            multiReq.run(cnt);
 
             if (successfulCount.getValue() >= requiredSuccessfulCount) {
                 // Majority of votes have come in for this node.

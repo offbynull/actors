@@ -50,6 +50,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
     private final int maxAttempts;
     private final Duration attemptInterval;
     private final Set<Class<?>> expectedResponseTypes;
+    private final IndividualResponseListener<T> individualResponseListener;
     
     private final Map<String, Address> destinations; // key = unique source address suffix, value = destination address
     
@@ -60,13 +61,15 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
             Object request,
             int maxAttempts,
             Duration attemptInterval,
-            Set<Class<?>> expectedResponseTypes) {
+            Set<Class<?>> expectedResponseTypes,
+            IndividualResponseListener<T> individualResponseListener) {
         Validate.notNull(id);
         Validate.notNull(destinations);
         Validate.notNull(request);
         Validate.notNull(timerAddressPrefix);
         Validate.notNull(attemptInterval);
         Validate.notNull(expectedResponseTypes);
+        Validate.notNull(individualResponseListener);
         Validate.isTrue(!id.isEmpty());
         destinations.entrySet().forEach(x -> {
             Validate.notNull(x.getKey());
@@ -82,6 +85,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         this.maxAttempts = maxAttempts;
         this.attemptInterval = attemptInterval;
         this.expectedResponseTypes = new HashSet<>(expectedResponseTypes);
+        this.individualResponseListener = individualResponseListener;
     }
 
     @Override
@@ -131,7 +135,16 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
 
                     @SuppressWarnings("unchecked")
                     Response<T> response = new Response<>(uniqueSourceAddressSuffix, dstAddress, (T) result);
-                    ret.add(response);
+                    
+                    IndividualResponseAction action = individualResponseListener.responseArrived(response);
+                    
+                    if (action.isAdd()) {
+                        ret.add(response);
+                    }
+                    
+                    if (action.isStop()) {
+                        break;
+                    }
                 }
             }
             
@@ -205,6 +218,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         private int maxAttempts = 5;
         private Duration attemptInterval = Duration.ofSeconds(2L);
         private Set<Class<?>> expectedResponseTypes = new HashSet<>();
+        private IndividualResponseListener<T> individualResponseListener = new DefaultIndividualResponseListener();
 
         /**
          * Set the address. The address set by this method must be relative to the calling actor's self address (relative to
@@ -291,6 +305,16 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         }
 
         /**
+         * Set the individual response listener. Defaults to {@link DefaultIndividualResponseListener}.
+         * @param individualResponseListener individual response listener
+         * @return this builder
+         */
+        public Builder<T> individualResponseListener(IndividualResponseListener<T> individualResponseListener) {
+            this.individualResponseListener = individualResponseListener;
+            return this;
+        }
+
+        /**
          * Build a {@link MultiRequestSubcoroutine} instance.
          * @return a new instance of {@link MultiRequestSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}, or contain {@code null}
@@ -302,7 +326,66 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
             Map<String, Address> destinationsMap = destinations.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue()));
             Validate.isTrue(destinationsMap.size() == destinations.size()); // check for no dupes
             return new MultiRequestSubcoroutine<>(id, destinationsMap, timerAddressPrefix, request, maxAttempts, attemptInterval,
-                    expectedResponseTypes);
+                    expectedResponseTypes, individualResponseListener);
         }
+    }
+    
+    /**
+     * Used to filter/process responses individually as they come in to a {@link MultiRequestSubcoroutine}.
+     * @param <T> response type
+     */
+    public interface IndividualResponseListener<T> {
+        /**
+         * Called by {@link MultiRequestSubcoroutine } when a response arrives.
+         * @param response incoming response
+         * @return action to have the calling {@link MultiRequestSubcoroutine } perform with this response
+         * @throws NullPointerException if any argument is {@code null}
+         */
+        IndividualResponseAction responseArrived(Response<T> response);
+    }
+    
+    /**
+     * Returned by
+     * {@link IndividualResponseListener#responseArrived(com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.Response) } to
+     * instruct the calling {@link MultiRequestSubcoroutine} on what to do.
+     */
+    public static final class IndividualResponseAction {
+        private final boolean add;
+        private final boolean stop;
+
+        /**
+         * Constructs a {@link IndividualResponseAction} instance.
+         * @param add if {@code true} adds the response to the list of responses that get returned by the calling
+         * {@link MultiRequestSubcoroutine#run(com.offbynull.coroutines.user.Continuation) }
+         * @param stop if {@code true} immediately stops the calling
+         * {@link MultiRequestSubcoroutine#run(com.offbynull.coroutines.user.Continuation) } and has it return the list of responses its
+         * accumulated thus far
+         */
+        public IndividualResponseAction(boolean add, boolean stop) {
+            this.add = add;
+            this.stop = stop;
+        }
+
+        private boolean isAdd() {
+            return add;
+        }
+
+        private boolean isStop() {
+            return stop;
+        }
+    }
+    
+    /**
+     * An implementation of {@link IndividualResponseListener} that always adds a response to the list of incoming responses.
+     * @param <T> response type
+     */
+    public static final class DefaultIndividualResponseListener<T> implements IndividualResponseListener<T> {
+
+        @Override
+        public IndividualResponseAction responseArrived(Response<T> response) {
+            Validate.notNull(response);
+            return new IndividualResponseAction(true, false);
+        }
+        
     }
 }

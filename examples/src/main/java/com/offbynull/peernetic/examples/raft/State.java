@@ -30,7 +30,7 @@ final class State {
     // persistent state (not really persistent in this example, but whatever)
     private int currentTerm;
     private String votedForLinkId;
-    private List<LogEntry> log;
+    private LinkedList<LogEntry> log;
     
     // volatile state on all servers
     private int commitIndex;
@@ -113,14 +113,22 @@ final class State {
         counter++;
         return "" + ret;
     }
-
-    public int incrementCurrentTerm() {
-        currentTerm++;
-        return currentTerm;
-    }
     
     public int getCurrentTerm() {
         return currentTerm;
+    }
+
+    // if true, term > currentTerm and now currentTerm = term ...
+    //
+    // matches up for "Rules for Servers" under "All Servers" subheading...
+    //    If RPC request or response contains term T > currentTerm: set currentTerm = T, convert to follower (§5.1)
+    public boolean updateCurrentTerm(int term) {
+        if (term > currentTerm) {
+            currentTerm = term;
+            return true;
+        }
+        
+        return false;
     }
 
     public String getVotedForLinkId() {
@@ -131,5 +139,47 @@ final class State {
         this.votedForLinkId = votedForLinkId; // can be null
     }
 
+    public int getCommitIndex() {
+        return commitIndex;
+    }
 
+    public void setCommitIndex(int commitIndex) {
+        this.commitIndex = commitIndex;
+    }
+
+    public boolean containsLogEntry(int idx) {
+        Validate.isTrue(idx >= 0);
+        return idx < log.size();
+    }
+
+    public LogEntry getLogEntry(int idx) {
+        Validate.isTrue(idx >= 0 && idx < log.size());
+        return log.get(idx);
+    }
+
+    public LogEntry getLastLogEntry() {
+        Validate.isTrue(!log.isEmpty());
+        return log.get(log.size() - 1);
+    }
+
+    public void truncateLogEntries(int fromIdx) {
+        Validate.isTrue(fromIdx >= 0);
+        while (log.size() > fromIdx) {
+            log.removeLast();
+        }
+    }
+
+    public void addLogEntries(List<LogEntry> newLogEntries) {
+        Validate.notNull(newLogEntries);
+        Validate.noNullElements(newLogEntries);
+        log.addAll(newLogEntries);
+    }
+    
+    public boolean isLogEmpty() {
+        return log.isEmpty();
+    }
+
+    public int getLogSize() {
+        return log.size();
+    }
 }

@@ -96,7 +96,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
             return new ArrayList<>();
         }
         
-        Address routerAddress = id.appendSuffix("mrsb"); // mrsb = multirequestsubcoroutinerouter
+        Address routerAddress = id.appendSuffix("mrsr"); // mrsr = multirequestsubcoroutinerouter
         SubcoroutineRouter router = new SubcoroutineRouter(routerAddress, ctx);
         
         RequestSubcoroutine.Builder<T> baseRequestBuilder = new RequestSubcoroutine.Builder<T>()
@@ -218,7 +218,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         private int maxAttempts = 5;
         private Duration attemptInterval = Duration.ofSeconds(2L);
         private Set<Class<?>> expectedResponseTypes = new HashSet<>();
-        private IndividualResponseListener<T> individualResponseListener = new DefaultIndividualResponseListener();
+        private IndividualResponseListener<T> individualResponseListener = new DefaultIndividualResponseListener<>();
 
         /**
          * Set the address. The address set by this method must be relative to the calling actor's self address (relative to

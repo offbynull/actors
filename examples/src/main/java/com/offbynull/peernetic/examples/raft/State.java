@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.raft;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
+import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -25,7 +26,8 @@ final class State {
     private final String selfLinkId;
     private final UnmodifiableSet<String> otherNodeLinkIds; // does not include self
     private final AddressTransformer addressTransformer;
-    private final Controller routerController;
+    
+    private Mode mode;
     
     // persistent state (not really persistent in this example, but whatever)
     private int currentTerm;
@@ -50,7 +52,6 @@ final class State {
         Validate.notNull(selfLinkId);
         Validate.notNull(nodeLinkIds);
         Validate.notNull(addressTransformer);
-        Validate.notNull(routerController);
         Validate.isTrue(nodeLinkIds.contains(selfLinkId));
         Validate.isTrue(nodeLinkIds.size() >= 2);
         
@@ -63,8 +64,9 @@ final class State {
         modifiedNodeLinks.remove(selfLinkId);
         this.otherNodeLinkIds = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(modifiedNodeLinks));
         this.addressTransformer = addressTransformer;
-        this.routerController = routerController;
 
+        mode = FOLLOWER;
+        
         currentTerm = 0;
         votedForLinkId = null; // can be null
         log = new LinkedList<>();
@@ -104,14 +106,19 @@ final class State {
         return addressTransformer;
     }
 
-    public Controller getRouterController() {
-        return routerController;
-    }
-
     public String nextRandomId() {
         long ret = ((long) random.nextInt()) << 32L | (long) counter;
         counter++;
         return "" + ret;
+    }
+
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        Validate.notNull(mode);
+        this.mode = mode;
     }
     
     public int getCurrentTerm() {
@@ -129,6 +136,11 @@ final class State {
         }
         
         return false;
+    }
+    
+    public int incrementCurrentTerm() {
+        currentTerm++;
+        return currentTerm;
     }
 
     public String getVotedForLinkId() {
@@ -162,6 +174,11 @@ final class State {
         return log.get(log.size() - 1);
     }
 
+    public int getLastLogIndex() {
+        Validate.isTrue(!log.isEmpty());
+        return log.size() - 1;
+    }
+    
     public void truncateLogEntries(int fromIdx) {
         Validate.isTrue(fromIdx >= 0);
         while (log.size() > fromIdx) {
@@ -182,4 +199,35 @@ final class State {
     public int getLogSize() {
         return log.size();
     }
+    
+    public int randBetween(int start, int end) {
+        return random.nextInt(end - start) + start;
+    }
+
+    public int getNextIndex(String linkId) {
+        Validate.notNull(linkId);
+        Integer ret = nextIndex.get(linkId);
+        Validate.validState(ret != null);
+        return ret;
+    }
+
+    public void setNextIndex(String linkId, int value) {
+        Validate.notNull(linkId);
+        Validate.isTrue(nextIndex.containsKey(linkId));
+        nextIndex.put(linkId, value);
+    }
+
+    public int getMatchIndex(String linkId) {
+        Validate.notNull(linkId);
+        Integer ret = nextIndex.get(linkId);
+        Validate.validState(ret != null);
+        return ret;
+    }
+
+    public void setMatchIndex(String linkId, int value) {
+        Validate.notNull(linkId);
+        Validate.isTrue(nextIndex.containsKey(linkId));
+        nextIndex.put(linkId, value);
+    }
+    
 }

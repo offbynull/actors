@@ -11,15 +11,14 @@ public final class AppendEntriesRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private final int term;
-    private final String leaderLinkId;
+    // private final String leaderLinkId; // not required
     private final int prevLogIndex;
     private final int prevLogTerm;
     private final UnmodifiableList<LogEntry> entries;
     private final int leaderCommit;
 
-    public AppendEntriesRequest(int term, String leaderLinkId, int prevLogIndex, int prevLogTerm, List<LogEntry> entries,
+    public AppendEntriesRequest(int term, int prevLogIndex, int prevLogTerm, List<LogEntry> entries,
             int leaderCommit) {
-        Validate.notNull(leaderLinkId);
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         Validate.isTrue(term >= 0);
@@ -27,7 +26,6 @@ public final class AppendEntriesRequest implements Serializable {
         Validate.isTrue(prevLogTerm >= 0);
         Validate.isTrue(leaderCommit >= 0);
         this.term = term;
-        this.leaderLinkId = leaderLinkId;
         this.prevLogIndex = prevLogIndex;
         this.prevLogTerm = prevLogTerm;
         this.entries = (UnmodifiableList<LogEntry>) UnmodifiableList.unmodifiableList(new ArrayList<LogEntry>(entries));
@@ -36,10 +34,6 @@ public final class AppendEntriesRequest implements Serializable {
 
     public int getTerm() {
         return term;
-    }
-
-    public String getLeaderLinkId() {
-        return leaderLinkId;
     }
 
     public int getPrevLogIndex() {

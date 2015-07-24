@@ -12,9 +12,12 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import static com.offbynull.peernetic.examples.raft.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesResponse;
+import com.sun.xml.internal.bind.v2.TODO;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 final class LeaderSubcoroutine implements Subcoroutine<Void> {
@@ -63,6 +66,7 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             List<LogEntry> entries = Collections.emptyList();
             int prevLogIndex = state.getNextIndex(linkId) - 1;
             int prevLogTerm = prevLogIndex == -1 ? -1 : state.getLogEntry(prevLogIndex).getTerm();
+            Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
                     .timerAddressPrefix(timerAddress)
@@ -70,7 +74,8 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
                     .maxAttempts(5)
                     .request(req)
                     .addExpectedResponseType(AppendEntriesResponse.class)
-                    .address(MSG_ROUTER_ADDRESS.appendSuffix(linkId))
+                    .address(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
+                    .destinationAddress(dstAddress)
                     .build();
             msgRouter.getController().add(requestSubcoroutine, ADD_PRIME_NO_FINISH);
         }
@@ -88,7 +93,9 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
     private void sendUpdates(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        // send empty appendentries to keep-alive
+        Map<Subcoroutine<?>, String> linkIdLookup = new HashMap<>(); // key = requstsubcoroutine, value = linkId
+        
+        // send updates
         ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending normal append entries"));
         SubcoroutineRouter msgRouter = new SubcoroutineRouter(MSG_ROUTER_ADDRESS, ctx);
         int attempts = 5;
@@ -102,6 +109,7 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             int prevLogIndex = nextLogIndex - 1;
             int prevLogTerm = prevLogIndex == -1 ? -1 : state.getLogEntry(prevLogIndex).getTerm();
             List<LogEntry> entries = prevLogIndex == -1 ? Collections.emptyList() : state.getTailLogEntries(nextLogIndex);
+            Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
                     .timerAddressPrefix(timerAddress)
@@ -109,17 +117,19 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
                     .maxAttempts(5)
                     .request(req)
                     .addExpectedResponseType(AppendEntriesResponse.class)
-                    .address(MSG_ROUTER_ADDRESS.appendSuffix(linkId))
+                    .address(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
+                    .destinationAddress(dstAddress)
                     .build();
             msgRouter.getController().add(requestSubcoroutine, ADD_PRIME_NO_FINISH);
+            linkIdLookup.put(requestSubcoroutine, linkId);
         }
         
         // wait for responses or failure
         while (true) {
             ForwardResult fr = msgRouter.forward();
             if (fr.isForwarded() && fr.isCompleted()) {
-                Address reqAddress = fr.getSubcoroutine().getAddress();
-                String linkId = reqAddress.getElement(reqAddress.size() - 1); // linkid used for last element
+                Subcoroutine<?> completedSubcoroutine = fr.getSubcoroutine();
+                String linkId = linkIdLookup.get(completedSubcoroutine);
                 AppendEntriesResponse resp = (AppendEntriesResponse) fr.getResult();
                 if (resp.isSuccess()) {
                     state.setMatchIndex(linkId, lastLogIndex);
@@ -134,8 +144,25 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             cnt.suspend();
         }
         
-        
-        TODO UPDATE COMMIT INDEX HERE
+        // update commit index if majority responded with a certain commit index
+        int minimumRequiredCount = state.getMajorityCount();
+        for (int n = state.getCommitIndex() + 1; n <= state.getLastLogIndex(); n++) {
+            int count = 1; // 1 for self
+            
+            for (String linkId : state.getOtherNodeLinkIds()) {
+                if (state.getMatchIndex(linkId) >= n) {
+                    count++;
+                }
+            }
+            
+            if (count >= minimumRequiredCount) {
+                LogEntry logEntry = state.getLogEntry(n);
+                if (logEntry.getTerm() == term) {
+                    state.setCommitIndex(n);
+                    break;
+                }
+            }
+        }
     }
     
     @Override

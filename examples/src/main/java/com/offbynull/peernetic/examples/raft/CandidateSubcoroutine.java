@@ -48,8 +48,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
 
             UnmodifiableSet<String> otherLinkIds = state.getOtherNodeLinkIds();
 
-            int totalCount = otherLinkIds.size() + 1; // + 1 because we're including ourself in the count
-            int requiredSuccessfulCount = (totalCount / 2) + 1; // more than half, e.g. if 6 then (6/2)+1=4 ... e.g. if 7 then (7/2)+1=4
+            int requiredSuccessfulCount = state.getMajorityCount();
             MutableInt successfulCount = new MutableInt(1); // start with 1 because we're voting for ourself first
             
             int lastLogIndex;
@@ -92,7 +91,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
             AddressTransformer addressTransformer = state.getAddressTransformer();
             for (String linkId : otherLinkIds) {
                 String msgId = state.nextRandomId();
-                Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId);
+                Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId).appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS);
                 builder.addDestination(msgId, dstAddr);
             }
 

@@ -105,6 +105,12 @@ final class State {
         return random;
     }
     
+    public String nextRandomId() {
+        long ret = ((long) random.nextInt()) << 32L | (long) counter;
+        counter++;
+        return "" + ret;
+    }
+
     public int nextElectionTimeout() {
         return randBetween(MIN_ELECTION_TIMEOUT, MAX_ELECTION_TIMEOUT);
     }
@@ -125,14 +131,15 @@ final class State {
         return otherNodeLinkIds;
     }
 
+    public int getMajorityCount() {
+        int totalCount = otherNodeLinkIds.size() + 1; // + 1 because we're including ourself in the count
+        int requiredSuccessfulCount = (totalCount / 2) + 1; // more than half, e.g. if 6 then (6/2)+1=4 ... e.g. if 7 then (7/2)+1=4
+        
+        return requiredSuccessfulCount;
+    }
+    
     public AddressTransformer getAddressTransformer() {
         return addressTransformer;
-    }
-
-    public String nextRandomId() {
-        long ret = ((long) random.nextInt()) << 32L | (long) counter;
-        counter++;
-        return "" + ret;
     }
 
     public Mode getMode() {

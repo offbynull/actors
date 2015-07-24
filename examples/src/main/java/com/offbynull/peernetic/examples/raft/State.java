@@ -260,15 +260,15 @@ final class State {
 
     public int getMatchIndex(String linkId) {
         Validate.notNull(linkId);
-        Integer ret = nextIndex.get(linkId);
+        Integer ret = matchIndex.get(linkId);
         Validate.validState(ret != null);
         return ret;
     }
 
     public void setMatchIndex(String linkId, int value) {
         Validate.notNull(linkId);
-        Validate.isTrue(nextIndex.containsKey(linkId));
-        nextIndex.put(linkId, value);
+        Validate.isTrue(matchIndex.containsKey(linkId));
+        matchIndex.put(linkId, value);
     }
     
 }

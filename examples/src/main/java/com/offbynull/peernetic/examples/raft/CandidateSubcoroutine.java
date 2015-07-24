@@ -63,7 +63,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
             }
             
             Object req = new RequestVoteRequest(currentTerm, lastLogIndex, lastLogTerm);
-            int totalWaitTime = state.randBetween(150, 300); // election timeout
+            int totalWaitTime = state.nextElectionTimeout();
             int attempts = 5;
             int waitTimePerAttempt = totalWaitTime / attempts; // divide by n attempts
             String multiReqId = state.nextRandomId();

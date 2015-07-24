@@ -16,6 +16,9 @@ import org.apache.commons.lang3.Validate;
 
 final class State {
     
+    private static final int MIN_ELECTION_TIMEOUT = 150;
+    private static final int MAX_ELECTION_TIMEOUT = 300;
+    
     private final Random random;
     private int counter = 0;
     
@@ -70,12 +73,20 @@ final class State {
         currentTerm = 0;
         votedForLinkId = null; // can be null
         log = new LinkedList<>();
-
+        log.add(new LogEntry(0, "uninitialized"));
+        
         commitIndex = 0;
         lastApplied = 0;
 
         nextIndex = new HashMap<>();
+        for (String linkId : otherNodeLinkIds) {
+            nextIndex.put(linkId, 1);
+        }
+        
         matchIndex = new HashMap<>();
+        for (String linkId : otherNodeLinkIds) {
+            nextIndex.put(linkId, 0);
+        }
     }
 
     public Address getTimerAddress() {
@@ -92,6 +103,18 @@ final class State {
 
     public Random getRandom() {
         return random;
+    }
+    
+    public int nextElectionTimeout() {
+        return randBetween(MIN_ELECTION_TIMEOUT, MAX_ELECTION_TIMEOUT);
+    }
+    
+    public int getMinimumElectionTimeout() {
+        return MIN_ELECTION_TIMEOUT;
+    }
+            
+    private int randBetween(int start, int end) {
+        return random.nextInt(end - start) + start;
     }
 
     public String getSelfLinkId() {
@@ -160,13 +183,21 @@ final class State {
     }
 
     public boolean containsLogEntry(int idx) {
+        idx--; // log starts at idx 1, e.g. when idx=1 log[0] should be returned
         Validate.isTrue(idx >= 0);
         return idx < log.size();
     }
 
     public LogEntry getLogEntry(int idx) {
+        idx--; // log starts at idx 1, e.g. when idx=1 log[0] should be returned
         Validate.isTrue(idx >= 0 && idx < log.size());
         return log.get(idx);
+    }
+
+    public List<LogEntry> getTailLogEntries(int fromIdx) {
+        fromIdx--; // log starts at idx 1, e.g. when idx=1 log[0] should be starting pt
+        Validate.isTrue(fromIdx >= 0 && fromIdx < log.size());
+        return new LinkedList<>(log.subList(fromIdx, log.size()));
     }
 
     public LogEntry getLastLogEntry() {
@@ -176,10 +207,11 @@ final class State {
 
     public int getLastLogIndex() {
         Validate.isTrue(!log.isEmpty());
-        return log.size() - 1;
+        return log.size(); // this is correct, don't subtract 1 because index starts at 1
     }
     
     public void truncateLogEntries(int fromIdx) {
+        fromIdx--; // log starts at idx 1, e.g. when idx=1 log[0] should be starting pt
         Validate.isTrue(fromIdx >= 0);
         while (log.size() > fromIdx) {
             log.removeLast();
@@ -196,14 +228,6 @@ final class State {
         return log.isEmpty();
     }
 
-    public int getLogSize() {
-        return log.size();
-    }
-    
-    public int randBetween(int start, int end) {
-        return random.nextInt(end - start) + start;
-    }
-
     public int getNextIndex(String linkId) {
         Validate.notNull(linkId);
         Integer ret = nextIndex.get(linkId);
@@ -215,6 +239,16 @@ final class State {
         Validate.notNull(linkId);
         Validate.isTrue(nextIndex.containsKey(linkId));
         nextIndex.put(linkId, value);
+    }
+
+    public void decrementNextIndex(String linkId) {
+        Validate.notNull(linkId);
+        Validate.isTrue(nextIndex.containsKey(linkId));
+        int idx = nextIndex.get(linkId);
+        Validate.isTrue(idx > 0); // can't decrement in to negatives, min has to be 0
+        idx--;
+        nextIndex.put(linkId, idx);
+        
     }
 
     public int getMatchIndex(String linkId) {

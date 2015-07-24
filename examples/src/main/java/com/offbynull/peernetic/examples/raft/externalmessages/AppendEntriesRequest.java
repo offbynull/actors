@@ -8,10 +8,10 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class AppendEntriesRequest implements Serializable {
+
     private static final long serialVersionUID = 1L;
-    
+
     private final int term;
-    // private final String leaderLinkId; // not required
     private final int prevLogIndex;
     private final int prevLogTerm;
     private final UnmodifiableList<LogEntry> entries;
@@ -51,5 +51,5 @@ public final class AppendEntriesRequest implements Serializable {
     public int getLeaderCommit() {
         return leaderCommit;
     }
-    
+
 }

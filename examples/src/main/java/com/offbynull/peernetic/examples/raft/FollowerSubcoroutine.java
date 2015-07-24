@@ -41,7 +41,7 @@ final class FollowerSubcoroutine implements Subcoroutine<Void> {
             
             // Set up timeout
             ElectionTimeout timeoutObj = new ElectionTimeout();
-            int waitTime = state.randBetween(150, 300);
+            int waitTime = state.nextElectionTimeout();
             ctx.addOutgoingMessage(SUB_ADDRESS, timerAddress.appendSuffix("" + waitTime), timeoutObj);
 
             while (true) {

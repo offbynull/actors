@@ -6,18 +6,16 @@ import java.util.HashSet;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
-public final class Start {
+public final class StartClient {
     private final AddressTransformer addressTransformer;
     private final UnmodifiableSet<String> nodeLinks;
-    private final long seed;
     private final Address timerPrefix;
     private final Address graphAddress;
     private final Address logAddress;
     
-    public Start(
+    public StartClient(
             AddressTransformer addressTransformer,
             HashSet<String> nodeLinks,
-            long seed,
             Address timerPrefix,
             Address graphAddress,
             Address logAddress) {
@@ -27,7 +25,6 @@ public final class Start {
         Validate.notNull(graphAddress);
         this.addressTransformer = addressTransformer;
         this.nodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(nodeLinks));
-        this.seed = seed;
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
@@ -39,10 +36,6 @@ public final class Start {
 
     public UnmodifiableSet<String> getNodeLinks() {
         return nodeLinks;
-    }
-
-    public long getSeed() {
-        return seed;
     }
 
     public Address getTimerPrefix() {

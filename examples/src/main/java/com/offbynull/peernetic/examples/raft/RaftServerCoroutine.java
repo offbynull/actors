@@ -11,7 +11,7 @@ import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import com.offbynull.peernetic.core.shuttle.Address;
 import static com.offbynull.peernetic.examples.raft.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
-import com.offbynull.peernetic.examples.raft.internalmessages.Start;
+import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class RaftServerCoroutine implements Coroutine {
@@ -20,7 +20,7 @@ public final class RaftServerCoroutine implements Coroutine {
     public void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        Start start = ctx.getIncomingMessage();
+        StartServer start = ctx.getIncomingMessage();
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();

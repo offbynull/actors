@@ -14,6 +14,11 @@ import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRetryResponse;
 import com.offbynull.peernetic.examples.raft.externalmessages.PushEntrySuccessResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartClient;
+import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
+import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
+import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
+import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
+import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class RaftClientCoroutine implements Coroutine {
@@ -28,10 +33,19 @@ public final class RaftClientCoroutine implements Coroutine {
         Address logAddress = start.getLogAddress();
         UnmodifiableSet<String> nodeLinks = start.getNodeLinks();
         AddressTransformer addressTransformer = start.getAddressTransformer();
-
-        ctx.addOutgoingMessage(logAddress, debug("Starting client"));
         
+        Address self = ctx.getSelf();
+        String selfLink = addressTransformer.selfAddressToLinkId(self);
+
         String leaderLinkId = nodeLinks.iterator().next();
+        
+        ctx.addOutgoingMessage(logAddress, debug("Starting client"));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(selfLink));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, 0.0, 0.0));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: blue"));
+        
+        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, leaderLinkId));
+        
         int nextWriteValue = 1000;
         while (true) {
             ctx.addOutgoingMessage(logAddress, debug("Waiting 1 second"));
@@ -70,7 +84,10 @@ public final class RaftClientCoroutine implements Coroutine {
                 ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, bad state", writeValue));
                 continue;
             } else if (pushResp instanceof PushEntryRedirectResponse) {
-                leaderLinkId = ((PushEntryRedirectResponse) pushResp).getLeaderLinkId();
+                String newLeaderLinkId = ((PushEntryRedirectResponse) pushResp).getLeaderLinkId();
+                ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
+                ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newLeaderLinkId));
+                leaderLinkId = newLeaderLinkId;
                 ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, leader changed {}", writeValue, leaderLinkId));
                 continue;
             } else if (pushResp instanceof PushEntrySuccessResponse) {

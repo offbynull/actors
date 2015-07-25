@@ -9,10 +9,8 @@ import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddB
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.ForwardResult;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
-import static com.offbynull.peernetic.examples.raft.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesResponse;
-import com.sun.xml.internal.bind.v2.TODO;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,7 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 final class LeaderSubcoroutine implements Subcoroutine<Void> {
 
-    private static final Address SUB_ADDRESS = ROUTER_HANDLER_RELATIVE_ADDRESS; // this subcoroutine ran as part of handler
+    private static final Address SUB_ADDRESS = Address.of(); // empty
     private static final Address MSG_ROUTER_ADDRESS = SUB_ADDRESS.appendSuffix("messager");
 
     private final State state;

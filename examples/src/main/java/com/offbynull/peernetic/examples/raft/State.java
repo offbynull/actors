@@ -2,7 +2,6 @@ package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
-import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,7 +47,7 @@ final class State {
                                             // (init to 0, increases monotonically) 
 
     public State(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLinkId,
-            UnmodifiableSet<String> nodeLinkIds, AddressTransformer addressTransformer, Controller routerController) {
+            UnmodifiableSet<String> nodeLinkIds, AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);

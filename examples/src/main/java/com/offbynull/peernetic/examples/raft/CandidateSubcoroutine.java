@@ -8,7 +8,6 @@ import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.Indiv
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
-import static com.offbynull.peernetic.examples.raft.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import static com.offbynull.peernetic.examples.raft.Mode.LEADER;
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteResponse;
@@ -19,7 +18,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 
 final class CandidateSubcoroutine implements Subcoroutine<Void> {
 
-    private static final Address SUB_ADDRESS = ROUTER_HANDLER_RELATIVE_ADDRESS;  // this subcoroutine ran as part of handler
+    private static final Address SUB_ADDRESS = Address.of(); // empty
 
     private final State state;
     
@@ -91,7 +90,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
             AddressTransformer addressTransformer = state.getAddressTransformer();
             for (String linkId : otherLinkIds) {
                 String msgId = state.nextRandomId();
-                Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId).appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS);
+                Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId);
                 builder.addDestination(msgId, dstAddr);
             }
 

@@ -5,14 +5,13 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
-import static com.offbynull.peernetic.examples.raft.AddressConstants.ROUTER_HANDLER_RELATIVE_ADDRESS;
 import static com.offbynull.peernetic.examples.raft.Mode.CANDIDATE;
 import com.offbynull.peernetic.examples.raft.internalmessages.ElectionTimeout;
 import org.apache.commons.lang3.Validate;
 
 final class FollowerSubcoroutine implements Subcoroutine<Void> {
 
-    private static final Address SUB_ADDRESS = ROUTER_HANDLER_RELATIVE_ADDRESS; // this subcoroutine ran as part of handler
+    private static final Address SUB_ADDRESS = Address.of(); // empty
 
     private final State state;
     

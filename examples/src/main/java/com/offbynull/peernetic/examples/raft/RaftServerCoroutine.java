@@ -14,10 +14,10 @@ import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesReque
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesResponse;
 import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryResponse;
-import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRedirectResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.RedirectResponse;
 import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRequest;
-import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRetryResponse;
-import com.offbynull.peernetic.examples.raft.externalmessages.PushEntrySuccessResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.RetryResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryResponse;
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
@@ -221,24 +221,47 @@ public final class RaftServerCoroutine implements Coroutine {
                         case FOLLOWER:
                             String leaderLinkId = state.getVotedForLinkId();
                             if (leaderLinkId == null) {
-                                ctx.addOutgoingMessage(dst, src, new PushEntryRetryResponse());
+                                ctx.addOutgoingMessage(dst, src, new RetryResponse());
                             } else {
-                                ctx.addOutgoingMessage(dst, src, new PushEntryRedirectResponse(leaderLinkId));
+                                ctx.addOutgoingMessage(dst, src, new RedirectResponse(leaderLinkId));
                             }
                             break;
                         case CANDIDATE:
-                            ctx.addOutgoingMessage(dst, src, new PushEntryRetryResponse());
+                            ctx.addOutgoingMessage(dst, src, new RetryResponse());
                             break;
                         case LEADER:
-                            ctx.addOutgoingMessage(dst, src, new PushEntrySuccessResponse());
+                            int term = state.getCurrentTerm();
+                            Object value = ((PushEntryRequest) msg).getValue();
+                            state.addLogEntries(new LogEntry(term, value));
+                            int index = state.getLastLogIndex();
+                            ctx.addOutgoingMessage(dst, src, new PushEntryResponse(term, index));
                             break;
                         default:
                             throw new IllegalStateException();
                     }
                 } else if (msg instanceof PullEntryRequest) {
-                    int commitIndex = state.getCommitIndex();
-                    LogEntry logEntry = state.getLogEntry(commitIndex);
-                    ctx.addOutgoingMessage(dst, src, new PullEntryResponse(logEntry, commitIndex));
+                    switch (state.getMode()) {
+                        case FOLLOWER:
+                            String leaderLinkId = state.getVotedForLinkId();
+                            if (leaderLinkId == null) {
+                                ctx.addOutgoingMessage(dst, src, new RetryResponse());
+                            } else {
+                                ctx.addOutgoingMessage(dst, src, new RedirectResponse(leaderLinkId));
+                            }
+                            break;
+                        case CANDIDATE:
+                            ctx.addOutgoingMessage(dst, src, new RetryResponse());
+                            break;
+                        case LEADER:
+                            int index = state.getCommitIndex();
+                            LogEntry logEntry = state.getLogEntry(index);
+                            int term = logEntry.getTerm();
+                            Object value = logEntry.getValue();
+                            ctx.addOutgoingMessage(dst, src, new PullEntryResponse(value, index, term));
+                            break;
+                        default:
+                            throw new IllegalStateException();
+                    }
                 } else if (isFromSelf && msg instanceof Kill) {
                     throw new RuntimeException("Kill message encountered");
                 }

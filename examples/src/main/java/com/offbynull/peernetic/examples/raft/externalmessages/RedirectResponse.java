@@ -4,12 +4,12 @@ import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 // node is follower and is telling you to redirect somewhere else
-public final class PushEntryRedirectResponse implements Serializable {
+public final class RedirectResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final String leaderLinkId;
 
-    public PushEntryRedirectResponse(String leaderLinkId) {
+    public RedirectResponse(String leaderLinkId) {
         Validate.notNull(leaderLinkId);
         this.leaderLinkId = leaderLinkId;
     }

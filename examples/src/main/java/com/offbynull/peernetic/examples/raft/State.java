@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.raft;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -224,6 +225,11 @@ final class State {
         }
     }
 
+    public void addLogEntries(LogEntry ... newLogEntries) {
+        Validate.notNull(newLogEntries);
+        addLogEntries(Arrays.asList(newLogEntries));
+    }
+    
     public void addLogEntries(List<LogEntry> newLogEntries) {
         Validate.notNull(newLogEntries);
         Validate.noNullElements(newLogEntries);

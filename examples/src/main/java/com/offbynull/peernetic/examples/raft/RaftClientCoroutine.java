@@ -9,10 +9,10 @@ import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryResponse;
-import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRedirectResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.RedirectResponse;
 import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRequest;
-import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRetryResponse;
-import com.offbynull.peernetic.examples.raft.externalmessages.PushEntrySuccessResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.RetryResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartClient;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
@@ -72,9 +72,9 @@ public final class RaftClientCoroutine implements Coroutine {
                         .request(pushReq)
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)
-                        .addExpectedResponseType(PushEntrySuccessResponse.class)
-                        .addExpectedResponseType(PushEntryRetryResponse.class)
-                        .addExpectedResponseType(PushEntryRedirectResponse.class)
+                        .addExpectedResponseType(PushEntryResponse.class)
+                        .addExpectedResponseType(RetryResponse.class)
+                        .addExpectedResponseType(RedirectResponse.class)
                         .throwExceptionIfNoResponse(false)
                         .build();
                 Object pushResp = pushRequestSubcoroutine.run(cnt);
@@ -82,17 +82,17 @@ public final class RaftClientCoroutine implements Coroutine {
                 if (pushResp == null) {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, no response", writeValue));
                     continue;                
-                } else if (pushResp instanceof PushEntryRetryResponse) {
+                } else if (pushResp instanceof RetryResponse) {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, bad state", writeValue));
                     continue;
-                } else if (pushResp instanceof PushEntryRedirectResponse) {
-                    String newLeaderLinkId = ((PushEntryRedirectResponse) pushResp).getLeaderLinkId();
+                } else if (pushResp instanceof RedirectResponse) {
+                    String newLeaderLinkId = ((RedirectResponse) pushResp).getLeaderLinkId();
                     ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
                     ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newLeaderLinkId));
                     leaderLinkId = newLeaderLinkId;
                     ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, leader changed {}", writeValue, leaderLinkId));
                     continue;
-                } else if (pushResp instanceof PushEntrySuccessResponse) {
+                } else if (pushResp instanceof PushEntryResponse) {
                     ctx.addOutgoingMessage(logAddress, debug("Successfully pushed log entry {}", writeValue));
                 } else {
                     throw new IllegalStateException();

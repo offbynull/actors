@@ -228,20 +228,20 @@ public final class RaftServerCoroutine implements Coroutine {
                         case FOLLOWER:
                             String leaderLinkId = state.getVotedForLinkId();
                             if (leaderLinkId == null) {
-                                ctx.addOutgoingMessage(dst, src, new RetryResponse());
+                                ctx.addOutgoingMessage(src, new RetryResponse());
                             } else {
-                                ctx.addOutgoingMessage(dst, src, new RedirectResponse(leaderLinkId));
+                                ctx.addOutgoingMessage(src, new RedirectResponse(leaderLinkId));
                             }
                             break;
                         case CANDIDATE:
-                            ctx.addOutgoingMessage(dst, src, new RetryResponse());
+                            ctx.addOutgoingMessage( src, new RetryResponse());
                             break;
                         case LEADER:
                             int term = state.getCurrentTerm();
                             Object value = ((PushEntryRequest) msg).getValue();
                             state.addLogEntries(new LogEntry(term, value));
                             int index = state.getLastLogIndex();
-                            ctx.addOutgoingMessage(dst, src, new PushEntryResponse(term, index));
+                            ctx.addOutgoingMessage(src, new PushEntryResponse(term, index));
                             break;
                         default:
                             throw new IllegalStateException();
@@ -251,20 +251,20 @@ public final class RaftServerCoroutine implements Coroutine {
                         case FOLLOWER:
                             String leaderLinkId = state.getVotedForLinkId();
                             if (leaderLinkId == null) {
-                                ctx.addOutgoingMessage(dst, src, new RetryResponse());
+                                ctx.addOutgoingMessage(src, new RetryResponse());
                             } else {
-                                ctx.addOutgoingMessage(dst, src, new RedirectResponse(leaderLinkId));
+                                ctx.addOutgoingMessage(src, new RedirectResponse(leaderLinkId));
                             }
                             break;
                         case CANDIDATE:
-                            ctx.addOutgoingMessage(dst, src, new RetryResponse());
+                            ctx.addOutgoingMessage(src, new RetryResponse());
                             break;
                         case LEADER:
                             int index = state.getCommitIndex();
                             LogEntry logEntry = state.getLogEntry(index);
                             int term = logEntry.getTerm();
                             Object value = logEntry.getValue();
-                            ctx.addOutgoingMessage(dst, src, new PullEntryResponse(value, index, term));
+                            ctx.addOutgoingMessage(src, new PullEntryResponse(value, index, term));
                             break;
                         default:
                             throw new IllegalStateException();

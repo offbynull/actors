@@ -46,14 +46,18 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             // single node in this cluster, there's nothing to send keepalives/updates to -- just endlessly sit here without doing anything
             ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("No other nodes to be leader of"));
             while (true) {
+                // update commit index right away, no other nodes to sync up to
+                int lastIdx = state.getLastLogIndex();
+                state.setCommitIndex(lastIdx);
+                
                 cnt.suspend();
             }
-        }
-        
-        sendInitialKeepAlive(cnt);
-        
-        while (true) {
-            sendUpdates(cnt);
+        } else {
+            sendInitialKeepAlive(cnt);
+
+            while (true) {
+                sendUpdates(cnt);
+            }
         }
     }
     

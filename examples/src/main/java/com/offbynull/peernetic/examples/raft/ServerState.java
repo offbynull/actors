@@ -72,11 +72,11 @@ final class ServerState {
         
         currentTerm = 0;
         votedForLinkId = null; // can be null
+        
         log = new LinkedList<>();
         log.add(new LogEntry(0, "uninitialized"));
-        
-        commitIndex = 0;
-        lastApplied = 0;
+        commitIndex = 1;
+        lastApplied = 1;
 
         nextIndex = new HashMap<>();
         for (String linkId : otherNodeLinkIds) {

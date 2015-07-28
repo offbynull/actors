@@ -51,11 +51,11 @@ public final class RaftClientCoroutine implements Coroutine {
             int nextWriteValue = 1000;
             while (true) {
                 ctx.addOutgoingMessage(logAddress, debug("Waiting 1 second"));
+                
+                Object timerObj = new Object();
+                ctx.addOutgoingMessage(timerAddress.appendSuffix("1000"), timerObj);
                 while (true) {
-                    Object timerObj = new Object();
-                    ctx.addOutgoingMessage(timerAddress.appendSuffix("1000"), timerObj);
                     cnt.suspend();
-
                     if (ctx.getIncomingMessage() == timerObj) {
                         break;
                     }
@@ -114,6 +114,16 @@ public final class RaftClientCoroutine implements Coroutine {
 
                 if (pullResp == null) {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry, no response"));
+                    continue;
+                } else if (pushResp instanceof RetryResponse) {
+                    ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry {}, bad state", writeValue));
+                    continue;
+                } else if (pushResp instanceof RedirectResponse) {
+                    String newLeaderLinkId = ((RedirectResponse) pushResp).getLeaderLinkId();
+                    ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
+                    ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newLeaderLinkId));
+                    leaderLinkId = newLeaderLinkId;
+                    ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry {}, leader changed {}", writeValue, leaderLinkId));
                     continue;
                 } else {
                     PullEntryResponse msg = (PullEntryResponse) pullResp;

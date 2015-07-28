@@ -24,8 +24,10 @@ import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
+import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
+import java.awt.Point;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.set.UnmodifiableSet;
@@ -46,16 +48,21 @@ public final class RaftServerCoroutine implements Coroutine {
 
         Address self = ctx.getSelf();
         String selfLink = addressTransformer.selfAddressToLinkId(self);
+        
+        ServerState state = new ServerState(timerAddress, graphAddress, logAddress, seed, selfLink, nodeLinks, addressTransformer);
 
-        State state = new State(timerAddress, graphAddress, logAddress, seed, selfLink, nodeLinks, addressTransformer);
-
+        int maxHashcode = nodeLinks.stream().mapToInt(x -> x.hashCode()).max().getAsInt();
+        double radius = Math.max(300.0, nodeLinks.size() * 50);
+        double percentage = (double) selfLink.hashCode() / (double) maxHashcode;
+        Point graphPoint = PositionUtils.pointOnCircle(radius, percentage);
         ctx.addOutgoingMessage(logAddress, debug("Starting server"));
         ctx.addOutgoingMessage(graphAddress, new AddNode(selfLink));
-        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, 0.0, 0.0));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, graphPoint.getX(), graphPoint.getY()));
         
         // initialize to follower
         state.setMode(FOLLOWER);
         CoroutineRunner modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
+        modeCoroutineRunner.execute(); // priming run
         
         try {
             while (true) {
@@ -271,7 +278,7 @@ public final class RaftServerCoroutine implements Coroutine {
         }
     }
 
-    private CoroutineRunner createModeCoroutineRunner(Context ctx, String selfLink, State state) {
+    private CoroutineRunner createModeCoroutineRunner(Context ctx, String selfLink, ServerState state) {
         Address graphAddress = state.getGraphAddress();
         Mode newMode = state.getMode();
 

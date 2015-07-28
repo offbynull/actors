@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.raft.internalmessages;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
@@ -16,7 +17,7 @@ public final class StartServer {
     
     public StartServer(
             AddressTransformer addressTransformer,
-            HashSet<String> nodeLinks,
+            Set<String> nodeLinks,
             long seed,
             Address timerPrefix,
             Address graphAddress,

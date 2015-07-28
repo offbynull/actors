@@ -20,12 +20,12 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
 
     private static final Address SUB_ADDRESS = Address.of(); // empty
 
-    private final State state;
+    private final ServerState state;
     
     private final Address timerAddress;
     private final Address logAddress;
     
-    public CandidateSubcoroutine(State state) {
+    public CandidateSubcoroutine(ServerState state) {
         Validate.notNull(state);
 
         this.state = state;

@@ -14,7 +14,7 @@ import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
-final class State {
+final class ServerState {
     
     private static final int MIN_ELECTION_TIMEOUT = 150;
     private static final int MAX_ELECTION_TIMEOUT = 300;
@@ -47,7 +47,7 @@ final class State {
     private Map<String, Integer> matchIndex; // key = node link id, value = idx of highest log entry known to be replicated on server
                                             // (init to 0, increases monotonically) 
 
-    public State(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLinkId,
+    public ServerState(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLinkId,
             UnmodifiableSet<String> nodeLinkIds, AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
@@ -56,7 +56,7 @@ final class State {
         Validate.notNull(nodeLinkIds);
         Validate.notNull(addressTransformer);
         Validate.isTrue(nodeLinkIds.contains(selfLinkId));
-        Validate.isTrue(nodeLinkIds.size() >= 2);
+//        Validate.isTrue(nodeLinkIds.size() >= 2);
         
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;

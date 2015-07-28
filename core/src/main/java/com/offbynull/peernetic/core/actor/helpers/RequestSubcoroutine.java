@@ -61,7 +61,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         Validate.notNull(timerAddressPrefix);
         Validate.notNull(attemptInterval);
         Validate.notNull(expectedResponseTypes);
-        Validate.isTrue(!id.isEmpty());
+//        Validate.isTrue(!id.isEmpty()); // can be empty, because its relative?
         Validate.isTrue(!destinationAddress.isEmpty());
         Validate.isTrue(!timerAddressPrefix.isEmpty());
         Validate.isTrue(maxAttempts > 0);
@@ -161,7 +161,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         private boolean throwExceptionIfNoResponse = true;
 
         /**
-         * Set the address. The address set by this method must be relative to the calling actor's self address (relative to
+         * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
          * {@link Context#getSelf()}). Defaults to {@code null}.
          * @param address relative address
          * @return this builder

@@ -72,7 +72,7 @@ public class MultiRequestSubcoroutineTest {
             Response<String> resp = resps.get(i);
             assertEquals("resp" + i, resp.getResponse());
             assertEquals("" + i, resp.getUniqueSourceAddressSuffix());
-            assertEquals(Address.fromString("fakeid:mrsb:" + i), resp.getDestinationAddress());
+            assertEquals(Address.fromString("fakeid:mrsr:" + i), resp.getDestinationAddress());
         }
     }
 

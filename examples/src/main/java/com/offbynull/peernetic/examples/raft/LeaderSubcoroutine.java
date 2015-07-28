@@ -23,12 +23,12 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
     private static final Address SUB_ADDRESS = Address.of(); // empty
     private static final Address MSG_ROUTER_ADDRESS = SUB_ADDRESS.appendSuffix("messager");
 
-    private final State state;
+    private final ServerState state;
     
     private final Address timerAddress;
     private final Address logAddress;
 
-    public LeaderSubcoroutine(State state) {
+    public LeaderSubcoroutine(ServerState state) {
         Validate.notNull(state);
         
         this.state = state;
@@ -41,6 +41,14 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
         Context ctx = (Context) cnt.getContext();
         
         ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Entering leader mode"));
+        
+        if (state.getOtherNodeLinkIds().isEmpty()) {
+            // single node in this cluster, there's nothing to send keepalives/updates to -- just endlessly sit here without doing anything
+            ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("No other nodes to be leader of"));
+            while (true) {
+                cnt.suspend();
+            }
+        }
         
         sendInitialKeepAlive(cnt);
         

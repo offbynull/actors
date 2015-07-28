@@ -69,6 +69,7 @@ public final class RaftClientCoroutine implements Coroutine {
                 ctx.addOutgoingMessage(logAddress, debug("Attempting to push log entry {} in to {}", writeValue, leaderLinkId));
                 PushEntryRequest pushReq = new PushEntryRequest(writeValue);
                 RequestSubcoroutine<Object> pushRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
+                        .address(Address.of())
                         .request(pushReq)
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)
@@ -102,6 +103,7 @@ public final class RaftClientCoroutine implements Coroutine {
                 ctx.addOutgoingMessage(logAddress, debug("Attempting to pull log entry from {}", leaderLinkId));
                 PullEntryRequest pullReq = new PullEntryRequest();
                 RequestSubcoroutine<Object> pullRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
+                        .address(Address.of())
                         .request(pullReq)
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)

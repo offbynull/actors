@@ -22,9 +22,11 @@ import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteRequest
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
+import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
+import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import java.awt.Point;
@@ -101,10 +103,17 @@ public final class RaftServerCoroutine implements Coroutine {
                         state.setMode(FOLLOWER);
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                         modeCoroutineRunner.execute(); // priming run
-
+                        
                         Address baseSrc = src.removeSuffix(2); // actor:1:messager:-149223987249938403 -> actor:1
-                        String senderId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
-                        state.setVotedForLinkId(senderId);
+                        String newVoterId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
+                        String oldVotedForId = state.getVotedForLinkId();
+                        
+                        if (oldVotedForId != null) {
+                            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+                        }
+                        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newVoterId));
+                        
+                        state.setVotedForLinkId(newVoterId);
                     }
 
                     // 1. Reply false if  term < currentTerm
@@ -203,6 +212,12 @@ public final class RaftServerCoroutine implements Coroutine {
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                         modeCoroutineRunner.execute(); // priming run
                         
+                        String oldVotedForId = state.getVotedForLinkId();
+                        
+                        if (oldVotedForId != null) {
+                            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+                        }
+                        
                         state.setVotedForLinkId(null);
                     }
 
@@ -236,7 +251,15 @@ public final class RaftServerCoroutine implements Coroutine {
 
                     boolean voteGranted = false;
                     if (votedForCondition && candidateLogUpToDateOrBetter) {
+                        String oldVotedForId = state.getVotedForLinkId();
+                        
+                        if (oldVotedForId != null) {
+                            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+                        }
+                        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, candidateId));
+                        
                         state.setVotedForLinkId(candidateId);
+                        
                         voteGranted = true;
                     }
 

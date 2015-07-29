@@ -34,13 +34,10 @@ final class FollowerSubcoroutine implements Subcoroutine<Void> {
         
         top:
         while (true) {
-            // When entering follower state (or re-entering if we got a higher term from a msg), clear votedfor so new vote requests can
-            // get processed properly.
-            state.setVotedForLinkId(null);
-            
             // Set up timeout
             ElectionTimeout timeoutObj = new ElectionTimeout();
             int waitTime = state.nextElectionTimeout();
+            ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Election timeout waiting for {}ms", waitTime));
             ctx.addOutgoingMessage(SUB_ADDRESS, timerAddress.appendSuffix("" + waitTime), timeoutObj);
 
             while (true) {
@@ -49,7 +46,7 @@ final class FollowerSubcoroutine implements Subcoroutine<Void> {
                 Object msg = ctx.getIncomingMessage();
                 if (msg == timeoutObj) {
                     // The timeout has been hit without a heartbeat coming in. Switch to candidate mode and exit.
-                    ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Election timeout elapsed, switching to candidate", waitTime));
+                    ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Election timeout elapsed, switching to candidate"));
                     
                     state.setMode(CANDIDATE);
                     return null;

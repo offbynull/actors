@@ -20,8 +20,8 @@ import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
+import java.time.Duration;
 import java.util.LinkedList;
-import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class RaftClientCoroutine implements Coroutine {
 
@@ -33,6 +33,8 @@ public final class RaftClientCoroutine implements Coroutine {
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
+        int maxAttempts = 5;
+        int waitTimePerRequestAttempt = (start.getMaxElectionTimeout() * 2) / maxAttempts;
         LinkedList<String> serverLinks = new LinkedList<>(start.getNodeLinks());
         AddressTransformer addressTransformer = start.getAddressTransformer();
         
@@ -61,6 +63,8 @@ public final class RaftClientCoroutine implements Coroutine {
                 }
 
 
+                
+                
                 Address dstAddress = addressTransformer.linkIdToRemoteAddress(leaderLinkId);
 
                 int writeValue = nextWriteValue;
@@ -72,6 +76,8 @@ public final class RaftClientCoroutine implements Coroutine {
                         .request(pushReq)
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)
+                        .maxAttempts(maxAttempts)
+                        .attemptInterval(Duration.ofMillis(waitTimePerRequestAttempt))
                         .addExpectedResponseType(PushEntryResponse.class)
                         .addExpectedResponseType(RetryResponse.class)
                         .addExpectedResponseType(RedirectResponse.class)
@@ -103,6 +109,8 @@ public final class RaftClientCoroutine implements Coroutine {
                 }
 
 
+                
+                
                 ctx.addOutgoingMessage(logAddress, debug("Attempting to pull log entry from {}", leaderLinkId));
                 PullEntryRequest pullReq = new PullEntryRequest();
                 RequestSubcoroutine<Object> pullRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
@@ -110,6 +118,8 @@ public final class RaftClientCoroutine implements Coroutine {
                         .request(pullReq)
                         .timerAddressPrefix(timerAddress)
                         .destinationAddress(dstAddress)
+                        .maxAttempts(maxAttempts)
+                        .attemptInterval(Duration.ofMillis(waitTimePerRequestAttempt))
                         .addExpectedResponseType(RetryResponse.class)
                         .addExpectedResponseType(RedirectResponse.class)
                         .addExpectedResponseType(PullEntryResponse.class)

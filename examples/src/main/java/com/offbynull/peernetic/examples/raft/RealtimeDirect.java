@@ -55,7 +55,7 @@ public final class RealtimeDirect {
         consoleStage.outputLine("Enter size of RAFT cluster");
         consoleStage.setCommandProcessor((input) -> {
             sizeContainer.add(Integer.parseInt(input));
-            return "Creating " + input + " nodes";
+            return "";
         });
         int clusterSize = sizeContainer.take();
         
@@ -66,6 +66,10 @@ public final class RealtimeDirect {
         for (int i = 0; i < clusterSize; i++) {
             serverIds.add(i);
         }
+        
+        consoleStage.outputLine("Server nodes: " + serverIds);
+        consoleStage.outputLine("Client node: " + clusterSize);
+        consoleStage.outputLine("");
         
         // Start client
         addClientNode(clusterSize, serverIds, actorThread);

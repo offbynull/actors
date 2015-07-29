@@ -171,7 +171,7 @@ final class GraphStage extends Stage {
         String id = removeNode.getId();
 
         return () -> {
-            Label label = nodes.get(id);
+            Label label = nodes.remove(id);
             Validate.isTrue(label != null, "Node %s cannot be removed because it doesn't exist", id);
             graph.getChildren().remove(label);
 

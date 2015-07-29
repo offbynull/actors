@@ -101,6 +101,7 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Not enough votes, becoming follower... Got: {} Required: {}",
                         successfulCount.getValue(), requiredSuccessfulCount));
                 state.setMode(FOLLOWER);
+                state.setVotedForLinkId(null);
                 return null;
             }
         }

@@ -78,13 +78,12 @@ public final class RaftServerCoroutine implements Coroutine {
                 Address dst = ctx.getDestination();
                 boolean isFromSelf = ctx.getSource().equals(ctx.getSelf());
 
-                ctx.addOutgoingMessage(logAddress, debug("Processing {} from {} to {}", msg.getClass(), src, dst));
-
                 // Execute mode-specific logic
                 while (!modeCoroutineRunner.execute()) {
                     modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                     // should call execute again once back to the top of this while loop, meaning that new subcoroutine is properly primed
-                    // and switches between modes during priming are properly handled (although mode switching during prime should never happen)
+                    // and switches between modes during priming are properly handled (although mode switching during prime should never
+                    // happen)
                 }
 
                 // Handle messages
@@ -96,10 +95,16 @@ public final class RaftServerCoroutine implements Coroutine {
                     // If RPC request or response contains term T > currentTerm: set currentTerm = T, convert to follower (§5.1)
                     int term = aeReq.getTerm();
                     if (state.updateCurrentTerm(term)) {
+                        // No matter what state youre in, if you get a new appendentries (higher term that your current term), switch your
+                        // mode to follower mode (resets election timeout if already in follower mode) and assume that this is the node in
+                        // the server that's the leader. Otherwise, why would it be sending you appendentries?
                         state.setMode(FOLLOWER);
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                         modeCoroutineRunner.execute(); // priming run
-                        continue;
+
+                        Address baseSrc = src.removeSuffix(2); // actor:1:messager:-149223987249938403 -> actor:1
+                        String senderId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
+                        state.setVotedForLinkId(senderId);
                     }
 
                     // 1. Reply false if  term < currentTerm
@@ -174,8 +179,15 @@ public final class RaftServerCoroutine implements Coroutine {
                         state.setCommitIndex(commitIndex);
                     }
 
-                    state.setMode(FOLLOWER);
+                    ctx.addOutgoingMessage(logAddress, debug("Responding with Term: {} / Success: {}", currentTerm, true));
+                    ctx.addOutgoingMessage(src, new AppendEntriesResponse(currentTerm, true));
+
+                    // At this point you should already be in follower mode. But you want to recreate the FollowerSubcoroutine because it
+                    // controls the election timeout and since we got a successful appendentries, that electiontimeout timer should be
+                    // restarted
+                    state.setMode(FOLLOWER); // just incase
                     modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
+                    modeCoroutineRunner.execute(); // priming run
                 } else if (msg instanceof RequestVoteRequest) {
                     ctx.addOutgoingMessage(logAddress, debug("Received request vote from {}", src));
 
@@ -184,9 +196,14 @@ public final class RaftServerCoroutine implements Coroutine {
                     // If RPC request or response contains term T > currentTerm: set currentTerm = T, convert to follower (§5.1)
                     int term = rvReq.getTerm();
                     if (state.updateCurrentTerm(term)) {
+                        // No matter what state youre in, if you get a new vote request (higher term that your current term), switch your
+                        // mode to follower mode (resets election timeout if already in follower mode) and unset whoever is your current
+                        // leader.
                         state.setMode(FOLLOWER);
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                         modeCoroutineRunner.execute(); // priming run
+                        
+                        state.setVotedForLinkId(null);
                     }
 
                     // 1. Reply false if  term < currentTerm
@@ -223,18 +240,23 @@ public final class RaftServerCoroutine implements Coroutine {
                         voteGranted = true;
                     }
 
+                    ctx.addOutgoingMessage(logAddress, debug("Responding with Term: {} / Granted : {}", currentTerm, voteGranted));
                     ctx.addOutgoingMessage(src, new RequestVoteResponse(currentTerm, voteGranted));
                 } else if (msg instanceof PushEntryRequest) {
+                    ctx.addOutgoingMessage(logAddress, debug("Received push entry from {}", src));
                     switch (state.getMode()) {
                         case FOLLOWER:
                             String leaderLinkId = state.getVotedForLinkId();
                             if (leaderLinkId == null) {
+                                ctx.addOutgoingMessage(logAddress, debug("Responding with retry (follower w/o leader)"));
                                 ctx.addOutgoingMessage(src, new RetryResponse());
                             } else {
+                                ctx.addOutgoingMessage(logAddress, debug("Responding with redirect to {}", leaderLinkId));
                                 ctx.addOutgoingMessage(src, new RedirectResponse(leaderLinkId));
                             }
                             break;
                         case CANDIDATE:
+                            ctx.addOutgoingMessage(logAddress, debug("Responding with retry (candidate)"));
                             ctx.addOutgoingMessage( src, new RetryResponse());
                             break;
                         case LEADER:
@@ -242,22 +264,27 @@ public final class RaftServerCoroutine implements Coroutine {
                             Object value = ((PushEntryRequest) msg).getValue();
                             state.addLogEntries(new LogEntry(term, value));
                             int index = state.getLastLogIndex();
+                            ctx.addOutgoingMessage(logAddress, debug("Responding with success {}/{}", term, index));
                             ctx.addOutgoingMessage(src, new PushEntryResponse(term, index));
                             break;
                         default:
                             throw new IllegalStateException();
                     }
                 } else if (msg instanceof PullEntryRequest) {
+                    ctx.addOutgoingMessage(logAddress, debug("Received pull entry from {}", src));
                     switch (state.getMode()) {
                         case FOLLOWER:
                             String leaderLinkId = state.getVotedForLinkId();
                             if (leaderLinkId == null) {
+                                ctx.addOutgoingMessage(logAddress, debug("Responding with retry (follower w/o leader)"));
                                 ctx.addOutgoingMessage(src, new RetryResponse());
                             } else {
+                                ctx.addOutgoingMessage(logAddress, debug("Responding with redirect to {}", leaderLinkId));
                                 ctx.addOutgoingMessage(src, new RedirectResponse(leaderLinkId));
                             }
                             break;
                         case CANDIDATE:
+                            ctx.addOutgoingMessage(logAddress, debug("Responding with retry (candidate)"));
                             ctx.addOutgoingMessage(src, new RetryResponse());
                             break;
                         case LEADER:
@@ -265,6 +292,7 @@ public final class RaftServerCoroutine implements Coroutine {
                             LogEntry logEntry = state.getLogEntry(index);
                             int term = logEntry.getTerm();
                             Object value = logEntry.getValue();
+                            ctx.addOutgoingMessage(logAddress, debug("Responding with success {}/{}", term, index));
                             ctx.addOutgoingMessage(src, new PullEntryResponse(value, index, term));
                             break;
                         default:

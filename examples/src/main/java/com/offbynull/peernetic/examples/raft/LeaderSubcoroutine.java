@@ -107,7 +107,6 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
         Map<Subcoroutine<?>, String> linkIdLookup = new HashMap<>(); // key = requstsubcoroutine, value = linkId
         
         // send updates
-        ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending normal append entries"));
         SubcoroutineRouter msgRouter = new SubcoroutineRouter(MSG_ROUTER_ADDRESS, ctx);
         int attempts = 5;
         int waitTimePerAttempt = state.getMinimumElectionTimeout() / attempts; // minimum election timeout / number of attempts

@@ -8,7 +8,10 @@ import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class StartServer {
+    
     private final AddressTransformer addressTransformer;
+    private final int minElectionTimeout;
+    private final int maxElectionTimeout;
     private final UnmodifiableSet<String> nodeLinks;
     private final long seed;
     private final Address timerPrefix;
@@ -17,6 +20,8 @@ public final class StartServer {
     
     public StartServer(
             AddressTransformer addressTransformer,
+            int minElectionTimeout,
+            int maxElectionTimeout,
             Set<String> nodeLinks,
             long seed,
             Address timerPrefix,
@@ -26,7 +31,12 @@ public final class StartServer {
         // bootstrapAddress can be null
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
+        Validate.isTrue(minElectionTimeout >= 0);
+        Validate.isTrue(maxElectionTimeout >= 0);
+        Validate.isTrue(minElectionTimeout <= maxElectionTimeout);
         this.addressTransformer = addressTransformer;
+        this.minElectionTimeout = minElectionTimeout;
+        this.maxElectionTimeout = maxElectionTimeout;
         this.nodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(nodeLinks));
         this.seed = seed;
         this.timerPrefix = timerPrefix;
@@ -36,6 +46,14 @@ public final class StartServer {
 
     public AddressTransformer getAddressTransformer() {
         return addressTransformer;
+    }
+
+    public int getMinElectionTimeout() {
+        return minElectionTimeout;
+    }
+
+    public int getMaxElectionTimeout() {
+        return maxElectionTimeout;
     }
 
     public UnmodifiableSet<String> getNodeLinks() {

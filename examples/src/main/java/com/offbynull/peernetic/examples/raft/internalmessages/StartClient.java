@@ -9,6 +9,8 @@ import org.apache.commons.lang3.Validate;
 
 public final class StartClient {
     private final AddressTransformer addressTransformer;
+    private final int minElectionTimeout;
+    private final int maxElectionTimeout;
     private final UnmodifiableSet<String> nodeLinks;
     private final Address timerPrefix;
     private final Address graphAddress;
@@ -16,6 +18,8 @@ public final class StartClient {
     
     public StartClient(
             AddressTransformer addressTransformer,
+            int minElectionTimeout,
+            int maxElectionTimeout,
             Set<String> nodeLinks,
             Address timerPrefix,
             Address graphAddress,
@@ -24,7 +28,12 @@ public final class StartClient {
         // bootstrapAddress can be null
         Validate.notNull(timerPrefix);
         Validate.notNull(graphAddress);
+        Validate.isTrue(minElectionTimeout >= 0);
+        Validate.isTrue(maxElectionTimeout >= 0);
+        Validate.isTrue(minElectionTimeout <= maxElectionTimeout);
         this.addressTransformer = addressTransformer;
+        this.minElectionTimeout = minElectionTimeout;
+        this.maxElectionTimeout = maxElectionTimeout;
         this.nodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(nodeLinks));
         this.timerPrefix = timerPrefix;
         this.graphAddress = graphAddress;
@@ -33,6 +42,14 @@ public final class StartClient {
 
     public AddressTransformer getAddressTransformer() {
         return addressTransformer;
+    }
+
+    public int getMinElectionTimeout() {
+        return minElectionTimeout;
+    }
+
+    public int getMaxElectionTimeout() {
+        return maxElectionTimeout;
     }
 
     public UnmodifiableSet<String> getNodeLinks() {

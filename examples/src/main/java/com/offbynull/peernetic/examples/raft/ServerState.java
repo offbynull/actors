@@ -17,9 +17,6 @@ import org.apache.commons.lang3.Validate;
 
 final class ServerState {
     
-    private static final int MIN_ELECTION_TIMEOUT = 150;
-    private static final int MAX_ELECTION_TIMEOUT = 300;
-    
     private final Random random;
     private int counter = 0;
     
@@ -30,6 +27,9 @@ final class ServerState {
     private final String selfLinkId;
     private final UnmodifiableSet<String> otherNodeLinkIds; // does not include self
     private final AddressTransformer addressTransformer;
+    
+    private final int minElectionTimeout;
+    private final int maxElectionTimeout;
     
     private Mode mode;
     
@@ -48,8 +48,16 @@ final class ServerState {
     private Map<String, Integer> matchIndex; // key = node link id, value = idx of highest log entry known to be replicated on server
                                             // (init to 0, increases monotonically) 
 
-    public ServerState(Address timerAddress, Address graphAddress, Address logAddress, long seed, String selfLinkId,
-            UnmodifiableSet<String> nodeLinkIds, AddressTransformer addressTransformer) {
+    public ServerState(
+            Address timerAddress,
+            Address graphAddress,
+            Address logAddress,
+            int minElectionTimeout,
+            int maxElectionTimeout,
+            long seed,
+            String selfLinkId,
+            UnmodifiableSet<String> nodeLinkIds,
+            AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
@@ -57,11 +65,15 @@ final class ServerState {
         Validate.notNull(nodeLinkIds);
         Validate.notNull(addressTransformer);
         Validate.isTrue(nodeLinkIds.contains(selfLinkId));
-//        Validate.isTrue(nodeLinkIds.size() >= 2);
+        Validate.isTrue(minElectionTimeout >= 0);
+        Validate.isTrue(maxElectionTimeout >= 0);
+        Validate.isTrue(minElectionTimeout <= maxElectionTimeout);
         
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
+        this.minElectionTimeout = minElectionTimeout;
+        this.maxElectionTimeout = maxElectionTimeout;
         this.random = new Random(seed);
         this.selfLinkId = selfLinkId;
         Set<String> modifiedNodeLinks = new HashSet<>(nodeLinkIds);
@@ -113,11 +125,11 @@ final class ServerState {
     }
 
     public int nextElectionTimeout() {
-        return randBetween(MIN_ELECTION_TIMEOUT, MAX_ELECTION_TIMEOUT);
+        return randBetween(minElectionTimeout, maxElectionTimeout);
     }
     
     public int getMinimumElectionTimeout() {
-        return MIN_ELECTION_TIMEOUT;
+        return minElectionTimeout;
     }
             
     private int randBetween(int start, int end) {

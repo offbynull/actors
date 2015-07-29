@@ -45,6 +45,8 @@ public final class RaftServerCoroutine implements Coroutine {
         Address timerAddress = start.getTimerPrefix();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
+        int minElectionTimeout = start.getMinElectionTimeout();
+        int maxElectionTimeout = start.getMaxElectionTimeout();
         UnmodifiableSet<String> nodeLinks = start.getNodeLinks();
         AddressTransformer addressTransformer = start.getAddressTransformer();
         long seed = start.getSeed();
@@ -52,9 +54,10 @@ public final class RaftServerCoroutine implements Coroutine {
         Address self = ctx.getSelf();
         String selfLink = addressTransformer.selfAddressToLinkId(self);
         
-        ServerState state = new ServerState(timerAddress, graphAddress, logAddress, seed, selfLink, nodeLinks, addressTransformer);
+        ServerState state = new ServerState(timerAddress, graphAddress, logAddress, minElectionTimeout, maxElectionTimeout, seed, selfLink,
+                nodeLinks, addressTransformer);
 
-        double radius = Math.log(nodeLinks.size() * 100) * 100.0;
+        double radius = Math.log(nodeLinks.size() * 100) * 50.0;
         double percentage = hashToPercentage(selfLink);
         Point graphPoint = PositionUtils.pointOnCircle(radius, percentage);
         ctx.addOutgoingMessage(logAddress, debug("Starting server"));
@@ -75,13 +78,11 @@ public final class RaftServerCoroutine implements Coroutine {
                 Address dst = ctx.getDestination();
                 boolean isFromSelf = ctx.getSource().equals(ctx.getSelf());
 
-                ctx.addOutgoingMessage(logAddress, debug("({}) Processing {} from {} to {}", state.getMode(), msg.getClass(),
-                        src, dst));
+                ctx.addOutgoingMessage(logAddress, debug("Processing {} from {} to {}", msg.getClass(), src, dst));
 
                 // Execute mode-specific logic
                 while (!modeCoroutineRunner.execute()) {
                     modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
-                    ctx.addOutgoingMessage(logAddress, debug("({}) Transitioned to mode", state.getMode()));
                     // should call execute again once back to the top of this while loop, meaning that new subcoroutine is properly primed
                     // and switches between modes during priming are properly handled (although mode switching during prime should never happen)
                 }
@@ -302,6 +303,8 @@ public final class RaftServerCoroutine implements Coroutine {
 
         CoroutineRunner modeCoroutineRunner = new CoroutineRunner(innerCnt -> subcoroutine.run(innerCnt));
         modeCoroutineRunner.setContext(ctx);
+        
+        ctx.addOutgoingMessage(state.getLogAddress(), debug("Transitioned to mode {}", state.getMode()));
 
         return modeCoroutineRunner;
     }

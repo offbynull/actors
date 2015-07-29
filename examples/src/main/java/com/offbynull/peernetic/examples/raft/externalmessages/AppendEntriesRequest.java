@@ -22,9 +22,9 @@ public final class AppendEntriesRequest implements Serializable {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         Validate.isTrue(term >= 0);
-        Validate.isTrue(prevLogIndex >= 0);
+        Validate.isTrue(prevLogIndex > 0); // index starts at 1
         Validate.isTrue(prevLogTerm >= 0);
-        Validate.isTrue(leaderCommit >= 0);
+        Validate.isTrue(leaderCommit > 0); // index starts at 1
         this.term = term;
         this.prevLogIndex = prevLogIndex;
         this.prevLogTerm = prevLogTerm;

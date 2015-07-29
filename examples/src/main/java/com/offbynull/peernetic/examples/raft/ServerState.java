@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
@@ -80,12 +81,12 @@ final class ServerState {
 
         nextIndex = new HashMap<>();
         for (String linkId : otherNodeLinkIds) {
-            nextIndex.put(linkId, 1);
+            nextIndex.put(linkId, 2); // start at 2 instead of 1, because every node's log should be primed with 1 entry
         }
         
         matchIndex = new HashMap<>();
         for (String linkId : otherNodeLinkIds) {
-            nextIndex.put(linkId, 0);
+            matchIndex.put(linkId, 1); // start at 1 instead of 0, because every node's log should be primed with 1 entry
         }
     }
 
@@ -223,6 +224,34 @@ final class ServerState {
         while (log.size() > fromIdx) {
             log.removeLast();
         }
+        
+        
+        int revisedLatestNextIndex = getLastLogIndex() + 1;
+        Map<String, Integer> revisedNextIndex = new HashMap<>();
+        for (Entry<String, Integer> e : nextIndex.entrySet()) {
+            String linkId = e.getKey();
+            int originalNextIndex = e.getValue();
+            if (originalNextIndex > revisedLatestNextIndex) {
+                revisedNextIndex.put(linkId, revisedLatestNextIndex);
+            } else {
+                revisedNextIndex.put(linkId, originalNextIndex);
+            }
+        }
+        nextIndex = revisedNextIndex;
+        
+        
+        int revisedLatestMatchIndex = getLastLogIndex();
+        Map<String, Integer> revisedMatchIndex = new HashMap<>();
+        for (Entry<String, Integer> e : nextIndex.entrySet()) {
+            String linkId = e.getKey();
+            int originalNextIndex = e.getValue();
+            if (originalNextIndex > revisedLatestMatchIndex) {
+                revisedMatchIndex.put(linkId, revisedLatestMatchIndex);
+            } else {
+                revisedMatchIndex.put(linkId, originalNextIndex);
+            }
+        }
+        matchIndex = revisedMatchIndex;
     }
 
     public void addLogEntries(LogEntry ... newLogEntries) {

@@ -28,7 +28,10 @@ import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import java.awt.Point;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.util.List;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
@@ -51,9 +54,8 @@ public final class RaftServerCoroutine implements Coroutine {
         
         ServerState state = new ServerState(timerAddress, graphAddress, logAddress, seed, selfLink, nodeLinks, addressTransformer);
 
-        int maxHashcode = nodeLinks.stream().mapToInt(x -> x.hashCode()).max().getAsInt();
-        double radius = Math.max(300.0, nodeLinks.size() * 50);
-        double percentage = (double) selfLink.hashCode() / (double) maxHashcode;
+        double radius = Math.log(nodeLinks.size() * 100) * 100.0;
+        double percentage = hashToPercentage(selfLink);
         Point graphPoint = PositionUtils.pointOnCircle(radius, percentage);
         ctx.addOutgoingMessage(logAddress, debug("Starting server"));
         ctx.addOutgoingMessage(graphAddress, new AddNode(selfLink));
@@ -95,6 +97,7 @@ public final class RaftServerCoroutine implements Coroutine {
                     if (state.updateCurrentTerm(term)) {
                         state.setMode(FOLLOWER);
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
+                        modeCoroutineRunner.execute(); // priming run
                         continue;
                     }
 
@@ -182,6 +185,7 @@ public final class RaftServerCoroutine implements Coroutine {
                     if (state.updateCurrentTerm(term)) {
                         state.setMode(FOLLOWER);
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
+                        modeCoroutineRunner.execute(); // priming run
                     }
 
                     // 1. Reply false if  term < currentTerm
@@ -195,31 +199,27 @@ public final class RaftServerCoroutine implements Coroutine {
 
                     // 2. If votedFor is (null or candidateId), and candidate's log is at least as up-to-date as receiver's log, grant vote
                     String votedForLinkId = state.getVotedForLinkId();
-                    Address baseSrc = src.removeSuffix(5); // actor:0:router:candidate:012:mrsr:345 -> actor:0
+                    Address baseSrc = src.removeSuffix(3); // actor:0:4437113782736519168:mrsr:-7261648962812116991 -> actor:0
                     String candidateId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
                     boolean votedForCondition = votedForLinkId == null || votedForLinkId.equals(candidateId);
-                    boolean upToDateLogCondition;
-                    if (state.isLogEmpty()) {
-                        upToDateLogCondition = true;
-                    } else {
-                        int selfLastLogIndex = state.getLastLogIndex();
-                        int selfLastLogTerm = state.getLastLogEntry().getTerm();
-                        int otherLastLogIndex = rvReq.getLastLogIndex();
-                        int otherLastLogTerm = rvReq.getLastLogTerm();
 
-                        // as specified in 5.4.1
-                        if (otherLastLogTerm > selfLastLogTerm) {
-                            upToDateLogCondition = true;
-                        } else if (otherLastLogTerm == selfLastLogTerm && otherLastLogIndex > selfLastLogIndex) {
-                            upToDateLogCondition = true;
-                        } else {
-                            upToDateLogCondition = false;
-                        }
+                    // as specified in 5.4.1
+                    int selfLastLogIndex = state.getLastLogIndex();
+                    int selfLastLogTerm = state.getLastLogEntry().getTerm();
+                    int otherLastLogIndex = rvReq.getLastLogIndex();
+                    int otherLastLogTerm = rvReq.getLastLogTerm();
+
+                    boolean candidateLogUpToDateOrBetter = false;
+                    if (otherLastLogTerm > selfLastLogTerm) {
+                        candidateLogUpToDateOrBetter = true;
+                    } else if (otherLastLogTerm == selfLastLogTerm && otherLastLogIndex >= selfLastLogIndex) {
+                        candidateLogUpToDateOrBetter = true;
                     }
 
                     boolean voteGranted = false;
-                    if (votedForCondition && upToDateLogCondition) {
+                    if (votedForCondition && candidateLogUpToDateOrBetter) {
                         state.setVotedForLinkId(candidateId);
+                        voteGranted = true;
                     }
 
                     ctx.addOutgoingMessage(src, new RequestVoteResponse(currentTerm, voteGranted));
@@ -304,5 +304,15 @@ public final class RaftServerCoroutine implements Coroutine {
         modeCoroutineRunner.setContext(ctx);
 
         return modeCoroutineRunner;
+    }
+    
+    private double hashToPercentage(String val) throws Exception {
+        byte[] data = DigestUtils.md5(val);
+        
+        ByteArrayInputStream bais = new ByteArrayInputStream(data);
+        DataInputStream dais = new DataInputStream(bais);
+        
+        int shortVal = dais.readUnsignedShort();
+        return (double) shortVal / (double) 0xFFFF;
     }
 }

@@ -8,6 +8,7 @@ import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.Indiv
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
 import static com.offbynull.peernetic.examples.raft.Mode.LEADER;
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.RequestVoteResponse;
@@ -50,15 +51,8 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
             int requiredSuccessfulCount = state.getMajorityCount();
             MutableInt successfulCount = new MutableInt(1); // start with 1 because we're voting for ourself first
             
-            int lastLogIndex;
-            int lastLogTerm;
-            if (state.isLogEmpty()) {
-                lastLogIndex = -1;
-                lastLogTerm = -1;                
-            } else {
-                lastLogIndex = state.getLastLogIndex();
-                lastLogTerm = state.getLastLogEntry().getTerm();
-            }
+            int lastLogIndex = state.getLastLogIndex();
+            int lastLogTerm = state.getLastLogEntry().getTerm();
             
             Object req = new RequestVoteRequest(currentTerm, lastLogIndex, lastLogTerm);
             int totalWaitTime = state.nextElectionTimeout();
@@ -99,11 +93,15 @@ final class CandidateSubcoroutine implements Subcoroutine<Void> {
 
             if (successfulCount.getValue() >= requiredSuccessfulCount) {
                 // Majority of votes have come in for this node. Set mode to leader.
+                ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Enough votes acquired, becoming leader... Got: {} Required: {}",
+                        successfulCount.getValue(), requiredSuccessfulCount));
                 state.setMode(LEADER);
                 return null;
             } else {
-                ctx.addOutgoingMessage(SUB_ADDRESS, logAddress,
-                        debug("Not enough votes... Got: {} Required: {}", successfulCount.getValue(), requiredSuccessfulCount));
+                ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Not enough votes, becoming follower... Got: {} Required: {}",
+                        successfulCount.getValue(), requiredSuccessfulCount));
+                state.setMode(FOLLOWER);
+                return null;
             }
         }
     }

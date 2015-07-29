@@ -25,7 +25,7 @@ public final class RealtimeDirect {
     private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
     
-    private static final int MAX_NODES = 1;
+    private static final int MAX_NODES = 2;
     
     public static void main(String[] args) throws Exception {
         GraphGateway.startApplication();
@@ -53,7 +53,7 @@ public final class RealtimeDirect {
         }
         
         // Start clients
-        addClientNode(MAX_NODES, serverIds, actorThread);
+//        addClientNode(MAX_NODES, serverIds, actorThread);
 
         GraphGateway.awaitShutdown();
     }

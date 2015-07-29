@@ -75,7 +75,7 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending keep-alive append entries to {}", linkId));
             List<LogEntry> entries = Collections.emptyList();
             int prevLogIndex = state.getNextIndex(linkId) - 1;
-            int prevLogTerm = prevLogIndex == -1 ? -1 : state.getLogEntry(prevLogIndex).getTerm();
+            int prevLogTerm = state.getLogEntry(prevLogIndex).getTerm();
             Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
@@ -86,6 +86,7 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
                     .addExpectedResponseType(AppendEntriesResponse.class)
                     .address(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
                     .destinationAddress(dstAddress)
+                    .throwExceptionIfNoResponse(false)
                     .build();
             msgRouter.getController().add(requestSubcoroutine, ADD_PRIME_NO_FINISH);
         }
@@ -117,8 +118,8 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending normal append entries to {}", linkId));
             int nextLogIndex = state.getNextIndex(linkId);
             int prevLogIndex = nextLogIndex - 1;
-            int prevLogTerm = prevLogIndex == -1 ? -1 : state.getLogEntry(prevLogIndex).getTerm();
-            List<LogEntry> entries = prevLogIndex == -1 ? Collections.emptyList() : state.getTailLogEntries(nextLogIndex);
+            int prevLogTerm = state.getLogEntry(prevLogIndex).getTerm();
+            List<LogEntry> entries = nextLogIndex > lastLogIndex ? Collections.emptyList() : state.getTailLogEntries(nextLogIndex);
             Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
@@ -129,6 +130,7 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
                     .addExpectedResponseType(AppendEntriesResponse.class)
                     .address(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
                     .destinationAddress(dstAddress)
+                    .throwExceptionIfNoResponse(false)
                     .build();
             msgRouter.getController().add(requestSubcoroutine, ADD_PRIME_NO_FINISH);
             linkIdLookup.put(requestSubcoroutine, linkId);
@@ -141,11 +143,13 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
                 Subcoroutine<?> completedSubcoroutine = fr.getSubcoroutine();
                 String linkId = linkIdLookup.get(completedSubcoroutine);
                 AppendEntriesResponse resp = (AppendEntriesResponse) fr.getResult();
-                if (resp.isSuccess()) {
-                    state.setMatchIndex(linkId, lastLogIndex);
-                    state.setNextIndex(linkId, lastLogIndex + 1);
-                } else {
-                    state.decrementNextIndex(linkId);
+                if (resp != null) {
+                    if (resp.isSuccess()) {
+                        state.setMatchIndex(linkId, lastLogIndex);
+                        state.setNextIndex(linkId, lastLogIndex + 1);
+                    } else {
+                        state.decrementNextIndex(linkId);
+                    }
                 }
             }
             if (msgRouter.getController().size() == 0) {

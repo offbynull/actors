@@ -31,8 +31,6 @@ final class ServerState {
     private final int minElectionTimeout;
     private final int maxElectionTimeout;
     
-    private Mode mode;
-    
     // persistent state (not really persistent in this example, but whatever)
     private int currentTerm;
     private String votedForLinkId;
@@ -80,8 +78,6 @@ final class ServerState {
         modifiedNodeLinks.remove(selfLinkId);
         this.otherNodeLinkIds = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(modifiedNodeLinks));
         this.addressTransformer = addressTransformer;
-
-        mode = FOLLOWER;
         
         currentTerm = 0;
         votedForLinkId = null; // can be null
@@ -153,15 +149,6 @@ final class ServerState {
     
     public AddressTransformer getAddressTransformer() {
         return addressTransformer;
-    }
-
-    public Mode getMode() {
-        return mode;
-    }
-
-    public void setMode(Mode mode) {
-        Validate.notNull(mode);
-        this.mode = mode;
     }
     
     public int getCurrentTerm() {

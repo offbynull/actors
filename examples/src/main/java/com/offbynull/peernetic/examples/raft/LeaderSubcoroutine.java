@@ -11,41 +11,40 @@ import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryRequest;
+import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRequest;
+import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryResponse;
+import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.Validate;
 
 // Running when in leader mode. Maintains connections to followers and updates them as nessecary.
-final class LeaderSubcoroutine implements Subcoroutine<Void> {
+final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
 
-    private static final Address SUB_ADDRESS = Address.of(); // empty
-    private static final Address MSG_ROUTER_ADDRESS = SUB_ADDRESS.appendSuffix("messager");
-
-    private final ServerState state;
-    
-    private final Address timerAddress;
-    private final Address logAddress;
+    private static final Address MSG_ROUTER_ADDRESS = Address.of("messager");
 
     public LeaderSubcoroutine(ServerState state) {
-        Validate.notNull(state);
-        
-        this.state = state;
-        this.timerAddress = state.getTimerAddress();
-        this.logAddress = state.getLogAddress();
+        super(state);
     }
     
     @Override
-    public Void run(Continuation cnt) throws Exception {
+    protected Mode main(Continuation cnt, ServerState state) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Entering leader mode"));
+        Address logAddress = state.getLogAddress();
+        Address graphAddress = state.getGraphAddress();
+        String selfLink = state.getSelfLinkId();
+        
+        ctx.addOutgoingMessage(logAddress, debug("Entering leader mode"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: green"));
         
         if (state.getOtherNodeLinkIds().isEmpty()) {
             // single node in this cluster, there's nothing to send keepalives/updates to -- just endlessly sit here without doing anything
-            ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("No other nodes to be leader of"));
+            ctx.addOutgoingMessage(logAddress, debug("No other nodes to be leader of"));
             while (true) {
                 // update commit index right away, no other nodes to sync up to
                 int lastIdx = state.getLastLogIndex();
@@ -54,26 +53,29 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
                 cnt.suspend();
             }
         } else {
-            sendInitialKeepAlive(cnt);
+            sendInitialKeepAlive(cnt, state);
 
             while (true) {
-                sendUpdates(cnt);
+                sendUpdates(cnt, state);
             }
         }
     }
-    
-    private void sendInitialKeepAlive(Continuation cnt) throws Exception {
+
+    private void sendInitialKeepAlive(Continuation cnt, ServerState state) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
+        Address logAddress = state.getLogAddress();
+        Address timerAddress = state.getTimerAddress();
+        
         // send empty appendentries to keep-alive
-        ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending initial keep-alive append entries"));
+        ctx.addOutgoingMessage(logAddress, debug("Sending initial keep-alive append entries"));
         SubcoroutineRouter msgRouter = new SubcoroutineRouter(MSG_ROUTER_ADDRESS, ctx);
         int attempts = 5;
         int waitTimePerAttempt = state.getMinimumElectionTimeout() / attempts; // minimum election timeout / number of attempts
         int term = state.getCurrentTerm();
         int commitIndex = state.getCommitIndex();
         for (String linkId : state.getOtherNodeLinkIds()) {
-            ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending keep-alive append entries to {}", linkId));
+            ctx.addOutgoingMessage(logAddress, debug("Sending keep-alive append entries to {}", linkId));
             List<LogEntry> entries = Collections.emptyList();
             int prevLogIndex = state.getNextIndex(linkId) - 1;
             int prevLogTerm = state.getLogEntry(prevLogIndex).getTerm();
@@ -102,8 +104,11 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
         }
     }
     
-    private void sendUpdates(Continuation cnt) throws Exception {
+    private void sendUpdates(Continuation cnt, ServerState state) throws Exception {
         Context ctx = (Context) cnt.getContext();
+        
+        Address logAddress = state.getLogAddress();
+        Address timerAddress = state.getTimerAddress();
         
         Map<Subcoroutine<?>, String> linkIdLookup = new HashMap<>(); // key = requstsubcoroutine, value = linkId
         
@@ -115,7 +120,7 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
         int commitIndex = state.getCommitIndex();
         int lastLogIndex = state.getLastLogIndex();
         for (String linkId : state.getOtherNodeLinkIds()) {
-            ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Sending normal append entries to {}", linkId));
+            ctx.addOutgoingMessage(logAddress, debug("Sending normal append entries to {}", linkId));
             int nextLogIndex = state.getNextIndex(linkId);
             int prevLogIndex = nextLogIndex - 1;
             int prevLogTerm = state.getLogEntry(prevLogIndex).getTerm();
@@ -178,9 +183,34 @@ final class LeaderSubcoroutine implements Subcoroutine<Void> {
             }
         }
     }
-    
+
     @Override
-    public Address getAddress() {
-        return SUB_ADDRESS;
+    protected Mode handlePushEntryRequest(Context ctx, PushEntryRequest req, ServerState state) throws Exception {
+        Address src = ctx.getSource();
+        Address logAddress = state.getLogAddress();
+        
+        int term = state.getCurrentTerm();
+        Object value = req.getValue();
+        state.addLogEntries(new LogEntry(term, value));
+        int index = state.getLastLogIndex();
+        ctx.addOutgoingMessage(logAddress, debug("Responding with success {}/{}", term, index));
+        ctx.addOutgoingMessage(src, new PushEntryResponse(term, index));
+        
+        return null;
+    }
+
+    @Override
+    protected Mode handlePullEntryRequest(Context ctx, PullEntryRequest req, ServerState state) throws Exception {
+        Address src = ctx.getSource();
+        Address logAddress = state.getLogAddress();
+        
+        int index = state.getCommitIndex();
+        LogEntry logEntry = state.getLogEntry(index);
+        int term = logEntry.getTerm();
+        Object value = logEntry.getValue();
+        ctx.addOutgoingMessage(logAddress, debug("Responding with success {}/{}", term, index));
+        ctx.addOutgoingMessage(src, new PullEntryResponse(value, index, term));
+        
+        return null;
     }
 }

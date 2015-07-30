@@ -2,63 +2,111 @@ package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import static com.offbynull.peernetic.examples.raft.Mode.CANDIDATE;
+import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
+import com.offbynull.peernetic.examples.raft.externalmessages.AppendEntriesRequest;
+import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryRequest;
+import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRequest;
+import com.offbynull.peernetic.examples.raft.externalmessages.RedirectResponse;
+import com.offbynull.peernetic.examples.raft.externalmessages.RetryResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.ElectionTimeout;
-import org.apache.commons.lang3.Validate;
+import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 
 // Running when in follower mode. This essentially sets up the election timeout. This subcoroutine should be recreated/restareted whenever
 // a new valid appendentries comes in, which in turn causes the election timeout to be restarted.
-final class FollowerSubcoroutine implements Subcoroutine<Void> {
+final class FollowerSubcoroutine extends AbstractRaftServerSubcoroutine {
 
-    private static final Address SUB_ADDRESS = Address.of(); // empty
-
-    private final ServerState state;
-    
-    private final Address timerAddress;
-    private final Address logAddress;
+    private ElectionTimeout timeoutObj;
 
     public FollowerSubcoroutine(ServerState state) {
-        Validate.notNull(state);
-        
-        this.state = state;
-        this.timerAddress = state.getTimerAddress();
-        this.logAddress = state.getLogAddress();
+        super(state);
     }
-    
+
     @Override
-    public Void run(Continuation cnt) throws Exception {
+    protected Mode main(Continuation cnt, ServerState state) throws Exception {
         Context ctx = (Context) cnt.getContext();
-        
-        ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Entering follower mode"));
-        
-        top:
+
+        Address logAddress = state.getLogAddress();
+        Address timerAddress = state.getTimerAddress();
+        Address graphAddress = state.getGraphAddress();
+        String selfLink = state.getSelfLinkId();
+
+        ctx.addOutgoingMessage(logAddress, debug("Entering follower mode"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: blue"));
+
+        // Set up initial timeout
+        timeoutObj = new ElectionTimeout();
+        int waitTime = state.nextElectionTimeout();
+        ctx.addOutgoingMessage(logAddress, debug("Election timeout waiting for {}ms", waitTime));
+        ctx.addOutgoingMessage(timerAddress.appendSuffix("" + waitTime), timeoutObj);
+
         while (true) {
-            // Set up timeout
-            ElectionTimeout timeoutObj = new ElectionTimeout();
-            int waitTime = state.nextElectionTimeout();
-            ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Election timeout waiting for {}ms", waitTime));
-            ctx.addOutgoingMessage(SUB_ADDRESS, timerAddress.appendSuffix("" + waitTime), timeoutObj);
+            cnt.suspend();
 
-            while (true) {
-                cnt.suspend();
+            Object msg = ctx.getIncomingMessage();
+            if (msg == timeoutObj) {
+                // The timeout has been hit without a heartbeat coming in. Switch to candidate mode and exit.
+                ctx.addOutgoingMessage(logAddress, debug("Election timeout elapsed, switching to candidate"));
 
-                Object msg = ctx.getIncomingMessage();
-                if (msg == timeoutObj) {
-                    // The timeout has been hit without a heartbeat coming in. Switch to candidate mode and exit.
-                    ctx.addOutgoingMessage(SUB_ADDRESS, logAddress, debug("Election timeout elapsed, switching to candidate"));
-                    
-                    state.setMode(CANDIDATE);
-                    return null;
-                }
+                return CANDIDATE;
             }
         }
     }
-    
+
     @Override
-    public Address getAddress() {
-        return SUB_ADDRESS;
+    protected Mode handleAppendEntriesRequest(Context ctx, AppendEntriesRequest req, ServerState state) throws Exception {
+        Mode ret = super.handleAppendEntriesRequest(ctx, req, state);
+
+        // we're already in follower mode, so don't bother returning return FOLLOWER (will force a new follower subcoroutine), but reset the
+        // election timeout
+        if (ret != FOLLOWER) {
+            return ret;
+        }
+
+        Address logAddress = state.getLogAddress();
+        Address timerAddress = state.getTimerAddress();
+
+        timeoutObj = new ElectionTimeout();
+        int waitTime = state.nextElectionTimeout();
+        ctx.addOutgoingMessage(logAddress, debug("Got heartbeat. Resetting electing timeout for {}ms", waitTime));
+        ctx.addOutgoingMessage(timerAddress.appendSuffix("" + waitTime), timeoutObj);
+
+        return null;
+    }
+
+    @Override
+    protected Mode handlePushEntryRequest(Context ctx, PushEntryRequest req, ServerState state) throws Exception {
+        Address src = ctx.getSource();
+        Address logAddress = state.getLogAddress();
+
+        String leaderLinkId = state.getVotedForLinkId();
+        if (leaderLinkId == null) {
+            ctx.addOutgoingMessage(logAddress, debug("Responding with retry (follower w/o leader)"));
+            ctx.addOutgoingMessage(src, new RetryResponse());
+        } else {
+            ctx.addOutgoingMessage(logAddress, debug("Responding with redirect to {}", leaderLinkId));
+            ctx.addOutgoingMessage(src, new RedirectResponse(leaderLinkId));
+        }
+
+        return null;
+    }
+
+    @Override
+    protected Mode handlePullEntryRequest(Context ctx, PullEntryRequest req, ServerState state) throws Exception {
+        Address src = ctx.getSource();
+        Address logAddress = state.getLogAddress();
+
+        String leaderLinkId = state.getVotedForLinkId();
+        if (leaderLinkId == null) {
+            ctx.addOutgoingMessage(logAddress, debug("Responding with retry (follower w/o leader)"));
+            ctx.addOutgoingMessage(src, new RetryResponse());
+        } else {
+            ctx.addOutgoingMessage(logAddress, debug("Responding with redirect to {}", leaderLinkId));
+            ctx.addOutgoingMessage(src, new RedirectResponse(leaderLinkId));
+        }
+
+        return null;
     }
 }

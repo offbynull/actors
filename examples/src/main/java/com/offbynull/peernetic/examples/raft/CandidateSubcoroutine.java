@@ -19,8 +19,6 @@ import java.time.Duration;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-// Should be running when in candidate mode. Attempts to ask for votes from other nodes and will switch mofr to leader if majority of votes
-// come in for this node.
 final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
 
     public CandidateSubcoroutine(ServerState state) {

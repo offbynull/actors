@@ -14,8 +14,6 @@ import com.offbynull.peernetic.examples.raft.externalmessages.RetryResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.ElectionTimeout;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 
-// Running when in follower mode. This essentially sets up the election timeout. This subcoroutine should be recreated/restareted whenever
-// a new valid appendentries comes in, which in turn causes the election timeout to be restarted.
 final class FollowerSubcoroutine extends AbstractRaftServerSubcoroutine {
 
     private ElectionTimeout timeoutObj;

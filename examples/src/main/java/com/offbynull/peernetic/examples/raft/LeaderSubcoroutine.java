@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-// Running when in leader mode. Maintains connections to followers and updates them as nessecary.
 final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
 
     private static final Address MSG_ROUTER_ADDRESS = Address.of("messager");

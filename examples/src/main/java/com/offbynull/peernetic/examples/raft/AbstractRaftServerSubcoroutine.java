@@ -177,10 +177,12 @@ abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
         String newVoterId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
         String oldVotedForId = state.getVotedForLinkId();
 
-        if (oldVotedForId != null) {
-            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+        if (!newVoterId.equals(oldVotedForId)) {
+            if (oldVotedForId != null) {
+                ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+            }
+            ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newVoterId));
         }
-        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newVoterId));
 
         state.setVotedForLinkId(newVoterId);
         
@@ -239,10 +241,12 @@ abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
 
         boolean voteGranted = false;
         if (votedForCondition && candidateLogUpToDateOrBetter) {
-            if (votedForLinkId != null) {
-                ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, votedForLinkId));
+            if (!candidateId.equals(votedForLinkId)) {
+                if (votedForLinkId != null) {
+                    ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, votedForLinkId));
+                }
+                ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, candidateId));
             }
-            ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, candidateId));
 
             state.setVotedForLinkId(candidateId);
 

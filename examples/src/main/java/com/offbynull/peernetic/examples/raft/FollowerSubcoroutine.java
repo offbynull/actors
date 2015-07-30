@@ -9,6 +9,8 @@ import static com.offbynull.peernetic.examples.raft.Mode.CANDIDATE;
 import com.offbynull.peernetic.examples.raft.internalmessages.ElectionTimeout;
 import org.apache.commons.lang3.Validate;
 
+// Running when in follower mode. This essentially sets up the election timeout. This subcoroutine should be recreated/restareted whenever
+// a new valid appendentries comes in, which in turn causes the election timeout to be restarted.
 final class FollowerSubcoroutine implements Subcoroutine<Void> {
 
     private static final Address SUB_ADDRESS = Address.of(); // empty

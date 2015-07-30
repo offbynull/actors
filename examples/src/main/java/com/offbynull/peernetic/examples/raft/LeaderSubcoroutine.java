@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
+// Running when in leader mode. Maintains connections to followers and updates them as nessecary.
 final class LeaderSubcoroutine implements Subcoroutine<Void> {
 
     private static final Address SUB_ADDRESS = Address.of(); // empty

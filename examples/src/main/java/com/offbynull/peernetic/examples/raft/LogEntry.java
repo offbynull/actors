@@ -1,6 +1,10 @@
 package com.offbynull.peernetic.examples.raft;
 
-public final class LogEntry {
+import java.io.Serializable;
+
+public final class LogEntry implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private final int term;
     private final Object value; // should actually be a command like SET/ADD/etc.., but we just set to value for simplicity
 

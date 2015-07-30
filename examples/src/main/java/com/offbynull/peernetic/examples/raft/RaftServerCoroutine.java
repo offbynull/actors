@@ -97,23 +97,9 @@ public final class RaftServerCoroutine implements Coroutine {
                     // If RPC request or response contains term T > currentTerm: set currentTerm = T, convert to follower (§5.1)
                     int term = aeReq.getTerm();
                     if (state.updateCurrentTerm(term)) {
-                        // No matter what state youre in, if you get a new appendentries (higher term that your current term), switch your
-                        // mode to follower mode (resets election timeout if already in follower mode) and assume that this is the node in
-                        // the server that's the leader. Otherwise, why would it be sending you appendentries?
                         state.setMode(FOLLOWER);
                         modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                         modeCoroutineRunner.execute(); // priming run
-                        
-                        Address baseSrc = src.removeSuffix(2); // actor:1:messager:-149223987249938403 -> actor:1
-                        String newVoterId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
-                        String oldVotedForId = state.getVotedForLinkId();
-                        
-                        if (oldVotedForId != null) {
-                            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
-                        }
-                        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newVoterId));
-                        
-                        state.setVotedForLinkId(newVoterId);
                     }
 
                     // 1. Reply false if  term < currentTerm
@@ -191,12 +177,23 @@ public final class RaftServerCoroutine implements Coroutine {
                     ctx.addOutgoingMessage(logAddress, debug("Responding with Term: {} / Success: {}", currentTerm, true));
                     ctx.addOutgoingMessage(src, new AppendEntriesResponse(currentTerm, true));
 
-                    // At this point you should already be in follower mode. But you want to recreate the FollowerSubcoroutine because it
-                    // controls the election timeout and since we got a successful appendentries, that electiontimeout timer should be
-                    // restarted
-                    state.setMode(FOLLOWER); // just incase
+                    // No matter what state youre in, if you get a new appendentries (>= to that ofyour current term), switch your mode to
+                    // follower mode (resets election timeout if already in follower mode) and assume that this is the node in
+                    // the server that's the leader. Otherwise, why would it be sending you appendentries? RAFT paper @ 5.2 paragraph 4
+                    state.setMode(FOLLOWER);
                     modeCoroutineRunner = createModeCoroutineRunner(ctx, selfLink, state);
                     modeCoroutineRunner.execute(); // priming run
+                    
+                    Address baseSrc = src.removeSuffix(2); // actor:1:messager:-149223987249938403 -> actor:1
+                    String newVoterId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
+                    String oldVotedForId = state.getVotedForLinkId();
+
+                    if (oldVotedForId != null) {
+                        ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+                    }
+                    ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newVoterId));
+
+                    state.setVotedForLinkId(newVoterId);
                 } else if (msg instanceof RequestVoteRequest) {
                     ctx.addOutgoingMessage(logAddress, debug("Received request vote from {}", src));
 

@@ -2,7 +2,6 @@ package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
-import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;

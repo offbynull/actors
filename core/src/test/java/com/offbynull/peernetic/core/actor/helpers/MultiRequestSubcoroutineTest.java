@@ -55,7 +55,7 @@ public class MultiRequestSubcoroutineTest {
                     .addDestination("3", Address.of("rcvr3"))
                     .addDestination("4", Address.of("rcvr4"))
                     .addDestination("5", Address.of("rcvr5"))
-                    .timerAddressPrefix(Address.of("timer"))
+                    .timerAddress(Address.of("timer"))
                     .addExpectedResponseType(String.class)
                     .build();
             List<Response<String>> resps = fixture.run(cnt);
@@ -87,7 +87,7 @@ public class MultiRequestSubcoroutineTest {
             MultiRequestSubcoroutine<String> fixture = new MultiRequestSubcoroutine.Builder<String>()
                     .address(Address.of("fakeid"))
                     .request("reqmsg")
-                    .timerAddressPrefix(Address.of("timer"))
+                    .timerAddress(Address.of("timer"))
                     .addExpectedResponseType(String.class)
                     .build();
             List<Response<String>> resps = fixture.run(cnt);

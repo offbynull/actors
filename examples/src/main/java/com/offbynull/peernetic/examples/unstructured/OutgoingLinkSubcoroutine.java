@@ -30,19 +30,13 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
     public OutgoingLinkSubcoroutine(
             Address subAddress,
-            Address graphAddress,
-            Address timerAddress,
-            Address logAddress,
             State state) {
         Validate.notNull(subAddress);
-        Validate.notNull(graphAddress);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(state);
         this.subAddress = subAddress;
-        this.graphAddress = graphAddress;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.graphAddress = state.getGraphAddress();
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.state = state;
     }
 
@@ -59,7 +53,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
         while (true) {
             new SleepSubcoroutine.Builder()
                     .address(subAddress.appendSuffix(state.nextRandomId()))
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
                     .run(cnt);
@@ -97,7 +91,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
                     .address(subAddress.appendSuffix(state.nextRandomId()))
                     .request(new LinkRequest())
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .destinationAddress(baseAddr.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                     .throwExceptionIfNoResponse(false)
                     .addExpectedResponseType(LinkSuccessResponse.class)
@@ -128,7 +122,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Waiting to refresh link to {}", outLinkId));
                 new SleepSubcoroutine.Builder()
                         .address(subAddress.appendSuffix(state.nextRandomId()))
-                        .timerAddressPrefix(timerAddress)
+                        .timerAddress(timerAddress)
                         .duration(Duration.ofSeconds(1L))
                         .build()
                         .run(cnt);
@@ -139,7 +133,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                         = new RequestSubcoroutine.Builder<LinkKeptAliveResponse>()
                         .address(subAddress.appendSuffix(state.nextRandomId()))
                         .request(new LinkKeepAliveRequest())
-                        .timerAddressPrefix(timerAddress)
+                        .timerAddress(timerAddress)
                         .destinationAddress(updateAddr)
                         .throwExceptionIfNoResponse(false)
                         .addExpectedResponseType(LinkKeptAliveResponse.class)

@@ -19,20 +19,15 @@ import org.apache.commons.lang3.Validate;
 final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
 
     private final Address subAddress;
-    private final Address timerAddress;
     private final Address logAddress;
     private final State state;
     private final Controller controller;
 
-    public IncomingMessageHandlerSubcoroutine(Address subAddress, Address timerAddress, Address logAddress, State state,
-            Controller controller) {
+    public IncomingMessageHandlerSubcoroutine(Address subAddress, State state, Controller controller) {
         Validate.notNull(subAddress);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(state);
         this.subAddress = subAddress;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.logAddress = state.getLogAddress();
         this.state = state;
         this.controller = controller;
     }
@@ -105,7 +100,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Added incoming link slot with id {}", reqSuffix));
                 ctx.addOutgoingMessage(subAddress, ctx.getSource(), new LinkSuccessResponse(reqSuffix));
 
-                controller.add(new IncomingLinkSubcoroutine(reqSuffix, timerAddress, logAddress, state), AddBehaviour.ADD_PRIME_NO_FINISH);
+                controller.add(new IncomingLinkSubcoroutine(reqSuffix, state), AddBehaviour.ADD_PRIME_NO_FINISH);
             }
         }
     }

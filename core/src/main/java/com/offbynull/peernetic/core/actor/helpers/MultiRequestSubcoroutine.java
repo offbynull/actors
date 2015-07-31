@@ -103,7 +103,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
                 .request(request)
                 .maxAttempts(maxAttempts)
                 .attemptInterval(attemptInterval)
-                .timerAddressPrefix(timerAddressPrefix)
+                .timerAddress(timerAddressPrefix)
                 .expectedResponseTypes(expectedResponseTypes)
                 .throwExceptionIfNoResponse(false);
         
@@ -257,7 +257,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
          * @param timerAddressPrefix timer gateway address
          * @return this builder
          */
-        public Builder<T> timerAddressPrefix(Address timerAddressPrefix) {
+        public Builder<T> timerAddress(Address timerAddressPrefix) {
             this.timerAddressPrefix = timerAddressPrefix;
             return this;
         }

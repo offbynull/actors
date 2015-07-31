@@ -11,7 +11,7 @@ public final class Start {
     private final String bootstrapLinkId;
     private final NodeId nodeId;
     private final long seed;
-    private final Address timerPrefix;
+    private final Address timerAddress;
     private final Address logAddress;
     private final Address graphAddress;
     
@@ -20,14 +20,14 @@ public final class Start {
             String bootstrapLinkId,
             NodeId nodeId,
             long seed,
-            Address timerPrefix,
+            Address timerAddress,
             Address graphAddress,
             Address logAddress) {
         Validate.notNull(addressTransformer);
         // bootstrapAddress can be null
         Validate.notNull(nodeId);
         Validate.notNull(seed);
-        Validate.notNull(timerPrefix);
+        Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
         
@@ -35,7 +35,7 @@ public final class Start {
         this.bootstrapLinkId = bootstrapLinkId;
         this.nodeId = nodeId;
         this.seed = seed;
-        this.timerPrefix = timerPrefix;
+        this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
     }
@@ -56,8 +56,8 @@ public final class Start {
         return seed;
     }
 
-    public Address getTimerPrefix() {
-        return timerPrefix;
+    public Address getTimerAddress() {
+        return timerAddress;
     }
 
     public Address getGraphAddress() {

@@ -27,16 +27,14 @@ final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
     
     private final NodeId findId;
 
-    public RouteToSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, NodeId findId) {
+    public RouteToSubcoroutine(Address subAddress, State state, NodeId findId) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(findId);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.findId = findId;
     }
 
@@ -133,7 +131,7 @@ final class RouteToSubcoroutine implements Subcoroutine<Pointer> {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

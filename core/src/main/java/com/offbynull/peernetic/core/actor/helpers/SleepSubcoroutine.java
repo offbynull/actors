@@ -96,7 +96,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * @param timerAddressPrefix timer gateway address
          * @return this builder
          */
-        public Builder timerAddressPrefix(Address timerAddressPrefix) {
+        public Builder timerAddress(Address timerAddressPrefix) {
             this.timerAddressPrefix = timerAddressPrefix;
             return this;
         }

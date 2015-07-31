@@ -23,15 +23,13 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     private final Address timerAddress;
     private final Address logAddress;
 
-    public FixFingerTableSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress) {
+    public FixFingerTableSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
     }
 
     @Override
@@ -103,7 +101,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
         new SleepSubcoroutine.Builder()
                 .address(subAddress)
                 .duration(duration)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .build()
                 .run(cnt);
     }
@@ -113,8 +111,6 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
         RouteToSuccessorSubcoroutine innerCoroutine = new RouteToSuccessorSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,
-                timerAddress,
-                logAddress,
                 findId);
         return innerCoroutine.run(cnt);
     }

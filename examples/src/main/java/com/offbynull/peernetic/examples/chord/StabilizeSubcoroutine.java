@@ -33,15 +33,13 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
     private final Address timerAddress;
     private final Address logAddress;
 
-    public StabilizeSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress) {
+    public StabilizeSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
     }
 
     @Override
@@ -154,7 +152,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
         new SleepSubcoroutine.Builder()
                 .address(subAddress)
                 .duration(duration)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .build()
                 .run(cnt);
     }
@@ -166,7 +164,7 @@ final class StabilizeSubcoroutine implements Subcoroutine<Void> {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .throwExceptionIfNoResponse(exceptionOnBadResponse)
                 .build();

@@ -12,7 +12,7 @@ public final class StartClient {
     private final int minElectionTimeout;
     private final int maxElectionTimeout;
     private final UnmodifiableSet<String> nodeLinks;
-    private final Address timerPrefix;
+    private final Address timerAddress;
     private final Address graphAddress;
     private final Address logAddress;
     
@@ -21,12 +21,12 @@ public final class StartClient {
             int minElectionTimeout,
             int maxElectionTimeout,
             Set<String> nodeLinks,
-            Address timerPrefix,
+            Address timerAddress,
             Address graphAddress,
             Address logAddress) {
         Validate.notNull(addressTransformer);
         // bootstrapAddress can be null
-        Validate.notNull(timerPrefix);
+        Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.isTrue(minElectionTimeout >= 0);
         Validate.isTrue(maxElectionTimeout >= 0);
@@ -35,7 +35,7 @@ public final class StartClient {
         this.minElectionTimeout = minElectionTimeout;
         this.maxElectionTimeout = maxElectionTimeout;
         this.nodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(nodeLinks));
-        this.timerPrefix = timerPrefix;
+        this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
     }
@@ -56,8 +56,8 @@ public final class StartClient {
         return nodeLinks;
     }
 
-    public Address getTimerPrefix() {
-        return timerPrefix;
+    public Address getTimerAddress() {
+        return timerAddress;
     }
 
     public Address getGraphAddress() {

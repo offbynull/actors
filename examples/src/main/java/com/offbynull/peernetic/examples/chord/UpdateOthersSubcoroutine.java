@@ -25,15 +25,13 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
     private final Address logAddress;
     private final Address timerAddress;
 
-    public UpdateOthersSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress) {
+    public UpdateOthersSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
     }
 
     @Override
@@ -115,8 +113,6 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
         RouteToSubcoroutine innerCoroutine = new RouteToSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,
-                timerAddress,
-                logAddress,
                 routerId);
         return innerCoroutine.run(cnt);
     }
@@ -129,7 +125,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
         new SleepSubcoroutine.Builder()
                 .address(subAddress)
                 .duration(duration)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .build()
                 .run(cnt);
     }
@@ -141,7 +137,7 @@ final class UpdateOthersSubcoroutine implements Subcoroutine<Void> {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .throwExceptionIfNoResponse(exceptionOnBadResponse)
                 .build();

@@ -29,18 +29,15 @@ final class InitRouteToCoroutine implements Coroutine {
 
     private ExternalPointer foundPointer;
 
-    public InitRouteToCoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, ExternalPointer bootstrapNode,
-            NodeId findId) {
+    public InitRouteToCoroutine(Address subAddress, State state, ExternalPointer bootstrapNode, NodeId findId) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(bootstrapNode);
         Validate.notNull(findId);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.findId = findId;
         this.bootstrapNode = bootstrapNode;
     }
@@ -112,7 +109,7 @@ final class InitRouteToCoroutine implements Coroutine {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

@@ -34,7 +34,7 @@ public class RequestSubcoroutineTest {
                     .address(Address.of("fakeid"))
                     .request("reqmsg")
                     .destinationAddress(Address.of("rcvr"))
-                    .timerAddressPrefix(Address.of("timer"))
+                    .timerAddress(Address.of("timer"))
                     .throwExceptionIfNoResponse(false)
                     .maxAttempts(1)
                     .attemptInterval(Duration.ZERO)
@@ -73,7 +73,7 @@ public class RequestSubcoroutineTest {
                     .address(Address.of("fakeid"))
                     .request("reqmsg")
                     .destinationAddress(Address.of("rcvr"))
-                    .timerAddressPrefix(Address.of("timer"))
+                    .timerAddress(Address.of("timer"))
                     .throwExceptionIfNoResponse(false)
                     .build();
             fixture.run(cnt);
@@ -113,7 +113,7 @@ public class RequestSubcoroutineTest {
                     .address(Address.of("fakeid"))
                     .request("reqmsg")
                     .destinationAddress(Address.of("rcvr"))
-                    .timerAddressPrefix(Address.of("timer"))
+                    .timerAddress(Address.of("timer"))
                     .throwExceptionIfNoResponse(false)
                     .addExpectedResponseType(String.class)
                     .build();

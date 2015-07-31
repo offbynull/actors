@@ -17,16 +17,14 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
     
     private final String bootstrapLinkId;
 
-    public JoinSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
+    public JoinSubcoroutine(Address subAddress, State state, String bootstrapLinkId) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
 //        Validate.notNull(bootstrapAddress); // can be null
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.bootstrapLinkId = bootstrapLinkId;
     }
 
@@ -67,8 +65,6 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         InitFingerTableSubcoroutine innerCoroutine = new InitFingerTableSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,
-                timerAddress,
-                logAddress,
                 initialLinkId);
         innerCoroutine.run(cnt);
     }

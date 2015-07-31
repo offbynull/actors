@@ -41,7 +41,7 @@ public final class RaftClientCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
         
         StartClient start = ctx.getIncomingMessage();
-        Address timerAddress = start.getTimerPrefix();
+        Address timerAddress = start.getTimerAddress();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         int maxAttempts = 5;
@@ -93,7 +93,7 @@ public final class RaftClientCoroutine implements Coroutine {
                 RequestSubcoroutine<Object> pushRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
                         .address(Address.of())
                         .request(pushReq)
-                        .timerAddressPrefix(timerAddress)
+                        .timerAddress(timerAddress)
                         .destinationAddress(dstAddress)
                         .maxAttempts(maxAttempts)
                         .attemptInterval(Duration.ofMillis(waitTimePerRequestAttempt))
@@ -147,7 +147,7 @@ public final class RaftClientCoroutine implements Coroutine {
                 RequestSubcoroutine<Object> pullRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
                         .address(Address.of())
                         .request(pullReq)
-                        .timerAddressPrefix(timerAddress)
+                        .timerAddress(timerAddress)
                         .destinationAddress(dstAddress)
                         .maxAttempts(maxAttempts)
                         .attemptInterval(Duration.ofMillis(waitTimePerRequestAttempt))

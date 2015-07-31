@@ -26,16 +26,14 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
     
     private final String bootstrapLinkId;
 
-    public InitFingerTableSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, String bootstrapLinkId) {
+    public InitFingerTableSubcoroutine(Address subAddress, State state, String bootstrapLinkId) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(bootstrapLinkId);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.bootstrapLinkId = bootstrapLinkId;
     }
 
@@ -97,7 +95,7 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);
@@ -111,8 +109,6 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
         InitRouteToSuccessorSubcoroutine innerCoroutine = new InitRouteToSuccessorSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,
-                timerAddress,
-                logAddress,
                 bootstrapNode,
                 findId);
         return innerCoroutine.run(cnt);

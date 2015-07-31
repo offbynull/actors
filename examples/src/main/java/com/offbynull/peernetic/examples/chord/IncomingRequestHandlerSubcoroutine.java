@@ -32,13 +32,12 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
     private final Address logAddress;
 
-    public IncomingRequestHandlerSubcoroutine(Address subAddress, State state, Address logAddress) {
+    public IncomingRequestHandlerSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(logAddress);
         this.subAddress = subAddress;
         this.state = state;
-        this.logAddress = logAddress;
+        this.logAddress = state.getLogAddress();
     }
 
     @Override

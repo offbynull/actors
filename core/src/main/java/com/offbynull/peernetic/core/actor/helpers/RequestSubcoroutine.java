@@ -196,7 +196,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @param timerAddressPrefix timer gateway address
          * @return this builder
          */
-        public Builder<T> timerAddressPrefix(Address timerAddressPrefix) {
+        public Builder<T> timerAddress(Address timerAddressPrefix) {
             this.timerAddressPrefix = timerAddressPrefix;
             return this;
         }

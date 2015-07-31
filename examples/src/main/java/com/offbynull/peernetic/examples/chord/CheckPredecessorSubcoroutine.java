@@ -22,13 +22,12 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
     private final State state;
     private final Address timerAddress;
 
-    public CheckPredecessorSubcoroutine(Address subAddress, State state, Address timerAddress) {
+    public CheckPredecessorSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
+        this.timerAddress = state.getTimerAddress();
     }
 
     @Override
@@ -77,7 +76,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
         new SleepSubcoroutine.Builder()
                 .address(subAddress)
                 .duration(duration)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .build()
                 .run(cnt);
     }
@@ -89,7 +88,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

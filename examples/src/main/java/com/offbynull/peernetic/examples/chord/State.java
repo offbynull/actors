@@ -7,11 +7,16 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class State {
+    
+    private final Address timerAddress;
+    private final Address graphAddress;
+    private final Address logAddress;
     
     private final Random random;
     private int counter = 0;
@@ -24,12 +29,36 @@ final class State {
     
     private final AddressTransformer addressTransformer;
     
-    public State(long seed, NodeId selfId, AddressTransformer addressTransformer) {
+    public State(
+            Address timerAddress,
+            Address graphAddress,
+            Address logAddress,
+            long seed,
+            NodeId selfId,
+            AddressTransformer addressTransformer) {
+        Validate.notNull(timerAddress);
+        Validate.notNull(graphAddress);
+        Validate.notNull(logAddress);
         Validate.notNull(selfId);
         Validate.notNull(addressTransformer);
+        this.timerAddress = timerAddress;
+        this.graphAddress = graphAddress;
+        this.logAddress = logAddress;
         random = new Random(seed);
         this.selfId = selfId;
         this.addressTransformer = addressTransformer;
+    }
+
+    public Address getTimerAddress() {
+        return timerAddress;
+    }
+
+    public Address getGraphAddress() {
+        return graphAddress;
+    }
+
+    public Address getLogAddress() {
+        return logAddress;
     }
 
     public String nextRandomId() {

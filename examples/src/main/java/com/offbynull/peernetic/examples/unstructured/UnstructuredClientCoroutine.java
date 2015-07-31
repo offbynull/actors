@@ -27,7 +27,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
 
         Start start = ctx.getIncomingMessage();
-        Address timerAddress = start.getTimerPrefix();
+        Address timerAddress = start.getTimerAddress();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         UnmodifiableSet<String> bootstrapLinks = start.getBootstrapLinks();
@@ -36,7 +36,7 @@ public final class UnstructuredClientCoroutine implements Coroutine {
 
         Random random = new Random(seed);
 
-        State state = new State(seed, 3, 4, 256, bootstrapLinks, addressTransformer);
+        State state = new State(timerAddress, graphAddress, logAddress, seed, 3, 4, 256, bootstrapLinks, addressTransformer);
 
         ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapLinks));
         ctx.addOutgoingMessage(graphAddress, new AddNode(addressTransformer.selfAddressToLinkId(ctx.getSelf())));
@@ -55,8 +55,6 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         ctx.addOutgoingMessage(logAddress, debug("Adding handler"));
         controller.add(new IncomingMessageHandlerSubcoroutine(
                         ROUTER_HANDLER_RELATIVE_ADDRESS,
-                        timerAddress,
-                        logAddress,
                         state,
                         controller),
                 AddBehaviour.ADD_PRIME_NO_FINISH);
@@ -65,8 +63,6 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         ctx.addOutgoingMessage(logAddress, debug("Adding querier"));
         controller.add(new OutgoingQuerySubcoroutine(
                         ROUTER_QUERIER_RELATIVE_ADDRESS,
-                        timerAddress,
-                        logAddress,
                         state),
                 AddBehaviour.ADD_PRIME_NO_FINISH);
         
@@ -78,9 +74,6 @@ public final class UnstructuredClientCoroutine implements Coroutine {
             controller.add(
                     new OutgoingLinkSubcoroutine(
                             routerOutLinkRelativeAddress,
-                            graphAddress,
-                            timerAddress,
-                            logAddress,
                             state),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
         }

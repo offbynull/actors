@@ -38,7 +38,7 @@ public final class ChordClientCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
 
         Start start = ctx.getIncomingMessage();
-        Address timerPrefix = start.getTimerPrefix();
+        Address timerAddress = start.getTimerAddress();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         NodeId selfId = start.getNodeId();
@@ -50,10 +50,10 @@ public final class ChordClientCoroutine implements Coroutine {
 
         Set<GraphLink> lastOutgoingLinks = new HashSet<>();
         try {
-            State state = new State(seed, selfId, addressTransformer);
+            State state = new State(timerAddress, graphAddress, logAddress, seed, selfId, addressTransformer);
 
             // Join (or just initialize if no bootstrap node is set)
-            JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, timerPrefix, logAddress, bootstrapLinkId);
+            JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, bootstrapLinkId);
             joinTask.run(cnt);
 
             switchToReadyOnGraph(ctx, selfId, graphAddress);
@@ -64,19 +64,19 @@ public final class ChordClientCoroutine implements Coroutine {
             Controller controller = router.getController();
 
             controller.add(
-                    new UpdateOthersSubcoroutine(ROUTER_UPDATEOTHERS_RELATIVE_ADDRESS, state, timerPrefix, logAddress),
+                    new UpdateOthersSubcoroutine(ROUTER_UPDATEOTHERS_RELATIVE_ADDRESS, state),
                     AddBehaviour.ADD_PRIME);
             controller.add(
-                    new FixFingerTableSubcoroutine(ROUTER_FIXFINGER_RELATIVE_ADDRESS, state, timerPrefix, logAddress),
+                    new FixFingerTableSubcoroutine(ROUTER_FIXFINGER_RELATIVE_ADDRESS, state),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new StabilizeSubcoroutine(ROUTER_STABILIZE_RELATIVE_ADDRESS, state, timerPrefix, logAddress),
+                    new StabilizeSubcoroutine(ROUTER_STABILIZE_RELATIVE_ADDRESS, state),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new CheckPredecessorSubcoroutine(ROUTER_CHECKPRED_RELATIVE_ADDRESS, state, timerPrefix),
+                    new CheckPredecessorSubcoroutine(ROUTER_CHECKPRED_RELATIVE_ADDRESS, state),
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
-                    new IncomingRequestHandlerSubcoroutine(ROUTER_HANDLER_RELATIVE_ADDRESS, state, logAddress),
+                    new IncomingRequestHandlerSubcoroutine(ROUTER_HANDLER_RELATIVE_ADDRESS, state),
                     AddBehaviour.ADD);
 
             // Process messages

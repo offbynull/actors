@@ -29,7 +29,7 @@ public final class RaftServerCoroutine implements Coroutine {
         Context ctx = (Context) cnt.getContext();
 
         StartServer start = ctx.getIncomingMessage();
-        Address timerAddress = start.getTimerPrefix();
+        Address timerAddress = start.getTimerAddress();
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         int minElectionTimeout = start.getMinElectionTimeout();

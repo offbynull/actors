@@ -14,7 +14,7 @@ public final class StartServer {
     private final int maxElectionTimeout;
     private final UnmodifiableSet<String> nodeLinks;
     private final long seed;
-    private final Address timerPrefix;
+    private final Address timerAddress;
     private final Address graphAddress;
     private final Address logAddress;
     
@@ -24,12 +24,12 @@ public final class StartServer {
             int maxElectionTimeout,
             Set<String> nodeLinks,
             long seed,
-            Address timerPrefix,
+            Address timerAddress,
             Address graphAddress,
             Address logAddress) {
         Validate.notNull(addressTransformer);
         // bootstrapAddress can be null
-        Validate.notNull(timerPrefix);
+        Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.isTrue(minElectionTimeout >= 0);
         Validate.isTrue(maxElectionTimeout >= 0);
@@ -39,7 +39,7 @@ public final class StartServer {
         this.maxElectionTimeout = maxElectionTimeout;
         this.nodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(nodeLinks));
         this.seed = seed;
-        this.timerPrefix = timerPrefix;
+        this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
     }
@@ -64,8 +64,8 @@ public final class StartServer {
         return seed;
     }
 
-    public Address getTimerPrefix() {
-        return timerPrefix;
+    public Address getTimerAddress() {
+        return timerAddress;
     }
 
     public Address getGraphAddress() {

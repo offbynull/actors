@@ -14,6 +14,10 @@ import org.apache.commons.lang3.Validate;
 
 final class State {
 
+    private final Address timerAddress;
+    private final Address graphAddress;
+    private final Address logAddress;
+    
     private final Random random;
     private final int maxIncomingLinks;
     private final int maxOutgoingLinks;
@@ -27,12 +31,18 @@ final class State {
     private final AddressTransformer addressTransformer;
 
     public State(
+            Address timerAddress,
+            Address graphAddress,
+            Address logAddress,
             long seed,
             int maxIncomingLinks,
             int maxOutgoingLinks,
             int maxCachedAddresses,
             Set<String> bootstrapLinkIds,
             AddressTransformer addressTransformer) {
+        Validate.notNull(timerAddress);
+        Validate.notNull(graphAddress);
+        Validate.notNull(logAddress);
         Validate.notNull(bootstrapLinkIds);
         Validate.notNull(addressTransformer);
         Validate.noNullElements(bootstrapLinkIds);
@@ -40,6 +50,9 @@ final class State {
         Validate.isTrue(maxOutgoingLinks >= 0);
         Validate.isTrue(maxCachedAddresses >= 0);
         Validate.isTrue(bootstrapLinkIds.size() <= maxCachedAddresses);
+        this.timerAddress = timerAddress;
+        this.graphAddress = graphAddress;
+        this.logAddress = logAddress;
         random = new Random(seed);
         this.maxIncomingLinks = maxIncomingLinks;
         this.maxOutgoingLinks = maxOutgoingLinks;
@@ -51,6 +64,18 @@ final class State {
         this.addressCache.addAll(bootstrapLinkIds);
         
         this.addressTransformer = addressTransformer;
+    }
+
+    public Address getTimerAddress() {
+        return timerAddress;
+    }
+
+    public Address getGraphAddress() {
+        return graphAddress;
+    }
+
+    public Address getLogAddress() {
+        return logAddress;
     }
 
     public String nextRandomId() {

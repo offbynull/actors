@@ -56,7 +56,7 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
             int waitTimePerAttempt = totalWaitTime / attempts; // divide by n attempts
             String multiReqId = state.nextRandomId();
             MultiRequestSubcoroutine.Builder<RequestVoteResponse> builder = new MultiRequestSubcoroutine.Builder<RequestVoteResponse>()
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .attemptInterval(Duration.ofMillis(waitTimePerAttempt))
                     .maxAttempts(5)
                     .request(req)

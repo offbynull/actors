@@ -30,16 +30,14 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
     private final NodeId findId;
     private Pointer found;
 
-    public RouteToSuccessorSubcoroutine(Address subAddress, State state, Address timerAddress, Address logAddress, NodeId findId) {
+    public RouteToSuccessorSubcoroutine(Address subAddress, State state, NodeId findId) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(findId);
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.findId = findId;
     }
     
@@ -123,8 +121,6 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
         RouteToSubcoroutine innerCoroutine = new RouteToSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,
-                timerAddress,
-                logAddress,
                 findId);
         return innerCoroutine.run(cnt);
     }
@@ -136,7 +132,7 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
                 .address(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
-                .timerAddressPrefix(timerAddress)
+                .timerAddress(timerAddress)
                 .addExpectedResponseType(expectedResponseClass)
                 .build();
         return requestSubcoroutine.run(cnt);

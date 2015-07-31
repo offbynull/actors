@@ -81,7 +81,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
             Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .attemptInterval(Duration.ofMillis(waitTimePerAttempt))
                     .maxAttempts(5)
                     .request(req)
@@ -127,7 +127,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
             Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .attemptInterval(Duration.ofMillis(waitTimePerAttempt))
                     .maxAttempts(5)
                     .request(req)

@@ -12,7 +12,7 @@ public final class Start {
     private final AddressTransformer addressTransformer;
     private final UnmodifiableSet<String> bootstrapLinks;
     private final long seed;
-    private final Address timerPrefix;
+    private final Address timerAddress;
     private final Address graphAddress;
     private final Address logAddress;
     
@@ -20,12 +20,12 @@ public final class Start {
             AddressTransformer addressTransformer,
             String bootstrapLink,
             long seed,
-            Address timerPrefix,
+            Address timerAddress,
             Address graphAddress,
             Address logAddress) {
         Validate.notNull(addressTransformer);
         // bootstrapAddress can be null
-        Validate.notNull(timerPrefix);
+        Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         this.addressTransformer = addressTransformer;
         Set<String> bootstrapLinkSet = new LinkedHashSet<>();
@@ -34,7 +34,7 @@ public final class Start {
         }
         this.bootstrapLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(bootstrapLinkSet);
         this.seed = seed;
-        this.timerPrefix = timerPrefix;
+        this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
     }
@@ -51,8 +51,8 @@ public final class Start {
         return seed;
     }
 
-    public Address getTimerPrefix() {
-        return timerPrefix;
+    public Address getTimerAddress() {
+        return timerAddress;
     }
 
     public Address getGraphAddress() {

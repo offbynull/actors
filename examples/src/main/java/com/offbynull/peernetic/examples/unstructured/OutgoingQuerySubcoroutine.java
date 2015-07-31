@@ -22,14 +22,12 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
     private final Address logAddress;
     private final State state;
 
-    public OutgoingQuerySubcoroutine(Address subAddress, Address timerAddress, Address logAddress, State state) {
+    public OutgoingQuerySubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(state);
         this.subAddress = subAddress;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.state = state;
     }
 
@@ -45,7 +43,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
         while (true) {
             new SleepSubcoroutine.Builder()
                     .address(subAddress.appendSuffix(state.nextRandomId()))
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
                     .run(cnt);
@@ -63,7 +61,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
             RequestSubcoroutine<QueryResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<QueryResponse>()
                     .address(subAddress.appendSuffix(state.nextRandomId()))
                     .request(request)
-                    .timerAddressPrefix(timerAddress)
+                    .timerAddress(timerAddress)
                     .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                     .throwExceptionIfNoResponse(false)
                     .addExpectedResponseType(QueryResponse.class)

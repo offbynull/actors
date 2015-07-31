@@ -18,14 +18,12 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
     private final Address logAddress;
     private final State state;
 
-    public IncomingLinkSubcoroutine(Address subAddress, Address timerAddress, Address logAddress, State state) {
+    public IncomingLinkSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
-        Validate.notNull(timerAddress);
-        Validate.notNull(logAddress);
         Validate.notNull(state);
         this.subAddress = subAddress;
-        this.timerAddress = timerAddress;
-        this.logAddress = logAddress;
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
         this.state = state;
     }
 
@@ -82,7 +80,7 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
                         Address updaterSuffix = updaterSourceAddress.removeSuffix(1).removePrefix(updaterRootSourceAddress);
                         
                         if (updaterLinkId.equals(initiatorLinkId) && initiatorSuffix.equals(updaterSuffix)) {
-                            ctx.addOutgoingMessage(ctx.getSource(), new LinkKeptAliveResponse());
+                            ctx.addOutgoingMessage(subAddress, ctx.getSource(), new LinkKeptAliveResponse());
                             ctx.addOutgoingMessage(subAddress, logAddress, info("Keepalive arrive from {}", updaterLinkId));
                             break;
                         }

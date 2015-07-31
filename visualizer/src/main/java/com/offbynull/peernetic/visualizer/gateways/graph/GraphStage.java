@@ -61,6 +61,7 @@ final class GraphStage extends Stage {
         generators.put(AddNode.class, this::generateAddNodeCode);
         generators.put(MoveNode.class, this::generateMoveNodeCode);
         generators.put(StyleNode.class, this::generateStyleNodeCode);
+        generators.put(LabelNode.class, this::generateLabelNodeCode);
         generators.put(RemoveNode.class, this::generateRemoveNodeCode);
         generators.put(AddEdge.class, this::generateAddEdgeCode);
         generators.put(StyleEdge.class, this::generateStyleEdgeCode);
@@ -160,6 +161,21 @@ final class GraphStage extends Stage {
             Validate.isTrue(label != null, "Node %s cannot be styled because it doesn't exist", id);
             
             label.setStyle(style);
+        };
+    }
+    
+    private Runnable generateLabelNodeCode(Object msg) {
+        Validate.notNull(msg);
+        LabelNode labelNode = (LabelNode) msg;
+        
+        String id = labelNode.getId();
+        String labelStr = labelNode.getLabel();
+
+        return () -> {
+            Label label = nodes.get(id);
+            Validate.isTrue(label != null, "Node %s cannot be labeled because it doesn't exist", id);
+            
+            label.setText(labelStr);
         };
     }
 

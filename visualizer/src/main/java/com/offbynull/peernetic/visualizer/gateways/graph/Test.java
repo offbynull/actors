@@ -47,6 +47,7 @@ public final class Test {
             
             // Create graph g1
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddNode("n1"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new LabelNode("n1", "new label for\n\nn1"));
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new MoveNode("n1", 0.0, 0.0));
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new StyleNode("n1", "-fx-background-color: orange"));
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g1"), new AddNode("n2"));

@@ -193,7 +193,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
         state.addLogEntries(new LogEntry(term, value));
         int index = state.getLastLogIndex();
         ctx.addOutgoingMessage(logAddress, debug("Responding with success {}/{}", term, index));
-        ctx.addOutgoingMessage(src, new PushEntryResponse(term, index));
+        ctx.addOutgoingMessage(src, new PushEntryResponse(index, term));
         
         return null;
     }

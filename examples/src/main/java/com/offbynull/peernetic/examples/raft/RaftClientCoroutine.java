@@ -16,6 +16,7 @@ import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryResponse;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartClient;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
+import com.offbynull.peernetic.visualizer.gateways.graph.LabelNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
@@ -24,6 +25,16 @@ import java.time.Duration;
 import java.util.LinkedList;
 
 public final class RaftClientCoroutine implements Coroutine {
+    
+    private static final String NODE_LABEL_FORMAT = "%s\n"
+            + "\n"
+            + "readval:%s\n"
+            + "readidx:%d\n"
+            + "readterm:%d\n"
+            + "\n"
+            + "writeval:%s\n"
+            + "writeidx:%d\n"
+            + "writeterm:%d";
 
     @Override
     public void run(Continuation cnt) throws Exception {
@@ -50,6 +61,14 @@ public final class RaftClientCoroutine implements Coroutine {
         
         try {
             int nextWriteValue = 1000;
+            
+            Object lastWriteValue = null;
+            int lastWriteIndex = -1;
+            int lastWriteTerm = -1;
+            Object lastReadValue = null;
+            int lastReadIndex = -1;
+            int lastReadTerm = -1;
+            
             while (true) {
                 ctx.addOutgoingMessage(logAddress, debug("Waiting 1 second"));
                 
@@ -101,6 +120,18 @@ public final class RaftClientCoroutine implements Coroutine {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, leader changed {}", writeValue, leaderLinkId));
                     continue;
                 } else if (pushResp instanceof PushEntryResponse) {
+                    PushEntryResponse msg = (PushEntryResponse) pushResp;
+                    lastWriteValue = writeValue;
+                    lastWriteIndex = msg.getIndex();
+                    lastWriteTerm = msg.getTerm();
+                    ctx.addOutgoingMessage(graphAddress, new LabelNode(selfLink, String.format(NODE_LABEL_FORMAT,
+                            selfLink,
+                            lastReadValue,
+                            lastReadIndex,
+                            lastReadTerm,
+                            lastWriteValue,
+                            lastWriteIndex,
+                            lastWriteTerm)));
                     ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
                     ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, leaderLinkId));
                     ctx.addOutgoingMessage(logAddress, debug("Successfully pushed log entry {}", writeValue));
@@ -143,12 +174,21 @@ public final class RaftClientCoroutine implements Coroutine {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry {}, leader changed {}", writeValue, leaderLinkId));
                     continue;
                 } else {
+                    PullEntryResponse msg = (PullEntryResponse) pullResp;
+                    lastReadValue = msg.getValue();
+                    lastReadIndex = msg.getIndex();
+                    lastReadTerm = msg.getTerm();
                     ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
                     ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, leaderLinkId));
-                    PullEntryResponse msg = (PullEntryResponse) pullResp;
-                    Object readValue = msg.getValue();
-                    int idx = msg.getIndex();
-                    ctx.addOutgoingMessage(logAddress, debug("Successfully pulled log entry {} at index {}", readValue, idx));
+                    ctx.addOutgoingMessage(graphAddress, new LabelNode(selfLink, String.format(NODE_LABEL_FORMAT,
+                            selfLink,
+                            lastReadValue,
+                            lastReadIndex,
+                            lastReadTerm,
+                            lastWriteValue,
+                            lastWriteIndex,
+                            lastWriteTerm)));
+                    ctx.addOutgoingMessage(logAddress, debug("Successfully pulled log entry {} at index {}", lastReadValue, lastReadIndex));
                 }
             }
         } finally {

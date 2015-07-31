@@ -163,11 +163,11 @@ public final class RaftClientCoroutine implements Coroutine {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry, no response"));
                     ctx.addOutgoingMessage(logAddress, debug("Leader changed {}", leaderLinkId));
                     continue;
-                } else if (pushResp instanceof RetryResponse) {
+                } else if (pullResp instanceof RetryResponse) {
                     ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry {}, bad state", writeValue));
                     continue;
-                } else if (pushResp instanceof RedirectResponse) {
-                    String newLeaderLinkId = ((RedirectResponse) pushResp).getLeaderLinkId();
+                } else if (pullResp instanceof RedirectResponse) {
+                    String newLeaderLinkId = ((RedirectResponse) pullResp).getLeaderLinkId();
                     ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
                     ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLink, newLeaderLinkId));
                     leaderLinkId = newLeaderLinkId;

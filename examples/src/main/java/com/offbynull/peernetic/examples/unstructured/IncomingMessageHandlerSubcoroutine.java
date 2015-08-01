@@ -92,7 +92,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 }
 
                 // add the new incominglinksubcoroutine and return success
-                reqSuffix = controller.getSourceId().appendSuffix("in" + keepAliveCounter);
+                reqSuffix = controller.getAddress().appendSuffix("in" + keepAliveCounter);
                 state.addIncomingLink(reqLinkId, reqSuffix);
 
                 keepAliveCounter++;

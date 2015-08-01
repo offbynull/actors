@@ -36,7 +36,7 @@ import org.apache.commons.lang3.Validate;
  * @param <T> response type
  */
 public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
-    private final Address id;
+    private final Address sourceAddress;
     private final Address destinationAddress;
     private final Address timerAddressPrefix;
     private final Object request;
@@ -47,29 +47,29 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
     private Object response;
     
     private RequestSubcoroutine(
-            Address id,
+            Address sourceAddress,
             Address destinationAddress,
-            Address timerAddressPrefix,
+            Address timerAddress,
             Object request,
             int maxAttempts,
             Duration attemptInterval,
             Set<Class<?>> expectedResponseTypes,
             boolean exceptionOnNoResponse) {
-        Validate.notNull(id);
+        Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(request);
-        Validate.notNull(timerAddressPrefix);
+        Validate.notNull(timerAddress);
         Validate.notNull(attemptInterval);
         Validate.notNull(expectedResponseTypes);
 //        Validate.isTrue(!id.isEmpty()); // can be empty, because its relative?
         Validate.isTrue(!destinationAddress.isEmpty());
-        Validate.isTrue(!timerAddressPrefix.isEmpty());
+        Validate.isTrue(!timerAddress.isEmpty());
         Validate.isTrue(maxAttempts > 0);
         Validate.isTrue(!attemptInterval.isNegative());
-        this.id = id;
+        this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;
         this.request = request;
-        this.timerAddressPrefix = timerAddressPrefix;
+        this.timerAddressPrefix = timerAddress;
         this.maxAttempts = maxAttempts;
         this.attemptInterval = attemptInterval;
         this.expectedResponseTypes = new HashSet<>(expectedResponseTypes);
@@ -86,11 +86,11 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
             Object timeoutMarker = new Object();
 
             ctx.addOutgoingMessage(
-                    id,
+                    sourceAddress,
                     destinationAddress,
                     request);
             ctx.addOutgoingMessage(
-                    id,
+                    sourceAddress,
                     timerAddressPrefix.appendSuffix("" + attemptInterval.toMillis()),
                     timeoutMarker);
             
@@ -143,7 +143,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
 
     @Override
     public Address getAddress() {
-        return id;
+        return sourceAddress;
     }
     
     /**
@@ -151,9 +151,9 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
      * @param <T> expected return type
      */
     public static final class Builder<T> {
-        private Address id;
+        private Address sourceAddress;
         private Address destinationAddress;
-        private Address timerAddressPrefix;
+        private Address timerAddress;
         private Object request;
         private int maxAttempts = 5;
         private Duration attemptInterval = Duration.ofSeconds(2L);
@@ -163,11 +163,11 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         /**
          * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
          * {@link Context#getSelf()}). Defaults to {@code null}.
-         * @param address relative address
+         * @param sourceAddress relative address
          * @return this builder
          */
-        public Builder<T> address(Address address) {
-            this.id = address;
+        public Builder<T> sourceAddress(Address sourceAddress) {
+            this.sourceAddress = sourceAddress;
             return this;
         }
 
@@ -193,11 +193,11 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
 
         /**
          * Set the address to {@link TimerGateway}. Defaults to {@code null}.
-         * @param timerAddressPrefix timer gateway address
+         * @param timerAddress timer gateway address
          * @return this builder
          */
-        public Builder<T> timerAddress(Address timerAddressPrefix) {
-            this.timerAddressPrefix = timerAddressPrefix;
+        public Builder<T> timerAddress(Address timerAddress) {
+            this.timerAddress = timerAddress;
             return this;
         }
 
@@ -259,10 +259,10 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
          * @return a new instance of {@link RequestSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
          * @throws IllegalArgumentException if {@code attemptInterval} parameter was set to a negative duration, or if {@code maxAttempts}
-         * was set to 0, or if either {@code address} or {@code destinationAddress} or {@code timeAddressPrefix} is set to empty
+         * was set to 0, or if either {@code destinationAddress} or {@code timeAddressPrefix} is set to empty
          */
         public RequestSubcoroutine<T> build() {
-            return new RequestSubcoroutine<>(id, destinationAddress, timerAddressPrefix, request, maxAttempts, attemptInterval,
+            return new RequestSubcoroutine<>(sourceAddress, destinationAddress, timerAddress, request, maxAttempts, attemptInterval,
                     expectedResponseTypes, throwExceptionIfNoResponse);
         }
     }

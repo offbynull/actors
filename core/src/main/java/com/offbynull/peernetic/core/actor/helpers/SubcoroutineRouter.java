@@ -57,7 +57,7 @@ public final class SubcoroutineRouter {
      * @param address relative address of this router (relative to the calling actor's self address)
      * @param context actor context
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code id} is empty
+     * @throws IllegalArgumentException if {@code address} is empty
      */
     public SubcoroutineRouter(Address address, Context context) {
         Validate.notNull(address);
@@ -241,8 +241,8 @@ public final class SubcoroutineRouter {
          * @param subcoroutine subcoroutine to add
          * @param addBehaviour add behaviour
          * @throws NullPointerException if any argument is {@code null}, or if {@code subcoroutine.getAddress()} returns {@code null}
-         * @throws IllegalArgumentException if a subcoroutine with this id already assigned to the owning router, or if the id of
-         * {@code subcoroutine} isn't a <b>direct</b> child of the owning router
+         * @throws IllegalArgumentException if another subcoroutine with {@code subcoroutine}'s address has already assigned to the owning
+         * router, or if the {@code subcoroutine}'s address isn't a <b>direct</b> child of the owning router
          * @throws IllegalStateException if {@code addBehaviour} was set to {@link AddBehaviour#ADD_PRIME_NO_FINISH}, but
          * {@code subcoroutine} finished after priming
          * @throws Exception if {@code subcoroutine} threw an exception while priming ({@code addBehaviour} has to be set to either
@@ -282,15 +282,15 @@ public final class SubcoroutineRouter {
         
         /**
          * Removes a subcoroutine from the router that owns this controller.
-         * @param id id of subcoroutine to remove
+         * @param address address of subcoroutine to remove (relative to actor)
          * @throws NullPointerException if any argument is {@code null}
-         * @throws IllegalArgumentException if a subcoroutine with this id is not assigned to the owning router, or if {@code id} isn't a
-         * <b>direct</b> child of the owning router
+         * @throws IllegalArgumentException if a subcoroutine with this address is not assigned to the owning router, or if {@code address}
+         * isn't a <b>direct</b> child of the owning router
          */
-        public void remove(Address id) {
-            Validate.notNull(id);
+        public void remove(Address address) {
+            Validate.notNull(address);
             
-            Address suffix = id.removePrefix(SubcoroutineRouter.this.address);
+            Address suffix = address.removePrefix(SubcoroutineRouter.this.address);
             Validate.isTrue(suffix.size() == 1);
             
             String key = suffix.getElement(0);
@@ -308,10 +308,11 @@ public final class SubcoroutineRouter {
         }
 
         /**
-         * Get the source id of the router that owns this controller.
-         * @return source id of router
+         * Get the address of the router that owns this controller. The address returned by this method must be relative to the calling
+         * actor's self address (relative to {@link Context#getSelf()}).
+         * @return relative address of router
          */
-        public Address getSourceId() {
+        public Address getAddress() {
             return SubcoroutineRouter.this.address;
         }
         

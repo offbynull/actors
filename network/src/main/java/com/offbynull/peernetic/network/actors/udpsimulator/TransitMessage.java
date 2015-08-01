@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.network.actors.udpsimulator;
 
+import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,7 +27,7 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class TransitMessage {
-    private Address sourceId;
+    private Address sourceAddress;
     private Address destinationAddress;
     private Object message;
     private Instant departTime;
@@ -35,15 +36,15 @@ public final class TransitMessage {
     /**
      * Constructs a {@link TransitMessage} instance.
      * @param message message
-     * @param sourceId source id of message
+     * @param sourceAddress relative source address of message (relative to calling actor)
      * @param destinationAddress destination address of message
      * @param departTime departure time
      * @param duration amount of time before reaching destination
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code destinationAddress} is empty, or if {@code duration} is negative
      */
-    public TransitMessage(Address sourceId, Address destinationAddress, Object message, Instant departTime, Duration duration) {
-        Validate.notNull(sourceId);
+    public TransitMessage(Address sourceAddress, Address destinationAddress, Object message, Instant departTime, Duration duration) {
+        Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         Validate.notNull(message);
         Validate.notNull(departTime);
@@ -51,7 +52,7 @@ public final class TransitMessage {
         Validate.isTrue(!duration.isNegative());
         // sourceId can be empty
         Validate.isTrue(!destinationAddress.isEmpty());
-        this.sourceId = sourceId;
+        this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;
         this.message = message;
         this.departTime = departTime;
@@ -67,11 +68,12 @@ public final class TransitMessage {
     }
 
     /**
-     * Get source id.
-     * @return source id
+     * Get source address. The address returned by this method is to the calling actor's self address (relative to
+     * {@link Context#getSelf()}).
+     * @return source address
      */
-    public Address getSourceId() {
-        return sourceId;
+    public Address getSourceAddress() {
+        return sourceAddress;
     }
 
     /**

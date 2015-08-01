@@ -89,7 +89,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             Address baseAddr = state.getAddressTransformer().linkIdToRemoteAddress(outLinkId);
             
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
-                    .address(subAddress.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
                     .request(new LinkRequest())
                     .timerAddress(timerAddress)
                     .destinationAddress(baseAddr.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
@@ -131,7 +131,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 
                 RequestSubcoroutine<LinkKeptAliveResponse> keepAliveRequestSubcoroutine
                         = new RequestSubcoroutine.Builder<LinkKeptAliveResponse>()
-                        .address(subAddress.appendSuffix(state.nextRandomId()))
+                        .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
                         .request(new LinkKeepAliveRequest())
                         .timerAddress(timerAddress)
                         .destinationAddress(updateAddr)

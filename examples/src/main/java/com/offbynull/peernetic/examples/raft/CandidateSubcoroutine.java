@@ -75,13 +75,13 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
                             return new IndividualResponseAction(true, false);
                         }
                     })
-                    .address(Address.of(multiReqId));
+                    .sourceAddress(Address.of(multiReqId));
 
             AddressTransformer addressTransformer = state.getAddressTransformer();
             for (String linkId : otherLinkIds) {
                 String msgId = state.nextRandomId();
                 Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId);
-                builder.addDestination(msgId, dstAddr);
+                builder.addDestinationAddress(msgId, dstAddr);
             }
 
             MultiRequestSubcoroutine<RequestVoteResponse> multiReq = builder.build();

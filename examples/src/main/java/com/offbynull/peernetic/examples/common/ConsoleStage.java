@@ -60,6 +60,7 @@ public final class ConsoleStage extends Stage {
 
         outputTextArea.setEditable(false);
         outputTextArea.setWrapText(false);
+        outputTextArea.setFocusTraversable(false);
 
         borderPane.setCenter(outputTextArea);
         borderPane.setBottom(inputTextField);

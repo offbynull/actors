@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.examples.chord.model;
 
-import com.offbynull.peernetic.core.shuttle.Address;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,31 +34,31 @@ import org.apache.commons.lang3.Validate;
  * Fingers that point to the base pointer show up for a contiguous range from
  * the entry after the last non-base entry (or 0 if there are no non-base
  * entries) all the way to the last entry in the finger table. For example:
- * <p/>
- * Imagine that you have just created a finger table and the base id is 0:<br/>
+ * <p>
+ * Imagine that you have just created a finger table and the base id is 0:<br>
  * [0, 0, 0, 0, 0, 0].
- * <p/>
- * You insert a finger with id 8:<br/>
+ * <p>
+ * You insert a finger with id 8:<br>
  * [8, 8, 8, 8, 0, 0].
- * <p/>
+ * <p>
  * </li>
  * <li>An inserted finger will propagate backwards until it finds an entry that
  * isn't the base entry and isn't the same id as the id being replaced, but is
  * greater than or equal to the expected id. For example:
- * <p/>
- * Imagine that you have just created a finger table and the base id is 0:<br/>
+ * <p>
+ * Imagine that you have just created a finger table and the base id is 0:<br>
  * [0, 0, 0, 0, 0, 0].
- * <p/>
- * You insert a finger with id 16:<br/>
+ * <p>
+ * You insert a finger with id 16:<br>
  * [16, 16, 16, 16, 16, 0].
- * <p/>
- * You insert a finger with id 2:<br/>
+ * <p>
+ * You insert a finger with id 2:<br>
  * [2, 2, 16, 16, 16, 0].
- * <p/>
- * You insert a finger with id 8:<br/>
+ * <p>
+ * You insert a finger with id 8:<br>
  * [2, 2, 8, 8, 16, 0].
- * <p/>
- * You insert a finger with id 4:<br/>
+ * <p>
+ * You insert a finger with id 4:<br>
  * [2, 2, 4, 8, 16, 0].
  * </li>
  * <li>A finger being removed will propagate backwards until it finds an entry
@@ -67,26 +66,26 @@ import org.apache.commons.lang3.Validate;
  * and isn't the same id as the id being removed. The replacement value for the
  * finger being removed will be the finger in front of it (or base if it's the
  * last finger and there are no other fingers in front of it). For example:
- * <p/>
- * Imagine that you have just created a finger table and the base id is 0:<br/>
+ * <p>
+ * Imagine that you have just created a finger table and the base id is 0:<br>
  * [0, 0, 0, 0, 0, 0].
- * <p/>
- * You insert a finger with id 16:<br/>
+ * <p>
+ * You insert a finger with id 16:<br>
  * [16, 16, 16, 16, 16, 0].
- * <p/>
- * You insert a finger with id 2:<br/>
+ * <p>
+ * You insert a finger with id 2:<br>
  * [2, 2, 16, 16, 16, 0].
- * <p/>
- * You insert a finger with id 8:<br/>
+ * <p>
+ * You insert a finger with id 8:<br>
  * [2, 2, 8, 8, 16, 0].
- * <p/>
- * You remove a finger with id 8:<br/>
+ * <p>
+ * You remove a finger with id 8:<br>
  * [2, 2, 16, 16, 16, 0].
- * <p/>
- * You remove a finger with id 16:<br/>
+ * <p>
+ * You remove a finger with id 16:<br>
  * [2, 2, 0, 0, 0, 0].
- * <p/>
- * You remove a finger with id 2:<br/>
+ * <p>
+ * You remove a finger with id 2:<br>
  * [0, 0, 0, 0, 0, 0].
  * </li>
  * </ol>
@@ -183,7 +182,7 @@ public final class FingerTable {
 
     /**
      * Puts a pointer in to the finger table. See the constraints / guarantees mentioned in the class Javadoc: {@link FingerTable}.
-     * <p/>
+     * <p>
      * This method automatically determines the correct position for the finger.  The old pointer in that finger will be replaced by
      * {@code ptr}.
      *
@@ -239,9 +238,9 @@ public final class FingerTable {
 
     /**
      * Replaces a pointer in to the finger table. Similar to
-     * {@link #put(com.offbynull.peernetic.demos.chord.messages.core.ExternalPointer)}, but makes sure that {@code ptr} is less than or
-     * equal to the expected id before putting it in.
-     * <p/>
+     * {@link #put(com.offbynull.peernetic.examples.chord.model.ExternalPointer)}, but makes sure that {@code ptr} is less than or equal to
+     * the expected id before putting it in.
+     * <p>
      * For example, imagine a finger table for a base pointer with an id of 0 and a bit count of 3. This is what the initial table would
      * look like...
      * <pre>

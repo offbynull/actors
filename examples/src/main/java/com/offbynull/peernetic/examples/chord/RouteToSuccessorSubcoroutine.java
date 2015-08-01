@@ -129,7 +129,7 @@ final class RouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .address(subAddress.appendSuffix(state.nextRandomId()))
+                .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddress(timerAddress)

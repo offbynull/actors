@@ -21,6 +21,7 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.Response;
 import static com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour.ADD_PRIME_NO_FINISH;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.ForwardResult;
+import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -44,8 +45,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
  * @param <T> response type
  */
 public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Response<T>>> {
-    private final Address id;
-    private final Address timerAddressPrefix;
+    private final Address sourceAddress;
+    private final Address timerAddress;
     private final Object request;
     private final int maxAttempts;
     private final Duration attemptInterval;
@@ -55,33 +56,33 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
     private final Map<String, Address> destinations; // key = unique source address suffix, value = destination address
     
     private MultiRequestSubcoroutine(
-            Address id,
+            Address sourceAddress,
             Map<String, Address> destinations,
-            Address timerAddressPrefix,
+            Address timerAddress,
             Object request,
             int maxAttempts,
             Duration attemptInterval,
             Set<Class<?>> expectedResponseTypes,
             IndividualResponseListener<T> individualResponseListener) {
-        Validate.notNull(id);
+        Validate.notNull(sourceAddress);
         Validate.notNull(destinations);
         Validate.notNull(request);
-        Validate.notNull(timerAddressPrefix);
+        Validate.notNull(timerAddress);
         Validate.notNull(attemptInterval);
         Validate.notNull(expectedResponseTypes);
         Validate.notNull(individualResponseListener);
-        Validate.isTrue(!id.isEmpty());
+//        Validate.isTrue(!sourceAddress.isEmpty()); // can be empty, because it's relative?
         destinations.entrySet().forEach(x -> {
             Validate.notNull(x.getKey());
             Validate.notNull(x.getValue());
         });
-        Validate.isTrue(!timerAddressPrefix.isEmpty());
+        Validate.isTrue(!timerAddress.isEmpty());
         Validate.isTrue(maxAttempts > 0);
         Validate.isTrue(!attemptInterval.isNegative());
-        this.id = id;
+        this.sourceAddress = sourceAddress;
         this.destinations = new HashMap<>(destinations);
         this.request = request;
-        this.timerAddressPrefix = timerAddressPrefix;
+        this.timerAddress = timerAddress;
         this.maxAttempts = maxAttempts;
         this.attemptInterval = attemptInterval;
         this.expectedResponseTypes = new HashSet<>(expectedResponseTypes);
@@ -96,14 +97,14 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
             return new ArrayList<>();
         }
         
-        Address routerAddress = id.appendSuffix("mrsr"); // mrsr = multirequestsubcoroutinerouter
+        Address routerAddress = sourceAddress.appendSuffix("mrsr"); // mrsr = multirequestsubcoroutinerouter
         SubcoroutineRouter router = new SubcoroutineRouter(routerAddress, ctx);
         
         RequestSubcoroutine.Builder<T> baseRequestBuilder = new RequestSubcoroutine.Builder<T>()
                 .request(request)
                 .maxAttempts(maxAttempts)
                 .attemptInterval(attemptInterval)
-                .timerAddress(timerAddressPrefix)
+                .timerAddress(timerAddress)
                 .expectedResponseTypes(expectedResponseTypes)
                 .throwExceptionIfNoResponse(false);
         
@@ -111,7 +112,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         for (Entry<String, Address> destinationEntry : destinations.entrySet()) {
             String uniqueSourceAddressSuffix = destinationEntry.getKey();
             RequestSubcoroutine<T> requestSubcoroutine = baseRequestBuilder
-                    .address(routerAddress.appendSuffix(uniqueSourceAddressSuffix))
+                    .sourceAddress(routerAddress.appendSuffix(uniqueSourceAddressSuffix))
                     .destinationAddress(destinationEntry.getValue())
                     .build();
             router.getController().add(requestSubcoroutine, ADD_PRIME_NO_FINISH);
@@ -158,7 +159,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
     
     @Override
     public Address getAddress() {
-        return id;
+        return sourceAddress;
     }
 
     /**
@@ -211,9 +212,9 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
      * @param <T> expected return type
      */
     public static final class Builder<T> {
-        private Address id;
-        private List<ImmutablePair<String, Address>> destinations = new ArrayList<>();
-        private Address timerAddressPrefix;
+        private Address sourceAddress;
+        private List<ImmutablePair<String, Address>> destinationAddresses = new ArrayList<>();
+        private Address timerAddress;
         private Object request;
         private int maxAttempts = 5;
         private Duration attemptInterval = Duration.ofSeconds(2L);
@@ -221,13 +222,13 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         private IndividualResponseListener<T> individualResponseListener = new DefaultIndividualResponseListener<>();
 
         /**
-         * Set the address. The address set by this method must be relative to the calling actor's self address (relative to
+         * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
          * {@link Context#getSelf()}). Defaults to {@code null}.
-         * @param address relative address
+         * @param sourceAddress relative source address
          * @return this builder
          */
-        public Builder<T> address(Address address) {
-            this.id = address;
+        public Builder<T> sourceAddress(Address sourceAddress) {
+            this.sourceAddress = sourceAddress;
             return this;
         }
 
@@ -237,8 +238,8 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
          * @param destinationAddress destination address
          * @return this builder
          */
-        public Builder<T> addDestination(String uniqueSourceAddressSuffix, Address destinationAddress) {
-            destinations.add(new ImmutablePair<>(uniqueSourceAddressSuffix, destinationAddress));
+        public Builder<T> addDestinationAddress(String uniqueSourceAddressSuffix, Address destinationAddress) {
+            destinationAddresses.add(new ImmutablePair<>(uniqueSourceAddressSuffix, destinationAddress));
             return this;
         }
 
@@ -254,11 +255,11 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
 
         /**
          * Set the address to {@link TimerGateway}. Defaults to {@code null}.
-         * @param timerAddressPrefix timer gateway address
+         * @param timerAddress timer gateway address
          * @return this builder
          */
-        public Builder<T> timerAddress(Address timerAddressPrefix) {
-            this.timerAddressPrefix = timerAddressPrefix;
+        public Builder<T> timerAddress(Address timerAddress) {
+            this.timerAddress = timerAddress;
             return this;
         }
 
@@ -320,12 +321,13 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
          * @throws NullPointerException if any parameters are {@code null}, or contain {@code null}
          * @throws IllegalArgumentException if a duplicate source address suffix was used for a {@code destination}, or if
          * {@code attemptInterval} parameter was set to a negative duration, or if {@code maxAttempts} was set to {@code 0}, or if either
-         * {@code address} or {@code destinationAddress} or {@code timeAddressPrefix} is set to empty
+         * {@code destinationAddress} or {@code timeAddress} is set to empty
          */
         public MultiRequestSubcoroutine<T> build() {
-            Map<String, Address> destinationsMap = destinations.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue()));
-            Validate.isTrue(destinationsMap.size() == destinations.size()); // check for no dupes
-            return new MultiRequestSubcoroutine<>(id, destinationsMap, timerAddressPrefix, request, maxAttempts, attemptInterval,
+            Map<String, Address> destinationsMap = destinationAddresses.stream()
+                    .collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue()));
+            Validate.isTrue(destinationsMap.size() == destinationAddresses.size()); // check for no dupes
+            return new MultiRequestSubcoroutine<>(sourceAddress, destinationsMap, timerAddress, request, maxAttempts, attemptInterval,
                     expectedResponseTypes, individualResponseListener);
         }
     }

@@ -20,27 +20,27 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An {@link AddressTransformer} that takes the last element out of a remote address and uses it as the id (and vice-versa).
+ * An {@link AddressTransformer} that takes the last element out of a remote address and uses it as the link identifier (and vice-versa).
  * <p>
  * Examples of {@link #selfAddressToLinkId(com.offbynull.peernetic.core.shuttle.Address) }...
  * <pre>
- * e.g. remoteBase=actor, selfId=0                       actor:0 -> 0
- * e.g. remoteBase=udp0, selfId=7f000001.10000           actor:0 -> 7f000001.10000
- * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:0 -> unrel0
+ * e.g. remoteBase=actor, selfId=0                       actor:0 -&gt; 0
+ * e.g. remoteBase=udp0, selfId=7f000001.10000           actor:0 -&gt; 7f000001.10000
+ * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:0 -&gt; unrel0
  * </pre>
  * <p>
  * Examples of {@link #remoteAddressToLinkId(com.offbynull.peernetic.core.shuttle.Address)  }...
  * <pre>
- * e.g. remoteBase=actor, selfId=0                       actor:0 -> 0
- * e.g. remoteBase=udp0, selfId=7f000001.10000           udp0:7f000001.10001 -> 7f000001.10001
- * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:unrel0:actor:unrel1 -> unrel1
+ * e.g. remoteBase=actor, selfId=0                       actor:0 -&gt; 0
+ * e.g. remoteBase=udp0, selfId=7f000001.10000           udp0:7f000001.10001 -&gt; 7f000001.10001
+ * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:unrel0:actor:unrel1 -&gt; unrel1
  * </pre>
  * <p>
  * Examples of {@link #linkIdToRemoteAddress(java.lang.String) }...
  * <pre>
- * e.g. remoteBase=actor, selfId=0                       1 -> actor:1
- * e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -> udp0:7f000001.10001
- * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -> actor:unrel0:actor:unrel1
+ * e.g. remoteBase=actor, selfId=0                       1 -&gt; actor:1
+ * e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -&gt; udp0:7f000001.10001
+ * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -&gt; actor:unrel0:actor:unrel1
  * </pre>
  * @author Kasra Faghihi
  */
@@ -86,9 +86,9 @@ public final class SimpleAddressTransformer implements AddressTransformer {
     // e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -> udp0:7f000001.10001
     // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -> actor:unrel0:actor:unrel1
     @Override
-    public Address linkIdToRemoteAddress(String id) {
-        Validate.notNull(id);
-        return remoteBase.appendSuffix(id);
+    public Address linkIdToRemoteAddress(String linkId) {
+        Validate.notNull(linkId);
+        return remoteBase.appendSuffix(linkId);
     }
     
 }

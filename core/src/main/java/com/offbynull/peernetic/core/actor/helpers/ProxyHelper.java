@@ -197,8 +197,8 @@ public final class ProxyHelper {
         }
 
         /**
-         * Get the id (address suffix) to forward from.
-         * @return id (address suffix) to forward from
+         * Get the address suffix to forward from.
+         * @return address suffix to forward from
          */
         public Address getProxyFromId() {
             return proxyFromId;

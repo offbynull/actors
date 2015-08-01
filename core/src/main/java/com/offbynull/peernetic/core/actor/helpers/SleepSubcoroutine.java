@@ -32,18 +32,18 @@ import org.apache.commons.lang3.Validate;
  */
 public final class SleepSubcoroutine implements Subcoroutine<Void> {
     private final Address address;
-    private final Address timerAddressPrefix;
+    private final Address timerAddress;
     private final Duration timeoutDuration;
 
-    private SleepSubcoroutine(Address id, Address timerAddressPrefix, Duration timeoutDuration) {
-        Validate.notNull(id);
-        Validate.notNull(timerAddressPrefix);
+    private SleepSubcoroutine(Address address, Address timerAddress, Duration timeoutDuration) {
+        Validate.notNull(address);
+        Validate.notNull(timerAddress);
         Validate.notNull(timeoutDuration);
-        Validate.isTrue(!id.isEmpty());
-        Validate.isTrue(!timerAddressPrefix.isEmpty());
+//        Validate.isTrue(!address.isEmpty()); // can be empty because it's relative?
+        Validate.isTrue(!timerAddress.isEmpty());
         Validate.isTrue(!timeoutDuration.isNegative());
-        this.address = id;
-        this.timerAddressPrefix = timerAddressPrefix;
+        this.address = address;
+        this.timerAddress = timerAddress;
         this.timeoutDuration = timeoutDuration;
     }
     
@@ -53,9 +53,8 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         
         Object timeoutMarker = new Object();
         
-        ctx.addOutgoingMessage(
-                address,
-                timerAddressPrefix.appendSuffix("" + timeoutDuration.toMillis()),
+        ctx.addOutgoingMessage(address,
+                timerAddress.appendSuffix("" + timeoutDuration.toMillis()),
                 timeoutMarker);
         
         Object incomingMessage;
@@ -76,8 +75,8 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
      * {@link SleepSubcoroutine} builder. All validation is done in {@link #build() }.
      */
     public static final class Builder {
-        private Address id;
-        private Address timerAddressPrefix;
+        private Address address;
+        private Address timerAddress;
         private Duration duration;
 
         /**
@@ -87,7 +86,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * @return this builder
          */
         public Builder address(Address address) {
-            this.id = address;
+            this.address = address;
             return this;
         }
 
@@ -97,7 +96,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * @return this builder
          */
         public Builder timerAddress(Address timerAddressPrefix) {
-            this.timerAddressPrefix = timerAddressPrefix;
+            this.timerAddress = timerAddressPrefix;
             return this;
         }
 
@@ -115,11 +114,11 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * Build a {@link SleepSubcoroutine} instance.
          * @return a new instance of {@link SleepSubcoroutine}
          * @throws NullPointerException if any parameters are {@code null}
-         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration, or if {@code address} or
-         * {@code timeAddressPrefix} was set to empty
+         * @throws IllegalArgumentException if {@code duration} parameter was set to a negative duration, or if {@code timeAddress} was set
+         * to empty
          */
         public SleepSubcoroutine build() {
-            return new SleepSubcoroutine(id, timerAddressPrefix, duration);
+            return new SleepSubcoroutine(address, timerAddress, duration);
         }
         
     }

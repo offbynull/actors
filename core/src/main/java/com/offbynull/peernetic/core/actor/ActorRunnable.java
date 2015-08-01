@@ -132,7 +132,7 @@ final class ActorRunnable implements Runnable {
             return;
         }
 
-        LOG.debug("Processing message from {} to {}: {}", src, dst, msg);
+        LOG.debug("Processing message from {} to {} {}", src, dst, msg);
         Actor actor = loadedActor.actor;
         SourceContext context = loadedActor.context;
         context.setSelf(Address.of(dstPrefix, dstImmediateId));

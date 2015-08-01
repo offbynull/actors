@@ -148,7 +148,7 @@ public final class UdpSimulatorCoroutine implements Coroutine {
                 // Timer message indicating that a message is suppose to go out now
                 TransitMessage tm = (TransitMessage) msg;
                 ctx.addOutgoingMessage(
-                        tm.getSourceId(),
+                        tm.getSourceAddress(),
                         tm.getDestinationAddress(),
                         tm.getMessage());
             } else if (proxyHelper.isMessageFromActor()) {

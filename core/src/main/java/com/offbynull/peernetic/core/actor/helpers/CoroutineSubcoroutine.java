@@ -27,39 +27,26 @@ import org.apache.commons.lang3.Validate;
  */
 public final class CoroutineSubcoroutine implements Subcoroutine<Void> {
 
-    private final Address id;
+    private final Address address;
     private final Coroutine coroutine;
 
     /**
      * Constructs a {@link CoroutineSubcoroutine} instance.
-     * @param id id of this subcoroutine
+     * @param address address of this subcoroutine (relative to the calling actor's self address)
      * @param coroutine coroutine to wrap
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code id} is empty
      */
-    public CoroutineSubcoroutine(Address id, Coroutine coroutine) {
-        Validate.notNull(id);
+    public CoroutineSubcoroutine(Address address, Coroutine coroutine) {
+        Validate.notNull(address);
         Validate.notNull(coroutine);
-        Validate.isTrue(!id.isEmpty());
-        this.id = id;
+//        Validate.isTrue(!address.isEmpty()); // can be empty because it's relative?
+        this.address = address;
         this.coroutine = coroutine;
-    }
-
-    /**
-     * Constructs a {@link CoroutineSubcoroutine} instance. Equivalent to calling
-     * {@code new CoroutineSubcoroutine(Address.fromString(id), coroutine)}.
-     * @param id id of this subcoroutine
-     * @param coroutine coroutine to wrap
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code id} is malformed
-     */
-    public CoroutineSubcoroutine(String id, Coroutine coroutine) {
-        this(Address.fromString(id), coroutine);
     }
     
     @Override
     public Address getAddress() {
-        return id;
+        return address;
     }
 
     @Override

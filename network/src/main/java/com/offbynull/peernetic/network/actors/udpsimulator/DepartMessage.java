@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.network.actors.udpsimulator;
 
+import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
@@ -25,25 +26,25 @@ import org.apache.commons.lang3.Validate;
  */
 public final class DepartMessage {
     private final Object message;
-    private final Address sourceId;
+    private final Address sourceAddress;
     private final Address destinationAddress;
 
     /**
      * Constructs a {@link DepartMessage} instance.
      * @param message message
-     * @param sourceId source id of message
+     * @param sourceAddress relative source address of message (relative to calling actor)
      * @param destinationAddress destination address of message
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code destinationAddress} is empty
      */
-    public DepartMessage(Object message, Address sourceId, Address destinationAddress) {
+    public DepartMessage(Object message, Address sourceAddress, Address destinationAddress) {
         Validate.notNull(message);
-        Validate.notNull(sourceId);
+        Validate.notNull(sourceAddress);
         Validate.notNull(destinationAddress);
         // sourceId can be empty
         Validate.isTrue(!destinationAddress.isEmpty());
         this.message = message;
-        this.sourceId = sourceId;
+        this.sourceAddress = sourceAddress;
         this.destinationAddress = destinationAddress;
     }
 
@@ -56,11 +57,12 @@ public final class DepartMessage {
     }
 
     /**
-     * Get source id.
-     * @return source id
+     * Get source address. The address returned by this method is to the calling actor's self address (relative to
+     * {@link Context#getSelf()}).
+     * @return source address
      */
-    public Address getSourceId() {
-        return sourceId;
+    public Address getSourceAddress() {
+        return sourceAddress;
     }
 
     /**

@@ -29,7 +29,7 @@ public class SimpleLineTest {
                         Address.of(),
                         Address.of("dst")));
         assertEquals(1, tms.size());
-        assertEquals(Address.of(), tms.iterator().next().getSourceId());
+        assertEquals(Address.of(), tms.iterator().next().getSourceAddress());
         assertEquals(Address.of("dst"), tms.iterator().next().getDestinationAddress());
         assertEquals(ByteBuffer.wrap(serializer.serialize("hi")), tms.iterator().next().getMessage());
     }
@@ -44,7 +44,7 @@ public class SimpleLineTest {
                         Address.of(),
                         Address.of("dst")));
         assertEquals(1, tms.size());
-        assertEquals(Address.of(), tms.iterator().next().getSourceId());
+        assertEquals(Address.of(), tms.iterator().next().getSourceAddress());
         assertEquals(Address.of("dst"), tms.iterator().next().getDestinationAddress());
         assertEquals("hi", tms.iterator().next().getMessage());
     }

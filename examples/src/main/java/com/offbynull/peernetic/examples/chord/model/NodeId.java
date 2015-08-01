@@ -86,7 +86,7 @@ public final class NodeId implements Serializable {
     /**
      * Generates a limit that's {@code 2^n-1}. Another way to think of it is, generates a limit that successively {@code n = (n << 1) | 1}
      * for {@code n} times -- making sure you have a limit that's value is all 1 bits.
-     * <p/>
+     * <p>
      * Examples:
      * <ul>
      * <li>{@code n = 1, limit = 1 (1b)}<li/>
@@ -171,19 +171,19 @@ public final class NodeId implements Serializable {
     /**
      * Compare the position of two IDs, using a base reference point. Another way to think of this is that this method compares two IDs from
      * the view of a certain reference point.
-     * <p/>
-     * <b>Example 1:</b><br/>
-     * The ID limit is 16<br/>
-     * {@code lhs = 15}<br/>
-     * {@code rhs = 2}<br/>
-     * {@code base = 10}<br/>
+     * <p>
+     * <b>Example 1:</b><br>
+     * The ID limit is 16<br>
+     * {@code lhs = 15}<br>
+     * {@code rhs = 2}<br>
+     * {@code base = 10}<br>
      * In this case, {@code lhs > rhs}. From {@code base}'s view, {@code lhs} is only 5 nodes away, while {@code rhs} is 8 nodes away.
-     * <p/>
-     * <b>Example 2:</b><br/>
-     * The ID limit is 16<br/>
-     * {@code lhs = 9}<br/>
-     * {@code rhs = 2}<br/>
-     * {@code base = 10}<br/>
+     * <p>
+     * <b>Example 2:</b><br>
+     * The ID limit is 16<br>
+     * {@code lhs = 9}<br>
+     * {@code rhs = 2}<br>
+     * {@code base = 10}<br>
      * In this case, {@code rhs < lhs}. From {@code base}'s view, {@code lhs} is 15 nodes away, while {@code rhs} is 8 only nodes away.
      * @param base reference point
      * @param lhs left-hand side

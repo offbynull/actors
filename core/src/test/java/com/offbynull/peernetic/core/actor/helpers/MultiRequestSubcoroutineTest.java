@@ -47,14 +47,14 @@ public class MultiRequestSubcoroutineTest {
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
             MultiRequestSubcoroutine<String> fixture = new MultiRequestSubcoroutine.Builder<String>()
-                    .address(Address.of("fakeid"))
+                    .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")
-                    .addDestination("0", Address.of("rcvr0"))
-                    .addDestination("1", Address.of("rcvr1"))
-                    .addDestination("2", Address.of("rcvr2"))
-                    .addDestination("3", Address.of("rcvr3"))
-                    .addDestination("4", Address.of("rcvr4"))
-                    .addDestination("5", Address.of("rcvr5"))
+                    .addDestinationAddress("0", Address.of("rcvr0"))
+                    .addDestinationAddress("1", Address.of("rcvr1"))
+                    .addDestinationAddress("2", Address.of("rcvr2"))
+                    .addDestinationAddress("3", Address.of("rcvr3"))
+                    .addDestinationAddress("4", Address.of("rcvr4"))
+                    .addDestinationAddress("5", Address.of("rcvr5"))
                     .timerAddress(Address.of("timer"))
                     .addExpectedResponseType(String.class)
                     .build();
@@ -85,7 +85,7 @@ public class MultiRequestSubcoroutineTest {
 
         testHarness.addCoroutineActor("test", cnt -> {
             MultiRequestSubcoroutine<String> fixture = new MultiRequestSubcoroutine.Builder<String>()
-                    .address(Address.of("fakeid"))
+                    .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")
                     .timerAddress(Address.of("timer"))
                     .addExpectedResponseType(String.class)

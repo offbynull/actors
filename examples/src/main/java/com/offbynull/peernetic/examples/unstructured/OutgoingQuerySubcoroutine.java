@@ -59,7 +59,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
             QueryRequest request = new QueryRequest();
             RequestSubcoroutine<QueryResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<QueryResponse>()
-                    .address(subAddress.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
                     .request(request)
                     .timerAddress(timerAddress)
                     .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))

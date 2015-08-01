@@ -135,7 +135,7 @@ public final class SimpleLine implements Line {
                 // the same MTU limit
                 break;
             }
-            TransitMessage transitMsg = new TransitMessage(departMessage.getSourceId(), departMessage.getDestinationAddress(),
+            TransitMessage transitMsg = new TransitMessage(departMessage.getSourceAddress(), departMessage.getDestinationAddress(),
                     msg, time, delay);
             ret.add(transitMsg);
 
@@ -144,7 +144,7 @@ public final class SimpleLine implements Line {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Message from {} to {} will be sent {} times: {}",
-                    departMessage.getSourceId(),
+                    departMessage.getSourceAddress(),
                     departMessage.getDestinationAddress(),
                     sendCount,
                     departMessage.getMessage());

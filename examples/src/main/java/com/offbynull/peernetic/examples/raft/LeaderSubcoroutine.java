@@ -86,7 +86,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
                     .maxAttempts(5)
                     .request(req)
                     .addExpectedResponseType(AppendEntriesResponse.class)
-                    .address(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
                     .destinationAddress(dstAddress)
                     .throwExceptionIfNoResponse(false)
                     .build();
@@ -132,7 +132,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
                     .maxAttempts(5)
                     .request(req)
                     .addExpectedResponseType(AppendEntriesResponse.class)
-                    .address(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
                     .destinationAddress(dstAddress)
                     .throwExceptionIfNoResponse(false)
                     .build();

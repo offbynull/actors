@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord.internalmessages;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
@@ -10,7 +11,7 @@ public final class Start {
     private final AddressTransformer addressTransformer;
     private final String bootstrapLinkId;
     private final NodeId nodeId;
-    private final long seed;
+    private final byte[] seed;
     private final Address timerAddress;
     private final Address logAddress;
     private final Address graphAddress;
@@ -19,7 +20,7 @@ public final class Start {
             AddressTransformer addressTransformer,
             String bootstrapLinkId,
             NodeId nodeId,
-            long seed,
+            byte[] seed,
             Address timerAddress,
             Address graphAddress,
             Address logAddress) {
@@ -34,7 +35,7 @@ public final class Start {
         this.addressTransformer = addressTransformer;
         this.bootstrapLinkId = bootstrapLinkId;
         this.nodeId = nodeId;
-        this.seed = seed;
+        this.seed = Arrays.copyOf(seed, seed.length);
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
@@ -52,8 +53,8 @@ public final class Start {
         return nodeId;
     }
 
-    public long getSeed() {
-        return seed;
+    public byte[] getSeed() {
+        return Arrays.copyOf(seed, seed.length);
     }
 
     public Address getTimerAddress() {

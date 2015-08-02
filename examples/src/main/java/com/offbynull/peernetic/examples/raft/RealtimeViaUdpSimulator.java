@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.peernetic.core.actor.ActorThread;
+import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -203,6 +204,9 @@ public final class RealtimeViaUdpSimulator {
                 .map(x -> String.format(SIMULATED_UDP_PROXY_ID_FORMAT, x))
                 .collect(Collectors.toSet());
         
+        byte[] seed = new byte[MIN_SEED_SIZE];
+        seed[0] = (byte) serverId;
+        
         actorThread.addCoroutineActor(
                 idStr,
                 new RaftServerCoroutine(),
@@ -211,7 +215,7 @@ public final class RealtimeViaUdpSimulator {
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,
-                        (long) serverId,
+                        seed,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS

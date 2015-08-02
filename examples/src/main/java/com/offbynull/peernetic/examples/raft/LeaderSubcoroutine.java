@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
@@ -73,6 +74,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
         int waitTimePerAttempt = state.getMinimumElectionTimeout() / attempts; // minimum election timeout / number of attempts
         int term = state.getCurrentTerm();
         int commitIndex = state.getCommitIndex();
+        IdGenerator idGenerator = state.getIdGenerator();
         for (String linkId : state.getOtherNodeLinkIds()) {
             ctx.addOutgoingMessage(logAddress, debug("Sending keep-alive append entries to {}", linkId));
             List<LogEntry> entries = Collections.emptyList();
@@ -86,7 +88,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
                     .maxAttempts(5)
                     .request(req)
                     .addExpectedResponseType(AppendEntriesResponse.class)
-                    .sourceAddress(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(MSG_ROUTER_ADDRESS, idGenerator)
                     .destinationAddress(dstAddress)
                     .throwExceptionIfNoResponse(false)
                     .build();
@@ -118,6 +120,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
         int term = state.getCurrentTerm();
         int commitIndex = state.getCommitIndex();
         int lastLogIndex = state.getLastLogIndex();
+        IdGenerator idGenerator = state.getIdGenerator();
         for (String linkId : state.getOtherNodeLinkIds()) {
             ctx.addOutgoingMessage(logAddress, debug("Sending normal append entries to {}", linkId));
             int nextLogIndex = state.getNextIndex(linkId);
@@ -132,7 +135,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
                     .maxAttempts(5)
                     .request(req)
                     .addExpectedResponseType(AppendEntriesResponse.class)
-                    .sourceAddress(MSG_ROUTER_ADDRESS.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(MSG_ROUTER_ADDRESS, idGenerator)
                     .destinationAddress(dstAddress)
                     .throwExceptionIfNoResponse(false)
                     .build();

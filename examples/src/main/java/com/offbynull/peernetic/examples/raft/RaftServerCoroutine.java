@@ -36,7 +36,7 @@ public final class RaftServerCoroutine implements Coroutine {
         int maxElectionTimeout = start.getMaxElectionTimeout();
         UnmodifiableSet<String> nodeLinks = start.getNodeLinks();
         AddressTransformer addressTransformer = start.getAddressTransformer();
-        long seed = start.getSeed();
+        byte[] seed = start.getSeed();
 
         Address self = ctx.getSelf();
         String selfLink = addressTransformer.selfAddressToLinkId(self);

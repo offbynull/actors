@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.chord;
 
+import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -158,6 +159,9 @@ public final class SimulationViaUdpSimulator {
         Address remoteBaseAddr = Address.of(udpSimProxyIdStr);
         String connIdStr = connId == null ? null : String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
 
+        byte[] seed = new byte[MIN_SEED_SIZE];
+        seed[0] = (byte) id;
+        
         simulator.addCoroutineActor(
                 idStr,
                 new ChordClientCoroutine(),
@@ -167,7 +171,7 @@ public final class SimulationViaUdpSimulator {
                         new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
                         connIdStr,
                         new NodeId(id, bits),
-                        id,
+                        seed,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS

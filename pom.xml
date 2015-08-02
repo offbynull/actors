@@ -81,7 +81,7 @@
             <dependency>
                 <groupId>com.offbynull.coroutines</groupId>
                 <artifactId>user</artifactId>
-                <version>1.1.0</version>
+                <version>1.1.1-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -159,7 +159,7 @@
                 <plugin>
                     <groupId>com.offbynull.coroutines</groupId>
                     <artifactId>maven-plugin</artifactId>
-                    <version>1.1.0</version>
+                    <version>1.1.1-SNAPSHOT</version>
                     <executions>
                         <execution>
                             <goals>

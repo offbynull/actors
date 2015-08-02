@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.FingerTable;
@@ -12,8 +13,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
     private final Address subAddress;
     
     private final State state;
-    private final Address timerAddress;
-    private final Address logAddress;
+    private final IdGenerator idGenerator;
     
     private final String bootstrapLinkId;
 
@@ -23,8 +23,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
 //        Validate.notNull(bootstrapAddress); // can be null
         this.subAddress = subAddress;
         this.state = state;
-        this.timerAddress = state.getTimerAddress();
-        this.logAddress = state.getLogAddress();
+        this.idGenerator = state.getIdGenerator();
         this.bootstrapLinkId = bootstrapLinkId;
     }
 
@@ -61,7 +60,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         Validate.notNull(cnt);
         Validate.notNull(initialLinkId);
         
-        String idSuffix = "" + state.nextRandomId();
+        String idSuffix = idGenerator.generate();
         InitFingerTableSubcoroutine innerCoroutine = new InitFingerTableSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,

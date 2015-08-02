@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured;
 
+import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -89,6 +90,9 @@ public final class SimulationDirect {
         String idStr = Integer.toString(id);
         String connIdStr = connId == null ? null : connId.toString();
 
+        byte[] seed = new byte[MIN_SEED_SIZE];
+        seed[0] = (byte) id;
+        
         simulator.addCoroutineActor(
                 idStr,
                 new UnstructuredClientCoroutine(),
@@ -97,7 +101,7 @@ public final class SimulationDirect {
                 new Start(
                         new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
                         connIdStr,
-                        (long) id,
+                        seed,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS

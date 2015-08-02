@@ -161,6 +161,17 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         private boolean throwExceptionIfNoResponse = true;
 
         /**
+         * Set the source address. Equivalent to calling {@code sourceAddress(baseSourceAddress.appendSuffix(idGenerator.generate()))}.
+         * @param baseSourceAddress relative address
+         * @param idGenerator id generator
+         * @return this builder
+         * @throws NullPointerException if any argument is {@code null}
+         */
+        public Builder<T> sourceAddress(Address baseSourceAddress, IdGenerator idGenerator) {
+            return sourceAddress(baseSourceAddress.appendSuffix(idGenerator.generate()));
+        }
+
+        /**
          * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
          * {@link Context#getSelf()}). Defaults to {@code null}.
          * @param sourceAddress relative address

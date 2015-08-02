@@ -32,9 +32,9 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         Address logAddress = start.getLogAddress();
         UnmodifiableSet<String> bootstrapLinks = start.getBootstrapLinks();
         AddressTransformer addressTransformer = start.getAddressTransformer();
-        long seed = start.getSeed();
+        byte[] seed = start.getSeed();
 
-        Random random = new Random(seed);
+        Random random = new Random(seed[0]);
 
         State state = new State(timerAddress, graphAddress, logAddress, seed, 3, 4, 256, bootstrapLinks, addressTransformer);
 

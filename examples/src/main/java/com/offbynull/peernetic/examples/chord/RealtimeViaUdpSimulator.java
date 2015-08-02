@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.examples.common.ConsoleStage;
 import com.offbynull.peernetic.core.actor.ActorThread;
+import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
@@ -196,6 +197,9 @@ public final class RealtimeViaUdpSimulator {
                     .appendSuffix(BASE_ACTOR_ADDRESS);
         String connIdStr = connId == null ? null : String.format(SIMULATED_UDP_PROXY_ID_FORMAT, connId);
 
+        byte[] seed = new byte[MIN_SEED_SIZE];
+        seed[0] = (byte) id;
+        
         actorThread.addCoroutineActor(
                 idStr,
                 new ChordClientCoroutine(),
@@ -203,7 +207,7 @@ public final class RealtimeViaUdpSimulator {
                         new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
                         connIdStr,
                         new NodeId(id, bits),
-                        id,
+                        seed,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS

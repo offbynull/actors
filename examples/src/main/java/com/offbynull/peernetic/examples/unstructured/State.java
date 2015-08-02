@@ -2,13 +2,13 @@ package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
@@ -18,10 +18,9 @@ final class State {
     private final Address graphAddress;
     private final Address logAddress;
     
-    private final Random random;
+    private final IdGenerator idGenerator;
     private final int maxIncomingLinks;
     private final int maxOutgoingLinks;
-    private int counter = 0;
     private final Set<String> pendingOutgoingLinks; // pending outgoing links (outgoing linkids), connection not established yet
     private final Map<String, Address> outgoingLinks; // active outgoing links... key=outgoing linkid, value=address suffix
     private final Map<String, Address> incomingLinks; // active incoming links... key=incoming linkid, value=address suffix
@@ -34,7 +33,7 @@ final class State {
             Address timerAddress,
             Address graphAddress,
             Address logAddress,
-            long seed,
+            byte[] seed,
             int maxIncomingLinks,
             int maxOutgoingLinks,
             int maxCachedAddresses,
@@ -43,6 +42,7 @@ final class State {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
+        Validate.notNull(seed);
         Validate.notNull(bootstrapLinkIds);
         Validate.notNull(addressTransformer);
         Validate.noNullElements(bootstrapLinkIds);
@@ -53,7 +53,7 @@ final class State {
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
-        random = new Random(seed);
+        idGenerator = new IdGenerator(seed);
         this.maxIncomingLinks = maxIncomingLinks;
         this.maxOutgoingLinks = maxOutgoingLinks;
         pendingOutgoingLinks = new HashSet<>();
@@ -78,10 +78,8 @@ final class State {
         return logAddress;
     }
 
-    public String nextRandomId() {
-        long ret = ((long) random.nextInt()) << 32L | (long) counter;
-        counter++;
-        return "" + ret;
+    public IdGenerator getIdGenerator() {
+        return idGenerator;
     }
 
     public Set<String> getLinks() {

@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.raft;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.IndividualResponseAction;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
@@ -33,6 +34,7 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
         Address timerAddress = state.getTimerAddress();
         Address graphAddress = state.getGraphAddress();
         String selfLink = state.getSelfLinkId();
+        IdGenerator idGenerator = state.getIdGenerator();
 
         ctx.addOutgoingMessage(logAddress, debug("Entering candidate mode"));
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: yellow"));
@@ -54,7 +56,6 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
             int totalWaitTime = state.nextElectionTimeout();
             int attempts = 5;
             int waitTimePerAttempt = totalWaitTime / attempts; // divide by n attempts
-            String multiReqId = state.nextRandomId();
             MultiRequestSubcoroutine.Builder<RequestVoteResponse> builder = new MultiRequestSubcoroutine.Builder<RequestVoteResponse>()
                     .timerAddress(timerAddress)
                     .attemptInterval(Duration.ofMillis(waitTimePerAttempt))
@@ -75,13 +76,12 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
                             return new IndividualResponseAction(true, false);
                         }
                     })
-                    .sourceAddress(Address.of(multiReqId));
+                    .sourceAddress(Address.of(idGenerator.generate()));
 
             AddressTransformer addressTransformer = state.getAddressTransformer();
             for (String linkId : otherLinkIds) {
-                String msgId = state.nextRandomId();
                 Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId);
-                builder.addDestinationAddress(msgId, dstAddr);
+                builder.addDestinationAddress(idGenerator, dstAddr);
             }
 
             MultiRequestSubcoroutine<RequestVoteResponse> multiReq = builder.build();

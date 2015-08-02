@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.raft.internalmessages;
 
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.shuttle.Address;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.collections4.set.UnmodifiableSet;
@@ -13,7 +14,7 @@ public final class StartServer {
     private final int minElectionTimeout;
     private final int maxElectionTimeout;
     private final UnmodifiableSet<String> nodeLinks;
-    private final long seed;
+    private final byte[] seed;
     private final Address timerAddress;
     private final Address graphAddress;
     private final Address logAddress;
@@ -23,12 +24,13 @@ public final class StartServer {
             int minElectionTimeout,
             int maxElectionTimeout,
             Set<String> nodeLinks,
-            long seed,
+            byte[] seed,
             Address timerAddress,
             Address graphAddress,
             Address logAddress) {
         Validate.notNull(addressTransformer);
-        // bootstrapAddress can be null
+        Validate.notNull(nodeLinks);
+        Validate.notNull(seed);
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.isTrue(minElectionTimeout >= 0);
@@ -38,7 +40,7 @@ public final class StartServer {
         this.minElectionTimeout = minElectionTimeout;
         this.maxElectionTimeout = maxElectionTimeout;
         this.nodeLinks = (UnmodifiableSet<String>) UnmodifiableSet.unmodifiableSet(new HashSet<String>(nodeLinks));
-        this.seed = seed;
+        this.seed = Arrays.copyOf(seed, seed.length);
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
@@ -60,8 +62,8 @@ public final class StartServer {
         return nodeLinks;
     }
 
-    public long getSeed() {
-        return seed;
+    public byte[] getSeed() {
+        return Arrays.copyOf(seed, seed.length);
     }
 
     public Address getTimerAddress() {

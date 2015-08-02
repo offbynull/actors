@@ -233,6 +233,18 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         }
 
         /**
+         * Add a destination for the request. Equivalent to calling
+         * {@code addDestinationAddress(idGenerator.generate(), destinationAddress)}.
+         * @param idGenerator id generator
+         * @param destinationAddress destination address
+         * @return this builder
+         * @throws NullPointerException if {@code idGenerator} is {@code null}
+         */
+        public Builder<T> addDestinationAddress(IdGenerator idGenerator, Address destinationAddress) {
+            return addDestinationAddress(idGenerator.generate(), destinationAddress);
+        }
+
+        /**
          * Add a destination for the request.
          * @param uniqueSourceAddressSuffix unique source address
          * @param destinationAddress destination address

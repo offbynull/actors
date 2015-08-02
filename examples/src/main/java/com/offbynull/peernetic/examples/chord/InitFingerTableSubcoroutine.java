@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
@@ -23,6 +24,7 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
+    private final IdGenerator idGenerator;
     
     private final String bootstrapLinkId;
 
@@ -34,6 +36,7 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
         this.state = state;
         this.timerAddress = state.getTimerAddress();
         this.logAddress = state.getLogAddress();
+        this.idGenerator = state.getIdGenerator();
         this.bootstrapLinkId = bootstrapLinkId;
     }
 
@@ -92,7 +95,7 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
+                .sourceAddress(subAddress, idGenerator)
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddress(timerAddress)
@@ -105,7 +108,7 @@ final class InitFingerTableSubcoroutine implements Subcoroutine<Void> {
         Validate.notNull(cnt);
         Validate.notNull(findId);
         
-        String idSuffix = "" + state.nextRandomId();
+        String idSuffix = idGenerator.generate();
         InitRouteToSuccessorSubcoroutine innerCoroutine = new InitRouteToSuccessorSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,

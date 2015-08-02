@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.peernetic.examples.common.ConsoleStage;
 import com.offbynull.peernetic.core.actor.ActorThread;
+import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -160,6 +161,9 @@ public final class RealtimeDirect {
     private static void addNode(int id, Integer connId, int bits, ActorThread actorThread) {
         String idStr = Integer.toString(id);
         String connIdStr = connId == null ? null : connId.toString();
+        
+        byte[] seed = new byte[MIN_SEED_SIZE];
+        seed[0] = (byte) id;
 
         actorThread.addCoroutineActor(
                 idStr,
@@ -168,7 +172,7 @@ public final class RealtimeDirect {
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
                         connIdStr,
                         new NodeId(id, bits),
-                        id,
+                        seed,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS

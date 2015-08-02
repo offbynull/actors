@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +18,7 @@ import org.apache.commons.lang3.Validate;
 final class ServerState {
     
     private final Random random;
-    private int counter = 0;
+    private final IdGenerator idGenerator;
     
     private final Address timerAddress;
     private final Address graphAddress;
@@ -51,13 +52,14 @@ final class ServerState {
             Address logAddress,
             int minElectionTimeout,
             int maxElectionTimeout,
-            long seed,
+            byte[] seed,
             String selfLinkId,
             UnmodifiableSet<String> nodeLinkIds,
             AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
+        Validate.notNull(seed);
         Validate.notNull(selfLinkId);
         Validate.notNull(nodeLinkIds);
         Validate.notNull(addressTransformer);
@@ -71,7 +73,8 @@ final class ServerState {
         this.logAddress = logAddress;
         this.minElectionTimeout = minElectionTimeout;
         this.maxElectionTimeout = maxElectionTimeout;
-        this.random = new Random(seed);
+        this.idGenerator = new IdGenerator(seed);
+        this.random = new Random(seed[0]);
         this.selfLinkId = selfLinkId;
         Set<String> modifiedNodeLinks = new HashSet<>(nodeLinkIds);
         modifiedNodeLinks.remove(selfLinkId);
@@ -109,14 +112,8 @@ final class ServerState {
         return logAddress;
     }
 
-    public Random getRandom() {
-        return random;
-    }
-    
-    public String nextRandomId() {
-        long ret = ((long) random.nextInt()) << 32L | (long) counter;
-        counter++;
-        return "" + ret;
+    public IdGenerator getIdGenerator() {
+        return idGenerator;
     }
 
     public int nextElectionTimeout() {

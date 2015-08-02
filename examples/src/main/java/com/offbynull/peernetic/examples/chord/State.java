@@ -7,9 +7,9 @@ import com.offbynull.peernetic.examples.chord.model.InternalPointer;
 import com.offbynull.peernetic.examples.chord.model.Pointer;
 import com.offbynull.peernetic.examples.chord.model.SuccessorTable;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.List;
-import java.util.Random;
 import org.apache.commons.lang3.Validate;
 
 final class State {
@@ -18,8 +18,7 @@ final class State {
     private final Address graphAddress;
     private final Address logAddress;
     
-    private final Random random;
-    private int counter = 0;
+    private final IdGenerator idGenerator;
     
     private FingerTable fingerTable;
     private SuccessorTable successorTable;
@@ -33,18 +32,19 @@ final class State {
             Address timerAddress,
             Address graphAddress,
             Address logAddress,
-            long seed,
+            byte[] seed,
             NodeId selfId,
             AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
+        Validate.notNull(seed);
         Validate.notNull(selfId);
         Validate.notNull(addressTransformer);
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
-        random = new Random(seed);
+        idGenerator = new IdGenerator(seed);
         this.selfId = selfId;
         this.addressTransformer = addressTransformer;
     }
@@ -61,12 +61,10 @@ final class State {
         return logAddress;
     }
 
-    public String nextRandomId() {
-        long ret = ((long) random.nextInt()) << 32L | (long) counter;
-        counter++;
-        return "" + ret;
+    public IdGenerator getIdGenerator() {
+        return idGenerator;
     }
-    
+
     public NodeId getSelfId() {
         return selfId;
     }

@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.warn;
@@ -24,6 +25,7 @@ final class InitRouteToCoroutine implements Coroutine {
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
+    private final IdGenerator idGenerator;
     private final ExternalPointer bootstrapNode;
     private final NodeId findId;
 
@@ -38,6 +40,7 @@ final class InitRouteToCoroutine implements Coroutine {
         this.state = state;
         this.timerAddress = state.getTimerAddress();
         this.logAddress = state.getLogAddress();
+        this.idGenerator = state.getIdGenerator();
         this.findId = findId;
         this.bootstrapNode = bootstrapNode;
     }
@@ -106,7 +109,7 @@ final class InitRouteToCoroutine implements Coroutine {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
+                .sourceAddress(subAddress, idGenerator)
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddress(timerAddress)

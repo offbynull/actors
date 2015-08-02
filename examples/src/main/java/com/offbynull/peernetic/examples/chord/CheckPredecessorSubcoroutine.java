@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
@@ -21,6 +22,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
     
     private final State state;
     private final Address timerAddress;
+    private final IdGenerator idGenerator;
 
     public CheckPredecessorSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
@@ -28,6 +30,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
         this.subAddress = subAddress;
         this.state = state;
         this.timerAddress = state.getTimerAddress();
+        this.idGenerator = state.getIdGenerator();
     }
 
     @Override
@@ -85,7 +88,7 @@ final class CheckPredecessorSubcoroutine implements Subcoroutine<Void> {
             Class<T> expectedResponseClass) throws Exception {
         Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
-                .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
+                .sourceAddress(subAddress, idGenerator)
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
                 .request(message)
                 .timerAddress(timerAddress)

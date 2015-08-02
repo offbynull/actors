@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.chord;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
@@ -22,6 +23,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     private final State state;
     private final Address timerAddress;
     private final Address logAddress;
+    private final IdGenerator idGenerator;
 
     public FixFingerTableSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
@@ -30,6 +32,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
         this.state = state;
         this.timerAddress = state.getTimerAddress();
         this.logAddress = state.getLogAddress();
+        this.idGenerator = state.getIdGenerator();
     }
 
     @Override
@@ -107,7 +110,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     }
 
     private Pointer funnelToRouteToSuccessorCoroutine(Continuation cnt, NodeId findId) throws Exception {
-        String idSuffix = "routetosucc" + state.nextRandomId();
+        String idSuffix = "routetosucc" + idGenerator.generate();
         RouteToSuccessorSubcoroutine innerCoroutine = new RouteToSuccessorSubcoroutine(
                 subAddress.appendSuffix(idSuffix),
                 state,

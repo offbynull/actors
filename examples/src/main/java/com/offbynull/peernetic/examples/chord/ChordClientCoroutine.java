@@ -42,7 +42,7 @@ public final class ChordClientCoroutine implements Coroutine {
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         NodeId selfId = start.getNodeId();
-        long seed = start.getSeed();
+        byte[] seed = start.getSeed();
         String bootstrapLinkId = start.getBootstrapLinkId();
         AddressTransformer addressTransformer = start.getAddressTransformer();
 

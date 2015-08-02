@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
@@ -26,6 +27,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
     private final Address graphAddress;
     private final Address timerAddress;
     private final Address logAddress;
+    private final IdGenerator idGenerator;
     private final State state;
 
     public OutgoingLinkSubcoroutine(
@@ -37,6 +39,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
         this.graphAddress = state.getGraphAddress();
         this.timerAddress = state.getTimerAddress();
         this.logAddress = state.getLogAddress();
+        this.idGenerator = state.getIdGenerator();
         this.state = state;
     }
 
@@ -52,7 +55,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
         reconnect:
         while (true) {
             new SleepSubcoroutine.Builder()
-                    .address(subAddress.appendSuffix(state.nextRandomId()))
+                    .address(subAddress.appendSuffix(idGenerator.generate()))
                     .timerAddress(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
@@ -89,7 +92,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             Address baseAddr = state.getAddressTransformer().linkIdToRemoteAddress(outLinkId);
             
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
-                    .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(subAddress, idGenerator)
                     .request(new LinkRequest())
                     .timerAddress(timerAddress)
                     .destinationAddress(baseAddr.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))
@@ -121,7 +124,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             while (true) {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Waiting to refresh link to {}", outLinkId));
                 new SleepSubcoroutine.Builder()
-                        .address(subAddress.appendSuffix(state.nextRandomId()))
+                        .address(subAddress.appendSuffix(idGenerator.generate()))
                         .timerAddress(timerAddress)
                         .duration(Duration.ofSeconds(1L))
                         .build()
@@ -131,7 +134,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 
                 RequestSubcoroutine<LinkKeptAliveResponse> keepAliveRequestSubcoroutine
                         = new RequestSubcoroutine.Builder<LinkKeptAliveResponse>()
-                        .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
+                        .sourceAddress(subAddress, idGenerator)
                         .request(new LinkKeepAliveRequest())
                         .timerAddress(timerAddress)
                         .destinationAddress(updateAddr)

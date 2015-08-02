@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.unstructured;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SleepSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
@@ -20,6 +21,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
     private final Address subAddress;
     private final Address timerAddress;
     private final Address logAddress;
+    private final IdGenerator idGenerator;
     private final State state;
 
     public OutgoingQuerySubcoroutine(Address subAddress, State state) {
@@ -28,6 +30,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
         this.subAddress = subAddress;
         this.timerAddress = state.getTimerAddress();
         this.logAddress = state.getLogAddress();
+        this.idGenerator = state.getIdGenerator();
         this.state = state;
     }
 
@@ -42,7 +45,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
         while (true) {
             new SleepSubcoroutine.Builder()
-                    .address(subAddress.appendSuffix(state.nextRandomId()))
+                    .address(subAddress.appendSuffix(idGenerator.generate()))
                     .timerAddress(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
@@ -59,7 +62,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
             QueryRequest request = new QueryRequest();
             RequestSubcoroutine<QueryResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<QueryResponse>()
-                    .sourceAddress(subAddress.appendSuffix(state.nextRandomId()))
+                    .sourceAddress(subAddress, idGenerator)
                     .request(request)
                     .timerAddress(timerAddress)
                     .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))

@@ -46,6 +46,7 @@ final class State {
         Validate.notNull(bootstrapLinkIds);
         Validate.notNull(addressTransformer);
         Validate.noNullElements(bootstrapLinkIds);
+        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
         Validate.isTrue(maxIncomingLinks >= 0);
         Validate.isTrue(maxOutgoingLinks >= 0);
         Validate.isTrue(maxCachedAddresses >= 0);

@@ -3,6 +3,7 @@ package com.offbynull.peernetic.examples.chord.internalmessages;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
@@ -31,6 +32,7 @@ public final class Start {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
+        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
         
         this.addressTransformer = addressTransformer;
         this.bootstrapLinkId = bootstrapLinkId;

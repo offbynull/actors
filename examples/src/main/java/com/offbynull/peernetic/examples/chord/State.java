@@ -41,6 +41,7 @@ final class State {
         Validate.notNull(seed);
         Validate.notNull(selfId);
         Validate.notNull(addressTransformer);
+        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;

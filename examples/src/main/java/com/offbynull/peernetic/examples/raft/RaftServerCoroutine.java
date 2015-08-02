@@ -41,7 +41,7 @@ public final class RaftServerCoroutine implements Coroutine {
         Address self = ctx.getSelf();
         String selfLink = addressTransformer.selfAddressToLinkId(self);
         
-        ServerState state = new ServerState(timerAddress, graphAddress, logAddress, minElectionTimeout, maxElectionTimeout, seed, selfLink,
+        ServerState state = new ServerState(timerAddress, graphAddress, logAddress, seed, minElectionTimeout, maxElectionTimeout, selfLink,
                 nodeLinks, addressTransformer);
 
         double radius = Math.log(nodeLinks.size() * 100) * 50.0;

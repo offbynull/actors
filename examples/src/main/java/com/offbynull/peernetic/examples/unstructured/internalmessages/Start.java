@@ -2,6 +2,7 @@ package com.offbynull.peernetic.examples.unstructured.internalmessages;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -29,6 +30,7 @@ public final class Start {
         Validate.notNull(seed);
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
+        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
         this.addressTransformer = addressTransformer;
         Set<String> bootstrapLinkSet = new LinkedHashSet<>();
         if (bootstrapLink != null) {

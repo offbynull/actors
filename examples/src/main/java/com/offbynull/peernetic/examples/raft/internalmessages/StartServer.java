@@ -1,6 +1,7 @@
 package com.offbynull.peernetic.examples.raft.internalmessages;
 
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,6 +34,7 @@ public final class StartServer {
         Validate.notNull(seed);
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
+        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
         Validate.isTrue(minElectionTimeout >= 0);
         Validate.isTrue(maxElectionTimeout >= 0);
         Validate.isTrue(minElectionTimeout <= maxElectionTimeout);

@@ -50,9 +50,9 @@ final class ServerState {
             Address timerAddress,
             Address graphAddress,
             Address logAddress,
+            byte[] seed,
             int minElectionTimeout,
             int maxElectionTimeout,
-            byte[] seed,
             String selfLinkId,
             UnmodifiableSet<String> nodeLinkIds,
             AddressTransformer addressTransformer) {
@@ -63,6 +63,7 @@ final class ServerState {
         Validate.notNull(selfLinkId);
         Validate.notNull(nodeLinkIds);
         Validate.notNull(addressTransformer);
+        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
         Validate.isTrue(nodeLinkIds.contains(selfLinkId));
         Validate.isTrue(minElectionTimeout >= 0);
         Validate.isTrue(maxElectionTimeout >= 0);

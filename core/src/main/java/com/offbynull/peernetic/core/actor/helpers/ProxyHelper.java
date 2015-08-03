@@ -63,6 +63,8 @@ import org.apache.commons.lang3.Validate;
  *     }
  * }
  * </pre>
+ * <p>
+ * This class is not thread-safe / immutable.
  * @author Kasra Faghihi
  */
 public final class ProxyHelper {

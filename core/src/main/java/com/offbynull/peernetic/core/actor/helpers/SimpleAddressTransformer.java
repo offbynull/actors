@@ -42,6 +42,8 @@ import org.apache.commons.lang3.Validate;
  * e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -&gt; udp0:7f000001.10001
  * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -&gt; actor:unrel0:actor:unrel1
  * </pre>
+ * <p>
+ * This class is immutable.
  * @author Kasra Faghihi
  */
 public final class SimpleAddressTransformer implements AddressTransformer {

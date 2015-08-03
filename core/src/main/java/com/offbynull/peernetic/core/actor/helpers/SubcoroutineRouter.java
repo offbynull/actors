@@ -16,8 +16,6 @@
  */
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -26,8 +24,8 @@ import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Forwards incoming messages to different {@link Subcoroutine}s based on the destination address. Use {@link #getController() } to add or
- * remove subcoroutines from this router.
+ * Forwards incoming messages to different {@link Subcoroutine}s based on the destination address. Each subcoroutine is invoked within its
+ * own isolated {@link CoroutineRunner}. Use {@link #getController() } to add or remove subcoroutines from this router.
  * <p>
  * For example, imagine that this router belongs to an actor with the address "actor:0". To initialize a router under the address suffix
  * "router" ...
@@ -43,6 +41,9 @@ import org.apache.commons.lang3.Validate;
  * <pre>
  * router.getController().remove(mySubcoroutine.getAddress());
  * </pre>
+ * <p>
+ * When using this class within an actor, make sure to construct it within the actor when the actor is executing. This class is not
+ * immutable or thread-safe.
  * @author Kasra Faghihi
  */
 public final class SubcoroutineRouter {
@@ -102,17 +103,14 @@ public final class SubcoroutineRouter {
         RouterEntry container = idMap.get(key);
 
         if (container != null) {
-            CoroutineRunner runner = container.getCoroutineRunner();
-            RouterCoroutine coroutine = container.getRouterCoroutine();
-            
-            boolean completed = !runner.execute();
+            boolean completed = !container.step();
             Object result = null;
             if (completed) {
                 idMap.remove(key);
-                result = coroutine.getResult();
+                result = container.getResult();
             }
             
-            return new ForwardResult(coroutine.getSubcoroutine(), result, completed);
+            return new ForwardResult(container.getSubcoroutine(), result, completed);
         } else {
             return new ForwardResult(null, null, false);
         }
@@ -187,46 +185,26 @@ public final class SubcoroutineRouter {
     }
     
     private static final class RouterEntry {
-        private final RouterCoroutine routerCoroutine;
-        private final CoroutineRunner coroutineRunner;
-
-        public RouterEntry(RouterCoroutine routerCoroutine, CoroutineRunner coroutineRunner) {
-            Validate.notNull(routerCoroutine);
-            Validate.notNull(coroutineRunner);
-            this.routerCoroutine = routerCoroutine;
-            this.coroutineRunner = coroutineRunner;
-        }
-
-        public RouterCoroutine getRouterCoroutine() {
-            return routerCoroutine;
-        }
-
-        public CoroutineRunner getCoroutineRunner() {
-            return coroutineRunner;
-        }
-    }
-    
-    private static final class RouterCoroutine implements Coroutine {
         private final Subcoroutine<?> subcoroutine;
-        private Object result;
+        private final SubcoroutineStepper<?> subcoroutineStepper;
 
-        public RouterCoroutine(Subcoroutine<?> subcoroutine) {
+        public RouterEntry(Context context, Subcoroutine<?> subcoroutine) {
+            Validate.notNull(subcoroutine);
             this.subcoroutine = subcoroutine;
-        }
-
-        @Override
-        public void run(Continuation cnt) throws Exception {
-            result = subcoroutine.run(cnt);
+            this.subcoroutineStepper = new SubcoroutineStepper<>(context, subcoroutine);
         }
 
         public Subcoroutine<?> getSubcoroutine() {
             return subcoroutine;
         }
 
-        public Object getResult() {
-            return result;
+        public boolean step() {
+            return subcoroutineStepper.step();
         }
-        
+
+        public Object getResult() {
+            return subcoroutineStepper.getResult();
+        }
     }
     
     /**
@@ -259,10 +237,7 @@ public final class SubcoroutineRouter {
             
             String key = suffix.getElement(0);
 
-            RouterCoroutine coroutine = new RouterCoroutine(subcoroutine);
-            CoroutineRunner runner = new CoroutineRunner(coroutine);
-            runner.setContext(context);
-            RouterEntry container = new RouterEntry(coroutine, runner);
+            RouterEntry container = new RouterEntry(context, subcoroutine);
             RouterEntry existingContainer = idMap.putIfAbsent(key, container);
             Validate.isTrue(existingContainer == null);
 
@@ -323,7 +298,7 @@ public final class SubcoroutineRouter {
 
             boolean forwarded = false;
             if (entry != null) {
-                boolean running = entry.getCoroutineRunner().execute();
+                boolean running = entry.step();
                 if (!running) {
                     Validate.validState(!mustNotFinish, "Entry pointed to by suffix was not supposed to finish");
                     idMap.remove(id);

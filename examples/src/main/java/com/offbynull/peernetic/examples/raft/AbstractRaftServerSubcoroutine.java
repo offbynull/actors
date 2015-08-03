@@ -1,10 +1,9 @@
 package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineStepper;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
@@ -19,7 +18,6 @@ import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.mutable.MutableObject;
 
 abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
 
@@ -39,13 +37,19 @@ abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
 
         Address logAddress = state.getLogAddress();
 
-        MutableObject<Mode> mainFibreResp = new MutableObject<>();
-        Coroutine mainCoroutine = innerCnt -> {
-            Mode ret = main(innerCnt, state);
-            mainFibreResp.setValue(ret);
+        Subcoroutine<Mode> mainSubcoroutine = new Subcoroutine<Mode>() {
+
+            @Override
+            public Address getAddress() {
+                return EMPTY_ADDRESS;
+            }
+
+            @Override
+            public Mode run(Continuation cnt) throws Exception {
+                return main(cnt, state);
+            }
         };
-        CoroutineRunner mainRunner = new CoroutineRunner(mainCoroutine);
-        mainRunner.setContext(ctx);
+        SubcoroutineStepper<Mode> mainStepper = new SubcoroutineStepper<>(ctx, mainSubcoroutine);
 
         while (true) {
             Address src = ctx.getSource();
@@ -65,8 +69,8 @@ abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
                 ctx.addOutgoingMessage(logAddress, debug("Received pull entry from {}", src));
                 ret = handlePullEntryRequest(ctx, (PullEntryRequest) msg, state);
             } else {
-                if (!mainRunner.execute()) {
-                    ret = mainFibreResp.getValue();
+                if (!mainStepper.step()) {
+                    ret = mainStepper.getResult();
                 }
             }
 

@@ -32,6 +32,8 @@ import org.apache.commons.lang3.Validate;
  * is used to sleep between resends.
  * <p>
  * Response is returned by the subcoroutine.
+ * <p>
+ * This class is not thread-safe / immutable.
  * @author Kasra Faghihi
  * @param <T> response type
  */

@@ -26,7 +26,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
  * to do with addressing. For example, if you want your actor to send messages through a proxy actor, you can use a specific address
  * transformer that converts identifiers to addresses that pass through that proxy and vice-versa.
  * <p>
- * Since implementations of this interface are intended to be used from within actors, implementations must be immutable.
+ * Implementations of this interface must be immutable.
  * @author Kasra Faghihi
  */
 public interface AddressTransformer {

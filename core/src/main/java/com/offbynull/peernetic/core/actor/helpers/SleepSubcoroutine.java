@@ -28,6 +28,8 @@ import org.apache.commons.lang3.Validate;
  * <p>
  * Works by requesting a timer to send a message after a certain duration of time. Use this for situations when you want to create an
  * artificial pause in your coroutine, such as when you want to avoid hammering out messages.
+ * <p>
+ * This class is not thread-safe / immutable.
  * @author Kasra Faghihi
  */
 public final class SleepSubcoroutine implements Subcoroutine<Void> {

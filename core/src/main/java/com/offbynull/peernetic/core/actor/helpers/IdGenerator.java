@@ -37,8 +37,7 @@ import org.apache.commons.lang3.Validate;
  * etc.  The randomness portion ensures that others can't easily predict what the next id will be and the counter portion ensures that the
  * id won't ever be duplicated by the same generator.
  * <p>
- * This class is not thread-safe or immutable. When using within an actor, make sure to construct within the actor itself when the actor
- * is executing.
+ * This class is not thread-safe / immutable.
  * @author Kasra Faghihi
  */
 public final class IdGenerator {
@@ -55,7 +54,7 @@ public final class IdGenerator {
     private final SecureRandom random;
     
     /**
-     * Constructs a {@link UniqueIdentifierGenerator} instance.
+     * Construct a {@link IdGenerator} instance.
      * @param sha1PrngSeed seed to use for random number generation (must be at least {@link #MIN_SEED_SIZE} or greater in size)
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code sha1PrngSeed.length < MIN_SEED_SIZE} 

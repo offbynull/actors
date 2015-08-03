@@ -2,9 +2,9 @@ package com.offbynull.peernetic.examples.raft;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineStepper;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.debug;
 import com.offbynull.peernetic.core.shuttle.Address;
 import static com.offbynull.peernetic.examples.raft.Mode.FOLLOWER;
@@ -20,7 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.set.UnmodifiableSet;
-import org.apache.commons.lang3.mutable.MutableObject;
 
 public final class RaftServerCoroutine implements Coroutine {
 
@@ -52,15 +51,10 @@ public final class RaftServerCoroutine implements Coroutine {
         ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, graphPoint.getX(), graphPoint.getY()));
         
         try {
-            MutableObject<Mode> newMode = new MutableObject<>();
-            CoroutineRunner coroutineRunner;
+            SubcoroutineStepper<Mode> stepper;
 
             // Initialize to follower mode            
-            coroutineRunner = new CoroutineRunner(innerCnt -> {
-                Mode ret = new FollowerSubcoroutine(state).run(innerCnt);
-                newMode.setValue(ret);
-            });
-            coroutineRunner.setContext(ctx);
+            stepper = new SubcoroutineStepper<>(ctx, new FollowerSubcoroutine(state));
 
             while (true) {
                 Object msg = ctx.getIncomingMessage();
@@ -72,38 +66,26 @@ public final class RaftServerCoroutine implements Coroutine {
                 }
                 
                 // Run subcoroutine... if we didn't get a signal to switch modes, wait for next message and process that msg
-                if (coroutineRunner.execute()) {
+                if (stepper.step()) {
                     cnt.suspend();
                     continue;
                 }
                 
                 // Otherwise, switch to new mode and prime with current message
-                switch (newMode.getValue()) {
+                Mode newMode = stepper.getResult();
+                switch (newMode) {
                     case FOLLOWER:
-                        coroutineRunner = new CoroutineRunner(innerCnt -> {
-                            Mode ret = new FollowerSubcoroutine(state).run(innerCnt);
-                            newMode.setValue(ret);
-                        });
-                        coroutineRunner.setContext(ctx);
+                        stepper = new SubcoroutineStepper<>(ctx, new FollowerSubcoroutine(state));
                         break;
                     case CANDIDATE:
-                        coroutineRunner = new CoroutineRunner(innerCnt -> {
-                            Mode ret = new CandidateSubcoroutine(state).run(innerCnt);
-                            newMode.setValue(ret);
-                        });
-                        coroutineRunner.setContext(ctx);
+                        stepper = new SubcoroutineStepper<>(ctx, new CandidateSubcoroutine(state));
                         break;
                     case LEADER:
-                        coroutineRunner = new CoroutineRunner(innerCnt -> {
-                            Mode ret = new LeaderSubcoroutine(state).run(innerCnt);
-                            newMode.setValue(ret);
-                        });
-                        coroutineRunner.setContext(ctx);
+                        stepper = new SubcoroutineStepper<>(ctx, new LeaderSubcoroutine(state));
                         break;
                     default:
                         throw new IllegalStateException();
                 }
-                newMode.setValue(null); // reset newMode
             }
         } finally {
             ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfLink));

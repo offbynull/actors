@@ -193,7 +193,7 @@ public final class RaftClientCoroutine implements Coroutine {
             }
         } finally {
             ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
-            ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfLink));
+            ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfLink, true, false));
         }
     }
     

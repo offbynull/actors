@@ -19,6 +19,7 @@ package com.offbynull.peernetic.visualizer.gateways.graph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,7 +29,6 @@ import static javafx.beans.binding.DoubleExpression.doubleExpression;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
-import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.transform.Scale;
@@ -48,11 +48,9 @@ final class GraphStage extends Stage {
 
     private static final Logger LOG = LoggerFactory.getLogger(GraphStage.class);
     
-    private static final String COLOR_STRING_FORMAT = "#%06X";
-    
-    private final BidiMap<String, Label> nodes = new DualHashBidiMap<>();
-    private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
-    private final MultiMap<Label, Line> anchors = new MultiValueMap<>();
+    private final Map<String, NodeLabel> nodes = new HashMap<>();
+    private final BidiMap<ImmutablePair<String, String>, EdgeLine> edges = new DualHashBidiMap<>();
+    private final MultiMap<NodeLabel, EdgeLine> anchors = new MultiValueMap<>();
     private Group graph;
     
     private final UnmodifiableMap<Class<?>, Function<Object, Runnable>> runnableGenerators;
@@ -123,18 +121,25 @@ final class GraphStage extends Stage {
         String id = addNode.getId();
 
         return () -> {
-            Label label = new Label(id);
-
-            label.layoutXProperty().set(0);
-            label.layoutYProperty().set(0);
-
-            Label existingLabel = nodes.putIfAbsent(id, label);
-            Validate.isTrue(existingLabel == null, "Node %s cannot be added because it already exists", id);
-
-            graph.getChildren().add(label);
+            NodeLabel label = nodes.get(id);
+            
+            if (label == null) {
+                // Label doesn't exist, create it and add it in.
+                label = new NodeLabel(id);
+                label.layoutXProperty().set(0);
+                label.layoutYProperty().set(0);
+                graph.getChildren().add(label);
+                nodes.put(id, label);
+            } else {
+                // Label does exist...
+                //   if it is temporary than make it in to a permenant label
+                //   if it isn't temporary, that means that it's already been added before, so throw exception
+                Validate.isTrue(label.isTemporary(), "Node %s cannot be added because it already exists", id);
+                label.setTemporary(false);
+            }
         };
     }
-
+    
     private Runnable generateMoveNodeCode(Object msg) {
         Validate.notNull(msg);
         MoveNode moveNode = (MoveNode) msg;
@@ -144,8 +149,9 @@ final class GraphStage extends Stage {
         double y = moveNode.getY();
 
         return () -> {
-            Label label = nodes.get(id);
+            NodeLabel label = nodes.get(id);
             Validate.isTrue(label != null, "Node %s cannot be moved because it doesn't exist", id);
+            Validate.isTrue(!label.isTemporary(), "Node %s cannot be moved because it was never explicitly added", id);
             label.layoutXProperty().set(x);
             label.layoutYProperty().set(y);
         };
@@ -159,10 +165,11 @@ final class GraphStage extends Stage {
         int color = styleNode.getColor();
 
         return () -> {
-            Label label = nodes.get(id);
+            NodeLabel label = nodes.get(id);
             Validate.isTrue(label != null, "Node %s cannot be styled because it doesn't exist", id);
+            Validate.isTrue(!label.isTemporary(), "Node %s cannot be styled because it was never explicitly added", id);
             
-            label.setStyle("-fx-background-color: " + String.format(COLOR_STRING_FORMAT, color));
+            label.setColor(color); // automatically applies style based on color and temp
         };
     }
     
@@ -174,8 +181,9 @@ final class GraphStage extends Stage {
         String labelStr = labelNode.getLabel();
 
         return () -> {
-            Label label = nodes.get(id);
+            NodeLabel label = nodes.get(id);
             Validate.isTrue(label != null, "Node %s cannot be labeled because it doesn't exist", id);
+            Validate.isTrue(!label.isTemporary(), "Node %s cannot be labeled because it was never explicitly added", id);
             
             label.setText(labelStr);
         };
@@ -187,16 +195,57 @@ final class GraphStage extends Stage {
         RemoveNode removeNode = (RemoveNode) msg;
         
         String id = removeNode.getId();
+        boolean removeAsFrom = removeNode.isRemoveAsFrom();
+        boolean removeAsTo = removeNode.isRemoveAsTo();
 
         return () -> {
-            Label label = nodes.remove(id);
+            NodeLabel label = nodes.get(id);
             Validate.isTrue(label != null, "Node %s cannot be removed because it doesn't exist", id);
-            graph.getChildren().remove(label);
+            Validate.isTrue(!label.isTemporary(), "Node %s cannot be removed because it was never explicitly added", id);
 
-            Collection<Line> lines = (Collection<Line>) anchors.remove(label);
-            for (Line line : lines) {
-                edges.removeValue(line);
-                graph.getChildren().remove(line);
+            Collection<EdgeLine> lines = (Collection<EdgeLine>) anchors.get(label);
+            
+            // If edges are present...
+            if (lines != null && !lines.isEmpty()) {
+                // If this label should attempt to remove edges where this node is the source, do so
+                if (removeAsFrom) {
+                    Iterator<EdgeLine> it = lines.iterator();
+                    while (it.hasNext()) {
+                        EdgeLine line = it.next();
+                        ImmutablePair<String, String> conn = edges.getKey(line);
+                        if (conn.getLeft().equals(id)) {
+                            it.remove();
+                            edges.removeValue(line);
+                            graph.getChildren().remove(line);
+                        }
+                    }
+                }
+
+                // If this label should attempt to remove edges where this node is the destination, do so
+                if (removeAsTo) {
+                    Iterator<EdgeLine> it = lines.iterator();
+                    while (it.hasNext()) {
+                        EdgeLine line = it.next();
+                        ImmutablePair<String, String> conn = edges.getKey(line);
+                        if (conn.getRight().equals(id)) {
+                            it.remove();
+                            edges.removeValue(line);
+                            graph.getChildren().remove(line);
+                        }
+                    }
+                }
+            }
+
+            // If there's still stuff pointing to/from this node, mark it as temporary (once all the edges get removed the node will
+            // disappear). Otherwise, remove it immediately.
+            lines = (Collection<EdgeLine>) anchors.get(label); // reget just in case ... depending on implementation this may be a backing
+                                                               // collection
+            if (lines != null && !lines.isEmpty()) {
+                label.setTemporary(true);
+            } else {
+                anchors.remove(label);
+                nodes.remove(id);
+                graph.getChildren().remove(label);
             }
         };
     }
@@ -209,13 +258,12 @@ final class GraphStage extends Stage {
         String toId = addEdge.getToId();
 
         return () -> {
-            Label fromLabel = nodes.get(fromId);
-            Label toLabel = nodes.get(toId);
+            NodeLabel fromLabel = createTempNodeIfDoesNotExist(fromId);
+            NodeLabel toLabel = createTempNodeIfDoesNotExist(toId);
 
-            Validate.notNull(fromLabel, "Edge %s -> %s cannot be created because start node does not exist", fromId, toId);
-            Validate.notNull(toLabel, "Edge %s -> %s cannot be created because end node does not exist", fromId, toId);
             
-            Line line = new Line();
+            
+            EdgeLine line = new EdgeLine();
             DoubleBinding fromXBinding = doubleExpression(fromLabel.layoutXProperty())
                     .add(doubleExpression(fromLabel.widthProperty()).divide(2.0));
             DoubleBinding fromYBinding = doubleExpression(fromLabel.layoutYProperty())
@@ -229,9 +277,13 @@ final class GraphStage extends Stage {
             line.endXProperty().bind(toXBinding);
             line.endYProperty().bind(toYBinding);
 
+            
+            
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
-            Line existingLine = edges.putIfAbsent(key, line);
+            EdgeLine existingLine = edges.putIfAbsent(key, line);
             Validate.isTrue(existingLine == null, "Edge %s -> %s cannot be created because it already exists", fromId, toId);
+
+
 
             anchors.put(fromLabel, line);
             anchors.put(toLabel, line);
@@ -251,10 +303,11 @@ final class GraphStage extends Stage {
 
         return () -> {
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
-            Line line = edges.get(key);
+            EdgeLine line = edges.get(key);
             Validate.isTrue(line != null, "Edge %s -> %s cannot be styled because it doesn't exist", fromId, toId);
 
-            line.setStyle("-fx-stroke-width: " + width + "; -fx-stroke: " + String.format(COLOR_STRING_FORMAT, color));
+            line.setColor(color);
+            line.setWidth(width);
         };
     }
     
@@ -266,20 +319,63 @@ final class GraphStage extends Stage {
         String toId = removeEdge.getToId();
 
         return () -> {
-            Label fromLabel = nodes.get(fromId);
-            Label toLabel = nodes.get(toId);
+            NodeLabel fromLabel = nodes.get(fromId);
+            NodeLabel toLabel = nodes.get(toId);
 
-            Validate.notNull(fromLabel, "Edge %s -> %s cannot be removed because start node does not exist", fromId, toId);
-            Validate.notNull(toLabel, "Edge %s -> %s cannot be removed because end node does not exist", fromId, toId);
+            Validate.isTrue(fromLabel != null, // don't check for temporary node here, we can call removeedge with from set to a tempnode
+                    "Edge %s -> %s cannot be removed because start node does not exist", fromId, toId);
+            Validate.isTrue(toLabel != null, // don't check for temporary node here, we can call removeedge with to set to a temp node
+                    "Edge %s -> %s cannot be removed because end node does not exist", fromId, toId);
 
+            
+            
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
-            Line line = edges.remove(key);
+            EdgeLine line = edges.remove(key);
             Validate.isTrue(line != null, "Edge %s -> %s cannot be removed because it doesn't exist", fromId, toId);
+            
+            
             
             anchors.removeMapping(fromLabel, line);
             anchors.removeMapping(toLabel, line);
+            
+            deleteTempNodeIfOrphaned(fromId);
+            deleteTempNodeIfOrphaned(toId);
 
             graph.getChildren().remove(line);
         };
+    }
+
+    private NodeLabel createTempNodeIfDoesNotExist(String id) {
+        NodeLabel label = nodes.get(id);
+        if (label != null) {
+            return label;
+        }
+        
+        label = new NodeLabel(id);
+        label.layoutXProperty().set(0);
+        label.layoutYProperty().set(0);
+        label.setTemporary(true);
+        nodes.put(id, label);
+        graph.getChildren().add(label);
+        
+        return label;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    private void deleteTempNodeIfOrphaned(String id) {
+        NodeLabel label = nodes.get(id);
+        // if label exists and it isn't temporary, we never want to implicitly delete it, so return right away
+        if (label == null || !label.isTemporary()) {
+            return;
+        }
+
+        // at this point node exists and is temp, check to see if it has no more anchors (nothing else connects to/from it)... if so, remove
+        Collection<Line> lines = (Collection<Line>) anchors.get(label);
+        if (lines == null || lines.isEmpty()) {
+            nodes.remove(id);
+            anchors.remove(label); // just in case
+            graph.getChildren().remove(label);
+        }
     }
 }

@@ -68,6 +68,21 @@ public final class Test {
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new MoveNode("e2", 200.0, 200.0));
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new StyleNode("e2", 0x00FFFF));
             ctx.addOutgoingMessage(graphPrefix.appendSuffix("g2"), new AddEdge("e1", "e2"));
+            
+            // Create graph g3
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddNode("f1"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new MoveNode("f1", 0.0, 0.0));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddNode("f2"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new MoveNode("f2", 100.0, 0.0));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddNode("f3"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new MoveNode("f3", 0.0, 100.0));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddEdge("f1", "f2"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddEdge("f2", "f3"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddEdge("f1", "f3"));
+            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new RemoveNode("f2"));
+//            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new RemoveEdge("f1", "f2"));
+//            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new AddNode("f2"));
+//            ctx.addOutgoingMessage(graphPrefix.appendSuffix("g3"), new RemoveEdge("f2", "f3"));
         };
 
         GraphGateway graphGateway = new GraphGateway("graph");

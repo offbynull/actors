@@ -20,7 +20,9 @@ import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Message to connect 2 nodes in a graph together.
+ * Message to connect 2 nodes in a graph together. Note that if one of the nodes doesn't exist, it'll be added in to the graph as a
+ * temporary node. Temporary nodes are on the graph for as long as there's an edge connected. Temporary nodes cannot be manipulated unless
+ * an {@link AddNode} command explicitly adds them in.
  * @author Kasra Faghihi
  */
 public final class AddEdge implements Serializable {

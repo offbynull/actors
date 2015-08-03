@@ -88,7 +88,7 @@ public final class RaftServerCoroutine implements Coroutine {
                 }
             }
         } finally {
-            ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfLink));
+            ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfLink, true, false));
         }
     }
     

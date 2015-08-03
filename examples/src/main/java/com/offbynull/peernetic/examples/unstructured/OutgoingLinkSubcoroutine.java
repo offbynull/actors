@@ -84,7 +84,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
             ctx.addOutgoingMessage(subAddress, logAddress, info("Linking to {}", outLinkId));
             ctx.addOutgoingMessage(graphAddress, new AddEdge(selfLinkId, outLinkId));
-            ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfLinkId, outLinkId, "-fx-stroke: yellow"));
+            ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfLinkId, outLinkId, 0xFFFF00, 1.0));
             boolean lineIsGreen = false;
 
             state.addPendingOutgoingLink(outLinkId);
@@ -153,7 +153,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("{} responded to link refresh", outLinkId));
                     
                 if (!lineIsGreen) {
-                    ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfLinkId, outLinkId, "-fx-stroke: green"));
+                    ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfLinkId, outLinkId, 0x00FF00, 1.0));
                     lineIsGreen = true;
                 }
             }

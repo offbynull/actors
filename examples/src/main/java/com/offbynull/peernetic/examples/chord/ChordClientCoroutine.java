@@ -135,11 +135,9 @@ public final class ChordClientCoroutine implements Coroutine {
         // Finger + Predecssor = red + blue = purple
         // Finger + Successor + Predecssor = red + green + blue = white
         Consumer<ExternalPointer> addToNewLinksConsumer = x -> {
-            String color = "rgb("
-                        + (fingers.contains(x) ? "255" : "0") + ", "
-                        + (successors.contains(x) ? "255" : "0") + ", "
-                        + (x.equals(predecessor) ? "255" : "0")
-                        + ");";
+            int color = (fingers.contains(x) ? 0xFF0000 : 0)  // red
+                        | (successors.contains(x) ? 0x00FF00 : 0) // green
+                        | (x.equals(predecessor) ? 0x0000FF : 0); // blue
             newLinks.add(new GraphLink(x, color));
         };
         
@@ -162,22 +160,20 @@ public final class ChordClientCoroutine implements Coroutine {
     }
 
     private void switchToStartedOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: yellow"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFFFF00));
     }
 
     private void switchToReadyOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: green"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0x00FF00));
     }
 
     private void switchToDeadOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), "-fx-background-color: red"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFF0000));
     }
 
-    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, String color,
-            Address graphAddress) {
+    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, int color, Address graphAddress) {
         ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
-        ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(),
-                " -fx-stroke-width: 3; -fx-stroke: " + color));
+        ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(), color, 3.0));
     }
 
     private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, Address graphAddress) {
@@ -187,9 +183,9 @@ public final class ChordClientCoroutine implements Coroutine {
     private static final class GraphLink {
 
         private final ExternalPointer externalPointer;
-        private final String color;
+        private final int color;
 
-        public GraphLink(ExternalPointer externalPointer, String color) {
+        public GraphLink(ExternalPointer externalPointer, int color) {
             Validate.notNull(externalPointer);
             Validate.notNull(color);
             this.externalPointer = externalPointer;
@@ -200,15 +196,15 @@ public final class ChordClientCoroutine implements Coroutine {
             return externalPointer;
         }
 
-        public String getColor() {
+        public int getColor() {
             return color;
         }
 
         @Override
         public int hashCode() {
-            int hash = 3;
-            hash = 37 * hash + Objects.hashCode(this.externalPointer);
-            hash = 37 * hash + Objects.hashCode(this.color);
+            int hash = 7;
+            hash = 29 * hash + Objects.hashCode(this.externalPointer);
+            hash = 29 * hash + this.color;
             return hash;
         }
 
@@ -224,7 +220,7 @@ public final class ChordClientCoroutine implements Coroutine {
             if (!Objects.equals(this.externalPointer, other.externalPointer)) {
                 return false;
             }
-            if (!Objects.equals(this.color, other.color)) {
+            if (this.color != other.color) {
                 return false;
             }
             return true;

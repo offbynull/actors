@@ -48,6 +48,8 @@ final class GraphStage extends Stage {
 
     private static final Logger LOG = LoggerFactory.getLogger(GraphStage.class);
     
+    private static final String COLOR_STRING_FORMAT = "#%06X";
+    
     private final BidiMap<String, Label> nodes = new DualHashBidiMap<>();
     private final BidiMap<ImmutablePair<String, String>, Line> edges = new DualHashBidiMap<>();
     private final MultiMap<Label, Line> anchors = new MultiValueMap<>();
@@ -154,13 +156,13 @@ final class GraphStage extends Stage {
         StyleNode styleNode = (StyleNode) msg;
         
         String id = styleNode.getId();
-        String style = styleNode.getStyle();
+        int color = styleNode.getColor();
 
         return () -> {
             Label label = nodes.get(id);
             Validate.isTrue(label != null, "Node %s cannot be styled because it doesn't exist", id);
             
-            label.setStyle(style);
+            label.setStyle("-fx-background-color: " + String.format(COLOR_STRING_FORMAT, color));
         };
     }
     
@@ -244,14 +246,15 @@ final class GraphStage extends Stage {
         
         String fromId = styleEdge.getFromId();
         String toId = styleEdge.getToId();
-        String style = styleEdge.getStyle();
+        int color = styleEdge.getColor();
+        double width = styleEdge.getWidth();
 
         return () -> {
             ImmutablePair<String, String> key = new ImmutablePair<>(fromId, toId);
             Line line = edges.get(key);
             Validate.isTrue(line != null, "Edge %s -> %s cannot be styled because it doesn't exist", fromId, toId);
 
-            line.setStyle(style); // null is implicitly converted to an empty string
+            line.setStyle("-fx-stroke-width: " + width + "; -fx-stroke: " + String.format(COLOR_STRING_FORMAT, color));
         };
     }
     

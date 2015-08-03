@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
 import java.io.Serializable;
-import javafx.scene.shape.Line;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -30,23 +29,28 @@ public final class StyleEdge implements Serializable {
     
     private final String fromId;
     private final String toId;
-    private final String style;
+    private final int color;
+    private final double width;
 
     /**
      * Constructs a {link StyleEdge} instance.
      * @param fromId id of node that edge starts from
      * @param toId to id of node that edge ends at
-     * @param style JavaFX CSS style to apply to node (node is a JavaFX {@link Line})
+     * @param color 24-bit RGB color value to apply to edge (top 8-bits, usually used as alpha, must be 0)
+     * @param width width to apply to the edge
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if top 8-bits of {@code color} are not {@code 0}, or if {@code width <= 0}
      */
-    public StyleEdge(String fromId, String toId, String style) {
+    public StyleEdge(String fromId, String toId, int color, double width) {
         Validate.notNull(fromId);
         Validate.notNull(toId);
-        Validate.notNull(style);
+        Validate.isTrue((color & 0xFF000000) == 0);
+        Validate.isTrue(width > 0.0);
         
         this.fromId = fromId;
         this.toId = toId;
-        this.style = style;
+        this.color = color;
+        this.width = width;
     }
 
     /**
@@ -66,16 +70,24 @@ public final class StyleEdge implements Serializable {
     }
 
     /**
-     * Get JavaFX CSS style to apply to node (node is a JavaFX {@link Line}).
-     * @return style to apply
+     * Get 24-bit color to apply to edge.
+     * @return color to apply
      */
-    public String getStyle() {
-        return style;
+    public int getColor() {
+        return color;
+    }
+
+    /**
+     * Get width to apply to edge.
+     * @return width to apply
+     */
+    public double getWidth() {
+        return width;
     }
 
     @Override
     public String toString() {
-        return "StyleEdge{" + "fromId=" + fromId + ", toId=" + toId + ", style=" + style + '}';
+        return "StyleEdge{" + "fromId=" + fromId + ", toId=" + toId + ", color=" + color + ", width=" + width + '}';
     }
-    
+
 }

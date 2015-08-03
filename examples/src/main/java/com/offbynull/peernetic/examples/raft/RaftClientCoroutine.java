@@ -57,7 +57,7 @@ public final class RaftClientCoroutine implements Coroutine {
         ctx.addOutgoingMessage(logAddress, debug("Starting client"));
         ctx.addOutgoingMessage(graphAddress, new AddNode(selfLink));
         ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, 0.0, 0.0));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: gray"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, 0x808080));
         
         try {
             int nextWriteValue = 1000;

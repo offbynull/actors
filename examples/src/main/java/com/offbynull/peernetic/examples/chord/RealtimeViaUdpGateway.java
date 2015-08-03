@@ -163,7 +163,7 @@ public final class RealtimeViaUdpGateway {
         graphGateway.getIncomingShuttle().send(Arrays.asList(
                 new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfIdStr)),
                 new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfIdStr, newPoint.getX(), newPoint.getY())),
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfIdStr, "-fx-background-color: red"))
+                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfIdStr, 0xFF0000))
         ));
     }
     

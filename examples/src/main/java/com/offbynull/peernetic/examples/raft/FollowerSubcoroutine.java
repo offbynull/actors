@@ -32,7 +32,7 @@ final class FollowerSubcoroutine extends AbstractRaftServerSubcoroutine {
         String selfLink = state.getSelfLinkId();
 
         ctx.addOutgoingMessage(logAddress, debug("Entering follower mode"));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: blue"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, 0x0000FF));
 
         // Set up initial timeout
         timeoutObj = new ElectionTimeout();

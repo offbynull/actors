@@ -17,11 +17,10 @@
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
 import java.io.Serializable;
-import javafx.scene.control.Label;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Message to apply a JavaFX CSS effect to a node.
+ * Message to apply a style to a node.
  * @author Kasra Faghihi
  */
 public final class StyleNode implements Serializable {
@@ -29,19 +28,20 @@ public final class StyleNode implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private final String id;
-    private final String style;
+    private final int color;
 
     /**
      * Constructs a {@link StyleNode} instance.
      * @param id id of node to be styled
-     * @param style JavaFX CSS style to apply to node (node is a JavaFX {@link Label})
+     * @param color 24-bit RGB color value to apply to edge (top 8-bits, usually used as alpha, must be 0)
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if top 8-bits of {@code color} are not {@code 0}, or if {@code width <= 0}
      */
-    public StyleNode(String id, String style) {
+    public StyleNode(String id, int color) {
         Validate.notNull(id);
-        Validate.notNull(style);
+        Validate.isTrue((color & 0xFF000000) == 0);
         this.id = id;
-        this.style = style;
+        this.color = color;
     }
 
     /**
@@ -53,16 +53,16 @@ public final class StyleNode implements Serializable {
     }
 
     /**
-     * Get JavaFX CSS style to apply to node (node is a JavaFX {@link Label}).
-     * @return style to apply
+     * Get 24-bit color to apply to node.
+     * @return color to apply
      */
-    public String getStyle() {
-        return style;
+    public int getColor() {
+        return color;
     }
 
     @Override
     public String toString() {
-        return "StyleNode{" + "id=" + id + ", style=" + style + '}';
+        return "StyleNode{" + "id=" + id + ", color=" + color + '}';
     }
     
 }

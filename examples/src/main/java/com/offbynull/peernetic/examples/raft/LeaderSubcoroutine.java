@@ -40,7 +40,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
         String selfLink = state.getSelfLinkId();
         
         ctx.addOutgoingMessage(logAddress, debug("Entering leader mode"));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: green"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, 0x00FF00));
         
         if (state.getOtherNodeLinkIds().isEmpty()) {
             // single node in this cluster, there's nothing to send keepalives/updates to -- just endlessly sit here without doing anything

@@ -37,7 +37,7 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
         IdGenerator idGenerator = state.getIdGenerator();
 
         ctx.addOutgoingMessage(logAddress, debug("Entering candidate mode"));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, "-fx-background-color: yellow"));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, 0xFFFF00));
 
         while (true) {
             ctx.addOutgoingMessage(logAddress, debug("Starting new election"));

@@ -48,7 +48,8 @@ public final class ChordClientCoroutine implements Coroutine {
         String bootstrapLinkId = start.getBootstrapLinkId();
         AddressTransformer addressTransformer = start.getAddressTransformer();
 
-        switchToStartedOnGraph(ctx, selfId, graphAddress);
+        ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFFFF00));
 
         Set<GraphLink> lastOutgoingLinks = new HashSet<>();
         try {
@@ -58,7 +59,7 @@ public final class ChordClientCoroutine implements Coroutine {
             JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, bootstrapLinkId);
             joinTask.run(cnt);
 
-            switchToReadyOnGraph(ctx, selfId, graphAddress);
+            ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0x00FF00));
             lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, selfId, graphAddress);
 
             // Create maintanence tasks that are supposed to run in parallel
@@ -100,10 +101,7 @@ public final class ChordClientCoroutine implements Coroutine {
         } catch (Exception e) {
             ctx.addOutgoingMessage(logAddress, error("Shutting down client {} -- {}", ctx.getSelf(), e));
         } finally {
-            for (GraphLink link : lastOutgoingLinks) {
-                disconnectOnGraph(ctx, selfId, link.getExternalPointer().getId(), graphAddress);
-            }
-            switchToDeadOnGraph(ctx, selfId, graphAddress);
+            ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfId.toString(), true, false));
         }
     }
 
@@ -151,36 +149,23 @@ public final class ChordClientCoroutine implements Coroutine {
 
         Set<GraphLink> removedPointers = new HashSet<>(lastOutgoingLinks);
         removedPointers.removeAll(newLinks);
-        removedPointers.forEach(x -> disconnectOnGraph(ctx, selfId, x.getExternalPointer().getId(), graphAddress));
+        removedPointers.forEach(x -> {
+            NodeId otherId = x.getExternalPointer().getId();
+            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
+        });
 
         Set<GraphLink> addedPointers = new HashSet<>(newLinks);
         addedPointers.removeAll(lastOutgoingLinks);
-        addedPointers.forEach(x -> connectOnGraph(ctx, selfId, x.getExternalPointer().getId(), x.getColor(), graphAddress));
+        addedPointers.forEach(x -> {
+            NodeId otherId = x.getExternalPointer().getId();
+            int color = x.getColor();
+            
+            ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
+            ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(), color, 3.0));
+        });
 
         lastOutgoingLinks = newLinks;
         return lastOutgoingLinks;
-    }
-
-    private void switchToStartedOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFFFF00));
-    }
-
-    private void switchToReadyOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0x00FF00));
-    }
-
-    private void switchToDeadOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfId.toString(), true, false));
-    }
-
-    private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, int color, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
-        ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(), color, 3.0));
-    }
-
-    private void disconnectOnGraph(Context ctx, NodeId selfId, NodeId otherId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
     }
 
     private static final class GraphLink {

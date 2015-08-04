@@ -33,6 +33,7 @@ final class GraphRunnable implements Runnable {
     private final Bus bus;
 
     public GraphRunnable(Bus bus) {
+        Validate.notNull(bus);
         this.bus = bus;
     }
 
@@ -59,8 +60,11 @@ final class GraphRunnable implements Runnable {
                         
                         LOG.debug("Processing incoming message from {} to {}: {}", msg.getSourceAddress(), dst, payload);
                         graph.execute(payloads);
+                    } else if (incomingObj instanceof UpdateHandlers) {
+                        LOG.debug("Processing update handlers message: {} ", incomingObj);
+                        graph.execute((UpdateHandlers) incomingObj);
                     } else if (incomingObj instanceof CreateStage) {
-                        LOG.debug("Processing management message: {} ", incomingObj);
+                        LOG.debug("Processing create stage message: {} ", incomingObj);
                         graph.execute((CreateStage) incomingObj);
                     } else {
                         throw new IllegalStateException("Unexpected message type: " + incomingObj);

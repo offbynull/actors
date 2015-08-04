@@ -56,7 +56,11 @@ public final class GraphApplication extends Application {
 
     private ListView<String> listView;
     private ObservableList<String> listItems;
-    private Map<String, GraphStage> graphStages;
+    private Map<Address, GraphStage> graphStages;
+    
+    // do these need to be volatile?
+    private volatile GraphNodeAddHandler nodeAddHandler = new DefaultAddNodeHandler();
+    private volatile GraphNodeRemoveHandler nodeRemoveHandler = new DefaultNodeRemoveHandler();
 
     @Override
     public void init() throws Exception {
@@ -72,7 +76,7 @@ public final class GraphApplication extends Application {
         listView.setOnMouseClicked((MouseEvent click) -> {
             if (click.getClickCount() == 2) {
                 String name = listView.getSelectionModel().getSelectedItem();
-                graphStages.get(name).show();
+                graphStages.get(Address.fromString(name)).show();
             }
         });
 
@@ -145,7 +149,7 @@ public final class GraphApplication extends Application {
             LOCK.unlock();
         }
     }
-
+    
     void execute(MultiMap<Address, Object> commands) {
         Validate.notNull(commands);
 
@@ -153,12 +157,12 @@ public final class GraphApplication extends Application {
         commandsCopy.putAll(commands);
         Platform.runLater(() -> {
             for (Entry<Address, Object> entry : commandsCopy.entrySet()) {
-                String fromAddress = entry.getKey().toString();
-                GraphStage graphStage = graphStages.get(fromAddress);
+                Address address = entry.getKey();
+                GraphStage graphStage = graphStages.get(address);
                 if (graphStage == null) {
-                    graphStage = new GraphStage();
-                    graphStages.put(fromAddress, graphStage);
-                    listItems.add(fromAddress);
+                    graphStage = new GraphStage(address, nodeAddHandler, nodeRemoveHandler);
+                    graphStages.put(address, graphStage);
+                    listItems.add(address.toString());
 
                     if (listItems.size() == 1) { // if this is the first graph, show it
                         graphStage.show();
@@ -188,6 +192,20 @@ public final class GraphApplication extends Application {
             Stage stage = createStage.getFactory().get();
             stage.setOnCloseRequest(x -> stage.close()); // override close behaviour
             stage.show();
+        });
+    }
+    
+    void execute(UpdateHandlers updateHandlers) {
+        Validate.notNull(updateHandlers);
+        
+        Platform.runLater(() -> {
+            nodeAddHandler = updateHandlers.getNodeAddHandler();
+            nodeRemoveHandler = updateHandlers.getNodeRemoveHandler();
+            
+            for (GraphStage graphStage : graphStages.values()) {
+                graphStage.setNodeAddHandler(nodeAddHandler);
+                graphStage.setNodeRemoveHandler(nodeRemoveHandler);
+            }
         });
     }
 }

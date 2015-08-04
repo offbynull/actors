@@ -9,6 +9,7 @@ import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.simulator.Simulator;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.io.File;
 import java.time.Duration;
@@ -30,6 +31,8 @@ public final class SimulationDirect {
     
     private static final int MAX_NODES = 100;
     private static final int MAX_WAIT_PER_NODE_ADD = 1000; // in milliseconds
+    private static final int MAX_GRAPH_X = 1000;
+    private static final int MAX_GRAPH_Y = 1000;
     
     public static void main(String[] args) throws Exception {
         // Create simulator
@@ -76,6 +79,7 @@ public final class SimulationDirect {
         // Replay saved graph messages from simulation to a real graph
         GraphGateway.startApplication();
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultNodeRemoveHandler());
         ReplayerGateway replayerGateway = ReplayerGateway.replay(
                 graphGateway.getIncomingShuttle(),
                 BASE_GRAPH_ADDRESS,

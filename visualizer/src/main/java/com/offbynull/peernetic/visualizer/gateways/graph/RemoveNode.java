@@ -30,21 +30,21 @@ public final class RemoveNode implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private final String id;
-    private final boolean removeAsFrom;
-    private final boolean removeAsTo;
+    private final boolean removeOutgoing;
+    private final boolean removeIncoming;
 
     /**
      * Constructs a {@link RemoveNode} instance.
      * @param id id of node to remove
-     * @param removeAsFrom remove edges where this node is the from/source
-     * @param removeAsTo remove edges where this node is the to/destination
+     * @param removeOutgoing remove edges where this node is the from/source
+     * @param removeIncoming remove edges where this node is the to/destination
      * @throws NullPointerException if any argument is {@code null}
      */
-    public RemoveNode(String id, boolean removeAsFrom, boolean removeAsTo) {
+    public RemoveNode(String id, boolean removeOutgoing, boolean removeIncoming) {
         Validate.notNull(id);
         this.id = id;
-        this.removeAsFrom = removeAsFrom;
-        this.removeAsTo = removeAsTo;
+        this.removeOutgoing = removeOutgoing;
+        this.removeIncoming = removeIncoming;
     }
 
     /**
@@ -69,21 +69,21 @@ public final class RemoveNode implements Serializable {
      * Flag indicating if this command should remove edges where this node is the from/source.
      * @return {@code true} if this command should remove edges where this node is the from/source, {@code false} otherwise
      */
-    public boolean isRemoveAsFrom() {
-        return removeAsFrom;
+    public boolean isRemoveOutgoing() {
+        return removeOutgoing;
     }
 
     /**
      * Flag indicating if this command should remove edges where this node is the to/destination.
      * @return {@code true} if this command should remove edges where this node is the to/destination, {@code false} otherwise
      */
-    public boolean isRemoveAsTo() {
-        return removeAsTo;
+    public boolean isRemoveIncoming() {
+        return removeIncoming;
     }
 
     @Override
     public String toString() {
-        return "RemoveNode{" + "id=" + id + ", removeAsFrom=" + removeAsFrom + ", removeAsTo=" + removeAsTo + '}';
+        return "RemoveNode{" + "id=" + id + ", removeAsFrom=" + removeOutgoing + ", removeAsTo=" + removeIncoming + '}';
     }
 
 }

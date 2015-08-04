@@ -21,7 +21,9 @@ import com.offbynull.peernetic.examples.chord.model.ExternalPointer;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
+import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
+import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import java.util.HashSet;
@@ -160,6 +162,7 @@ public final class ChordClientCoroutine implements Coroutine {
     }
 
     private void switchToStartedOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
+        ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFFFF00));
     }
 
@@ -168,7 +171,7 @@ public final class ChordClientCoroutine implements Coroutine {
     }
 
     private void switchToDeadOnGraph(Context ctx, NodeId selfId, Address graphAddress) {
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFF0000));
+        ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfId.toString(), true, false));
     }
 
     private void connectOnGraph(Context ctx, NodeId selfId, NodeId otherId, int color, Address graphAddress) {

@@ -16,6 +16,7 @@ import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.PullEntryResponse;
 import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryRequest;
 import com.offbynull.peernetic.examples.raft.externalmessages.PushEntryResponse;
+import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import java.time.Duration;
 import java.util.Collections;
@@ -41,6 +42,11 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
         
         ctx.addOutgoingMessage(logAddress, debug("Entering leader mode"));
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, 0x00FF00));
+        
+        String oldVotedForId = state.getVotedForLinkId();
+        if (oldVotedForId != null) {
+            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, oldVotedForId));
+        }
         
         if (state.getOtherNodeLinkIds().isEmpty()) {
             // single node in this cluster, there's nothing to send keepalives/updates to -- just endlessly sit here without doing anything

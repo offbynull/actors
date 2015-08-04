@@ -11,15 +11,7 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
-import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
-import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
-import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
-import java.awt.Point;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -65,12 +57,9 @@ public final class RealtimeDirect {
         Validate.isTrue(Integer.bitCount(size) == 1, "Not power of 2");
 
         int bits = Integer.numberOfTrailingZeros(size); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
-        // ring-space is 3. Nodes will start from 0 to 15.
+                                                        // ring-space is 3. Nodes will start from 0 to 15.
 
-        int graphRadius = Math.max(300, size * 4);
-        for (int i = 0; i < size; i++) {
-            addNodeToGraph(i, bits, graphRadius, graphGateway);
-        }
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new CustomGraphNodeRemoveHandler());
 
         consoleStage.outputLine("Node colors");
         consoleStage.outputLine("-----------");
@@ -139,23 +128,6 @@ public final class RealtimeDirect {
         });
 
         GraphGateway.awaitShutdown();
-    }
-
-    private static void addNodeToGraph(int id, int bits, int graphRadius, GraphGateway graphGateway) {
-        NodeId selfId = new NodeId(id, bits);
-        String selfIdStr = selfId.toString();
-        
-        BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
-        BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
-        double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
-        
-        Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
-        
-        graphGateway.getIncomingShuttle().send(Arrays.asList(
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfIdStr)),
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfIdStr, newPoint.getX(), newPoint.getY())),
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfIdStr, 0xFF0000))
-        ));
     }
     
     private static void addNode(int id, Integer connId, int bits, ActorThread actorThread) {

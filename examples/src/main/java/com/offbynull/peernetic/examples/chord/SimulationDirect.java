@@ -4,25 +4,16 @@ import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SI
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.simulator.MessageSink;
 import com.offbynull.peernetic.core.simulator.RecordMessageSink;
 import com.offbynull.peernetic.core.simulator.Simulator;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
-import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
-import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
-import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
-import java.awt.Point;
 import java.io.File;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 public final class SimulationDirect {
@@ -89,11 +80,7 @@ public final class SimulationDirect {
         GraphGateway.startApplication();
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         
-           // Manually add nodes to graph before replaying
-        int graphRadius = Math.max(300, NUM_NODES * 4);
-        for (int i = 0; i < NUM_NODES; i++) {
-            addNodeToGraph(i, bits, graphRadius, graphGateway);
-        }
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(NUM_NODES), new CustomGraphNodeRemoveHandler());
         
           // Replay
         ReplayerGateway replayerGateway = ReplayerGateway.replay(
@@ -104,23 +91,6 @@ public final class SimulationDirect {
 
         replayerGateway.await();
         GraphGateway.awaitShutdown();
-    }
-
-    private static void addNodeToGraph(int id, int bits, int graphRadius, GraphGateway graphGateway) {
-        NodeId selfId = new NodeId(id, bits);
-        String selfIdStr = selfId.toString();
-        
-        BigDecimal idDec = new BigDecimal(selfId.getValueAsBigInteger());
-        BigDecimal limitDec = new BigDecimal(selfId.getLimitAsBigInteger()).add(BigDecimal.ONE);
-        double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
-        
-        Point newPoint = PositionUtils.pointOnCircle(graphRadius, percentage);
-        
-        graphGateway.getIncomingShuttle().send(Arrays.asList(
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new AddNode(selfIdStr)),
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new MoveNode(selfIdStr, newPoint.getX(), newPoint.getY())),
-                new Message(BASE_GRAPH_ADDRESS, BASE_GRAPH_ADDRESS, new StyleNode(selfIdStr, 0xFF0000))
-        ));
     }
 
     private static void addNode(int id, Integer connId, int bits, Simulator simulator, Instant time) {

@@ -13,6 +13,7 @@ import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartClient;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
 import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -68,8 +69,9 @@ public final class RealtimeViaUdpGateway {
             return "";
         });
         int clusterSize = sizeContainer.take();
-        
         Validate.isTrue(clusterSize > 0, "Bad size");
+        
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(clusterSize), new DefaultNodeRemoveHandler());
         
         // Generate server ids
         Set<Integer> serverIds = new HashSet<>();

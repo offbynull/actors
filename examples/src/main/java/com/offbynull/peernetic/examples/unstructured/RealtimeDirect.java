@@ -8,6 +8,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
 import java.util.Random;
 
 public final class RealtimeDirect {
@@ -24,6 +25,8 @@ public final class RealtimeDirect {
     
     private static final int MAX_NODES = 100;
     private static final int MAX_WAIT_PER_NODE_ADD = 1000; // in milliseconds
+    private static final int MAX_GRAPH_X = 1000;
+    private static final int MAX_GRAPH_Y = 1000;
     
     public static void main(String[] args) throws Exception {
         GraphGateway.startApplication();
@@ -38,6 +41,8 @@ public final class RealtimeDirect {
         actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
         actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultNodeRemoveHandler());
+        
         Random rand = new Random(12345);
 
         // Seed node

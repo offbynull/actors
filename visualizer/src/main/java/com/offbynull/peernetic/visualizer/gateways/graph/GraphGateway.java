@@ -131,6 +131,18 @@ public final class GraphGateway implements InputGateway {
             throw new IllegalStateException(ex);
         }
     }
+
+    /**
+     * Set the {@link GraphNodeAddHandler} and {@link GraphNodeRemoveHandler} that graphs should use.
+     * @param nodeAddHandler node add handler
+     * @param nodeRemoveHandler node remove handler
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public void setHandlers(GraphNodeAddHandler nodeAddHandler, GraphNodeRemoveHandler nodeRemoveHandler) {
+        Validate.notNull(nodeAddHandler);
+        Validate.notNull(nodeRemoveHandler);
+        bus.add(new UpdateHandlers(nodeAddHandler, nodeRemoveHandler));
+    }
     
     /**
      * Add a custom {@link Stage} to the JavaFX application.

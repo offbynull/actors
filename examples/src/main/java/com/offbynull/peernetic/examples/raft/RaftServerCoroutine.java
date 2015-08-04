@@ -12,13 +12,7 @@ import static com.offbynull.peernetic.examples.raft.Mode.LEADER;
 import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.PositionUtils;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
-import java.awt.Point;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class RaftServerCoroutine implements Coroutine {
@@ -43,12 +37,8 @@ public final class RaftServerCoroutine implements Coroutine {
         ServerState state = new ServerState(timerAddress, graphAddress, logAddress, seed, minElectionTimeout, maxElectionTimeout, selfLink,
                 nodeLinks, addressTransformer);
 
-        double radius = Math.log(nodeLinks.size() * 100) * 50.0;
-        double percentage = hashToPercentage(selfLink);
-        Point graphPoint = PositionUtils.pointOnCircle(radius, percentage);
         ctx.addOutgoingMessage(logAddress, debug("Starting server"));
         ctx.addOutgoingMessage(graphAddress, new AddNode(selfLink));
-        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, graphPoint.getX(), graphPoint.getY()));
         
         try {
             SubcoroutineStepper<Mode> stepper;
@@ -90,15 +80,5 @@ public final class RaftServerCoroutine implements Coroutine {
         } finally {
             ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfLink, true, false));
         }
-    }
-    
-    private double hashToPercentage(String val) throws Exception {
-        byte[] data = DigestUtils.md5(val);
-        
-        ByteArrayInputStream bais = new ByteArrayInputStream(data);
-        DataInputStream dais = new DataInputStream(bais);
-        
-        int shortVal = dais.readUnsignedShort();
-        return (double) shortVal / (double) 0xFFFF;
     }
 }

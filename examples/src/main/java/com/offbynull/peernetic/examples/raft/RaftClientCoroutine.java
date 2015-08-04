@@ -17,7 +17,6 @@ import com.offbynull.peernetic.examples.raft.internalmessages.StartClient;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.LabelNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
@@ -56,7 +55,6 @@ public final class RaftClientCoroutine implements Coroutine {
         
         ctx.addOutgoingMessage(logAddress, debug("Starting client"));
         ctx.addOutgoingMessage(graphAddress, new AddNode(selfLink));
-        ctx.addOutgoingMessage(graphAddress, new MoveNode(selfLink, 0.0, 0.0));
         ctx.addOutgoingMessage(graphAddress, new StyleNode(selfLink, 0x808080));
         
         try {
@@ -105,6 +103,7 @@ public final class RaftClientCoroutine implements Coroutine {
                 Object pushResp = pushRequestSubcoroutine.run(cnt);
 
                 if (pushResp == null) {
+                    ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
                     leaderLinkId = rotateToNextServer(serverLinks);
                     ctx.addOutgoingMessage(logAddress, debug("Failed to push log entry {}, no response", writeValue));
                     ctx.addOutgoingMessage(logAddress, debug("Leader changed {}", leaderLinkId));
@@ -159,6 +158,7 @@ public final class RaftClientCoroutine implements Coroutine {
                 Object pullResp = pullRequestSubcoroutine.run(cnt);
 
                 if (pullResp == null) {
+                    ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfLink, leaderLinkId));
                     leaderLinkId = rotateToNextServer(serverLinks);
                     ctx.addOutgoingMessage(logAddress, debug("Failed to pull log entry, no response"));
                     ctx.addOutgoingMessage(logAddress, debug("Leader changed {}", leaderLinkId));

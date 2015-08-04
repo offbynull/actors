@@ -16,8 +16,6 @@ import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROU
 import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROUTER_QUERIER_RELATIVE_ADDRESS;
 import static com.offbynull.peernetic.examples.unstructured.AddressConstants.ROUTER_RELATIVE_ADDRESS;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
-import java.util.Random;
 import org.apache.commons.collections4.set.UnmodifiableSet;
 
 public final class UnstructuredClientCoroutine implements Coroutine {
@@ -34,19 +32,10 @@ public final class UnstructuredClientCoroutine implements Coroutine {
         AddressTransformer addressTransformer = start.getAddressTransformer();
         byte[] seed = start.getSeed();
 
-        Random random = new Random(seed[0]);
-
         State state = new State(timerAddress, graphAddress, logAddress, seed, 3, 4, 256, bootstrapLinks, addressTransformer);
 
         ctx.addOutgoingMessage(logAddress, info("Starting client with seed {} and bootstrap {}", seed, bootstrapLinks));
         ctx.addOutgoingMessage(graphAddress, new AddNode(addressTransformer.selfAddressToLinkId(ctx.getSelf())));
-        ctx.addOutgoingMessage(graphAddress,
-                new MoveNode(
-                        addressTransformer.selfAddressToLinkId(ctx.getSelf()),
-                        random.nextInt(1400),
-                        random.nextInt(1400)
-                )
-        );
 
         SubcoroutineRouter outgoingLinkRouter = new SubcoroutineRouter(ROUTER_RELATIVE_ADDRESS, ctx);
         Controller controller = outgoingLinkRouter.getController();

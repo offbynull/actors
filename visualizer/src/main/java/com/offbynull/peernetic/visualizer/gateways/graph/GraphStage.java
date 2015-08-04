@@ -16,6 +16,13 @@
  */
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
+import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.peernetic.visualizer.gateways.graph.GraphNodeAddHandler.AddMode.PERMENANT_ADDED;
+import static com.offbynull.peernetic.visualizer.gateways.graph.GraphNodeAddHandler.AddMode.TEMPORARY_ADDED;
+import static com.offbynull.peernetic.visualizer.gateways.graph.GraphNodeAddHandler.AddMode.TEMPORARY_TO_PERMANENT;
+import static com.offbynull.peernetic.visualizer.gateways.graph.GraphNodeRemoveHandler.RemoveMode.PERMANENT_TO_TEMPORARY;
+import static com.offbynull.peernetic.visualizer.gateways.graph.GraphNodeRemoveHandler.RemoveMode.PERMENANT_REMOVED;
+import static com.offbynull.peernetic.visualizer.gateways.graph.GraphNodeRemoveHandler.RemoveMode.TEMPORARY_REMOVED;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,11 +58,23 @@ final class GraphStage extends Stage {
     private final Map<String, NodeLabel> nodes = new HashMap<>();
     private final BidiMap<ImmutablePair<String, String>, EdgeLine> edges = new DualHashBidiMap<>();
     private final MultiMap<NodeLabel, EdgeLine> anchors = new MultiValueMap<>();
-    private Group graph;
+    private final Group graph;
+    
+    private final Address address;
+    private GraphNodeAddHandler nodeAddHandler;
+    private GraphNodeRemoveHandler nodeRemoveHandler;
     
     private final UnmodifiableMap<Class<?>, Function<Object, Runnable>> runnableGenerators;
 
-    public GraphStage() {
+    public GraphStage(Address address, GraphNodeAddHandler nodeAddHandler, GraphNodeRemoveHandler nodeRemoveHandler) {
+        Validate.notNull(address);
+        Validate.notNull(nodeAddHandler);
+        Validate.notNull(nodeRemoveHandler);
+        
+        this.address = address;
+        this.nodeAddHandler = nodeAddHandler;
+        this.nodeRemoveHandler = nodeRemoveHandler;
+        
         Map<Class<?>, Function<Object, Runnable>> generators = new HashMap<>();
         
         generators.put(AddNode.class, this::generateAddNodeCode);
@@ -94,6 +113,16 @@ final class GraphStage extends Stage {
         scene.widthProperty().addListener(invalidationListener);
         scene.heightProperty().addListener(invalidationListener);
     }
+
+    public void setNodeAddHandler(GraphNodeAddHandler nodeAddHandler) {
+        Validate.notNull(nodeAddHandler);
+        this.nodeAddHandler = nodeAddHandler;
+    }
+
+    public void setNodeRemoveHandler(GraphNodeRemoveHandler nodeRemoveHandler) {
+        Validate.notNull(nodeRemoveHandler);
+        this.nodeRemoveHandler = nodeRemoveHandler;
+    }
     
     List<Runnable> execute(Collection<Object> commands) {
         Validate.notNull(commands);
@@ -125,17 +154,9 @@ final class GraphStage extends Stage {
             
             if (label == null) {
                 // Label doesn't exist, create it and add it in.
-                label = new NodeLabel(id);
-                label.layoutXProperty().set(0);
-                label.layoutYProperty().set(0);
-                graph.getChildren().add(label);
-                nodes.put(id, label);
+                createPermNode(id);
             } else {
-                // Label does exist...
-                //   if it is temporary than make it in to a permenant label
-                //   if it isn't temporary, that means that it's already been added before, so throw exception
-                Validate.isTrue(label.isTemporary(), "Node %s cannot be added because it already exists", id);
-                label.setTemporary(false);
+                convertTempNodeToPermNode(id);
             }
         };
     }
@@ -195,8 +216,8 @@ final class GraphStage extends Stage {
         RemoveNode removeNode = (RemoveNode) msg;
         
         String id = removeNode.getId();
-        boolean removeAsFrom = removeNode.isRemoveAsFrom();
-        boolean removeAsTo = removeNode.isRemoveAsTo();
+        boolean removeAsFrom = removeNode.isRemoveOutgoing();
+        boolean removeAsTo = removeNode.isRemoveIncoming();
 
         return () -> {
             NodeLabel label = nodes.get(id);
@@ -207,45 +228,55 @@ final class GraphStage extends Stage {
             
             // If edges are present...
             if (lines != null && !lines.isEmpty()) {
-                // If this label should attempt to remove edges where this node is the source, do so
+                List<Runnable> removeEdgeRunnables = new ArrayList<>(lines.size());
+                
+                // If this label should attempt to remove edges where this node is the source, queue up removal code
                 if (removeAsFrom) {
                     Iterator<EdgeLine> it = lines.iterator();
                     while (it.hasNext()) {
                         EdgeLine line = it.next();
                         ImmutablePair<String, String> conn = edges.getKey(line);
                         if (conn.getLeft().equals(id)) {
-                            it.remove();
-                            edges.removeValue(line);
-                            graph.getChildren().remove(line);
+                            Object syntheticMsg = new RemoveEdge(conn.getLeft(), conn.getRight());
+                            Runnable removeEdgeRunnable = generateRemoveEdgeCode(syntheticMsg);
+                            removeEdgeRunnables.add(removeEdgeRunnable);
                         }
                     }
                 }
 
-                // If this label should attempt to remove edges where this node is the destination, do so
+                // If this label should attempt to remove edges where this node is the destination, queue up removal code
                 if (removeAsTo) {
                     Iterator<EdgeLine> it = lines.iterator();
                     while (it.hasNext()) {
                         EdgeLine line = it.next();
                         ImmutablePair<String, String> conn = edges.getKey(line);
                         if (conn.getRight().equals(id)) {
-                            it.remove();
-                            edges.removeValue(line);
-                            graph.getChildren().remove(line);
+                            Object syntheticMsg = new RemoveEdge(conn.getLeft(), conn.getRight());
+                            Runnable removeEdgeRunnable = generateRemoveEdgeCode(syntheticMsg);
+                            removeEdgeRunnables.add(removeEdgeRunnable);
                         }
                     }
                 }
+                
+                // Run queued up removal code
+                removeEdgeRunnables.forEach(x -> x.run());
             }
 
             // If there's still stuff pointing to/from this node, mark it as temporary (once all the edges get removed the node will
             // disappear). Otherwise, remove it immediately.
-            lines = (Collection<EdgeLine>) anchors.get(label); // reget just in case ... depending on implementation this may be a backing
-                                                               // collection
+            lines = (Collection<EdgeLine>) anchors.get(label); // reget just in case ... depending on implementation this may return a copy
             if (lines != null && !lines.isEmpty()) {
                 label.setTemporary(true);
+                
+                NodeProperties nodeProps = getNodeProperties(label);
+                nodeRemoveHandler.nodeRemoved(address, id, PERMANENT_TO_TEMPORARY, nodeProps);
             } else {
                 anchors.remove(label);
                 nodes.remove(id);
                 graph.getChildren().remove(label);
+                
+                NodeProperties nodeProps = getNodeProperties(label);
+                nodeRemoveHandler.nodeRemoved(address, id, PERMENANT_REMOVED, nodeProps);
             }
         };
     }
@@ -345,6 +376,21 @@ final class GraphStage extends Stage {
         };
     }
 
+    private NodeLabel createPermNode(String id) {
+        Validate.isTrue(!nodes.containsKey(id), "Node %s cannot be added because it already exists", id);
+        
+        NodeLabel label = new NodeLabel(id);
+
+        graph.getChildren().add(label);
+        nodes.put(id, label);
+        
+        NodeProperties nodeProps = nodeAddHandler.nodeAdded(address, id, PERMENANT_ADDED, null);
+        setNodeProperties(label, nodeProps);
+        label.setTemporary(false);
+        
+        return label;
+    }
+    
     private NodeLabel createTempNodeIfDoesNotExist(String id) {
         NodeLabel label = nodes.get(id);
         if (label != null) {
@@ -352,15 +398,30 @@ final class GraphStage extends Stage {
         }
         
         label = new NodeLabel(id);
-        label.layoutXProperty().set(0);
-        label.layoutYProperty().set(0);
-        label.setTemporary(true);
         nodes.put(id, label);
         graph.getChildren().add(label);
+        
+        NodeProperties nodeProps = nodeAddHandler.nodeAdded(address, id, TEMPORARY_ADDED, null);
+        setNodeProperties(label, nodeProps);
+        label.setTemporary(true);
         
         return label;
     }
 
+    private NodeLabel convertTempNodeToPermNode(String id) {
+        NodeLabel label = nodes.get(id);
+        Validate.isTrue(label != null , "Node %s cannot be converted to a permanent node because it does not exist", id);
+        
+        //   if it isn't temporary, that means that it's already been added before, so throw exception
+        //   if it is temporary than make it in to a permenant label
+        Validate.isTrue(label.isTemporary(), "Node %s cannot be converted to a permanent node because it already is a permenant node", id);
+        
+        NodeProperties nodeProps = nodeAddHandler.nodeAdded(address, id, TEMPORARY_TO_PERMANENT, null);
+        setNodeProperties(label, nodeProps);
+        label.setTemporary(false);
+        
+        return label;
+    }
 
     @SuppressWarnings("unchecked")
     private void deleteTempNodeIfOrphaned(String id) {
@@ -376,6 +437,24 @@ final class GraphStage extends Stage {
             nodes.remove(id);
             anchors.remove(label); // just in case
             graph.getChildren().remove(label);
+            
+            NodeProperties nodeProps = getNodeProperties(label);
+            nodeRemoveHandler.nodeRemoved(address, id, TEMPORARY_REMOVED, nodeProps);
         }
+    }
+    
+    private void setNodeProperties(NodeLabel label, NodeProperties nodeProps) {
+        label.setText(nodeProps.getText());
+        label.layoutXProperty().set(nodeProps.getX());
+        label.layoutYProperty().set(nodeProps.getY());
+        label.setColor(nodeProps.getColor());
+    }
+    
+    private NodeProperties getNodeProperties(NodeLabel label) {
+        return new NodeProperties(
+                label.getText(),
+                label.getColor(),
+                label.layoutXProperty().get(),
+                label.layoutYProperty().get());
     }
 }

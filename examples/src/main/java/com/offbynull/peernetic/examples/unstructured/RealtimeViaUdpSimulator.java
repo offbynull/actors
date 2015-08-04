@@ -12,6 +12,7 @@ import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
 import java.time.Duration;
 import java.util.Random;
 
@@ -31,6 +32,8 @@ public final class RealtimeViaUdpSimulator {
     
     private static final int MAX_NODES = 100;
     private static final int MAX_WAIT_PER_NODE_ADD = 1000; // in milliseconds
+    private static final int MAX_GRAPH_X = 1000;
+    private static final int MAX_GRAPH_Y = 1000;
     
     public static void main(String[] args) throws Exception {
         GraphGateway.startApplication();
@@ -44,6 +47,8 @@ public final class RealtimeViaUdpSimulator {
         actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
         actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
         actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultNodeRemoveHandler());
 
         Random rand = new Random(12345);
 

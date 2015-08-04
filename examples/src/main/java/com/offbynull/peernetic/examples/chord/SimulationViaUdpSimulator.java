@@ -13,7 +13,7 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.io.File;
 import java.time.Duration;
@@ -86,7 +86,7 @@ public final class SimulationViaUdpSimulator {
         GraphGateway.startApplication();
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(NUM_NODES), new DefaultNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(NUM_NODES), new CustomGraphNodeRemoveHandler());
         
           // Replay
         ReplayerGateway replayerGateway = ReplayerGateway.replay(

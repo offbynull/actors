@@ -25,16 +25,16 @@ import org.slf4j.LoggerFactory;
  * An implementation of {@link GraphNodeRemoveHandler} that sets always returns the existing properties of a node.
  * @author Kasra Faghihi
  */
-public final class DefaultNodeRemoveHandler implements GraphNodeRemoveHandler {
+public final class DefaultGraphNodeRemoveHandler implements GraphNodeRemoveHandler {
     
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultNodeRemoveHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultGraphNodeRemoveHandler.class);
 
     @Override
     public NodeProperties nodeRemoved(Address graphAddress, String id, RemoveMode removeMode, NodeProperties nodeProperties) {
         Validate.notNull(graphAddress);
         Validate.notNull(id);
         Validate.notNull(removeMode);
-        // nodeProperties can be null
+        Validate.notNull(nodeProperties);
         
         LOG.debug("Removing {} with mode {}", id, removeMode);
         

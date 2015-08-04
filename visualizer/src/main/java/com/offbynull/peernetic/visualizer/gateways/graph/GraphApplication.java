@@ -59,8 +59,8 @@ public final class GraphApplication extends Application {
     private Map<Address, GraphStage> graphStages;
     
     // do these need to be volatile?
-    private volatile GraphNodeAddHandler nodeAddHandler = new DefaultAddNodeHandler();
-    private volatile GraphNodeRemoveHandler nodeRemoveHandler = new DefaultNodeRemoveHandler();
+    private volatile GraphNodeAddHandler nodeAddHandler = new DefaultGraphNodeAddHandler();
+    private volatile GraphNodeRemoveHandler nodeRemoveHandler = new DefaultGraphNodeRemoveHandler();
 
     @Override
     public void init() throws Exception {

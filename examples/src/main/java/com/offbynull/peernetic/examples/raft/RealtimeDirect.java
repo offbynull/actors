@@ -11,7 +11,7 @@ import com.offbynull.peernetic.examples.common.ConsoleStage;
 import com.offbynull.peernetic.examples.raft.internalmessages.Kill;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartClient;
 import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,7 +62,7 @@ public final class RealtimeDirect {
         int clusterSize = sizeContainer.take();
         Validate.isTrue(clusterSize > 0, "Bad size");
         
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(clusterSize), new DefaultNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(clusterSize), new DefaultGraphNodeRemoveHandler());
         
         // Generate server ids
         Set<Integer> serverIds = new HashSet<>();

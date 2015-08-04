@@ -10,7 +10,7 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.peernetic.examples.unstructured.internalmessages.Start;
 import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import java.net.InetSocketAddress;
 import java.util.Random;
 
@@ -49,7 +49,7 @@ public final class RealtimeViaUdpGateway {
         actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
         actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
         
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultGraphNodeRemoveHandler());
 
         Random rand = new Random(12345);
 

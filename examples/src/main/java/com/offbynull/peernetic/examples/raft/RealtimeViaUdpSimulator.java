@@ -15,7 +15,7 @@ import com.offbynull.peernetic.examples.raft.internalmessages.StartServer;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.time.Duration;
 import java.util.Collection;
@@ -69,7 +69,7 @@ public final class RealtimeViaUdpSimulator {
         int clusterSize = sizeContainer.take();
         Validate.isTrue(clusterSize > 0, "Bad size");
         
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(clusterSize), new DefaultNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(clusterSize), new DefaultGraphNodeRemoveHandler());
         
         // Generate server ids
         Set<Integer> serverIds = new HashSet<>();

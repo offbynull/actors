@@ -269,7 +269,8 @@ final class GraphStage extends Stage {
                 label.setTemporary(true);
                 
                 NodeProperties nodeProps = getNodeProperties(label);
-                nodeRemoveHandler.nodeRemoved(address, id, PERMANENT_TO_TEMPORARY, nodeProps);
+                nodeProps = nodeRemoveHandler.nodeRemoved(address, id, PERMANENT_TO_TEMPORARY, nodeProps);
+                setNodeProperties(label, nodeProps);
             } else {
                 anchors.remove(label);
                 nodes.remove(id);

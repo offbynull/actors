@@ -15,7 +15,7 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.time.Duration;
 import java.util.Collections;
@@ -67,7 +67,7 @@ public final class RealtimeViaUdpSimulator {
         int bits = Integer.numberOfTrailingZeros(size); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
                                                         // ring-space is 3. Nodes will start from 0 to 15.
 
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new DefaultNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new CustomGraphNodeRemoveHandler());
 
         for (int i = 0; i < size; i++) {
             addUdpSimulatorProxy(i, actorThread, i);

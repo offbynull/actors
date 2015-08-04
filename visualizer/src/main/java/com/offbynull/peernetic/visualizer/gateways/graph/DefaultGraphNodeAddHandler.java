@@ -26,9 +26,9 @@ import org.slf4j.LoggerFactory;
  * coordinate {@code (0, 0)}. Nodes that are changes from temporary to permanent retain existing properties.
  * @author Kasra Faghihi
  */
-public final class DefaultAddNodeHandler implements GraphNodeAddHandler {
+public final class DefaultGraphNodeAddHandler implements GraphNodeAddHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultAddNodeHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultGraphNodeAddHandler.class);
     
     @Override
     public NodeProperties nodeAdded(Address graphAddress, String id, AddMode addMode, NodeProperties nodeProperties) {

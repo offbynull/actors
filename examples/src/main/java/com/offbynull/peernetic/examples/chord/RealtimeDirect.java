@@ -11,7 +11,7 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.util.Collections;
 import java.util.Scanner;
@@ -60,7 +60,7 @@ public final class RealtimeDirect {
         int bits = Integer.numberOfTrailingZeros(size); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
                                                         // ring-space is 3. Nodes will start from 0 to 15.
 
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new DefaultNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new CustomGraphNodeRemoveHandler());
 
         consoleStage.outputLine("Node colors");
         consoleStage.outputLine("-----------");

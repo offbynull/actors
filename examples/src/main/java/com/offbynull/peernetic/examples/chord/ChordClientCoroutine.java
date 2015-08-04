@@ -44,12 +44,13 @@ public final class ChordClientCoroutine implements Coroutine {
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         NodeId selfId = start.getNodeId();
+        String graphId = selfId.getValueAsBigInteger().toString();
         byte[] seed = start.getSeed();
         String bootstrapLinkId = start.getBootstrapLinkId();
         AddressTransformer addressTransformer = start.getAddressTransformer();
 
-        ctx.addOutgoingMessage(graphAddress, new AddNode(selfId.toString()));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0xFFFF00));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(graphId));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(graphId, 0xFFFF00));
 
         Set<GraphLink> lastOutgoingLinks = new HashSet<>();
         try {
@@ -59,8 +60,8 @@ public final class ChordClientCoroutine implements Coroutine {
             JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, bootstrapLinkId);
             joinTask.run(cnt);
 
-            ctx.addOutgoingMessage(graphAddress, new StyleNode(selfId.toString(), 0x00FF00));
-            lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, selfId, graphAddress);
+            ctx.addOutgoingMessage(graphAddress, new StyleNode(graphId, 0x00FF00));
+            lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, graphId, graphAddress);
 
             // Create maintanence tasks that are supposed to run in parallel
             SubcoroutineRouter router = new SubcoroutineRouter(ROUTER_RELATIVE_ADDRESS, ctx);
@@ -96,16 +97,16 @@ public final class ChordClientCoroutine implements Coroutine {
                     }
                 }
 
-                lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, selfId, graphAddress);
+                lastOutgoingLinks = updateOutgoingLinksOnGraph(state, lastOutgoingLinks, ctx, graphId, graphAddress);
             }
         } catch (Exception e) {
             ctx.addOutgoingMessage(logAddress, error("Shutting down client {} -- {}", ctx.getSelf(), e));
         } finally {
-            ctx.addOutgoingMessage(graphAddress, new RemoveNode(selfId.toString(), true, false));
+            ctx.addOutgoingMessage(graphAddress, new RemoveNode(graphId, true, false));
         }
     }
 
-    private Set<GraphLink> updateOutgoingLinksOnGraph(State state, Set<GraphLink> lastOutgoingLinks, Context ctx, NodeId selfId,
+    private Set<GraphLink> updateOutgoingLinksOnGraph(State state, Set<GraphLink> lastOutgoingLinks, Context ctx, String graphId,
             Address graphAddress) {
         // Send link changes to graph
         Set<GraphLink> newLinks = new HashSet<>();
@@ -150,18 +151,18 @@ public final class ChordClientCoroutine implements Coroutine {
         Set<GraphLink> removedPointers = new HashSet<>(lastOutgoingLinks);
         removedPointers.removeAll(newLinks);
         removedPointers.forEach(x -> {
-            NodeId otherId = x.getExternalPointer().getId();
-            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(selfId.toString(), otherId.toString()));
+            String otherGraphId = x.getExternalPointer().getId().getValueAsBigInteger().toString();
+            ctx.addOutgoingMessage(graphAddress, new RemoveEdge(graphId, otherGraphId));
         });
 
         Set<GraphLink> addedPointers = new HashSet<>(newLinks);
         addedPointers.removeAll(lastOutgoingLinks);
         addedPointers.forEach(x -> {
-            NodeId otherId = x.getExternalPointer().getId();
+            String otherGraphId = x.getExternalPointer().getId().getValueAsBigInteger().toString();
             int color = x.getColor();
             
-            ctx.addOutgoingMessage(graphAddress, new AddEdge(selfId.toString(), otherId.toString()));
-            ctx.addOutgoingMessage(graphAddress, new StyleEdge(selfId.toString(), otherId.toString(), color, 3.0));
+            ctx.addOutgoingMessage(graphAddress, new AddEdge(graphId, otherGraphId));
+            ctx.addOutgoingMessage(graphAddress, new StyleEdge(graphId, otherGraphId, color, 3.0));
         });
 
         lastOutgoingLinks = newLinks;

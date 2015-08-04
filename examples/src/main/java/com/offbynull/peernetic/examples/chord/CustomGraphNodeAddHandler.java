@@ -11,11 +11,13 @@ import org.apache.commons.lang3.Validate;
 
 final class CustomGraphNodeAddHandler implements GraphNodeAddHandler {
 
-    private double radius;
+    private final double radius;
+    private final BigDecimal limitDec;
 
     public CustomGraphNodeAddHandler(int maxNodes) {
         Validate.isTrue(maxNodes > 0);
         this.radius = Math.max(300, maxNodes * 4);
+        this.limitDec = new BigDecimal("" + maxNodes);
     }
     
     @Override
@@ -32,13 +34,11 @@ final class CustomGraphNodeAddHandler implements GraphNodeAddHandler {
         
     }
     
-    private static double derivePercentageFromId(String id) {
+    private double derivePercentageFromId(String id) {
         Scanner scanner = new Scanner(id);
         scanner.useDelimiter("[^\\d]+");  // everything other than digit and dot is skipped
         
-        
         BigDecimal idDec = new BigDecimal(scanner.nextBigInteger());
-        BigDecimal limitDec = new BigDecimal(scanner.nextBigInteger().add(BigInteger.ONE));
         double percentage = idDec.divide(limitDec, 10, RoundingMode.FLOOR).doubleValue();
         
         return percentage;

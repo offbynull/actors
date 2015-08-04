@@ -13,6 +13,7 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
+import com.offbynull.peernetic.visualizer.gateways.graph.DefaultNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -67,7 +68,7 @@ public final class RealtimeViaUdpGateway {
         int bits = Integer.numberOfTrailingZeros(size); // For example: 16 is 1000b, 1000b has 3 trailing zeros, so number of bits for
                                                         // ring-space is 3. Nodes will start from 0 to 15.
 
-        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new CustomGraphNodeRemoveHandler());
+        graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new DefaultNodeRemoveHandler());
         
         for (int i = 0; i < size; i++) {
             addUdpGateway(i, actorThread);

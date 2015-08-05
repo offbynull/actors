@@ -45,7 +45,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-all</artifactId>
-                <version>1.10.19</version>
+                <version>2.0.2-beta</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -92,7 +92,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.15</version>
+                    <version>2.16</version>
                     <executions>
                         <execution>
                             <phase>process-sources</phase>
@@ -123,7 +123,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-pmd-plugin</artifactId>
-                    <version>3.4</version>
+                    <version>3.5</version>
                     <executions>
                         <execution>
                             <phase>process-sources</phase>
@@ -142,7 +142,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.0.1</version>
                     <configuration>
                         <effort>Max</effort>
                         <threshold>Default</threshold>

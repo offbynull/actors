@@ -50,14 +50,14 @@ import org.slf4j.LoggerFactory;
 /**
  * A simulation environment for {@link Actor}s.
  * <p>
- * The main benefit to testing your actor using this class versus using {@link ActorThread} is that this class is designed to run actors
+ * The main benefit to testing your actors using this class versus using {@link ActorThread} is that this class is designed to run actors
  * "faster than real-time". That is, most actors tend to spend a majority of their time waiting for messages to arrive. This class exploits
  * that fact by skipping the actual waiting but giving actors the impression that the waits actually occurred.
  * <p>
  * The downside to this is that you cannot interface with any {@link Gateway}s. The reason for this is that gateway implementations may
  * be executing code that blocks, which means that the logic used by this class to mock-out blocking/waiting no longer applies. Instead,
  * mock functionality is provided to replace {@link TimerGateway}, {@link RecorderGateway}, and {@link ReplayerGateway}. If your actor
- * relies on any other gateway implementations, you'll need to mock those out yourself as custom actors.
+ * relies on any other gateway implementations, you'll need to mock those out yourself as custom actor implementations.
  * <p>
  * The following example creates a simulation environment with a coroutine actor that sends a delayed message to itself.
  * <pre>
@@ -84,9 +84,9 @@ import org.slf4j.LoggerFactory;
  * <ol>
  * <li><b>Actors are added in to the simulator as-is.</b> When running actors in a real environment, you would normally run those actors in
  * one or more {@link ActorThread}s and potentially bind their {@link Shuttle}s between each other and related {@link Gateway}s. In
- * contrast, the simulator has no concept of a container for actors (something similar to {@link ActorThread}) and no concept of a
- * explicitly binding between those containers (something similar to {@link Shuttle}). Instead, actors are directly added to the simulator
- * and all addresses present in the simulator can send to and receive from each other.</li>
+ * contrast, the simulator has no concept of a container for actors (e.g. anything similar to {@link ActorThread}) and no concept of a
+ * explicitly binding between those containers (e.g. anything similar to {@link Shuttle}). Instead, actors are directly added to the
+ * simulator and all addresses present in the simulator can send to and receive from each other.</li>
  * <li><b>Messages are passed between actors and (mocked) gateways instantly,</b> meaning that you cannot use the simulator to simulate
  * message delays (e.g. simulating a system under heavy load). However, delays caused by the execution of an actor can be simulated. See
  * {@link ActorDurationCalculator} and
@@ -95,7 +95,7 @@ import org.slf4j.LoggerFactory;
  * imagine that {@code actor1} and {@code actor2} both receive a message at the same time. {@code actor1} processes its message first and
  * takes 5 milliseconds to do so. {@code actor2} then processes its message <u>from the same point in time</u> (without the 5 milliseconds
  * tacked on), as if it was running in parallel with {@code actor1} vs after {@code actor1}. One way to think about this is that all actors
- * in the simulator runs all actors in parallel, as if each individual actor runs in its own thread.</li>
+ * in the simulator run in parallel, as if each individual actor runs in its own actor thread.</li>
  * <li><b>Timer's have exact precision.</b> This will almost always never be the case when you run in a real environment. The precision of
  * a {@link TimerGateway} is dependent on the OS/platform and the current load on the system.</li>
  * <li><b>Garbage collection pauses do not occur.</b> Remember that the simulator is is essentially mocking out time. As such, pauses caused

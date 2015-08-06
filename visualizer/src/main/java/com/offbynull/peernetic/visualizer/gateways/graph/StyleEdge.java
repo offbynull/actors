@@ -20,7 +20,7 @@ import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Message to apply a JavaFX CSS effect to an edge.
+ * Message to change an edge's style.
  * @author Kasra Faghihi
  */
 public final class StyleEdge implements Serializable {

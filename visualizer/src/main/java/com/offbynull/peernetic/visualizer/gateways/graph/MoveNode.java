@@ -20,7 +20,7 @@ import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Message to move a node in a graph.
+ * Message to change a node's position within a graph.
  * @author Kasra Faghihi
  */
 public final class MoveNode implements Serializable {

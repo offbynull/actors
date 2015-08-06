@@ -36,7 +36,7 @@ import org.apache.commons.lang3.Validate;
  * their own {@link UdpGateway} (both called {@code internaludp} -- note that each actor is running in its own {@link ActorThread} so there
  * is no naming conflict here), and use that gateway to communicate with each other.
  * <p>
- * Note that UDP is unreliable. Each message is sent as a single package, and packets may come out of order or not at all. The actors in
+ * Note that UDP is unreliable. Each message is sent as a single packet, and packets may come out of order or not at all. The actors in
  * this example don't account for this -- messages in this example are expected to always arrive and arrive in order.
  * <pre>
  * CountDownLatch latch = new CountDownLatch(1);

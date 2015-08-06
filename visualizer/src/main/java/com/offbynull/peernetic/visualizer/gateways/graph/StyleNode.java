@@ -20,7 +20,7 @@ import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Message to apply a style to a node.
+ * Message to change a node's style.
  * @author Kasra Faghihi
  */
 public final class StyleNode implements Serializable {

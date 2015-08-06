@@ -19,7 +19,7 @@ package com.offbynull.peernetic.visualizer.gateways.graph;
 import com.offbynull.peernetic.core.shuttle.Address;
 
 /**
- * Sets the properties of a node when an {@link AddNode} message is processed by a {@link GraphGateway}.
+ * Sets the properties of a node added on to a graph.
  * <p>
  * Implementations must be thread-safe.
  * @author Kasra Faghihi

@@ -155,16 +155,16 @@ public final class UdpSimulatorCoroutine implements Coroutine {
                 // Outgoing message
                 ForwardInformation forwardInfo = proxyHelper.generateOutboundForwardInformation();
                 DepartMessage dm = new DepartMessage(msg,
-                        forwardInfo.getProxyFromId(),
+                        forwardInfo.getProxyFromAddress(),
                         forwardInfo.getProxyToAddress());
                 for (TransitMessage tm : line.processOutgoing(time, dm)) {
                     ctx.addOutgoingMessage(timerPrefix.appendSuffix("" + tm.getDuration().toMillis()), tm);
                 }
             } else {
                 // Incoming message
-                ForwardInformation forwardInfo = proxyHelper.generatInboundForwardInformation();
+                ForwardInformation forwardInfo = proxyHelper.generateInboundForwardInformation();
                 DepartMessage dm = new DepartMessage(msg,
-                        forwardInfo.getProxyFromId(),
+                        forwardInfo.getProxyFromAddress(),
                         forwardInfo.getProxyToAddress());
                 for (TransitMessage tm : line.processIncoming(time, dm)) {
                     ctx.addOutgoingMessage(timerPrefix.appendSuffix("" + tm.getDuration().toMillis()), tm);

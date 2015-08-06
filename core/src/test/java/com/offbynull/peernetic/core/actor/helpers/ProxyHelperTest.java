@@ -37,7 +37,7 @@ public class ProxyHelperTest {
         
         ForwardInformation forwardInfo = fixture.generateOutboundForwardInformation();
         
-        assertEquals(Address.of("sourceid"), forwardInfo.getProxyFromId());
+        assertEquals(Address.of("sourceid"), forwardInfo.getProxyFromAddress());
         assertEquals(Address.of(DESTINATION_PREFIX, "destid"), forwardInfo.getProxyToAddress());
     }
 
@@ -47,9 +47,9 @@ public class ProxyHelperTest {
         when(context.getSource()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
         when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX, "sourceid"));
         
-        ForwardInformation forwardInfo = fixture.generatInboundForwardInformation();
+        ForwardInformation forwardInfo = fixture.generateInboundForwardInformation();
         
-        assertEquals(Address.of(DESTINATION_PREFIX, "destid"), forwardInfo.getProxyFromId());
+        assertEquals(Address.of(DESTINATION_PREFIX, "destid"), forwardInfo.getProxyFromAddress());
         assertEquals(Address.of(SOURCE_PREFIX, "sourceid"), forwardInfo.getProxyToAddress());
     }
 

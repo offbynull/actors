@@ -31,7 +31,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
  */
 public interface AddressTransformer {
     /**
-     * Converts a self address (e.g. address returned by {@link Context#getSelf()}) to an link identifier.
+     * Converts a self address (e.g. address returned by {@link Context#getSelf()}) to a link identifier.
      * @param address self address
      * @return link identifier for address
      * @throws NullPointerException if any argument is {@code null}

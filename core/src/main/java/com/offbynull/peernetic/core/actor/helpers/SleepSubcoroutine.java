@@ -33,18 +33,18 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class SleepSubcoroutine implements Subcoroutine<Void> {
-    private final Address address;
+    private final Address sourceAddress;
     private final Address timerAddress;
     private final Duration timeoutDuration;
 
-    private SleepSubcoroutine(Address address, Address timerAddress, Duration timeoutDuration) {
-        Validate.notNull(address);
+    private SleepSubcoroutine(Address sourceAddress, Address timerAddress, Duration timeoutDuration) {
+        Validate.notNull(sourceAddress);
         Validate.notNull(timerAddress);
         Validate.notNull(timeoutDuration);
 //        Validate.isTrue(!address.isEmpty()); // can be empty because it's relative?
         Validate.isTrue(!timerAddress.isEmpty());
         Validate.isTrue(!timeoutDuration.isNegative());
-        this.address = address;
+        this.sourceAddress = sourceAddress;
         this.timerAddress = timerAddress;
         this.timeoutDuration = timeoutDuration;
     }
@@ -55,7 +55,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         
         Object timeoutMarker = new Object();
         
-        ctx.addOutgoingMessage(address,
+        ctx.addOutgoingMessage(sourceAddress,
                 timerAddress.appendSuffix("" + timeoutDuration.toMillis()),
                 timeoutMarker);
         
@@ -70,25 +70,25 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
 
     @Override
     public Address getAddress() {
-        return address;
+        return sourceAddress;
     }
     
     /**
      * {@link SleepSubcoroutine} builder. All validation is done in {@link #build() }.
      */
     public static final class Builder {
-        private Address address;
+        private Address sourceAddress;
         private Address timerAddress;
         private Duration duration;
 
         /**
-         * Set the address. The address set by this method must be relative to the calling actor's self address (relative to
+         * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
          * {@link Context#getSelf()}). Defaults to {@code null}.
-         * @param address relative address
+         * @param sourceAddress relative source address
          * @return this builder
          */
-        public Builder address(Address address) {
-            this.address = address;
+        public Builder sourceAddress(Address sourceAddress) {
+            this.sourceAddress = sourceAddress;
             return this;
         }
 
@@ -120,7 +120,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
          * to empty
          */
         public SleepSubcoroutine build() {
-            return new SleepSubcoroutine(address, timerAddress, duration);
+            return new SleepSubcoroutine(sourceAddress, timerAddress, duration);
         }
         
     }

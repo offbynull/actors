@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 /**
- * Invokes a {@link Subcoroutine} within an isolated {@link CoroutineRunner}. Use this class when you don't want calls to
+ * Invokes a {@link Subcoroutine} within its own isolated {@link CoroutineRunner}. Use this class when you don't want calls to
  * {@link Continuation#suspend() } within your subcoroutine to also suspend the caller.
  * <p>
  * This class is not thread-safe / immutable.

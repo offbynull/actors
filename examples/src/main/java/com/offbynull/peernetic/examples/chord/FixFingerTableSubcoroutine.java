@@ -102,7 +102,7 @@ final class FixFingerTableSubcoroutine implements Subcoroutine<Void> {
     
     private void funnelToSleepCoroutine(Continuation cnt, Duration duration) throws Exception {
         new SleepSubcoroutine.Builder()
-                .address(subAddress)
+                .sourceAddress(subAddress)
                 .duration(duration)
                 .timerAddress(timerAddress)
                 .build()

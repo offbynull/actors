@@ -15,7 +15,7 @@ public class SleepSubcoroutineTest {
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addCoroutineActor("test", cnt -> {
                 SleepSubcoroutine fixture = new SleepSubcoroutine.Builder()
-                        .address(Address.of("sleep"))
+                        .sourceAddress(Address.of("sleep"))
                         .timerAddress(Address.of("timer"))
                         .duration(Duration.ofSeconds(1L))
                         .build();

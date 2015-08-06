@@ -40,7 +40,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
  * A subcoroutine that sends a request to multiple recipients and waits for each recipient to respond. The request may be attempted multiple
  * times before giving up -- a timer is used to sleep between resends.
  * <p>
- * Response is returned by the subcoroutine.
+ * Responses to the requests are returned by this subcoroutine.
  * <p>
  * This class is not thread-safe / immutable.
  * @author Kasra Faghihi
@@ -248,7 +248,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
 
         /**
          * Add a destination for the request.
-         * @param uniqueSourceAddressSuffix unique source address
+         * @param uniqueSourceAddressSuffix unique source address suffix
          * @param destinationAddress destination address
          * @return this builder
          */
@@ -288,7 +288,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         }
 
         /**
-         * Set the amount of time to wait inbetween attempts. Defaults to 2 seconds.
+         * Set the amount of time to wait inbetween attempts. Defaults to {@code 2} seconds.
          * @param attemptInterval amount of time to wait inbetween attempts
          * @return this builder
          */
@@ -298,7 +298,8 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
         }
 
         /**
-         * Set the expected response types. Defaults to empty set.
+         * Set the expected response types. Calling this clears any earlier response types added using
+         * {@link #addExpectedResponseType(java.lang.Class...) }. Defaults to empty set.
          * @param expectedResponseTypes expected response types
          * @return this builder
          * @throws NullPointerException if any argument is {@code null}

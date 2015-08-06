@@ -164,7 +164,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
 
         /**
          * Set the source address. Equivalent to calling {@code sourceAddress(baseSourceAddress.appendSuffix(idGenerator.generate()))}.
-         * @param baseSourceAddress relative address
+         * @param baseSourceAddress relative source address
          * @param idGenerator id generator
          * @return this builder
          * @throws NullPointerException if any argument is {@code null}
@@ -176,7 +176,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         /**
          * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
          * {@link Context#getSelf()}). Defaults to {@code null}.
-         * @param sourceAddress relative address
+         * @param sourceAddress relative source address
          * @return this builder
          */
         public Builder<T> sourceAddress(Address sourceAddress) {
@@ -235,7 +235,8 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         }
 
         /**
-         * Set the expected response types. Defaults to empty set.
+         * Set the expected response types. Calling this clears any earlier response types added using
+         * {@link #addExpectedResponseType(java.lang.Class...) }. Defaults to empty set.
          * @param expectedResponseTypes expected response types
          * @return this builder
          * @throws NullPointerException if any argument is {@code null}
@@ -257,8 +258,9 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         }
 
         /**
-         * Set "throw exception if no response" flag. Throws an exception if we didn't end up getting a response of type we expect.
-         * Exception is a {@link IllegalStateException}. Defaults to {@code true}.
+         * Set "throw exception if no response" flag. If set, throws an exception ({@link IllegalStateException}) if we didn't end up
+         * getting a response of type we expect. If not set, returns {@code null} if we didn't end up getting a response of type we expect.
+         * Defaults to {@code true}.
          * @param throwExceptionIfNoResponse "throw exception if no response" flag
          * @return this builder
          */

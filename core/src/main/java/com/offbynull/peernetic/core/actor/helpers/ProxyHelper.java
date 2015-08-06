@@ -111,9 +111,10 @@ public final class ProxyHelper {
 
         // Get suffix for from address
         Address srcAddr = context.getSource();
-        Address proxyFromId = srcAddr.removePrefix(actorPrefix);
+        Address proxyFromAddress = srcAddr.removePrefix(actorPrefix); // proxyFromAddress is relative here, but isn't relative for
+                                                                      // generateInboundForwardInformation?
         
-        return new ForwardInformation(proxyFromId, proxyToAddress);
+        return new ForwardInformation(proxyFromAddress, proxyToAddress);
     }
 
     /**
@@ -131,7 +132,7 @@ public final class ProxyHelper {
      * "local:proxy:remote:actor2:child". The proxy should forward that message to "remote:actor2:child".
      * @return forwarding information
      */
-    public ForwardInformation generatInboundForwardInformation() {
+    public ForwardInformation generateInboundForwardInformation() {
         // Get suffix portion of incoming message's destination address
         Address selfAddr = context.getSelf();
         Address dstAddr = context.getDestination();
@@ -139,9 +140,10 @@ public final class ProxyHelper {
         Address proxyToAddress = actorPrefix.appendSuffix(suffix);
         
         // Get sender
-        Address proxyFromId = context.getSource();
+        Address proxyFromAddress = context.getSource(); // proxyFromAddress is absolute here, but isn't absolute for
+                                                        // generateOutboundForwardInformation?
         
-        return new ForwardInformation(proxyFromId, proxyToAddress);
+        return new ForwardInformation(proxyFromAddress, proxyToAddress);
     }
     
 //    public void forwardToOutside(Object message) {
@@ -190,11 +192,11 @@ public final class ProxyHelper {
      * Forwarding information.
      */
     public static final class ForwardInformation {
-        private final Address proxyFromId;
+        private final Address proxyFromAddress;
         private final Address proxyToAddress;
         
-        private ForwardInformation(Address proxyFromId, Address proxyToAddress) {
-            this.proxyFromId = proxyFromId;
+        private ForwardInformation(Address proxyFromAddress, Address proxyToAddress) {
+            this.proxyFromAddress = proxyFromAddress;
             this.proxyToAddress = proxyToAddress;
         }
 
@@ -202,8 +204,8 @@ public final class ProxyHelper {
          * Get the address suffix to forward from.
          * @return address suffix to forward from
          */
-        public Address getProxyFromId() {
-            return proxyFromId;
+        public Address getProxyFromAddress() {
+            return proxyFromAddress;
         }
 
         /**

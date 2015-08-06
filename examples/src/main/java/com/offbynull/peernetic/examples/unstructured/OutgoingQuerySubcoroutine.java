@@ -45,7 +45,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
 
         while (true) {
             new SleepSubcoroutine.Builder()
-                    .address(subAddress.appendSuffix(idGenerator.generate()))
+                    .sourceAddress(subAddress.appendSuffix(idGenerator.generate()))
                     .timerAddress(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()

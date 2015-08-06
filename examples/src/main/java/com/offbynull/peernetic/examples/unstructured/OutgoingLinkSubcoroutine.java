@@ -55,7 +55,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
         reconnect:
         while (true) {
             new SleepSubcoroutine.Builder()
-                    .address(subAddress.appendSuffix(idGenerator.generate()))
+                    .sourceAddress(subAddress.appendSuffix(idGenerator.generate()))
                     .timerAddress(timerAddress)
                     .duration(Duration.ofSeconds(1L))
                     .build()
@@ -124,7 +124,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
             while (true) {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Waiting to refresh link to {}", outLinkId));
                 new SleepSubcoroutine.Builder()
-                        .address(subAddress.appendSuffix(idGenerator.generate()))
+                        .sourceAddress(subAddress.appendSuffix(idGenerator.generate()))
                         .timerAddress(timerAddress)
                         .duration(Duration.ofSeconds(1L))
                         .build()

@@ -23,7 +23,8 @@ import java.io.ObjectOutputStream;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Interface to serialize objects to / deserialize objects from a byte array.
+ * Serializes/deserializes objects using Java's standard {@link ObjectOutputStream}/{@link ObjectInputStream} serialization classes. Objects
+ * being serialized/deserialized must implement {@link Serializable}.
  * @author Kasra Faghihi
  */
 public final class SimpleSerializer implements Serializer {

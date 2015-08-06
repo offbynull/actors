@@ -16,35 +16,28 @@
  */
 package com.offbynull.peernetic.core.actor;
 
-import com.offbynull.peernetic.core.gateway.Gateway;
-
 /**
- * An {@link Actor} is an isolated "computational unit" who's only method of communicating with the outside world (other {@link Actor}s or
- * {@link Gateway}s) is through message-passing. If you aren't familiar with concept of actors and their role in concurrent/distributed
- * computing, there's a good introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
- * 
+ * An {@link Actor} is an isolated "computational unit" who's only method of communicating with the outside world is through
+ * message-passing. If you aren't familiar with the concept of actors and their role in concurrent/distributed computing, there's a good
+ * introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
+ * <p>
  * Implementations of this interface should adhere to the following constraints:
- * 
- * <ol>
- * <li><b>Do not expose any internal state.</b> Unlike traditional objects that communicate by invoking methods on each other,
- * actors should not provide any setters, getters, public fields, or any other direct mechanism for exposing their state. If another actor
- * or outside component needs to know or change the internal state of this actor, it must request it via a message.</li>
- * <li><b>Do not share state.</b> Only ever directly access/change your own internal state. An actor should not share any references with
- * other actors or outside objects, unless those references are to immutable objects. For example, an actor shouldn't have a reference to a
- * ConcurrentHashMap that's being shared with other actors or components. Communication between actors or other outside components must be
- * done via message-passing.</li>
- * <li><b>Avoid blocking, whether it's for I/O, a long running operation, thread synchronization, or otherwise.</b> Multiple actors may be
- * running in the same Java thread, therefore, if an actor were to block for any reason, it may prevent other actors from processing
- * messages in a timely manner. In addition, any actors that directly perform I/O may be incapable of being serialized.
- * </li>
- * <li><b>Only ever communicate with the outside world (e.g. other actors and components) through asynchronous message-passing.</b>
- * Since implementations avoid sharing and exposing state, there needs be some mechanism to communicate interface with the outside.
- * Message-passing is that mechanism.</li>
- * </ol>
- * 
- * Following the above implementation rules means that, outside of receiving messages and sending messages, an actor is fully isolated. This
+ * <ul>
+ * <li><b>Do not expose any internal state.</b> Unlike traditional Java objects, actors should not provide any publicly accessibly methods
+ * or fields that expose or change their state. If an outside component needs to know or change the state of this actor, it must request it
+ * via message-passing.</li>
+ * <li><b>Do not share state.</b> Actors must only ever access/change their own internal state, meaning that an actor must not share any
+ * references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a
+ * reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done
+ * via message-passing.</li>
+ * <li><b>Avoid blocking, whether it's for I/O, long running operations, thread synchronization, or otherwise.</b> Multiple actors may be
+ * running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages
+ * in a timely manner.</li>
+ * </ul>
+ * <p>
+ * Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This
  * isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't
- * matter if you're passing messages to a component that's remote or local, the underlying message-passing should make it transparent).
+ * matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
  * 
  * @author Kasra Faghihi
  */
@@ -65,8 +58,8 @@ public interface Actor {
      * Remember that both incoming and outgoing messages must be ...
      * <ol>
      * <li>immutable -- cannot change once created.</li>
-     * <li>serializable -- can be written out to a byte stream and read back in.</li>
-     * <li>deterministic -- serializing a message then deserializing it must always result in the same object.</li>
+     * <li>serializable -- can be written out to a stream and read back in.</li>
+     * <li>deterministic -- serializing a message and then deserializing it must always result in the same object.</li>
      * </ol>
      * @param context context for this actor. The same {@link Context} object is passed in to this method on every invocation for the entire
      * life of the actor.

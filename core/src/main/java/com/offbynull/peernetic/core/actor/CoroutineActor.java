@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import org.apache.commons.lang3.Validate;
@@ -46,7 +47,7 @@ import org.apache.commons.lang3.Validate;
  * However, if it were implemented as a normal actor, the logic would have to be written in a much more convoluted manner:
  * <pre>
  * //
- * // Keep in mind that, due to the need to retain state between calls to onStep(), all variables have essentially become fields.
+ * // Keep in mind that, due to the need to retain state between calls to onStep(), all variables have become fields.
  * // 
  * switch (state) {
  *     case START:
@@ -77,6 +78,8 @@ import org.apache.commons.lang3.Validate;
  *         return;
  * }
  * </pre>
+ * <p>
+ * <b>Important note</b>: You can access your actor's {@link Context} object in your coroutine via {@link Continuation#getContext() }.
  * @author Kasra Faghihi
  */
 public final class CoroutineActor implements Actor {

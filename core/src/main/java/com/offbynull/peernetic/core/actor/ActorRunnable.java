@@ -160,7 +160,7 @@ final class ActorRunnable implements Runnable {
         // Queue up outgoing messages
         List<BatchedOutgoingMessage> batchedOutgoingMessages = context.copyAndClearOutgoingMessages();
         for (BatchedOutgoingMessage batchedOutgoingMessage : batchedOutgoingMessages) {
-            Address srcId = batchedOutgoingMessage.getSourceId();
+            Address srcId = batchedOutgoingMessage.getSource();
             Address sentFrom = Address.of(dstPrefix, dstImmediateId);
             
             if (srcId != null) {

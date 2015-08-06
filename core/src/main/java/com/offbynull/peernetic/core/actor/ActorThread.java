@@ -18,7 +18,6 @@ package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
-import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import org.apache.commons.lang3.Validate;
 
@@ -50,15 +49,13 @@ import org.apache.commons.lang3.Validate;
  * actorThread.shutdown();
  * </pre>
  * 
- * All actors assigned to this {@link ActorThread} can send messages to each other without any additional setup.
+ * All actors assigned to an actorthread can send messages to each other without any additional setup.
  * <p>
- * If you want outside components (e.g. {@link Gateway}s or other actors that are assigned to a different {@link ActorThread}s) to be able
- * to send messages to actors assigned to this {@link ActorThread}, you'll need to pass those outside components a reference to the
- * {@link Shuttle} returned by {@link #getIncomingShuttle() }.
+ * If you want outside components to be able to send messages to actors assigned to an actorthread, you'll need to pass those
+ * outside components a reference to the {@link Shuttle} returned by {@link #getIncomingShuttle() }.
  * <p>
- * Similarly, if actors assigned to this {@link ActorThread} are going to send messages to outside components, the {@link Shuttle}s for
- * those outgoing components need to be added to this {@link ActorThread} using
- * {@link #addOutgoingShuttle(com.offbynull.peernetic.core.shuttle.Shuttle) }.
+ * Similarly, if actors assigned to an actorthread are going to send messages to outside components, the {@link Shuttle}s for
+ * those outgoing components need to be added using {@link #addOutgoingShuttle(com.offbynull.peernetic.core.shuttle.Shuttle) }.
  * <p>
  * If an actor tries to send a message to an address for which no outgoing shuttle has been added, that message is silently discarded.
  * 
@@ -80,7 +77,7 @@ public final class ActorThread implements AutoCloseable {
     
     /**
      * Creates a new {@link ActorThread} object.
-     * @param prefix address prefix to use for actors that get added to this {@link ActorThread}
+     * @param prefix address prefix to use for actors that get added to the actorthread returned by this method
      * @return newly created {@link ActorThread}
      * @throws NullPointerException if any argument is {@code null}
      */
@@ -107,7 +104,7 @@ public final class ActorThread implements AutoCloseable {
     }
     
     /**
-     * Shuts down this {@link ActorThread}. Blocks until the internal thread that executes actors terminates before returning.
+     * Shuts down this actorthread. Blocks until the internal thread that executes actors terminates before returning.
      * @throws InterruptedException if interrupted while waiting for shutdown
      */
     @Override
@@ -132,7 +129,7 @@ public final class ActorThread implements AutoCloseable {
     
     /**
      * Get the shuttle used to receive messages.
-     * @return shuttle for incoming messages to this {@link ActorThread}
+     * @return shuttle for incoming messages to this actorthread
      */
     public Shuttle getIncomingShuttle() {
         return actorRunnable.getIncomingShuttle();
@@ -140,14 +137,14 @@ public final class ActorThread implements AutoCloseable {
 
     /**
      * Queue an actor to be added. Note that this method queues an actor to be added rather than adding it right away. As such, this
-     * method will likely return before the actor in question is added and any error during encountered during adding will not be
-     * known to the caller. On error (e.g. actor with same id already exists), this {@link ActorThread} terminates.
+     * method will likely return before the actor in question is added, and any error during encountered during adding will not be
+     * known to the caller. On error (e.g. actor with same id already exists), this actorthread terminates.
      * <p>
-     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
+     * If this actorthread has been shutdown prior to calling this method, this method does nothing.
      * @param id id to use for {@code actor}. For example, if the prefix for this ActorThread is "actorthread", and the id of the actor
      * being add is "test", that actor will be accessible via the address "actorthread:test".
      * @param actor actor being added
-     * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
+     * @param primingMessages messages to send to {@code actor} (shown as coming from itself) once its been added
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
     public void addActor(String id, Actor actor, Object... primingMessages) {
@@ -177,12 +174,12 @@ public final class ActorThread implements AutoCloseable {
 
     /**
      * Queue an actor to be remove. Note that this method queues an actor to be removed rather than removing it right away. As such, this
-     * method will likely return before the actor in question is removed and any error during encountered during removal will not be
-     * known to the caller. On error (e.g. actor with id doesn't exist), this {@link ActorThread} terminates.
+     * method will likely return before the actor in question is removed, and any error during encountered during removal will not be
+     * known to the caller. On error (e.g. actor with id doesn't exist), this actorthread terminates.
      * <p>
-     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
+     * If this actorthread has been shutdown prior to calling this method, this method does nothing.
      * <p>
-     * If this {@link ActorThread} doesn't contain an actor with the id {@code id}, nothing will be removed.
+     * If this actorthread doesn't contain an actor with the id {@code id}, nothing will be removed.
      * @param id id of actor to remove
      * @throws NullPointerException if any argument is {@code null}
      */
@@ -196,10 +193,10 @@ public final class ActorThread implements AutoCloseable {
      * shuttle (based on the prefix of the destination address). If no outgoing shuttle is found, the message is silently discarded.
      * <p>
      * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes and any error encountered during the operation will not be known to the caller. On error
-     * (e.g. outgoing shuttle with same prefix already exists), this {@link ActorThread} terminates.
+     * return before the add operation completes, and any error encountered during the operation will not be known to the caller. On error
+     * (e.g. outgoing shuttle with same prefix already exists), this actorthread terminates.
      * <p>
-     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing.
+     * If this actorthread has been shutdown prior to calling this method, this method does nothing.
      * <p>
      * @param shuttle outgoing shuttle to add
      * @throws NullPointerException if any argument is {@code null}
@@ -215,8 +212,8 @@ public final class ActorThread implements AutoCloseable {
      * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
      * return before the add operation completes and any error encountered during the operation will not be known to the caller.
      * <p>
-     * If this {@link ActorThread} has been shutdown prior to calling this method, this method does nothing. On error (e.g. outgoing shuttle
-     * with prefix doesn't exist), this {@link ActorThread} terminates.
+     * If this actorthread has been shutdown prior to calling this method, this method does nothing. On error (e.g. outgoing shuttle
+     * with prefix doesn't exist), this actorthread terminates.
      * <p>
      * @param prefix address prefix for shuttle to remove
      * @throws NullPointerException if any argument is {@code null}

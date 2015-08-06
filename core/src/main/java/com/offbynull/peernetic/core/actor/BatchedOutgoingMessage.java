@@ -24,26 +24,26 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class BatchedOutgoingMessage {
-    private final Address sourceId;
+    private final Address source;
     private final Address destination;
     private final Object message;
 
-    BatchedOutgoingMessage(Address sourceId, Address destination, Object message) {
-        Validate.notNull(sourceId);
+    BatchedOutgoingMessage(Address source, Address destination, Object message) {
+        Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
         Validate.isTrue(!destination.isEmpty());
-        this.sourceId = sourceId;
+        this.source = source;
         this.destination = destination;
         this.message = message;
-    } // sourceId may be null
+    }
 
     /**
-     * Source id of the outgoing message.
-     * @return source id
+     * Source address of the outgoing message, relative to the actor which this message is from.
+     * @return relative source address
      */
-    public Address getSourceId() {
-        return sourceId;
+    public Address getSource() {
+        return source;
     }
 
     /**

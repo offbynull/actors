@@ -28,15 +28,15 @@ public class SourceContextTest {
         
         assertEquals(3, outgoingMsgsView.size());
         
-        assertEquals(Address.of(), outgoingMsgsView.get(0).getSourceId());
+        assertEquals(Address.of(), outgoingMsgsView.get(0).getSource());
         assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         
-        assertEquals(Address.of("src"), outgoingMsgsView.get(1).getSourceId());
+        assertEquals(Address.of("src"), outgoingMsgsView.get(1).getSource());
         assertEquals(Address.of("test2"), outgoingMsgsView.get(1).getDestination());
         assertEquals("2", outgoingMsgsView.get(1).getMessage());
 
-        assertEquals(Address.of("src"), outgoingMsgsView.get(2).getSourceId());
+        assertEquals(Address.of("src"), outgoingMsgsView.get(2).getSource());
         assertEquals(Address.of("test3"), outgoingMsgsView.get(2).getDestination());
         assertEquals("3", outgoingMsgsView.get(2).getMessage());
     }
@@ -54,15 +54,15 @@ public class SourceContextTest {
         
         assertEquals(3, outgoingMsgs.size());
         
-        assertEquals(Address.of(), outgoingMsgs.get(0).getSourceId());
+        assertEquals(Address.of(), outgoingMsgs.get(0).getSource());
         assertEquals(Address.of("test1"), outgoingMsgs.get(0).getDestination());
         assertEquals("1", outgoingMsgs.get(0).getMessage());
         
-        assertEquals(Address.of("src"), outgoingMsgs.get(1).getSourceId());
+        assertEquals(Address.of("src"), outgoingMsgs.get(1).getSource());
         assertEquals(Address.of("test2"), outgoingMsgs.get(1).getDestination());
         assertEquals("2", outgoingMsgs.get(1).getMessage());
 
-        assertEquals(Address.of("src"), outgoingMsgs.get(2).getSourceId());
+        assertEquals(Address.of("src"), outgoingMsgs.get(2).getSource());
         assertEquals(Address.of("test3"), outgoingMsgs.get(2).getDestination());
         assertEquals("3", outgoingMsgs.get(2).getMessage());
     }
@@ -80,7 +80,7 @@ public class SourceContextTest {
         
         List<BatchedOutgoingMessage> outgoingMsgsView = normalContext.viewOutgoingMessages();
         assertEquals(1, outgoingMsgsView.size());
-        assertEquals(Address.of(), outgoingMsgsView.get(0).getSourceId());
+        assertEquals(Address.of(), outgoingMsgsView.get(0).getSource());
         assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         

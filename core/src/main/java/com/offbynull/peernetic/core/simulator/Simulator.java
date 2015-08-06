@@ -849,7 +849,7 @@ public final class Simulator {
         List<BatchedOutgoingMessage> batchedOutMsgs = context.copyAndClearOutgoingMessages();
         for (BatchedOutgoingMessage batchedOutMsg : batchedOutMsgs) {
             Address outSrc = address;
-            Address outSrcId = batchedOutMsg.getSourceId();
+            Address outSrcId = batchedOutMsg.getSource();
             if (outSrcId != null) {
                 outSrc = outSrc.appendSuffix(outSrcId);
             }

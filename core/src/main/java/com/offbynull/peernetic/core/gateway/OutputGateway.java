@@ -30,7 +30,7 @@ public interface OutputGateway extends Gateway {
      * shuttles.
      * <p>
      * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes and any error encountered during the operation will not be known to the caller. On error,
+     * return before the add operation completes, and any error encountered during the operation will not be known to the caller. On error,
      * this gateway terminates.
      * <p>
      * If this gateway has been shutdown prior to calling this method, this method does nothing.
@@ -43,7 +43,7 @@ public interface OutputGateway extends Gateway {
      * Queue an outgoing shuttle for removal.
      * <p>
      * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes and any error encountered during the operation will not be known to the caller.
+     * return before the add operation completes, and any error encountered during the operation will not be known to the caller.
      * <p>
      * If this gateway has been shutdown prior to calling this method, this method does nothing. On error, this {@link Gateway}
      * terminates.

@@ -11,7 +11,7 @@ Why use Peernetic over other generic actor frameworks like Akka or Orbit? While 
 More information on the topic of actors and their advantages can be found on the following pages:
 
 * [Wikipedia: Actor model](https://en.wikipedia.org/wiki/Actor_model)
-* [Programmers Stack Exchange: Difference between a "coroutine" and a "thread"?](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used)
+* [Programmers Stack Exchange: How is the actor model used?](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used)
 
 ## Examples
 

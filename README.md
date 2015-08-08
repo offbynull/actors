@@ -25,19 +25,19 @@ Peernetic comes with 3 real-world examples. You're highly encouraged to go throu
 
 Please read this entire section before digging in to the code.
 
-### [Unstructured Mesh](https://github.com/offbynull/peernetic/tree/master/examples/src/main/java/com/offbynull/peernetic/examples/unstructured)
+### [Unstructured Mesh](examples/src/main/java/com/offbynull/peernetic/examples/unstructured)
 
 An example that forms an unstructured mesh network.
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Peer-to-peer): Unstructured peer-to-peer networks do not impose a particular structure on the overlay network by design, but rather are formed by nodes that randomly form connections to each other. Gnutella, Gossip, and Kazaa are examples of unstructured P2P protocols.
 
-### [Chord DHT Overlay](https://github.com/offbynull/peernetic/tree/master/examples/src/main/java/com/offbynull/peernetic/examples/chord)
+### [Chord DHT Overlay](examples/src/main/java/com/offbynull/peernetic/examples/chord)
 
 An example that forms a Chord DHT overlay network, which is a form of structured network.
 
 From  [Wikipedia](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)): In computing, Chord is a protocol and algorithm for a peer-to-peer distributed hash table. A distributed hash table stores key-value pairs by assigning keys to different computers (known as "nodes"); a node will store the values for all the keys for which it is responsible. Chord specifies how keys are assigned to nodes, and how a node can discover the value for a given key by first locating the node responsible for that key.
 
-### [Raft Distributed Consensus](https://github.com/offbynull/peernetic/tree/master/examples/src/main/java/com/offbynull/peernetic/examples/raft)
+### [Raft Distributed Consensus](examples/src/main/java/com/offbynull/peernetic/examples/raft)
 
 An example that forms a Raft distributed consensus cluster.
 

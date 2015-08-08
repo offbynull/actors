@@ -8,10 +8,10 @@ Unlike other actor frameworks, Peernetic was designed first and foremost with di
 
 Peernetic's high-level features include:
 
-* **First-class support for coroutines** - Never again write convoluted state machine logic by hand. Writing state machine logic to retain your actor's execution state between incoming messages or have multiple threads of execution within your actor is tedious and error prone. Coroutines allow you to suspend the execution of your actor until the next incoming message arrives.
-* **Networking** - Send messages transparently over a network. Send messages over UDP, or simulate a UDP-like environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..). See how your algorithm reacts to real-world networking conditions.
-* **Visualizer** - Visualize directed graphs with ease. The visualizer makes it easy to display information about a P2P network in real-time, such as network overlays and node states.
-* **Simulator** - Deterministicly simulate thousands of actors interacting with each other in faster than real-time. The simulator allows you to see how your P2P algorithm deals with common P2P issues - network churn, network partitioning, high latency, high packet-loss, etc. It also makes it easy to write deterministic and reproducible tests for your P2P algorithms.
+* **First-class support for coroutines** - Retain your actor's execution state between incoming messages or have multiple threads of execution within your actor, without the need to tediously write a state machine by hand. Coroutines allow you to suspend the execution of your actor until the next incoming message arrives.
+* **Networking** - Send messages transparently over a network. The networking gateway allows you to send messages over UDP. It also provides a UDP-like simulation environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..) to see how your algorithm reacts to real-world networking conditions.
+* **Visualizer** - Visualize directed graphs with ease. The visualizer gateway makes it easy to display information about a P2P network in real-time, such as network overlays and node states.
+* **Simulator** - Deterministicly simulate many actors interacting with each other in faster than real-time. The simulator allows you to see how your P2P algorithm deals with common P2P issues - network churn, network partitioning, high latency, high packet-loss, etc. It also makes it easy to write deterministic and reproducible tests for your P2P algorithms.
 
 More information on the topic of actors and their advantages can be found on the following pages:
 

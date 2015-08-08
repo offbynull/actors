@@ -4,7 +4,7 @@
 
 Peernetic is a lightweight Java actor framework. Unlike other actor frameworks, Peernetic was designed first and foremost with distributed P2P algorithm/application development in mind. That is to say, while Peernetic can be used as a generic actor framework, it provides a feature-set that takes some of the pain out of distributed P2P development.
 
-Why use Peernetic to develop your P2P/distributed application versus some other framework? Peernetic's high-level features include:
+Peernetic's high-level features include:
 
 * **First-class support for coroutines** - Never again write convoluted state machine logic by hand in order to retain your actor's execution state between messages or have multiple threads of exection within your actor. Coroutines allow you to suspend the execution of your actor until the next incoming message arrives.
 * **Networking** - Send messages transparently over a network. Send messages over UDP, or simulate a UDP-like environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..).

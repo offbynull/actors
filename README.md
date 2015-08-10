@@ -6,12 +6,10 @@ Peernetic is a lightweight Java actor framework that was designed first and fore
 
 Peernetic's high-level features include:
 
-* **First-class support for coroutines** - Coroutines allow you to suspend the execution of logic within your actor at will. Retain your actor's execution state between incoming messages and/or have multiple threads of execution within your actor, without the need for tedious hand-written state machine logic.
+* **First-class support for coroutines** - Retain your actor's execution state between incoming messages and/or have multiple threads of execution within your actor. [Coroutines](https://github.com/offbynull/coroutines) allow you to suspend the execution of logic within your actor without the need for tedious hand-written state machine logic.
 * **Networking** - Send messages transparently over a network. The UDP gateway allows you to send messages over UDP, and the UDP simulator actor allows you to mimic a UDP-like environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..) to see how your actor reacts.
-* **Visualizer** - Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information in real-time, such as P2P network overlay information.
+* **Visualizer** - Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information, such as P2P network overlay information, in real-time.
 * **Simulator** - Deterministicly simulate many actors interacting with each other in faster than real-time. The simulator makes it easy to write deterministic and reproducible tests for your actor logic. It also allows you to see how your actor deals with common P2P issues - network churn, network partitioning, high latency, high packet-loss, etc.
-
-*Please note that Peernetic is currently in beta.*
 
 More information on the topic of actors and their advantages can be found on the following pages:
 
@@ -19,13 +17,61 @@ More information on the topic of actors and their advantages can be found on the
 * [Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer)
 * [Programmers Stack Exchange: How is the actor model used?](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used)
 
+*Please note that Peernetic is currently in beta.*
+
 ## Examples
 
 It's highly recommended that you go through the primer (COMING SOON!) before digging in to these examples.
 
-### Hello World Example
+### Simple Hello World
 
-COMING SOON!
+The following example starts an actor thread and a log gateway. The actor thread starts a single new actor that forwards any messages it receives to the log gateway as a debug log message.
+
+Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines Maven plugin to instrument your code.
+
+```java
+private static void helloWorldTest() throws InterruptedException {
+    // Create coroutine actor that forwards messages to the logger
+    Coroutine echoerActor = (cnt) -> {
+        final Address loggerAddress = Address.of("log");
+        
+        Context ctx = (Context) cnt.getContext();
+
+        do {
+            Object valueToWrite = ctx.getIncomingMessage();
+            ctx.addOutgoingMessage(loggerAddress, LogMessage.debug("Received an echo: {}", valueToWrite));
+            cnt.suspend();
+        } while (true);
+    };
+
+
+    // Create the actor thread (container for actors) and the log gateway (gateway that pipes messages to slf4j).
+    ActorThread actorThread = ActorThread.create("actors");
+    LogGateway logGateway = new LogGateway("log");
+
+
+    // Allow the actor thread to send messages to the log gateway
+    actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
+
+
+    // Add the coroutine actor and prime it with a hello world message
+    actorThread.addCoroutineActor("echoer", echoerActor, "Hello World!!!");
+
+
+    // Wait until interrupted
+    while(true) {
+        Thread.sleep(1000L);
+    }
+}
+```
+
+The output is as follows:
+
+```
+16:36:42.623 [LogGateway-log] DEBUG c.o.p.core.gateways.log.LogRunnable - Log gateway started
+... snip ...
+16:36:42.668 [LogGateway-log] DEBUG c.o.p.core.gateways.log.LogRunnable - actors:echoer - Received an echo: Hello World!!!
+```
 
 ### Real-world Examples
 

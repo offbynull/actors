@@ -1,3 +1,5 @@
+<div style="text-align:center"><img src ="../tree/gh-pages/logo.svg" /></div>
+
 # Peernetic
 
 *CURRENTLY IN BETA.*
@@ -27,16 +29,18 @@ Peernetic comes with 3 real-world examples...
 
  1. **[Unstructured Mesh](examples/src/main/java/com/offbynull/peernetic/examples/unstructured)** -- More information on the unstructured mesh networks can be found on [Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks).
  1.  **[Chord DHT Overlay](examples/src/main/java/com/offbynull/peernetic/examples/chord)** -- More information on the Chord algorithm can be found on [Wikipedia: Chord (peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)).
- 1. **[Raft Distributed Consensus](examples/src/main/java/com/offbynull/peernetic/examples/raft)** --  More information on the Chord algorithm can be found on [Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science)).
+ 1. **[Raft Distributed Consensus](examples/src/main/java/com/offbynull/peernetic/examples/raft)** --  More information on the Raft algorithm can be found on [Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science)).
 
 Each example comes with 5 executable Java classes...
 
  * **RealtimeDirect** - All actors run locally and directly communicate with each other.
- * **RealtimeViaUdpGateway** - All actors run locally, but each actor communicate with the other actors via UDP.
- * **RealtimeViaUdpSimulator** - All actors run locally, but each actor communicate with the other actors via simulated UDP.
+ * **RealtimeViaUdpGateway** - All actors run locally, but each actor communicates with the other actors via UDP.
+ * **RealtimeViaUdpSimulator** - All actors run locally, but each actor communicates with the other actors via simulated UDP.
  * **SimulationDirect** - Actors run in a simulation environment where all actors directly communicate with each other. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
- * **SimulationViaUdpSimulator** - Actors run in a simulation, but each actors has its own UDP simulator actor that it uses to communicate with the other actors. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+ * **SimulationViaUdpSimulator** - Actors run in a simulation environment, but each actor communicates with the other actors via simulated UDP. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
-Realtime executable classes may require user input. Simulation executable classes run without a
+Realtime executable classes may require user input. Simulation executable classes run without user input.
+
+As an example, if you were to run ReltimeDirect for Chord, a window would pop-up asking you for the number of nodes.
 
  

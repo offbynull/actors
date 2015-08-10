@@ -1,6 +1,6 @@
 # Peernetic
 
-<p align="center"><img src ="../../raw/gh-pages/logo.svg" /></p>
+<p align="center"><img src ="../gh-pages/logo.png" /></p>
 
 *CURRENTLY IN BETA.*
 

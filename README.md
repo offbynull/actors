@@ -1,12 +1,8 @@
+# Peernetic Actor Framework
+
 <p align="center"><img src ="../gh-pages/logo.png" alt="Peernetic logo" /></p>
 
-# Peernetic
-
-*CURRENTLY IN BETA.*
-
-Peernetic is a lightweight Java actor framework.
-
-Unlike other actor frameworks, Peernetic was designed first and foremost with distributed P2P algorithm/application development in mind. That is to say, while Peernetic can be used as a generic actor framework, it provides a feature-set that takes some of the pain out of distributed P2P development.
+Peernetic is a lightweight Java actor framework that was designed first and foremost with distributed P2P algorithm/application development in mind. That is to say, while Peernetic can be used as a generic actor framework, it provides features that remove some of the pain from distributed P2P development.
 
 Peernetic's high-level features include:
 
@@ -14,6 +10,8 @@ Peernetic's high-level features include:
 * **Networking** - Send messages transparently over a network. The UDP gateway allows you to send messages over UDP, and the UDP simulator actor allows you to mimic a UDP-like environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..) to see how your actor reacts.
 * **Visualizer** - Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information in real-time, such as P2P network overlay information.
 * **Simulator** - Deterministicly simulate many actors interacting with each other in faster than real-time. The simulator makes it easy to write deterministic and reproducible tests for your actor logic. It also allows you to see how your actor deals with common P2P issues - network churn, network partitioning, high latency, high packet-loss, etc.
+
+*Please note that Peernetic is currently in beta.*
 
 More information on the topic of actors and their advantages can be found on the following pages:
 
@@ -25,11 +23,17 @@ More information on the topic of actors and their advantages can be found on the
 
 It's highly recommended that you go through the primer (COMING SOON!) before digging in to these examples.
 
+### Hello World Example
+
+COMING SOON!
+
+### Real-world Examples
+
 Peernetic comes with 3 real-world examples...
 
- 1. **[Unstructured Mesh](examples/src/main/java/com/offbynull/peernetic/examples/unstructured)** -- More information on the unstructured mesh networks can be found on [Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks).
- 1.  **[Chord DHT Overlay](examples/src/main/java/com/offbynull/peernetic/examples/chord)** -- More information on the Chord algorithm can be found on [Wikipedia: Chord (peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)).
- 1. **[Raft Distributed Consensus](examples/src/main/java/com/offbynull/peernetic/examples/raft)** --  More information on the Raft algorithm can be found on [Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science)).
+ * [Unstructured](examples/src/main/java/com/offbynull/peernetic/examples/unstructured), an implementation of an unstructured mesh network ([Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks)).
+ * [Chord](examples/src/main/java/com/offbynull/peernetic/examples/chord), an implementation of Chord DHT's overlay network ([Wikipedia: Chord (peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer))).
+ * [Raft](examples/src/main/java/com/offbynull/peernetic/examples/raft), an implementation of the Raft distributed consensus algorithm (More information on the Raft algorithm can be found on [Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science))).
 
 Each example comes with 5 executable Java classes...
 

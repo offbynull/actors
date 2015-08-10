@@ -1,6 +1,6 @@
-<div style="text-align:center"><img src ="../tree/gh-pages/logo.svg" /></div>
-
 # Peernetic
+
+<p align="center"><img src ="../gh-pages/logo.svg" /></p>
 
 *CURRENTLY IN BETA.*
 

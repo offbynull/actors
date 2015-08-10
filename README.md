@@ -21,25 +21,22 @@ More information on the topic of actors and their advantages can be found on the
 
 ## Examples
 
-Peernetic comes with 3 real-world examples. It's highly recommended that you go through the primer (COMING SOON!) before digging in to these examples.
+It's highly recommended that you go through the primer (COMING SOON!) before digging in to these examples.
 
-### [Unstructured Mesh](examples/src/main/java/com/offbynull/peernetic/examples/unstructured)
+Peernetic comes with 3 real-world examples...
 
-An example that forms an unstructured mesh network.
+ 1. **[Unstructured Mesh](examples/src/main/java/com/offbynull/peernetic/examples/unstructured)** -- More information on the unstructured mesh networks can be found on [Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks).
+ 1.  **[Chord DHT Overlay](examples/src/main/java/com/offbynull/peernetic/examples/chord)** -- More information on the Chord algorithm can be found on [Wikipedia: Chord (peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)).
+ 1. **[Raft Distributed Consensus](examples/src/main/java/com/offbynull/peernetic/examples/raft)** --  More information on the Chord algorithm can be found on [Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science)).
 
-From [Wikipedia](https://en.wikipedia.org/wiki/Peer-to-peer): Unstructured peer-to-peer networks do not impose a particular structure on the overlay network by design, but rather are formed by nodes that randomly form connections to each other. Gnutella, Gossip, and Kazaa are examples of unstructured P2P protocols.
+Each example comes with 5 executable Java classes...
 
-### [Chord DHT Overlay](examples/src/main/java/com/offbynull/peernetic/examples/chord)
+ * **RealtimeDirect** - All actors run locally and directly communicate with each other.
+ * **RealtimeViaUdpGateway** - All actors run locally, but each actor communicate with the other actors via UDP.
+ * **RealtimeViaUdpSimulator** - All actors run locally, but each actor communicate with the other actors via simulated UDP.
+ * **SimulationDirect** - Actors run in a simulation environment where all actors directly communicate with each other. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+ * **SimulationViaUdpSimulator** - Actors run in a simulation, but each actors has its own UDP simulator actor that it uses to communicate with the other actors. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
-An example that forms a Chord DHT overlay network, which is a form of structured network.
+Realtime executable classes may require user input. Simulation executable classes run without a
 
-From  [Wikipedia](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)): In computing, Chord is a protocol and algorithm for a peer-to-peer distributed hash table. A distributed hash table stores key-value pairs by assigning keys to different computers (known as "nodes"); a node will store the values for all the keys for which it is responsible. Chord specifies how keys are assigned to nodes, and how a node can discover the value for a given key by first locating the node responsible for that key.
-
-### [Raft Distributed Consensus](examples/src/main/java/com/offbynull/peernetic/examples/raft)
-
-An example that forms a Raft distributed consensus cluster.
-
-From [Wikipedia](https://en.wikipedia.org/wiki/Raft_(computer_science)): Raft is a consensus algorithm designed as an alternative to Paxos. It was meant to be more understandable than Paxos by means of separation of logic, but it is also formally proven safe and offers some new features. Raft offers a generic way to distribute a state machine across a cluster of computing systems, ensuring that each node in the cluster agrees upon the same series of state transitions. 
  
-
-

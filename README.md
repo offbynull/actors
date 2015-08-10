@@ -1,6 +1,4 @@
-<p align="center">
-![Peernetic Logo](../gh-pages/logo.png)
-</p>
+<p align="center"><img src ="../gh-pages/logo.png" alt="Peernetic logo" /></p>
 
 # Peernetic
 

@@ -16,6 +16,8 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import java.time.Instant;
+
 /**
  * An {@link Actor} is an isolated "computational unit" who's only method of communicating with the outside world is through
  * message-passing. If you aren't familiar with the concept of actors and their role in concurrent/distributed computing, there's a good
@@ -30,9 +32,11 @@ package com.offbynull.peernetic.core.actor;
  * references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a
  * reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done
  * via message-passing.</li>
- * <li><b>Avoid blocking, whether it's for I/O, long running operations, thread synchronization, or otherwise.</b> Multiple actors may be
+ * <li><b>Do not block,</b> whether it's for I/O, long running operations, thread synchronization, or otherwise. Multiple actors may be
  * running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages
  * in a timely manner.</li>
+ * <li><b>Do not directly access time.</b> Actors must use the time supplied to them via {@link Context#getTime() } rather than making
+ * calls to Java's date and time APIs (e.g. {@link Instant} or {@link System#currentTimeMillis() }).</li>
  * </ul>
  * <p>
  * Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This

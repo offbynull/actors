@@ -73,13 +73,7 @@ The output is as follows:
 
 ### Real-world Examples
 
-Peernetic comes with 3 real-world examples...
-
- * [Unstructured](examples/src/main/java/com/offbynull/peernetic/examples/unstructured), an implementation of an unstructured mesh network ([Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks)).
- * [Chord](examples/src/main/java/com/offbynull/peernetic/examples/chord), an implementation of Chord DHT's overlay network ([Wikipedia: Chord (peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer))).
- * [Raft](examples/src/main/java/com/offbynull/peernetic/examples/raft), an implementation of the Raft distributed consensus algorithm ([Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science))).
-
-Each example comes with 5 executable Java classes...
+Peernetic comes with 3 real-world examples. Each of those examples comes with 5 executable Java classes...
 
  * **RealtimeDirect** - All actors run locally and directly communicate with each other.
  * **RealtimeViaUdpGateway** - All actors run locally, but each actor communicates with the other actors via UDP.
@@ -87,13 +81,19 @@ Each example comes with 5 executable Java classes...
  * **SimulationDirect** - Actors run in a simulation environment where all actors directly communicate with each other. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
  * **SimulationViaUdpSimulator** - Actors run in a simulation environment, but each actor communicates with the other actors via simulated UDP. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
+Realtime executables may require user input, while Simulation executables don't require user input (they run preset scenarios).
+
 #### Unstructured Example
+
+[Unstructured](examples/src/main/java/com/offbynull/peernetic/examples/unstructured) is an implementation of an unstructured mesh network ([Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks)).
 
 Both realtime and simulation unstructured examples don't require any user input. They run the same preset scenario: nodes gradually created and added in to the mesh (100 nodes in total), where they search for nodes that to connect to. Note that node 0 starts as the bootstrap node, and all other nodes (1 to 99) will enter the network via node 0 when they start.
 
 ![Unstructured Example Screenshot](../gh-pages/unstructured_example1.png)
 
 #### Chord Example
+
+[Chord](examples/src/main/java/com/offbynull/peernetic/examples/chord) is an implementation of Chord DHT's overlay network ([Wikipedia: Chord (peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer))).
 
 Realtime Chord examples require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
 
@@ -108,6 +108,8 @@ Simulation Chord examples don't require any user input. They run preset scenario
 ![Chord Example Screenshot](../gh-pages/chord_example1.png)
 
 #### Raft Example
+
+[Raft](examples/src/main/java/com/offbynull/peernetic/examples/raft) is an implementation of the Raft distributed consensus algorithm ([Wikipedia: Raft (computer science)](https://en.wikipedia.org/wiki/Raft_(computer_science))).
 
 Realtime Raft examples require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 5-node Raft cluster and bring it online. Note that node 5 is the client that's reading from and writing to the cluster, while all other nodes (0 to 4) are Raft servers.
 

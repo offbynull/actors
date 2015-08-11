@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.gateways.timer;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
@@ -30,20 +30,20 @@ public class TimerGatewayTest {
         TimerGateway timerGateway = new TimerGateway("timer");
         Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
 
-        ActorThread testerThread = ActorThread.create("local");
-        Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+        ActorRunner testerRunner = new ActorRunner("local");
+        Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
 
-        testerThread.addOutgoingShuttle(timerInputShuttle);
+        testerRunner.addOutgoingShuttle(timerInputShuttle);
         timerGateway.addOutgoingShuttle(testerInputShuttle);
 
-        testerThread.addCoroutineActor("tester", tester, "timer");
+        testerRunner.addCoroutineActor("tester", tester, "timer");
 
         assertEquals("timer:2000:extra", queue.take());
         assertEquals("local:tester:fromid", queue.take());
         assertEquals("msg", queue.take());
         
-        testerThread.close();
-        testerThread.join();
+        testerRunner.close();
+        testerRunner.join();
     }
     
 }

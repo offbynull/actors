@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured;
 
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
@@ -34,37 +34,37 @@ public final class RealtimeDirect {
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
-        ActorThread actorThread = ActorThread.create(BASE_ACTOR_ADDRESS_STRING);
+        ActorRunner actorRunner = new ActorRunner(BASE_ACTOR_ADDRESS_STRING);
 
-        timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(graphGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
         graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultGraphNodeRemoveHandler());
         
         Random rand = new Random(12345);
 
         // Seed node
-        addNode(0, null, actorThread);
+        addNode(0, null, actorRunner);
         
         // Connecting nodes
         for (int i = 1; i < MAX_NODES; i++) {
-            addNode(i, 0, actorThread);
+            addNode(i, 0, actorRunner);
             Thread.sleep(rand.nextInt(MAX_WAIT_PER_NODE_ADD));
         }
 
         GraphGateway.awaitShutdown();
     }
 
-    private static void addNode(int id, Integer connId, ActorThread actorThread) {
+    private static void addNode(int id, Integer connId, ActorRunner actorRunner) {
         String idStr = Integer.toString(id);
         String connIdStr = connId == null ? null : connId.toString();
         
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
         
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(

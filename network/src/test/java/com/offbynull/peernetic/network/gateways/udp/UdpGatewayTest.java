@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.network.gateways.udp;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -20,9 +20,9 @@ public class UdpGatewayTest {
     @Ignore(value = "UDP is not deterministic. This test expects all packets will arrive, which may not happen.")
     public void mustProperlySendAndReceiveMessagesOverUdp() throws Exception {
         // This test expects 0 packet loss/duplication. Packet order, however, does not matter.
-        ActorThread echoerThread = null;
+        ActorRunner echoerRunner = null;
         UdpGateway echoerUdpGateway = null;
-        ActorThread senderThread = null;
+        ActorRunner senderRunner = null;
         UdpGateway senderUdpGateway = null;
         
         try {
@@ -53,8 +53,8 @@ public class UdpGatewayTest {
                 }
             };
 
-            echoerThread = ActorThread.create("echoer");
-            Shuttle echoerInputShuttle = echoerThread.getIncomingShuttle();
+            echoerRunner = new ActorRunner("echoer");
+            Shuttle echoerInputShuttle = echoerRunner.getIncomingShuttle();
             echoerUdpGateway = new UdpGateway(
                     new InetSocketAddress(1000),
                     "internaludp",
@@ -62,10 +62,10 @@ public class UdpGatewayTest {
                     Address.fromString("echoer:echoer"),
                     new SimpleSerializer());
             Shuttle echoerUdpOutputShuttle = echoerUdpGateway.getIncomingShuttle();
-            echoerThread.addOutgoingShuttle(echoerUdpOutputShuttle);
+            echoerRunner.addOutgoingShuttle(echoerUdpOutputShuttle);
 
-            senderThread = ActorThread.create("sender");
-            Shuttle senderInputShuttle = senderThread.getIncomingShuttle();
+            senderRunner = new ActorRunner("sender");
+            Shuttle senderInputShuttle = senderRunner.getIncomingShuttle();
             senderUdpGateway = new UdpGateway(
                     new InetSocketAddress(2000),
                     "internaludp",
@@ -73,10 +73,10 @@ public class UdpGatewayTest {
                     Address.fromString("sender:sender"),
                     new SimpleSerializer());
             Shuttle senderUdpOutputShuttle = senderUdpGateway.getIncomingShuttle();
-            senderThread.addOutgoingShuttle(senderUdpOutputShuttle);
+            senderRunner.addOutgoingShuttle(senderUdpOutputShuttle);
 
-            echoerThread.addCoroutineActor("echoer", echoer);
-            senderThread.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
+            echoerRunner.addCoroutineActor("echoer", echoer);
+            senderRunner.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
 
             while (true) {
                 if (queue.size() >= 10) {
@@ -91,16 +91,16 @@ public class UdpGatewayTest {
             
             assertEquals(expected, actual);
         } finally {
-            if (senderThread != null) {
+            if (senderRunner != null) {
                 try {
-                    senderThread.close();
+                    senderRunner.close();
                 } catch (Exception e) {
                     // do nothing
                 }
             }
-            if (echoerThread != null) {
+            if (echoerRunner != null) {
                 try {
-                    echoerThread.close();
+                    echoerRunner.close();
                 } catch (Exception e) {
                     // do nothing
                 }

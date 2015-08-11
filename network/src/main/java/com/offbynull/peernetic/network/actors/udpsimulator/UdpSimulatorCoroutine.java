@@ -19,7 +19,7 @@ package com.offbynull.peernetic.network.actors.udpsimulator;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper;
 import com.offbynull.peernetic.core.actor.helpers.ProxyHelper.ForwardInformation;
 import com.offbynull.peernetic.core.actor.Context;
@@ -32,7 +32,7 @@ import java.time.Instant;
  * <p>
  * In the following example, there are two {@link Actor}s: {@code sender} and {@code echoer}. {@code sender} sends 10 message and waits for
  * those messages to be echoed back to it, while {@code echoer} echoes back whatever is sent to it. Both of these actors are assigned
- * their own {@link UdpSimulatorCoroutine} (both called {@code proxy} -- note that each actor is running in its own {@link ActorThread} so
+ * their own {@link UdpSimulatorCoroutine} (both called {@code proxy} -- note that each actor is running in its own {@link ActorRunner} so
  * there is no naming conflict here), and pass messages through it to the other to simulate communicating over UDP.
  * <p>
  * Note that UDP is unreliable. Each message is sent as a single packet, and packets may come out of order or not at all. This example
@@ -72,25 +72,25 @@ import java.time.Instant;
  * // Create a timer gateway. Used by UdpSimualtorCoroutine to time message arrivals
  * TimerGateway timerGateway = new TimerGateway("timer");
  * 
- * // Create threads for echoer and sender
- * ActorThread echoerThread = ActorThread.create("echoer");
- * ActorThread senderThread = ActorThread.create("sender");
+ * // Create runners for echoer and sender
+ * ActorRunner echoerRunner = ActorRunner.create("echoer");
+ * ActorRunner senderRunner = ActorRunner.create("sender");
  * 
  * // Bind shuttles for echoer
- * echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
- * echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+ * echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+ * echoerRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
  * 
  * // Bind shuttles for sender
- * senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
- * senderThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+ * senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
+ * senderRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
  * 
  * // Bind shuttles for timer gateway
- * timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
- * timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+ * timerGateway.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+ * timerGateway.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
  *
  * // Create echoer actor + the udp simulator that proxies it
- * echoerThread.addCoroutineActor("echoer", echoer);
- * echoerThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
+ * echoerRunner.addCoroutineActor("echoer", echoer);
+ * echoerRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
  *                 Address.fromString("echoer:echoer"),                                                      // Actor being proxied
@@ -105,8 +105,8 @@ import java.time.Instant;
  *                                new SimpleSerializer())));
  * 
  * // Create sender actor + the udp simulator that proxies it
- * senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
- * senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
+ * senderRunner.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
+ * senderRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
  *                 Address.fromString("sender:sender"),                                                      // Actor being proxied

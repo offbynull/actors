@@ -75,14 +75,14 @@ import org.apache.commons.lang3.Validate;
  *     }
  * };
  * 
- * // Create actor threads
- * ActorThread echoerThread = ActorThread.create("echoer");
- * ActorThread senderThread = ActorThread.create("sender");
+ * // Create actor runners
+ * ActorRunner echoerRunner = ActorRunner.create("echoer");
+ * ActorRunner senderRunner = ActorRunner.create("sender");
  * 
  * // Create recorder that records events coming to echoer and then passes it along to echoer
  * RecorderGateway echoRecorderGateway = RecorderGateway.record(
  *         "recorder",
- *         echoerThread.getIncomingShuttle(),
+ *         echoerRunner.getIncomingShuttle(),
  *         "echoer:echoer",
  *         eventsFile,
  *         new SimpleSerializer());
@@ -90,14 +90,14 @@ import org.apache.commons.lang3.Validate;
  * 
  * 
  * // Wire sender to send to echoerRecorder instead of echoer
- * senderThread.addOutgoingShuttle(echoRecorderShuttle);
+ * senderRunner.addOutgoingShuttle(echoRecorderShuttle);
  * 
  * // Wire echoer to send back directly to recorder
- * echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+ * echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
  * 
  * // Add coroutines
- * echoerThread.addCoroutineActor("echoer", echoer);
- * senderThread.addCoroutineActor("sender", sender, "recorder");
+ * echoerRunner.addCoroutineActor("echoer", echoer);
+ * senderRunner.addCoroutineActor("sender", sender, "recorder");
  * 
  * // Wait until sender actor finishes
  * latch.await();

@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.visualizer.gateways.graph;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
@@ -121,10 +121,10 @@ public final class Test {
         Shuttle graphInputShuttle = graphGateway.getIncomingShuttle();
         GraphGateway.startApplication();
 
-        ActorThread testerThread = ActorThread.create("local");
+        ActorRunner testerRunner = new ActorRunner("local");
 
-        testerThread.addOutgoingShuttle(graphInputShuttle);
-        testerThread.addCoroutineActor("tester", tester, Address.of("graph"));
+        testerRunner.addOutgoingShuttle(graphInputShuttle);
+        testerRunner.addCoroutineActor("tester", tester, Address.of("graph"));
 
         GraphGateway.awaitShutdown();
     }

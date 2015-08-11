@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
@@ -78,25 +78,25 @@ public class ReplayerGatewayTest {
             }
         };
 
-        ActorThread echoerThread = ActorThread.create("echoer");
+        ActorRunner echoerRunner = new ActorRunner("echoer");
 
         // Wire echoer to send back to null
-        echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
+        echoerRunner.addOutgoingShuttle(new NullShuttle("sender"));
 
         // Add coroutines
-        echoerThread.addCoroutineActor("echoer", echoer);
+        echoerRunner.addCoroutineActor("echoer", echoer);
 
         // Create replayer that mocks out sender and replays previous events to echoer
         ReplayerGateway replayerGateway = ReplayerGateway.replay(
-                echoerThread.getIncomingShuttle(),
+                echoerRunner.getIncomingShuttle(),
                 Address.of("echoer", "echoer"),
                 file,
                 new SimpleSerializer());
         replayerGateway.await();
 
         latch.await();
-        echoerThread.close();
-        echoerThread.join();
+        echoerRunner.close();
+        echoerRunner.join();
 
         assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), msgs);
 

@@ -11,13 +11,13 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ActorThreadTest {
+public class ActorRunnerTest {
 
-    private ActorThread fixture;
+    private ActorRunner fixture;
 
     @Before
     public void setUp() {
-        fixture = ActorThread.create("local");
+        fixture = new ActorRunner("local");
     }
 
     @After
@@ -26,7 +26,7 @@ public class ActorThreadTest {
     }
 
     @Test
-    public void mustCommunicateBetweenActorsWithinSameActorThread() throws Exception {
+    public void mustCommunicateBetweenActorsWithinSameActorRunner() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         fixture.addCoroutineActor(
                 "echoer",
@@ -52,15 +52,15 @@ public class ActorThreadTest {
     }
 
     @Test
-    public void mustCommunicateBetweenActorsWithinDifferentActorThreads() throws Exception {
-        try (ActorThread secondaryActorThread = ActorThread.create("local2")) {
+    public void mustCommunicateBetweenActorsWithinDifferentActorRunners() throws Exception {
+        try (ActorRunner secondaryActorRunner = new ActorRunner("local2")) {
             // Wire together
-            fixture.addOutgoingShuttle(secondaryActorThread.getIncomingShuttle());
-            secondaryActorThread.addOutgoingShuttle(fixture.getIncomingShuttle());
+            fixture.addOutgoingShuttle(secondaryActorRunner.getIncomingShuttle());
+            secondaryActorRunner.addOutgoingShuttle(fixture.getIncomingShuttle());
             
             // Test
             CountDownLatch latch = new CountDownLatch(1);
-            secondaryActorThread.addCoroutineActor(
+            secondaryActorRunner.addCoroutineActor(
                     "echoer",
                     cnt -> {
                         Context ctx = (Context) cnt.getContext();
@@ -87,7 +87,7 @@ public class ActorThreadTest {
     public void mustFailWhenAddingOutgoingShuttleWithSameName() throws Exception {
         NullShuttle shuttle = new NullShuttle("local");
         // Queue outgoing shuttle with prefix as ourselves ("local") be added. We won't be notified of rejection right away, but the add
-        // will cause ActorThread's background thread to throw an exception once its attempted. As such, join() will return indicating that
+        // will cause ActorRunner's background thread to throw an exception once its attempted. As such, join() will return indicating that
         // the thread died.
         fixture.addOutgoingShuttle(shuttle);
         fixture.join();

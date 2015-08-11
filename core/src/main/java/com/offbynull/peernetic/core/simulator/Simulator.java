@@ -18,7 +18,7 @@ package com.offbynull.peernetic.core.simulator;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.Actor;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.SourceContext;
 import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A simulation environment for {@link Actor}s.
  * <p>
- * The main benefit to testing your actors using this class versus using {@link ActorThread} is that this class is designed to run actors
+ * The main benefit to testing your actors using this class versus using {@link ActorRunner} is that this class is designed to run actors
  * "faster than real-time". That is, most actors tend to spend a majority of their time waiting for messages to arrive. This class exploits
  * that fact by skipping the actual waiting but giving actors the impression that the waits actually occurred.
  * <p>
@@ -83,8 +83,8 @@ import org.slf4j.LoggerFactory;
  * Other important things to note when running your actors in a simulation:
  * <ol>
  * <li><b>Actors are added in to the simulator as-is.</b> When running actors in a real environment, you would normally run those actors in
- * one or more {@link ActorThread}s and potentially bind their {@link Shuttle}s between each other and related {@link Gateway}s. In
- * contrast, the simulator has no concept of a container for actors (e.g. anything similar to {@link ActorThread}) and no concept of a
+ * one or more {@link ActorRunner}s and potentially bind their {@link Shuttle}s between each other and related {@link Gateway}s. In
+ * contrast, the simulator has no concept of a container for actors (e.g. anything similar to {@link ActorRunner}) and no concept of a
  * explicitly binding between those containers (e.g. anything similar to {@link Shuttle}). Instead, actors are directly added to the
  * simulator and all addresses present in the simulator can send to and receive from each other.</li>
  * <li><b>Messages are passed between actors and (mocked) gateways instantly,</b> meaning that you cannot use the simulator to simulate
@@ -95,7 +95,7 @@ import org.slf4j.LoggerFactory;
  * imagine that {@code actor1} and {@code actor2} both receive a message at the same time. {@code actor1} processes its message first and
  * takes 5 milliseconds to do so. {@code actor2} then processes its message <u>from the same point in time</u> (without the 5 milliseconds
  * tacked on), as if it was running in parallel with {@code actor1} vs after {@code actor1}. One way to think about this is that all actors
- * in the simulator run in parallel, as if each individual actor runs in its own actor thread.</li>
+ * in the simulator run in parallel, as if each individual actor runs in its own actor runner.</li>
  * <li><b>Timer's have exact precision.</b> This will almost always never be the case when you run in a real environment. The precision of
  * a {@link TimerGateway} is dependent on the OS/platform and the current load on the system.</li>
  * <li><b>Garbage collection pauses do not occur.</b> Remember that the simulator is is essentially mocking out time. As such, pauses caused
@@ -116,7 +116,7 @@ public final class Simulator {
     // 3. Recv duration -- When a message arrives, it sits for a while before going in to the actor for processing. If the recving actor is
     //    removed during that time, the message is also removed. This is to simulate a recver under load (backed up message queue). It can
     //    also be used to simulate out of order message recving (but networking mock actor currently provides this functionality).
-    // 4. Actor container -- Simulate multiple actors in an ActorThread. For example, if an actor sits in the same container as 5 other
+    // 4. Actor container -- Simulate multiple actors in an ActorRunner. For example, if an actor sits in the same container as 5 other
     //    actors and gets an incoming message that takes 5 seconds to process, those 5 other actors will also be delayed by 5 seconds,
     //    because technically they're all running as if they're "in the same thread". In addition, simulate linking the containers the
     //    same way that shuttles are used to link together actors and gateways.
@@ -793,7 +793,7 @@ public final class Simulator {
 
         // Set up values for calling onStep, and then call onStep. If onStep throws an exception, then log and remove the actor from the
         // test harness. In the real world, if an actor throws an exception, it'll get removed from the list of actors assigned to that
-        // ActorThread/ActorRunnable and no more execution is done on it.
+        // ActorRunner/ActorRunnable and no more execution is done on it.
         Actor actor = destHolder.getActor();
         Address address = destHolder.getAddress();
         SourceContext context = destHolder.getContext();

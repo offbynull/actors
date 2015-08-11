@@ -18,7 +18,7 @@ package com.offbynull.peernetic.examples.test;
 
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
@@ -35,15 +35,54 @@ import org.apache.commons.lang3.Validate;
 public class Test {
 
     public static void main(String[] args) throws Exception {
+        cpuTest();
         //basicTest();
         //basicTimer();
 //        basicUdp();
-        basicUnreliable();
+//        basicUnreliable();
 //        basicRetry();
 //        testEnvironmentTimer();
 //        testEnvironmentEcho();
 //        testEnvironmentRecordAndReplay();
 //        testRecordAndReplay();
+    }
+
+    private static void cpuTest() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        ActorRunner runner = new ActorRunner("runner");
+
+        for (int i = 0; i < 3000; i++) {
+            Coroutine sender = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+                Address dstAddr = ctx.getIncomingMessage();
+
+                int j = 0;
+                while (true) {                    
+                    ctx.addOutgoingMessage(dstAddr, j);
+                    cnt.suspend();
+                    Validate.isTrue(j == (int) ctx.getIncomingMessage());
+                    j++;
+                }
+            };
+
+            Coroutine echoer = (cnt) -> {
+                Context ctx = (Context) cnt.getContext();
+
+                while (true) {
+                    Address src = ctx.getSource();
+                    Object msg = ctx.getIncomingMessage();
+                    ctx.addOutgoingMessage(src, msg);
+                    cnt.suspend();
+                }
+            };
+            
+            runner.addCoroutineActor("echoer" + i, echoer);
+            runner.addCoroutineActor("sender" + i, sender, Address.fromString("runner:echoer" +  + i));
+        }
+
+
+        latch.await();
     }
 
     private static void basicTest() throws InterruptedException {
@@ -73,13 +112,13 @@ public class Test {
             }
         };
 
-        ActorThread echoerThread = ActorThread.create("echoer");
-        ActorThread senderThread = ActorThread.create("sender");
+        ActorRunner echoerRunner = new ActorRunner("echoer");
+        ActorRunner senderRunner = new ActorRunner("sender");
 
-        echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
-        senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
-        echoerThread.addCoroutineActor("echoer", echoer);
-        senderThread.addCoroutineActor("sender", sender, Address.fromString("echoer:echoer"));
+        echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+        senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
+        echoerRunner.addCoroutineActor("echoer", echoer);
+        senderRunner.addCoroutineActor("sender", sender, Address.fromString("echoer:echoer"));
 
         latch.await();
     }
@@ -114,9 +153,9 @@ public class Test {
         
         TimerGateway timerGateway = new TimerGateway("timer");
 
-        ActorThread echoerThread = ActorThread.create("echoer");
-        echoerThread.addCoroutineActor("echoer", echoer);
-        echoerThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
+        ActorRunner echoerRunner = new ActorRunner("echoer");
+        echoerRunner.addCoroutineActor("echoer", echoer);
+        echoerRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
                 new StartUdpSimulator(
                         Address.of("timer"),
                         Address.fromString("echoer:echoer"),
@@ -130,9 +169,9 @@ public class Test {
                                 1500,
                                 new SimpleSerializer())));
         
-        ActorThread senderThread = ActorThread.create("sender");
-        senderThread.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
-        senderThread.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
+        ActorRunner senderRunner = new ActorRunner("sender");
+        senderRunner.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
+        senderRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
                 new StartUdpSimulator(
                         Address.of("timer"),
                         Address.fromString("sender:sender"),
@@ -146,14 +185,14 @@ public class Test {
                                 1500,
                                 new SimpleSerializer())));
 
-        echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
-        echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+        echoerRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
         
-        senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
-        senderThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
+        senderRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
         
-        timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
-        timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
         
         Thread.sleep(10000L);
     }
@@ -185,8 +224,8 @@ public class Test {
             }
         };
 
-        ActorThread echoerThread = ActorThread.create("echoer");
-        Shuttle echoerInputShuttle = echoerThread.getIncomingShuttle();
+        ActorRunner echoerRunner = new ActorRunner("echoer");
+        Shuttle echoerInputShuttle = echoerRunner.getIncomingShuttle();
         UdpGateway echoerUdpGateway = new UdpGateway(
                 new InetSocketAddress(1000),
                 "internaludp",
@@ -194,10 +233,10 @@ public class Test {
                 Address.fromString("echoer:echoer"),
                 new SimpleSerializer());
         Shuttle echoerUdpOutputShuttle = echoerUdpGateway.getIncomingShuttle();
-        echoerThread.addOutgoingShuttle(echoerUdpOutputShuttle);
+        echoerRunner.addOutgoingShuttle(echoerUdpOutputShuttle);
 
-        ActorThread senderThread = ActorThread.create("sender");
-        Shuttle senderInputShuttle = senderThread.getIncomingShuttle();
+        ActorRunner senderRunner = new ActorRunner("sender");
+        Shuttle senderInputShuttle = senderRunner.getIncomingShuttle();
         UdpGateway senderUdpGateway = new UdpGateway(
                 new InetSocketAddress(2000),
                 "internaludp",
@@ -205,10 +244,10 @@ public class Test {
                 Address.fromString("sender:sender"),
                 new SimpleSerializer());
         Shuttle senderUdpOutputShuttle = senderUdpGateway.getIncomingShuttle();
-        senderThread.addOutgoingShuttle(senderUdpOutputShuttle);
+        senderRunner.addOutgoingShuttle(senderUdpOutputShuttle);
 
-        echoerThread.addCoroutineActor("echoer", echoer);
-        senderThread.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
+        echoerRunner.addCoroutineActor("echoer", echoer);
+        senderRunner.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
 
         latch.await();
     }
@@ -231,13 +270,13 @@ public class Test {
 //        TimerGateway timerGateway = new TimerGateway("timer");
 //        Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
 //
-//        ActorThread testerThread = ActorThread.create("local");
-//        Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+//        ActorRunner testerRunner = ActorRunner.create("local");
+//        Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
 //
-//        testerThread.addOutgoingShuttle(timerInputShuttle);
+//        testerRunner.addOutgoingShuttle(timerInputShuttle);
 //        timerGateway.addOutgoingShuttle(testerInputShuttle);
 //
-//        testerThread.addCoroutineActor("tester", tester, "timer");
+//        testerRunner.addCoroutineActor("tester", tester, "timer");
 //
 //        latch.await();
 //    }
@@ -272,30 +311,30 @@ public class Test {
 //            }
 //        };
 //
-//        ActorThread echoerThread = ActorThread.create("echoer");
-//        ActorThread senderThread = ActorThread.create("sender");
+//        ActorRunner echoerRunner = ActorRunner.create("echoer");
+//        ActorRunner senderRunner = ActorRunner.create("sender");
 //        TimerGateway timerGateway = new TimerGateway("timer");
 //
 //        // This is slow because the retry durations are very far apart in SimpleSendGuidelineGenerator/SimpleReceiveGuidelineGenerator, but
 //        // it will eventually finish!
-//        echoerThread.addCoroutineActor("unreliable", new UdpSimulatorCoroutine(),
+//        echoerRunner.addCoroutineActor("unreliable", new UdpSimulatorCoroutine(),
 //                new StartUdpSimulator("timer", "echoer:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
-//        echoerThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
+//        echoerRunner.addCoroutineActor("retry", new RetryProxyCoroutine(),
 //                new StartRetryProxy("timer", "echoer:echoer", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
-//        echoerThread.addCoroutineActor("echoer", echoer);
+//        echoerRunner.addCoroutineActor("echoer", echoer);
 //        
-//        senderThread.addCoroutineActor("unreliable", new UdpSimulatorCoroutine(),
+//        senderRunner.addCoroutineActor("unreliable", new UdpSimulatorCoroutine(),
 //                new StartUdpSimulator("timer", "sender:retry", new SimpleLine(0L, Duration.ofMillis(100L), Duration.ofMillis(500L), 0.25, 0.25, 10)));
-//        senderThread.addCoroutineActor("retry", new RetryProxyCoroutine(),
+//        senderRunner.addCoroutineActor("retry", new RetryProxyCoroutine(),
 //                new StartRetryProxy("timer", "sender:sender", x -> x.toString(), new SimpleSendGuidelineGenerator(), new SimpleReceiveGuidelineGenerator()));
-//        senderThread.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable"); // needs to be added last to avoid race condition
+//        senderRunner.addCoroutineActor("sender", sender, "sender:retry:echoer:unreliable"); // needs to be added last to avoid race condition
 //
-//        echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
-//        echoerThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-//        senderThread.addOutgoingShuttle(echoerThread.getIncomingShuttle());
-//        senderThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-//        timerGateway.addOutgoingShuttle(senderThread.getIncomingShuttle());
-//        timerGateway.addOutgoingShuttle(echoerThread.getIncomingShuttle());
+//        echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+//        echoerRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+//        senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
+//        senderRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+//        timerGateway.addOutgoingShuttle(senderRunner.getIncomingShuttle());
+//        timerGateway.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
 //        
 //        latch.await();
 //    }
@@ -457,14 +496,14 @@ public class Test {
 //                }
 //            };
 //
-//            // Create actor threads
-//            ActorThread echoerThread = ActorThread.create("echoer");
-//            ActorThread senderThread = ActorThread.create("sender");
+//            // Create actor runners
+//            ActorRunner echoerRunner = ActorRunner.create("echoer");
+//            ActorRunner senderRunner = ActorRunner.create("sender");
 //
 //            // Create recorder that records events coming to echoer and then passes it along to echoer
 //            RecorderGateway echoRecorderGateway = RecorderGateway.record(
 //                    "recorder",
-//                    echoerThread.getIncomingShuttle(),
+//                    echoerRunner.getIncomingShuttle(),
 //                    "echoer:echoer",
 //                    eventsFile,
 //                    new SimpleSerializer());
@@ -472,14 +511,14 @@ public class Test {
 //
 //
 //            // Wire sender to send to echoerRecorder instead of echoer
-//            senderThread.addOutgoingShuttle(echoRecorderShuttle);
+//            senderRunner.addOutgoingShuttle(echoRecorderShuttle);
 //
 //            // Wire echoer to send back directly to recorder
-//            echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+//            echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
 //
 //            // Add coroutines
-//            echoerThread.addCoroutineActor("echoer", echoer);
-//            senderThread.addCoroutineActor("sender", sender, "recorder");
+//            echoerRunner.addCoroutineActor("echoer", echoer);
+//            senderRunner.addCoroutineActor("sender", sender, "recorder");
 //
 //            latch.await();
 //            echoRecorderGateway.close();
@@ -503,17 +542,17 @@ public class Test {
 //                }
 //            };
 //            
-//            ActorThread echoerThread = ActorThread.create("echoer");
+//            ActorRunner echoerRunner = ActorRunner.create("echoer");
 //            
 //            // Wire echoer to send back to null
-//            echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
+//            echoerRunner.addOutgoingShuttle(new NullShuttle("sender"));
 //            
 //            // Add coroutines
-//            echoerThread.addCoroutineActor("echoer", echoer);
+//            echoerRunner.addCoroutineActor("echoer", echoer);
 //            
 //            // Create replayer that mocks out sender and replays previous events to echoer
 //            ReplayerGateway replayerGateway = ReplayerGateway.replay(
-//                    echoerThread.getIncomingShuttle(),
+//                    echoerRunner.getIncomingShuttle(),
 //                    "echoer:echoer",
 //                    eventsFile,
 //                    new SimpleSerializer());

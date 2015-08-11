@@ -71,10 +71,10 @@ import org.apache.commons.lang3.Validate;
  * Shuttle graphInputShuttle = graphGateway.getIncomingShuttle();
  * GraphGateway.startApplication();
  *
- * ActorThread testerThread = ActorThread.create("local");
+ * ActorRunner testerRunner = ActorRunner.create("local");
  *
- * testerThread.addOutgoingShuttle(graphInputShuttle);
- * testerThread.addCoroutineActor("tester", tester, Address.of("graph"));
+ * testerRunner.addOutgoingShuttle(graphInputShuttle);
+ * testerRunner.addCoroutineActor("tester", tester, Address.of("graph"));
  *
  * GraphGateway.awaitShutdown();
  * </pre>

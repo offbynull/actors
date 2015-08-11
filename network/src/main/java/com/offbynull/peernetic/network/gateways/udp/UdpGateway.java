@@ -17,7 +17,7 @@
 package com.offbynull.peernetic.network.gateways.udp;
 
 import com.offbynull.peernetic.core.actor.Actor;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.gateway.Gateway;
@@ -33,7 +33,7 @@ import org.apache.commons.lang3.Validate;
  * <p>
  * In the following example, there are two {@link Actor}s: {@code sender} and {@code echoer}. {@code sender} sends a message and waits for
  * that same message to be echoed back to it, while {@code echoer} echoes back whatever is sent to it. Both of these actors are assigned
- * their own {@link UdpGateway} (both called {@code internaludp} -- note that each actor is running in its own {@link ActorThread} so there
+ * their own {@link UdpGateway} (both called {@code internaludp} -- note that each actor is running in its own {@link ActorRunner} so there
  * is no naming conflict here), and use that gateway to communicate with each other.
  * <p>
  * Note that UDP is unreliable. Each message is sent as a single packet, and packets may come out of order or not at all. The actors in
@@ -68,8 +68,8 @@ import org.apache.commons.lang3.Validate;
  *
  * 
  * // Set up echoer + a UDP gateway for it to use (on port 1000)
- * ActorThread echoerThread = ActorThread.create("echoer");
- * Shuttle echoerInputShuttle = echoerThread.getIncomingShuttle();
+ * ActorRunner echoerRunner = ActorRunner.create("echoer");
+ * Shuttle echoerInputShuttle = echoerRunner.getIncomingShuttle();
  * UdpGateway echoerUdpGateway = new UdpGateway(   // Create the UDP gateway for echoer
  *         new InetSocketAddress(1000),                // listen on port 1000
  *         "internaludp",                              // call this gateway "internaludp"
@@ -77,11 +77,11 @@ import org.apache.commons.lang3.Validate;
  *         Address.fromString("echoer:echoer"),        // forward all incoming UDP messages to address "echoer:echoer"
  *         new SimpleSerializer());                    // use SimpleSerializer to serialize/deserialize messages
  * Shuttle echoerUdpOutputShuttle = echoerUdpGateway.getIncomingShuttle();
- * echoerThread.addOutgoingShuttle(echoerUdpOutputShuttle);
+ * echoerRunner.addOutgoingShuttle(echoerUdpOutputShuttle);
  * 
  * // Set up sender + a UDP gateway for it to use (on port 2000)
- * ActorThread senderThread = ActorThread.create("sender");
- * Shuttle senderInputShuttle = senderThread.getIncomingShuttle();
+ * ActorRunner senderRunner = ActorRunner.create("sender");
+ * Shuttle senderInputShuttle = senderRunner.getIncomingShuttle();
  * UdpGateway senderUdpGateway = new UdpGateway(   // Create the UDP gateway for sender
  *         new InetSocketAddress(2000),                // listen on port 1000
  *         "internaludp",                              // call this gateway "internaludp"
@@ -89,11 +89,11 @@ import org.apache.commons.lang3.Validate;
  *         Address.fromString("sender:sender"),        // forward all incoming UDP messages to address "sender:sender"
  *         new SimpleSerializer());                    // use SimpleSerializer to serialize/deserialize messages
  * Shuttle senderUdpOutputShuttle = senderUdpGateway.getIncomingShuttle();
- * senderThread.addOutgoingShuttle(senderUdpOutputShuttle);
+ * senderRunner.addOutgoingShuttle(senderUdpOutputShuttle);
  *
- * // Add actors to their respective threads
- * echoerThread.addCoroutineActor("echoer", echoer);
- * senderThread.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000")); // Notify sender to send initial msg
+ * // Add actors to their respective runners
+ * echoerRunner.addCoroutineActor("echoer", echoer);
+ * senderRunner.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000")); // Notify sender to send initial msg
  *                                                                                                    // over UDP to localhost:1000
  *                                                                                                    // (echoer's address)
  *

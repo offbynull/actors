@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.examples.chord;
 
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.examples.common.ConsoleStage;
-import com.offbynull.peernetic.core.actor.ActorThread;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
@@ -15,7 +15,6 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.time.Duration;
 import java.util.Collections;
@@ -43,12 +42,12 @@ public final class RealtimeViaUdpSimulator {
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
-        ActorThread actorThread = ActorThread.create(BASE_ACTOR_ADDRESS_STRING);
+        ActorRunner actorRunner = new ActorRunner(BASE_ACTOR_ADDRESS_STRING);
 
-        timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(graphGateway.getIncomingShuttle());
 
         graphGateway.addStage(() -> new ConsoleStage());
         ConsoleStage consoleStage = ConsoleStage.getInstance();
@@ -70,7 +69,7 @@ public final class RealtimeViaUdpSimulator {
         graphGateway.setHandlers(new CustomGraphNodeAddHandler(size), new CustomGraphNodeRemoveHandler());
 
         for (int i = 0; i < size; i++) {
-            addUdpSimulatorProxy(i, actorThread, i);
+            addUdpSimulatorProxy(i, actorRunner, i);
         }
         
         consoleStage.outputLine("Node colors");
@@ -103,7 +102,7 @@ public final class RealtimeViaUdpSimulator {
             switch (scanner.next().toLowerCase()) {
                 case "boot": {
                     int id = scanner.nextInt();
-                    addNode(id, null, bits, actorThread);
+                    addNode(id, null, bits, actorRunner);
                     return "Executed command: " + input;
                 }
                 case "start": {
@@ -114,7 +113,7 @@ public final class RealtimeViaUdpSimulator {
                     Validate.isTrue(startId <= endId);
 
                     for (int id = startId; id <= endId; id++) {
-                        addNode(id, connectId, bits, actorThread);
+                        addNode(id, connectId, bits, actorRunner);
                     }
                     return "Executed command: " + input;
                 }
@@ -125,7 +124,7 @@ public final class RealtimeViaUdpSimulator {
                     Validate.isTrue(startId <= endId);
 
                     for (int id = startId; id <= endId; id++) {
-                        removeNode(id, actorThread);
+                        removeNode(id, actorRunner);
                     }
                     return "Executed command: " + input;
                 }
@@ -142,11 +141,11 @@ public final class RealtimeViaUdpSimulator {
         GraphGateway.awaitShutdown();
     }
     
-    private static void addUdpSimulatorProxy(int id, ActorThread actorThread, int randomSeed) {
+    private static void addUdpSimulatorProxy(int id, ActorRunner actorRunner, int randomSeed) {
         String idStr = Integer.toString(id);
         String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 udpSimProxyIdStr,
                 new UdpSimulatorCoroutine(),
                 new StartUdpSimulator(
@@ -165,7 +164,7 @@ public final class RealtimeViaUdpSimulator {
         );
     }
     
-    private static void addNode(int id, Integer connId, int bits, ActorThread actorThread) {
+    private static void addNode(int id, Integer connId, int bits, ActorRunner actorRunner) {
         String idStr = Integer.toString(id);
         String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         Address remoteBaseAddr = BASE_ACTOR_ADDRESS
@@ -176,7 +175,7 @@ public final class RealtimeViaUdpSimulator {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
         
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 idStr,
                 new ChordClientCoroutine(),
                 new Start(
@@ -191,10 +190,10 @@ public final class RealtimeViaUdpSimulator {
         );
     }
 
-    private static void removeNode(int id, ActorThread actorThread) {
+    private static void removeNode(int id, ActorRunner actorRunner) {
         String idStr = Integer.toString(id);
 
-        actorThread.getIncomingShuttle().send(
+        actorRunner.getIncomingShuttle().send(
                 Collections.singleton(
                         new Message(
                                 BASE_ACTOR_ADDRESS.appendSuffix(idStr),

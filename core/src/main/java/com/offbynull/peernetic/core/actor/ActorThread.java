@@ -21,74 +21,29 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import org.apache.commons.lang3.Validate;
 
-/**
- * Container used to execute {@link Actor}s.
- * <p>
- * The following usage example creates an instance of {@link ActorThread}, adds a normal {@link Actor} and a coroutine-based {@link Actor}
- * to it, and then shuts it down.
- * <pre>
- * // Create an ActorThread. The address of all actors added will be prefixed with "local"
- * ActorThread actorThread = ActorThread.create("local");
- * 
- * // Add a new actor with the address "local:actor1". As soon as the actor is added, it will receive an incoming message from itself that
- * // is the string "start".
- * Actor myActor = ...;
- * actorThread.addActor("actor1", myActor, "start");
- * 
- * // Add a new coroutine actor with the address "local:actor2". As soon as the actor is added, it will receive 2 incoming messages from
- * // itself: "start1" and "start2".
- * Coroutine myCoroutineActor = ...;
- * actorThread.addCoroutineActor("actor2", myCoroutineActor, "start1", "start2");
- * 
- * 
- * ... do some unrelated stuff here ...
- * 
- * 
- * 
- * // Shutdown the ActorThread
- * actorThread.shutdown();
- * </pre>
- * 
- * All actors assigned to an actorthread can send messages to each other without any additional setup.
- * <p>
- * If you want outside components to be able to send messages to actors assigned to an actorthread, you'll need to pass those
- * outside components a reference to the {@link Shuttle} returned by {@link #getIncomingShuttle() }.
- * <p>
- * Similarly, if actors assigned to an actorthread are going to send messages to outside components, the {@link Shuttle}s for
- * those outgoing components need to be added using {@link #addOutgoingShuttle(com.offbynull.peernetic.core.shuttle.Shuttle) }.
- * <p>
- * If an actor tries to send a message to an address for which no outgoing shuttle has been added, that message is silently discarded.
- * 
- * @author Kasra Faghihi
- */
-public final class ActorThread implements AutoCloseable {
+final class ActorThread {
     private final Thread thread;
-    private final ActorRunnable actorRunnable;
+    private final ActorRunnable runnable;
     private final Bus bus;
 
-    ActorThread(Thread thread, Bus bus, ActorRunnable actorRunnable) {
+    private ActorThread(Thread thread, Bus bus, ActorRunnable runnable) {
         Validate.notNull(thread);
         Validate.notNull(bus);
-        Validate.notNull(actorRunnable);
+        Validate.notNull(runnable);
         this.thread = thread;
         this.bus = bus;
-        this.actorRunnable = actorRunnable;
+        this.runnable = runnable;
     }
     
-    /**
-     * Creates a new {@link ActorThread} object.
-     * @param prefix address prefix to use for actors that get added to the actorthread returned by this method
-     * @return newly created {@link ActorThread}
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public static ActorThread create(String prefix) {
+    // it should be fine to have this be a constructor since the this pointer never gets passed to the runnable, but have this factory
+    // method anyway...
+    public static ActorThread create(String prefix, Shuttle selfShuttle) {
         Validate.notNull(prefix);
+        Validate.notNull(selfShuttle);
         
         // create runnable
         Bus bus = new Bus();
         ActorRunnable runnable = new ActorRunnable(prefix, bus);
-        
-        Shuttle selfShuttle = runnable.getIncomingShuttle();
 
         // add in our own shuttle as well so we can send msgs to ourselves
         bus.add(new AddShuttle(selfShuttle));
@@ -102,13 +57,9 @@ public final class ActorThread implements AutoCloseable {
         // return
         return new ActorThread(thread, bus, runnable);
     }
-    
-    /**
-     * Shuts down this actorthread. Blocks until the internal thread that executes actors terminates before returning.
-     * @throws InterruptedException if interrupted while waiting for shutdown
-     */
-    @Override
-    public void close() throws InterruptedException {
+
+    // singals close, but doesn't wait for the the thread to die... use join for that
+    public void close() {
         try {
             bus.close();
         } catch (Exception e) {
@@ -116,111 +67,45 @@ public final class ActorThread implements AutoCloseable {
         }
         
         thread.interrupt();
-        thread.join();
     }
 
-    /**
-     * Blocks until the internal thread that executes actors terminates.
-     * @throws InterruptedException if interrupted while waiting
-     */
     public void join() throws InterruptedException {
         thread.join();
     }
     
-    /**
-     * Get the shuttle used to receive messages.
-     * @return shuttle for incoming messages to this actorthread
-     */
     public Shuttle getIncomingShuttle() {
-        return actorRunnable.getIncomingShuttle();
+        return runnable.getIncomingShuttle();
     }
 
-    /**
-     * Queue an actor to be added. Note that this method queues an actor to be added rather than adding it right away. As such, this
-     * method will likely return before the actor in question is added, and any error during encountered during adding will not be
-     * known to the caller. On error (e.g. actor with same id already exists), this actorthread terminates.
-     * <p>
-     * If this actorthread has been shutdown prior to calling this method, this method does nothing.
-     * @param id id to use for {@code actor}. For example, if the prefix for this ActorThread is "actorthread", and the id of the actor
-     * being add is "test", that actor will be accessible via the address "actorthread:test".
-     * @param actor actor being added
-     * @param primingMessages messages to send to {@code actor} (shown as coming from itself) once its been added
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     */
     public void addActor(String id, Actor actor, Object... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(actor);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        actorRunnable.addActor(id, actor, primingMessages);
+        runnable.addActor(id, actor, primingMessages);
     }
 
-    /**
-     * Queue a coroutine-based actor to be added. Equivalent to calling
-     * {@code addActor(id, new CoroutineActor(coroutine), primingMessages)}.
-     * @param id id to use for actor being added. For example, if the prefix for this ActorThread is "actorthread", and the id of the actor
-     * being add is "test", that actor will be accessible via the address "actorthread:test".
-     * @param coroutine coroutine for actor being added
-     * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     */
     public void addCoroutineActor(String id, Coroutine coroutine, Object... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        actorRunnable.addCoroutineActor(id, coroutine, primingMessages);
+        runnable.addCoroutineActor(id, coroutine, primingMessages);
     }
 
-    /**
-     * Queue an actor to be remove. Note that this method queues an actor to be removed rather than removing it right away. As such, this
-     * method will likely return before the actor in question is removed, and any error during encountered during removal will not be
-     * known to the caller. On error (e.g. actor with id doesn't exist), this actorthread terminates.
-     * <p>
-     * If this actorthread has been shutdown prior to calling this method, this method does nothing.
-     * <p>
-     * If this actorthread doesn't contain an actor with the id {@code id}, nothing will be removed.
-     * @param id id of actor to remove
-     * @throws NullPointerException if any argument is {@code null}
-     */
     public void removeActor(String id) {
         Validate.notNull(id);
-        actorRunnable.removeActor(id);
+        runnable.removeActor(id);
     }
 
-    /**
-     * Queue an outgoing shuttle to be added. When an actor sends a message, that message will be forwarded to the appropriate outgoing
-     * shuttle (based on the prefix of the destination address). If no outgoing shuttle is found, the message is silently discarded.
-     * <p>
-     * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes, and any error encountered during the operation will not be known to the caller. On error
-     * (e.g. outgoing shuttle with same prefix already exists), this actorthread terminates.
-     * <p>
-     * If this actorthread has been shutdown prior to calling this method, this method does nothing.
-     * <p>
-     * @param shuttle outgoing shuttle to add
-     * @throws NullPointerException if any argument is {@code null}
-     */
     public void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
-        actorRunnable.addOutgoingShuttle(shuttle);
+        runnable.addOutgoingShuttle(shuttle);
     }
 
-    /**
-     * Queue an outgoing shuttle for removal.
-     * <p>
-     * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes and any error encountered during the operation will not be known to the caller.
-     * <p>
-     * If this actorthread has been shutdown prior to calling this method, this method does nothing. On error (e.g. outgoing shuttle
-     * with prefix doesn't exist), this actorthread terminates.
-     * <p>
-     * @param prefix address prefix for shuttle to remove
-     * @throws NullPointerException if any argument is {@code null}
-     */
     public void removeOutgoingShuttle(String prefix) {
         Validate.notNull(prefix);
-        actorRunnable.removeOutgoingShuttle(prefix);
+        runnable.removeOutgoingShuttle(prefix);
     }
     
 }

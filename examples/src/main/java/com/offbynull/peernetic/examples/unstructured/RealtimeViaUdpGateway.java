@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.examples.unstructured;
 
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
@@ -42,32 +42,32 @@ public final class RealtimeViaUdpGateway {
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
-        ActorThread actorThread = ActorThread.create(BASE_ACTOR_ADDRESS_STRING);
+        ActorRunner actorRunner = new ActorRunner(BASE_ACTOR_ADDRESS_STRING);
 
-        timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(graphGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
         
         graphGateway.setHandlers(new CustomGraphNodeAddHandler(MAX_GRAPH_X, MAX_GRAPH_Y), new DefaultGraphNodeRemoveHandler());
 
         Random rand = new Random(12345);
 
         // Seed node
-        addUdpGateway(0, actorThread);
-        addNode(0, null, actorThread);
+        addUdpGateway(0, actorRunner);
+        addNode(0, null, actorRunner);
         
         // Connecting nodes
         for (int i = 1; i < MAX_NODES; i++) {
-            addUdpGateway(i, actorThread);
-            addNode(i, 0, actorThread);
+            addUdpGateway(i, actorRunner);
+            addNode(i, 0, actorRunner);
             Thread.sleep(rand.nextInt(MAX_WAIT_PER_NODE_ADD));
         }
 
         GraphGateway.awaitShutdown();
     }
 
-    private static void addUdpGateway(int id, ActorThread actorThread) throws Exception {
+    private static void addUdpGateway(int id, ActorRunner actorRunner) throws Exception {
         String idStr = Integer.toString(id);
         String baseUdpAddressStr = String.format(BASE_UDP_ADDRESS_STRING_FORMAT, id);
         int bindPort = START_PORT + id;
@@ -76,14 +76,14 @@ public final class RealtimeViaUdpGateway {
         UdpGateway udpGateway = new UdpGateway(
                 bindAddress,
                 baseUdpAddressStr,
-                actorThread.getIncomingShuttle(),
+                actorRunner.getIncomingShuttle(),
                 BASE_ACTOR_ADDRESS.appendSuffix(idStr),
                 new SimpleSerializer()
         );
-        actorThread.addOutgoingShuttle(udpGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(udpGateway.getIncomingShuttle());
     }
     
-    private static void addNode(int id, Integer connId, ActorThread actorThread) throws Exception {
+    private static void addNode(int id, Integer connId, ActorRunner actorRunner) throws Exception {
         String idStr = Integer.toString(id);
         String selfLinkId = LOCALHOST_HEX + "." + (START_PORT + id);
         String baseUdpAddressStr = String.format(BASE_UDP_ADDRESS_STRING_FORMAT, id);
@@ -93,7 +93,7 @@ public final class RealtimeViaUdpGateway {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
         
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(

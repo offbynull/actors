@@ -44,13 +44,13 @@ import org.apache.commons.lang3.Validate;
  * TimerGateway timerGateway = new TimerGateway("timer");
  * Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
  * 
- * ActorThread testerThread = ActorThread.create("local");
- * Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+ * ActorRunner testerRunner = ActorRunner.create("local");
+ * Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
  * 
- * testerThread.addOutgoingShuttle(timerInputShuttle);
+ * testerRunner.addOutgoingShuttle(timerInputShuttle);
  * timerGateway.addOutgoingShuttle(testerInputShuttle);
  * 
- * testerThread.addCoroutineActor("tester", tester, "timer");
+ * testerRunner.addCoroutineActor("tester", tester, "timer");
  * </pre>
  * @author Kasra Faghihi
  */

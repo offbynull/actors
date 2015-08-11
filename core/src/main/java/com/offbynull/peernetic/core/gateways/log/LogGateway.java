@@ -41,12 +41,12 @@ import org.apache.commons.lang3.Validate;
  * LogGateway logger = new LogGateway("logger");
  * Shuttle logInputShuttle = logGateway.getIncomingShuttle();
  * 
- * ActorThread testerThread = ActorThread.create("local");
- * Shuttle testerInputShuttle = testerThread.getIncomingShuttle();
+ * ActorRunner testerRunner = ActorRunner.create("local");
+ * Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
  * 
- * testerThread.addOutgoingShuttle(logInputShuttle);
+ * testerRunner.addOutgoingShuttle(logInputShuttle);
  * 
- * testerThread.addCoroutineActor("tester", tester, "logger");
+ * testerRunner.addCoroutineActor("tester", tester, "logger");
  * </pre>
  * @author Kasra Faghihi
  */

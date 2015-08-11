@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.gateways.recorder;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.common.Serializer;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
@@ -50,28 +50,28 @@ public class RecorderGatewayTest {
             }
         };
 
-        // Create actor threads
-        ActorThread echoerThread = ActorThread.create("echoer");
-        ActorThread senderThread = ActorThread.create("sender");
+        // Create actor runners
+        ActorRunner echoerRunner = new ActorRunner("echoer");
+        ActorRunner senderRunner = new ActorRunner("sender");
 
         // Create recorder that records events coming to echoer and then passes it along to echoer
         RecorderGateway echoRecorderGateway = RecorderGateway.record(
                 "recorder",
-                echoerThread.getIncomingShuttle(),
+                echoerRunner.getIncomingShuttle(),
                 Address.of("echoer", "echoer"),
                 file,
                 new SimpleSerializer());
         Shuttle echoRecorderShuttle = echoRecorderGateway.getIncomingShuttle();
 
         // Wire sender to send to echoerRecorder instead of echoer
-        senderThread.addOutgoingShuttle(echoRecorderShuttle);
+        senderRunner.addOutgoingShuttle(echoRecorderShuttle);
 
         // Wire echoer to send back directly to recorder
-        echoerThread.addOutgoingShuttle(senderThread.getIncomingShuttle());
+        echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
 
         // Add coroutines
-        echoerThread.addCoroutineActor("echoer", echoer);
-        senderThread.addCoroutineActor("sender", sender, Address.of("recorder"));
+        echoerRunner.addCoroutineActor("echoer", echoer);
+        senderRunner.addCoroutineActor("sender", sender, Address.of("recorder"));
 
         latch.await();
         echoRecorderGateway.close();

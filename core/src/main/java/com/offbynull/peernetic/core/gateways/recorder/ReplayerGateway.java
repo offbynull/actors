@@ -43,17 +43,17 @@ import org.apache.commons.lang3.Validate;
  *     }
  * };
  * 
- * ActorThread echoerThread = ActorThread.create("echoer");
+ * ActorRunner echoerRunner = ActorRunner.create("echoer");
  * 
  * // Wire echoer to send back to null
- * echoerThread.addOutgoingShuttle(new NullShuttle("sender"));
+ * echoerRunner.addOutgoingShuttle(new NullShuttle("sender"));
  * 
  * // Add coroutines
- * echoerThread.addCoroutineActor("echoer", echoer);
+ * echoerRunner.addCoroutineActor("echoer", echoer);
  * 
  * // Create replayer that mocks out sender and replays previous events to echoer
  * ReplayerGateway replayerGateway = ReplayerGateway.replay(
- *         echoerThread.getIncomingShuttle(),
+ *         echoerRunner.getIncomingShuttle(),
  *         "echoer:echoer",
  *         eventsFile,
  *         new SimpleSerializer());

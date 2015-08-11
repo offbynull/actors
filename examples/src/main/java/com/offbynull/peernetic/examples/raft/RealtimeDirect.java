@@ -1,6 +1,6 @@
 package com.offbynull.peernetic.examples.raft;
 
-import com.offbynull.peernetic.core.actor.ActorThread;
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
@@ -43,12 +43,12 @@ public final class RealtimeDirect {
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
-        ActorThread actorThread = ActorThread.create(BASE_ACTOR_ADDRESS_STRING);
+        ActorRunner actorRunner = new ActorRunner(BASE_ACTOR_ADDRESS_STRING);
 
-        timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(graphGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
         graphGateway.addStage(() -> new ConsoleStage());
         ConsoleStage consoleStage = ConsoleStage.getInstance();
@@ -75,7 +75,7 @@ public final class RealtimeDirect {
         consoleStage.outputLine("");
         
         // Start client
-        addClientNode(clusterSize, serverIds, actorThread);
+        addClientNode(clusterSize, serverIds, actorRunner);
         
         // Take inputs
         consoleStage.outputLine("Node colors");
@@ -106,7 +106,7 @@ public final class RealtimeDirect {
                     Validate.isTrue(startId <= endId);
 
                     for (int i = startId; i <= endId; i++) {
-                        addServerNode(i, serverIds, actorThread);
+                        addServerNode(i, serverIds, actorRunner);
                     }
                     return "Executed command: " + input;
                 }
@@ -117,7 +117,7 @@ public final class RealtimeDirect {
                     Validate.isTrue(startId <= endId);
 
                     for (int id = startId; id <= endId; id++) {
-                        removeServerNode(id, actorThread);
+                        removeServerNode(id, actorRunner);
                     }
                     return "Executed command: " + input;
                 }
@@ -134,11 +134,11 @@ public final class RealtimeDirect {
         GraphGateway.awaitShutdown();
     }
 
-    private static void addClientNode(int clientId, Collection<Integer> allServerIds, ActorThread actorThread) {
+    private static void addClientNode(int clientId, Collection<Integer> allServerIds, ActorRunner actorRunner) {
         String idStr = Integer.toString(clientId);
         Set<String> allIdsAsStrs = allServerIds.stream().map(x -> Integer.toString(x)).collect(Collectors.toSet());
         
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 idStr,
                 new RaftClientCoroutine(),
                 new StartClient(
@@ -153,14 +153,14 @@ public final class RealtimeDirect {
         );
     }
 
-    private static void addServerNode(int serverId, Collection<Integer> allServerIds, ActorThread actorThread) {
+    private static void addServerNode(int serverId, Collection<Integer> allServerIds, ActorRunner actorRunner) {
         String idStr = Integer.toString(serverId);
         Set<String> allIdsAsStrs = allServerIds.stream().map(x -> Integer.toString(x)).collect(Collectors.toSet());
         
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) serverId;
         
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 idStr,
                 new RaftServerCoroutine(),
                 new StartServer(
@@ -176,10 +176,10 @@ public final class RealtimeDirect {
         );
     }
     
-    private static void removeServerNode(int id, ActorThread actorThread) {
+    private static void removeServerNode(int id, ActorRunner actorRunner) {
         String idStr = Integer.toString(id);
 
-        actorThread.getIncomingShuttle().send(
+        actorRunner.getIncomingShuttle().send(
                 Collections.singleton(
                         new Message(
                                 BASE_ACTOR_ADDRESS.appendSuffix(idStr),

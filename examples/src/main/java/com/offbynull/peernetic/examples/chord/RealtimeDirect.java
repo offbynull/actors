@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.examples.chord;
 
+import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.examples.common.ConsoleStage;
-import com.offbynull.peernetic.core.actor.ActorThread;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
@@ -11,7 +11,6 @@ import com.offbynull.peernetic.examples.chord.internalmessages.Kill;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.util.Collections;
 import java.util.Scanner;
@@ -36,12 +35,12 @@ public final class RealtimeDirect {
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
-        ActorThread actorThread = ActorThread.create(BASE_ACTOR_ADDRESS_STRING);
+        ActorRunner actorRunner = new ActorRunner(BASE_ACTOR_ADDRESS_STRING);
 
-        timerGateway.addOutgoingShuttle(actorThread.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        actorThread.addOutgoingShuttle(graphGateway.getIncomingShuttle());
+        timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(graphGateway.getIncomingShuttle());
 
         graphGateway.addStage(() -> new ConsoleStage());
         ConsoleStage consoleStage = ConsoleStage.getInstance();
@@ -92,7 +91,7 @@ public final class RealtimeDirect {
             switch (scanner.next().toLowerCase()) {
                 case "boot": {
                     int id = scanner.nextInt();
-                    addNode(id, null, bits, actorThread);
+                    addNode(id, null, bits, actorRunner);
                     return "Executed command: " + input;
                 }
                 case "start": {
@@ -103,7 +102,7 @@ public final class RealtimeDirect {
                     Validate.isTrue(startId <= endId);
 
                     for (int id = startId; id <= endId; id++) {
-                        addNode(id, connectId, bits, actorThread);
+                        addNode(id, connectId, bits, actorRunner);
                     }
                     return "Executed command: " + input;
                 }
@@ -114,7 +113,7 @@ public final class RealtimeDirect {
                     Validate.isTrue(startId <= endId);
 
                     for (int id = startId; id <= endId; id++) {
-                        removeNode(id, actorThread);
+                        removeNode(id, actorRunner);
                     }
                     return "Executed command: " + input;
                 }
@@ -131,14 +130,14 @@ public final class RealtimeDirect {
         GraphGateway.awaitShutdown();
     }
     
-    private static void addNode(int id, Integer connId, int bits, ActorThread actorThread) {
+    private static void addNode(int id, Integer connId, int bits, ActorRunner actorRunner) {
         String idStr = Integer.toString(id);
         String connIdStr = connId == null ? null : connId.toString();
         
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
 
-        actorThread.addCoroutineActor(
+        actorRunner.addCoroutineActor(
                 idStr,
                 new ChordClientCoroutine(),
                 new Start(
@@ -153,10 +152,10 @@ public final class RealtimeDirect {
         );
     }
 
-    private static void removeNode(int id, ActorThread actorThread) {
+    private static void removeNode(int id, ActorRunner actorRunner) {
         String idStr = Integer.toString(id);
 
-        actorThread.getIncomingShuttle().send(
+        actorRunner.getIncomingShuttle().send(
                 Collections.singleton(
                         new Message(
                                 BASE_ACTOR_ADDRESS.appendSuffix(idStr),

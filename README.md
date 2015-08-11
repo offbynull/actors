@@ -89,11 +89,13 @@ Each example comes with 5 executable Java classes...
 
 #### Unstructured Example
 
+Both realtime and simulation unstructured examples don't require any user input. They run the same preset scenario: nodes gradually created and added in to the mesh (100 nodes in total), where they search for nodes that to connect to. Note that node 0 starts as the bootstrap node, and all other nodes (1 to 99) will enter the network via node 0 when they start.
+
+![Unstructured Example Screenshot](../gh-pages/unstructured_example1.png)
+
 #### Chord Example
 
-Realtime Chord examples require user input. When the example starts, a console-like window is presented.
-
-Enter the following sequence of commands in to the console to create a 64-node Chord cluster and bring it online.
+Realtime Chord examples require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
 
 ```
 64
@@ -101,6 +103,19 @@ boot 0
 start 1 63 0
 ```
 
+Simulation Chord examples don't require any user input. They run preset scenarios.
+
 ![Chord Example Screenshot](../gh-pages/chord_example1.png)
 
 #### Raft Example
+
+Realtime Raft examples require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 5-node Raft cluster and bring it online. Note that node 5 is the client that's reading from and writing to the cluster, while all other nodes (0 to 4) are Raft servers.
+
+```
+5
+start 0 4
+```
+
+![Raft Example Screenshot](../gh-pages/raft_example1.png)
+
+Simulation Raft examples don't require any user input. They run preset scenarios.

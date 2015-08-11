@@ -19,9 +19,36 @@ More information on the topic of actors and P2P can be found on the following pa
 
 *Please note that Peernetic is currently in beta.*
 
+## Concepts
+
+If you aren't familiar with the actor model and its role in concurrent/distributed computing, there's a good introduction available on [Programmers Stack Exchange](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used) and [Wikipedia](http://en.wikipedia.org/wiki/Actor_model).
+
+Peernetic's implementation of the actor model is somewhat standard. There are two primitives: Actors and Gateways. Each actor/gateway has an address associated with it, and actors/gateways communicate with each other by passing messages to those addresses. Before an actor/gateway can send messages to another actor/gateway, it needs to be linked to that other actor/gateway. This is done by binding Shuttles. If you've used other actors frameworks before, shuttles are similar to mailboxes. Messages sent between actors/gateways must be immutable and should be serializable.
+
+### Actors
+
+An Actor is an isolated class who's only method of communicating with the outside world is through message-passing.
+
+Actors must adhere to the following constraints:
+
+ 1. **Do not expose any internal state.** Unlike traditional Java objects, actors should not provide any publicly accessibly methods or fields that expose or change their state. If an outside component needs to know or change the state of this actor, it must request it via message-passing.
+ 1. **Do not share state.** Actors must only ever access/change their own internal state, meaning that an actor must not share any references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done via message-passing.
+ 1. **Avoid blocking**, whether it's for I/O, long running operations, thread synchronization, or otherwise. Multiple actors may be running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages in a timely manner.
+
+Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
+
+### Gateways
+
+A Gateway, like an Actor, communicates with other components through message-passing, but isn't bound by any of the same rules as Actors. Gateways are mainly used to interface with third-party components that can't be communicated with via message-passing. As such, it's perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise block. For example, a gateway could ...
+
+ * read messages from a TCP connection and forward them.
+ * read messages from a file and forward them.
+ * receive messages and write them to a file.
+ * visualize incoming messages using Swing or JavaFX.
+
 ## Examples
 
-It's highly recommended that you go through the primer (COMING SOON!) before digging in to these examples.
+It's highly recommended that you go through the [concepts primer](#Concepts) before digging in to these examples.
 
 ### Simple Hello World
 

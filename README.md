@@ -23,7 +23,7 @@ More information on the topic of actors and P2P can be found on the following pa
 
 If you aren't familiar with the actor model and its role in concurrent/distributed computing, there's a good introduction available on [Programmers Stack Exchange](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used) and [Wikipedia](http://en.wikipedia.org/wiki/Actor_model).
 
-Peernetic's implementation of the actor model is somewhat standard. There are two primitives: Actors and Gateways. Each actor/gateway has an address associated with it, and actors/gateways communicate with each other by passing messages to those addresses. Before an actor/gateway can send messages to another actor/gateway, it needs to be linked to that other actor/gateway. This is done by binding Shuttles. If you've used other actors frameworks before, shuttles are similar to mailboxes. Messages sent between actors/gateways must be immutable and should be serializable.
+There are two primitives in Peernetic's implementation of the actor model: Actors and Gateways. Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable and should be serializable.
 
 ### Actors
 
@@ -33,7 +33,8 @@ Actors must adhere to the following constraints:
 
  1. **Do not expose any internal state.** Unlike traditional Java objects, actors should not provide any publicly accessibly methods or fields that expose or change their state. If an outside component needs to know or change the state of this actor, it must request it via message-passing.
  1. **Do not share state.** Actors must only ever access/change their own internal state, meaning that an actor must not share any references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done via message-passing.
- 1. **Avoid blocking**, whether it's for I/O, long running operations, thread synchronization, or otherwise. Multiple actors may be running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages in a timely manner.
+ 1. **Do not block,** whether it's for I/O, long running operations, thread synchronization, or otherwise. Multiple actors may be running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages in a timely manner.
+ 1. **Do not directly access time.** Actors must use the time supplied to them via the Context rather than making calls to Java's date and time APIs (e.g. Instant or System.currentTimeMillis()).
 
 Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
 
@@ -46,9 +47,19 @@ A Gateway, like an Actor, communicates with other components through message-pas
  * receive messages and write them to a file.
  * visualize incoming messages using Swing or JavaFX.
 
+Gateways run in their own isolated thread / threadpools.
+
+### Differences
+
+Unlike some other actor frameworks ...
+
+ 1. **Peernetic doesn't provide a "central directory" for actors/gateways.** Before a primitive can send messages to another primitive, it needs to be linked to that other primitive. This is done by binding Shuttles. If you've used other actor frameworks before, shuttles are similar to mailboxes.
+ 1. **Peernetic doesn't provide guarantees around message delivery.** The underlying transport mechanism is what determines guarantees around message delivery. Actors/Gateways communicating locally will have messages that are delivered and in ordered. But, if messages are piped over a volatile transport (e.g. UDP), nothing is guaranteed -- P2P algorithms should be able to operate in the face of message loss, message duplication, jitter, latency, etc..
+ 1. **Peernetic doesn't use Futures/Promises.** Gateways are used instead.
+
 ## Examples
 
-It's highly recommended that you go through the [concepts primer](#Concepts) before digging in to these examples.
+It's highly recommended that you go through the [concepts primer](#concepts) before digging in to these examples.
 
 ### Simple Hello World
 

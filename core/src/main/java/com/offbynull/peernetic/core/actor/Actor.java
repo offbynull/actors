@@ -21,7 +21,7 @@ package com.offbynull.peernetic.core.actor;
  * message-passing. If you aren't familiar with the concept of actors and their role in concurrent/distributed computing, there's a good
  * introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
  * <p>
- * Implementations of this interface should adhere to the following constraints:
+ * Implementations of this interface must adhere to the following constraints:
  * <ul>
  * <li><b>Do not expose any internal state.</b> Unlike traditional Java objects, actors should not provide any publicly accessibly methods
  * or fields that expose or change their state. If an outside component needs to know or change the state of this actor, it must request it

@@ -20,28 +20,45 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link Bus} is similar to a {@link LinkedBlockingQueue} in that it allows you to write and read objects in a thread-safe manner. In
- * addition to that, you can {@link #close() } a bus such that it no longer accepts incoming messages.
+ * A {@link Bus} allows reading and writing of objects in a thread-safe manner. In addition to that, you can {@link #close() } a bus such
+ * that it no longer accepts incoming messages.
  * @author Kasra Faghihi
  */
 public final class Bus implements AutoCloseable {
 
+    // Why use this over LinkedBlockingQueue?
+    // 1. This has a close() method.
+    // 2. This optimizes the locking when adding multiple objects such that a lock is only acquired once. LinkedBlockingQueue.addAll() will
+    // acquire and release the lock for each object that's added.
+    // 3. This optimizes the locking when reading multiple objects such that a lock is only acquired once. LinkedBlockingQueue requires a
+    // call to poll() to know when there's something in the queue and then immediately another call to drainTo() to get the rest of the
+    // items in the queue, if any.
+    
     private static final Logger LOG = LoggerFactory.getLogger(Bus.class);
 
-    private LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>();
-    private AtomicBoolean closed = new AtomicBoolean();
+    private final Lock lock = new ReentrantLock();
+    private final Condition newMessagesCondition = lock.newCondition();
+    
+    private LinkedList<Object> queue = new LinkedList<>();
+    private boolean closed;
 
     @Override
     public void close() {
-        closed.set(true);
+        lock.lock();
+        try {
+            closed = true;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -59,11 +76,23 @@ public final class Bus implements AutoCloseable {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
     public void add(Collection<?> messages) {
-        if (closed.get()) {
-            LOG.debug("Messages incoming to closed bus: {}", messages);
-            return;
+        Validate.notNull(messages);
+        Validate.noNullElements(messages);
+        
+        lock.lock();
+        try {
+            if (closed) {
+                LOG.debug("Messages incoming to closed bus: {}", messages);
+                return;
+            }
+            queue.addAll(messages);
+            
+            if (!queue.isEmpty()) {
+                newMessagesCondition.signal();
+            }
+        } finally {
+            lock.unlock();
         }
-        queue.addAll(messages); // automatically throws NPE if messages contains null, or if messages itself is null
     }
 
     /**
@@ -77,17 +106,25 @@ public final class Bus implements AutoCloseable {
     public List<Object> pull(long timeout, TimeUnit unit) throws InterruptedException {
         Validate.isTrue(timeout >= 0L);
         Validate.notNull(unit);
-        List<Object> messages = new LinkedList<>();
-
-        Object first = queue.poll(timeout, unit);
-        if (first != null) { // if it didn't time out, 
-            messages.add(first);
-            queue.drainTo(messages);
-        }
         
-        LOG.debug("Pulled {} messages", messages.size());
-
-        return messages;
+        lock.lock();
+        try {
+            while (queue.isEmpty()) {
+                boolean conditionTriggered = newMessagesCondition.await(timeout, unit);
+                if (!conditionTriggered) {
+                    // timeout elapsed, return without doing anything
+                    return new LinkedList<>();
+                }
+            }
+            
+            List<Object> messages = queue;
+            queue = new LinkedList<>();
+            
+            LOG.debug("Pulled {} messages", messages.size());
+            return messages;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -96,14 +133,19 @@ public final class Bus implements AutoCloseable {
      * @throws InterruptedException if thread is interrupted
      */
     public List<Object> pull() throws InterruptedException {
-        List<Object> messages = new LinkedList<>();
-
-        Object first = queue.take();
-        messages.add(first);
-        queue.drainTo(messages);
-
-        LOG.debug("Pulled {} messages", messages.size());
-        
-        return messages;
+        lock.lock();
+        try {
+            while (queue.isEmpty()) {
+                newMessagesCondition.await();
+            }
+            
+            List<Object> messages = queue;
+            queue = new LinkedList<>();
+            
+            LOG.debug("Pulled {} messages", messages.size());
+            return messages;
+        } finally {
+            lock.unlock();
+        }
     }
 }

@@ -89,7 +89,7 @@ Simulation executables don't require user input because they run pre-configured 
 
 [Unstructured](examples/src/main/java/com/offbynull/peernetic/examples/unstructured) is an implementation of an unstructured mesh network ([Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks)).
 
-Both realtime and simulation unstructured examples don't require any user input. They run the same preset scenario: nodes gradually created and added in to the mesh (100 nodes in total), where they search for nodes that to connect to. Note that node 0 starts as the bootstrap node, and all other nodes (1 to 99) will enter the network via node 0 when they start.
+Both realtime and simulation unstructured examples don't require any user input. They run the same pre-configured scenario: nodes are gradually created and added in to the network (100 nodes in total). Note that node 0 starts as the bootstrap node, and all other nodes (1 to 99) will enter the network via node 0 when they start.
 
 ![Unstructured Example Screenshot](../gh-pages/unstructured_example1.png)
 
@@ -105,7 +105,7 @@ boot 0
 start 1 63 0
 ```
 
-Simulation Chord examples don't require any user input. They run preset scenarios.
+Simulation Chord examples don't require any user input. They run pre-configured scenarios.
 
 ![Chord Example Screenshot](../gh-pages/chord_example1.png)
 
@@ -120,6 +120,6 @@ Realtime Raft examples require user input. When the example starts, a console-li
 start 0 4
 ```
 
-![Raft Example Screenshot](../gh-pages/raft_example1.png)
+Simulation Raft examples don't require any user input. They run pre-configured scenarios.
 
-Simulation Raft examples don't require any user input. They run preset scenarios.
+![Raft Example Screenshot](../gh-pages/raft_example1.png)

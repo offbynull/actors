@@ -84,6 +84,19 @@ public class ActorRunnerTest {
     }
     
     @Test
+    public void mustFailWhenAddingActorWithSameName() throws Exception {
+        fixture.addActor("actor", x -> false);
+        fixture.addActor("actor", x -> false);
+        fixture.join();
+    }
+    
+    @Test
+    public void mustFailWhenRemoveActorThatDoesntExist() throws Exception {
+        fixture.removeActor("actor");
+        fixture.join();
+    }
+
+    @Test
     public void mustFailWhenAddingOutgoingShuttleWithSameName() throws Exception {
         NullShuttle shuttle = new NullShuttle("local");
         // Queue outgoing shuttle with prefix as ourselves ("local") be added. We won't be notified of rejection right away, but the add

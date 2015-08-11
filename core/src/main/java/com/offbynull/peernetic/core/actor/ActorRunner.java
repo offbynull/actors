@@ -100,12 +100,28 @@ public final class ActorRunner implements AutoCloseable {
         this.threads = new ActorThread[threadCount];
         this.shuttle = new RunnerShuttle();
         
+        // Handler to call if any of the threads encounter a problem while they're running. If any thread encounters a critical error, then
+        // all threads must be shut down!
+        Runnable criticalFailureHandler = () -> {
+            LOG.error("Critical failure handler invoked! Signalling all threads to close.");
+            
+            for (ActorThread thread : threads) {
+                // Wrap in try catch just to be safe... we want to make sure close is called on every thread.
+                try {
+                    thread.close();
+                } catch (RuntimeException e) {
+                    LOG.error("Error signalling thread to close", e);
+                }
+            }
+        };
+        
+        // Start threads
         try {
             for (int i = 0; i < threadCount; i++) {
-                this.threads[i] = ActorThread.create(prefix, shuttle);
+                this.threads[i] = ActorThread.create(prefix, shuttle, criticalFailureHandler);
             }
         } catch (RuntimeException e) {
-            // A problem happened, shut down any threads that were created.
+            // A problem happened while creating new threads... shut down any threads that were created.
             for (ActorThread thread : threads) {
                 if (thread != null) {
                     thread.close(); // Signal shutdown, but don't wait until thread actually stops before returning

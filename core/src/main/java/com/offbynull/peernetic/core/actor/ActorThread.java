@@ -20,8 +20,12 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class ActorThread {
+    private static final Logger LOG = LoggerFactory.getLogger(ActorThread.class);
+    
     private final Thread thread;
     private final ActorRunnable runnable;
     private final Bus bus;
@@ -37,13 +41,14 @@ final class ActorThread {
     
     // it should be fine to have this be a constructor since the this pointer never gets passed to the runnable, but have this factory
     // method anyway...
-    public static ActorThread create(String prefix, Shuttle selfShuttle) {
+    public static ActorThread create(String prefix, Shuttle selfShuttle, Runnable criticalFailureHandler) {
         Validate.notNull(prefix);
         Validate.notNull(selfShuttle);
+        Validate.notNull(criticalFailureHandler);
         
         // create runnable
         Bus bus = new Bus();
-        ActorRunnable runnable = new ActorRunnable(prefix, bus);
+        ActorRunnable runnable = new ActorRunnable(prefix, bus, criticalFailureHandler);
 
         // add in our own shuttle as well so we can send msgs to ourselves
         bus.add(new AddShuttle(selfShuttle));
@@ -62,11 +67,15 @@ final class ActorThread {
     public void close() {
         try {
             bus.close();
-        } catch (Exception e) {
-            // do nothing
+        } catch (RuntimeException e) {
+            LOG.error("Error closing bus", e);
         }
         
-        thread.interrupt();
+        try {
+            thread.interrupt();
+        } catch (RuntimeException e) {
+            LOG.error("Error interrupting thread", e);
+        }
     }
 
     public void join() throws InterruptedException {

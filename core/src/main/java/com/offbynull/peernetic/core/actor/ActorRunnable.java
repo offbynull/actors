@@ -39,15 +39,18 @@ final class ActorRunnable implements Runnable {
     private final String prefix;
     private final Bus bus;
     private final SimpleShuttle incomingShuttle;
+    private final Runnable criticalFailureHandler;
 
-    ActorRunnable(String prefix, Bus bus) {
+    ActorRunnable(String prefix, Bus bus, Runnable criticalFailureHandler) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
+        Validate.notNull(criticalFailureHandler);
         Validate.notEmpty(prefix);
 
         this.prefix = prefix;
         this.bus = bus;
-        incomingShuttle = new SimpleShuttle(prefix, bus);
+        this.incomingShuttle = new SimpleShuttle(prefix, bus);
+        this.criticalFailureHandler = criticalFailureHandler;
     }
 
     @Override
@@ -79,8 +82,22 @@ final class ActorRunnable implements Runnable {
         } catch (InterruptedException ie) {
             LOG.debug("Actor thread interrupted");
             Thread.interrupted();
+            
+            // Invoke critical failure handler
+            try {
+                criticalFailureHandler.run();
+            } catch (RuntimeException innerRe) {
+                LOG.error("Handler failed", innerRe);
+            } 
         } catch (RuntimeException re) {
             LOG.error("Internal error encountered", re);
+            
+            // Invoke critical failure handler
+            try {
+                criticalFailureHandler.run();
+            } catch (RuntimeException innerRe) {
+                LOG.error("Handler failed", innerRe);
+            } 
         } finally {
             bus.close();
         }
@@ -91,7 +108,10 @@ final class ActorRunnable implements Runnable {
         LOG.debug("Processing management message: {}" , msg);
         if (msg instanceof AddActor) {
             AddActor aam = (AddActor) msg;
-            actors.put(aam.getId(), new LoadedActor(aam.getActor(), new SourceContext()));
+            LoadedActor existingActor = actors.putIfAbsent(aam.getId(), new LoadedActor(aam.getActor(), new SourceContext()));
+            
+            Validate.isTrue(existingActor == null); // unable to add a actor with id that already exists
+            
             List<Message> initialMessages = new LinkedList<>();
             for (Object primingMessage : aam.getPrimingMessages()) {
                 Address dstAddr = Address.of(prefix, aam.getId());
@@ -101,7 +121,9 @@ final class ActorRunnable implements Runnable {
             outgoingMessages.addAll(initialMessages);
         } else if (msg instanceof RemoveActor) {
             RemoveActor ram = (RemoveActor) msg;
-            actors.remove(ram.getId());
+            LoadedActor existingActor = actors.remove(ram.getId());
+            
+            Validate.isTrue(existingActor != null); // unable to remove a actor that doesnt exist
         } else if (msg instanceof AddShuttle) {
             AddShuttle asm = (AddShuttle) msg;
             Shuttle existingShuttle = outgoingShuttles.putIfAbsent(asm.getShuttle().getPrefix(), asm.getShuttle());

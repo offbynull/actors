@@ -73,15 +73,17 @@ The output is as follows:
 
 ### Real-world Examples
 
-Peernetic comes with 3 real-world examples. Each of those examples comes with 5 executable Java classes...
+Peernetic comes with 3 real-world examples, located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/). Each of those examples comes with 5 executable Java classes...
 
- * **RealtimeDirect** - All actors run locally and directly communicate with each other.
- * **RealtimeViaUdpGateway** - All actors run locally, but each actor communicates with the other actors via UDP.
- * **RealtimeViaUdpSimulator** - All actors run locally, but each actor communicates with the other actors via simulated UDP.
- * **SimulationDirect** - Actors run in a simulation environment where all actors directly communicate with each other. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
- * **SimulationViaUdpSimulator** - Actors run in a simulation environment, but each actor communicates with the other actors via simulated UDP. The simulation captures messages to intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+ * **RealtimeDirect** - Actors run locally and communicate with each other directly.
+ * **RealtimeViaUdpGateway** - Actors run locally and communicate with the each other via UDP.
+ * **RealtimeViaUdpSimulator** - Actors run locally and communicate with each other via simulated UDP.
+ * **SimulationDirect** - Actors run in a simulation environment and communicate with each other directly. 
+ * **SimulationViaUdpSimulator** - Actors run in a simulation environment and communicate with each other via simulated UDP.
 
-Realtime executables may require user input, while Simulation executables don't require user input (they run preset scenarios).
+Realtime executables may require user input.
+
+Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
 #### Unstructured Example
 

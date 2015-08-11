@@ -75,11 +75,11 @@ The output is as follows:
 
 Peernetic comes with 3 real-world examples, located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/). Each of those examples comes with 5 executable Java classes...
 
- * **RealtimeDirect** - Actors run locally and communicate with each other directly.
- * **RealtimeViaUdpGateway** - Actors run locally and communicate with the each other via UDP.
- * **RealtimeViaUdpSimulator** - Actors run locally and communicate with each other via simulated UDP.
- * **SimulationDirect** - Actors run in a simulation environment and communicate with each other directly. 
- * **SimulationViaUdpSimulator** - Actors run in a simulation environment and communicate with each other via simulated UDP.
+ * **RealtimeDirect** - Actors run locally and communicate directly.
+ * **RealtimeViaUdpGateway** - Actors run locally and communicate via UDP.
+ * **RealtimeViaUdpSimulator** - Actors run locally and communicate via simulated UDP.
+ * **SimulationDirect** - Actors run in a simulation and communicate directly. 
+ * **SimulationViaUdpSimulator** - Actors run in a simulation and communicate via simulated UDP.
 
 Realtime executables may require user input.
 

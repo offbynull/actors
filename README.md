@@ -99,7 +99,7 @@ Following the above implementation rules means that, outside of receiving and se
 
 ##### Normal Actors
 
-Normal actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a standard actor:
+Normal actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a normal actor:
 
 ```java
 public final class CustomActor implements Actor {

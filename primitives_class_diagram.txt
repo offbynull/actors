@@ -1,0 +1,26 @@
+interface Actor {
+   + onStep(Context context)
+}
+
+class CoroutineActor {
+   + CoroutineActor(Coroutine task)
+   + onStep(Context context)
+}
+
+interface Gateway {
+}
+
+interface InputGateway {
+  + getIncomingShuttle()
+}
+
+interface OutputGateway {
+  + addOutgoingShuttle(Shuttle shuttle)
+  + removeOutgoingShuttle(String shuttlePrefix)
+}
+
+Actor <|-- CoroutineActor
+Gateway <|-- OutputGateway
+Gateway <|-- InputGateway
+
+hide fields

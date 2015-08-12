@@ -179,6 +179,8 @@ The Chord example comes with 5 executable Java classes...
  * **SimulationDirect** - Chord nodes run in a simulation and communicate directly. 
  * **SimulationViaUdpSimulator** - Chord nodes run in a simulation and communicate via simulated UDP.
 
+![Chord Example Screenshot](../gh-pages/chord_example1.png)
+
 ##### Realtime executables
 
 Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
@@ -188,8 +190,6 @@ Executables classes prefixed with **Realtime** require user input. When the exam
 boot 0
 start 1 63 0
 ```
-
-![Chord Example Screenshot](../gh-pages/chord_example1.png)
 
 ##### Simulation executables
 

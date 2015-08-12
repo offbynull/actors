@@ -2,8 +2,6 @@
 
 <p align="center"><img src ="../gh-pages/logo.png" alt="Peernetic logo" /></p>
 
-## Table of Contents
-
  * [Introduction](#introduction)
  * [Concepts](#concepts)
    * [Actors](#actors)
@@ -21,7 +19,7 @@
      * [What is Raft?](#what-is-raft)
      * [How do I use the example?](#how-do-i-use-the-example2)
 
-#Introduction
+##Introduction
 
 Peernetic is a lightweight Java actor framework that was designed first and foremost with P2P algorithm/application development in mind. While Peernetic can be used as a generic actor framework, it provides features that remove some of the pain from distributed P2P development.
 

@@ -172,8 +172,9 @@ public final class RecorderGateway implements InputGateway {
     }
     
     @Override
-    public void close() {
-        writeThread.interrupt(); // thread will close the bus when it gets an exception
+    public void close() throws InterruptedException {
+        writeThread.interrupt();
+        writeThread.join();
     }
     
 }

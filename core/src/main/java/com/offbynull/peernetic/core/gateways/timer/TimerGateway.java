@@ -95,7 +95,8 @@ public final class TimerGateway implements InputGateway, OutputGateway {
     }
 
     @Override
-    public void close() {
+    public void close() throws InterruptedException {
         thread.interrupt();
+        thread.join();
     }
 }

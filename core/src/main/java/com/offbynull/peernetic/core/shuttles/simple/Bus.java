@@ -29,8 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link Bus} allows reading and writing of objects in a thread-safe manner. In addition to that, you can {@link #close() } a bus such
- * that it no longer accepts incoming messages.
+ * A {@link Bus} allows reading and writing of objects in a thread-safe manner. You can {@link #close() } a bus such that it no longer
+ * accepts incoming messages.
  * @author Kasra Faghihi
  */
 public final class Bus implements AutoCloseable {

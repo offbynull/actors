@@ -79,7 +79,8 @@ public final class LogGateway implements InputGateway {
     }
 
     @Override
-    public void close() {
+    public void close() throws InterruptedException {
         thread.interrupt();
+        thread.join();
     }
 }

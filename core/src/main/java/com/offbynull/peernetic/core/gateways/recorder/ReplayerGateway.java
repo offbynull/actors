@@ -110,8 +110,9 @@ public final class ReplayerGateway implements Gateway {
     }
 
     @Override
-    public void close() {
+    public void close() throws InterruptedException {
         readThread.interrupt();
+        readThread.join();
     }
 
     

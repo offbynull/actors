@@ -45,12 +45,12 @@ A Gateway, like an Actor, communicates with other components through message-pas
 Peernetic provides the following gateway implementations:
 
  * TimerGateway -- Echoes back messages after a certain duration of time.
- * LogGateway -- Logs to SLF4J.
- * RecorderGateway -- Saves incoming messages to a file.
- * ReplayerGateway -- Replays events saved by a RecorderGateway.
- * DirectGateway -- Allows normal Java code to send and receive messages to other actors/gateways.
- * UdpGateway -- Sends and receives messages over UDP.
+ * DirectGateway -- Allows normal Java code to interface with actors/gateways.
  * VisualizerGateway -- Displays 2D directed graphs.
+ * UdpGateway -- Sends and receives messages over UDP.
+ * LogGateway -- Logs messages to SLF4J.
+ * RecorderGateway -- Saves incoming messages to a file.
+ * ReplayerGateway -- Replays messages saved by a RecorderGateway.
 
 Gateways run in their own isolated thread / threadpools.
 
@@ -133,33 +133,55 @@ test123
 Echoing back test123
 ```
 
-### Real-world Examples
+### Unstructured Mesh Example
 
-Peernetic comes with 3 real-world examples, located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/). Each of those examples comes with 5 executable Java classes...
+The Unstructured Mesh example is located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/unstructured).
 
- * **RealtimeDirect** - Actors run locally and communicate directly.
- * **RealtimeViaUdpGateway** - Actors run locally and communicate via UDP.
- * **RealtimeViaUdpSimulator** - Actors run locally and communicate via simulated UDP.
- * **SimulationDirect** - Actors run in a simulation and communicate directly. 
- * **SimulationViaUdpSimulator** - Actors run in a simulation and communicate via simulated UDP.
+#### What is an Unstructured Mesh?
 
-Realtime executables may require user input.
+From [Wikipedia](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks): *Unstructured peer-to-peer networks do not impose a particular structure on the overlay network by design, but rather are formed by nodes that randomly form connections to each other. (Gnutella, Gossip, and Kazaa are examples of unstructured P2P protocols).*
 
-Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+#### How do I use the example?
 
-#### Unstructured Example
+The Unstructured Mesh example comes with 5 executable Java classes...
 
-[Unstructured](examples/src/main/java/com/offbynull/peernetic/examples/unstructured) is an implementation of an unstructured mesh network. From [Wikipedia](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks): *Unstructured peer-to-peer networks do not impose a particular structure on the overlay network by design, but rather are formed by nodes that randomly form connections to each other. (Gnutella, Gossip, and Kazaa are examples of unstructured P2P protocols).*
-
-Both realtime and simulation unstructured examples don't require any user input. They run the same pre-configured scenario: nodes are gradually created and added in to the network (100 nodes in total). Note that node 0 starts as the bootstrap node, and all other nodes (1 to 99) will enter the network via node 0 when they start.
+ * **RealtimeDirect** - Nodes run locally and communicate directly.
+ * **RealtimeViaUdpGateway** - Nodes run locally and communicate via UDP.
+ * **RealtimeViaUdpSimulator** - Nodes run locally and communicate via simulated UDP.
+ * **SimulationDirect** - Nodes run in a simulation and communicate directly. 
+ * **SimulationViaUdpSimulator** - Nodes run in a simulation and communicate via simulated UDP.
 
 ![Unstructured Example Screenshot](../gh-pages/unstructured_example1.png)
 
-#### Chord Example
+##### Realtime executables
 
-[Chord](examples/src/main/java/com/offbynull/peernetic/examples/chord) is an implementation of Chord DHT's overlay network. From [Wikipedia](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)): *In computing, Chord is a protocol and algorithm for a peer-to-peer distributed hash table. A distributed hash table stores key-value pairs by assigning keys to different computers (known as "nodes"); a node will store the values for all the keys for which it is responsible. Chord specifies how keys are assigned to nodes, and how a node can discover the value for a given key by first locating the node responsible for that key.*
+Realtime executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
-Realtime Chord examples require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
+##### Simulation executables
+
+Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+
+### Chord Distrubted Hash Table Example
+
+The Chord DHT example is located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/chord).
+
+#### What is Chord?
+
+From [Wikipedia](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)): *In computing, Chord is a protocol and algorithm for a peer-to-peer distributed hash table. A distributed hash table stores key-value pairs by assigning keys to different computers (known as "nodes"); a node will store the values for all the keys for which it is responsible. Chord specifies how keys are assigned to nodes, and how a node can discover the value for a given key by first locating the node responsible for that key.*
+
+#### How do I use the example?
+
+The Chord example comes with 5 executable Java classes...
+
+ * **RealtimeDirect** - Chord nodes run locally and communicate directly.
+ * **RealtimeViaUdpGateway** - Chord nodes run locally and communicate via UDP.
+ * **RealtimeViaUdpSimulator** - Chord nodes run locally and communicate via simulated UDP.
+ * **SimulationDirect** - Chord nodes run in a simulation and communicate directly. 
+ * **SimulationViaUdpSimulator** - Chord nodes run in a simulation and communicate via simulated UDP.
+
+##### Realtime executables
+
+Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
 
 ```
 64
@@ -167,21 +189,41 @@ boot 0
 start 1 63 0
 ```
 
-Simulation Chord examples don't require any user input. They run pre-configured scenarios.
-
 ![Chord Example Screenshot](../gh-pages/chord_example1.png)
 
-#### Raft Example
+##### Simulation executables
 
-[Raft](examples/src/main/java/com/offbynull/peernetic/examples/raft) is an implementation of the Raft distributed consensus algorithm. From [Wikipedia](https://en.wikipedia.org/wiki/Raft_(computer_science)): *Raft is a consensus algorithm designed as an alternative to Paxos. It was meant to be more understandable than Paxos by means of separation of logic, but it is also formally proven safe and offers some new features. Raft offers a generic way to distribute a state machine across a cluster of computing systems, ensuring that each node in the cluster agrees upon the same series of state transitions.*
+Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
-Realtime Raft examples require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 5-node Raft cluster and bring it online. Note that node 5 is the client that's reading from and writing to the cluster, while all other nodes (0 to 4) are Raft servers.
+### Raft Distributed Consensus Example
+
+The Raft example is located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/raft).
+
+#### What is Raft?
+
+From [Wikipedia](https://en.wikipedia.org/wiki/Raft_(computer_science)): *Raft is a consensus algorithm designed as an alternative to Paxos. It was meant to be more understandable than Paxos by means of separation of logic, but it is also formally proven safe and offers some new features. Raft offers a generic way to distribute a state machine across a cluster of computing systems, ensuring that each node in the cluster agrees upon the same series of state transitions.*
+
+#### How do I use the example?
+
+The Raft example comes with 5 executable Java classes...
+
+ * **RealtimeDirect** - Raft nodes run locally and communicate directly.
+ * **RealtimeViaUdpGateway** - Raft nodes run locally and communicate via UDP.
+ * **RealtimeViaUdpSimulator** - Raft nodes run locally and communicate via simulated UDP.
+ * **SimulationDirect** - Raft nodes run in a simulation and communicate directly. 
+ * **SimulationViaUdpSimulator** - Raft nodes run in a simulation and communicate via simulated UDP.
+
+![Raft Example Screenshot](../gh-pages/raft_example1.png)
+
+##### Realtime executables
+
+Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 5-node Raft cluster and bring it online. Note that node 5 is the client that's reading from and writing to the cluster, while all other nodes (0 to 4) are Raft server nodes.
 
 ```
 5
 start 0 4
 ```
 
-Simulation Raft examples don't require any user input. They run pre-configured scenarios.
+##### Simulation executables
 
-![Raft Example Screenshot](../gh-pages/raft_example1.png)
+Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.

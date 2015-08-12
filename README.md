@@ -76,13 +76,6 @@ String response = (String) directGateway.readMessages().get(0).getMessage();
 System.out.println(response);
 ```
 
-Example output:
-
-```
-hello world! :)
-Echoing back hello world! :)
-```
-
 ### Concepts
 
 If you aren't familiar with the actor model and its role in concurrent/distributed computing, there's a good introduction available on [Programmers Stack Exchange](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used) and [Wikipedia](http://en.wikipedia.org/wiki/Actor_model).

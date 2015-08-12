@@ -61,52 +61,71 @@ Unlike some other actor frameworks ...
 
 It's highly recommended that you go through the [concepts primer](#concepts) before digging in to these examples.
 
-### Simple Hello World
+### Simple Example
 
-Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines Maven plugin to instrument your code.
+The following example reads messages from System.in and forwards those messages to an actor which ...
+
+ 1. logs the message
+ 1. echos the message back to the sender
+
+Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
 
 ```java
-private static void helloWorldTest() throws InterruptedException {
-    // Create coroutine actor that forwards messages to the logger
-    Coroutine echoerActor = (cnt) -> {
-        final Address loggerAddress = Address.of("log");
-        
-        Context ctx = (Context) cnt.getContext();
+// Create coroutine actor that logs and echos back incoming messages
+Coroutine echoerActor = (cnt) -> {
+    Context ctx = (Context) cnt.getContext();
+    
+    // First message is the priming message. It should be the address to the logger.
+    final Address loggerAddress = (Address) ctx.getIncomingMessage();
+    cnt.suspend();
 
-        do {
-            Object valueToWrite = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(loggerAddress, LogMessage.debug("Received an echo: {}", valueToWrite));
-            cnt.suspend();
-        } while (true);
-    };
+    // All messages after the first message are messages that we should log and echo back.
+    do {
+        Object msg = ctx.getIncomingMessage();
+        Address srcAddress = ctx.getSource();
+        ctx.addOutgoingMessage(loggerAddress, LogMessage.debug("Received a message: {}", msg));
+        ctx.addOutgoingMessage(srcAddress, "Echoing back " + msg);
+        cnt.suspend();
+    } while (true);
+};
+
+// Create the actor runner, logger gateway, and direct gateway.
+ActorRunner actorRunner = new ActorRunner("actors"); // container for actors
+LogGateway logGateway = new LogGateway("log"); // gateway that logs to slf4j
+DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows allows interfacing with actors/gateways from normal java code
+
+// Allow the actor runner to send messages to the log gateway
+actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
+
+// Allow the actor runner and the direct gateway to send messages to eachother
+actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
+directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+
+// Add the coroutine actor and prime it with a hello world message
+actorRunner.addCoroutineActor("echoer", echoerActor, Address.of("log"));
 
 
-    // Create the actor thread (container for actors) and the log gateway (gateway that pipes messages to slf4j).
-    ActorThread actorThread = ActorThread.create("actors");
-    LogGateway logGateway = new LogGateway("log");
-
-
-    // Allow the actor thread to send messages to the log gateway
-    actorThread.addOutgoingShuttle(logGateway.getIncomingShuttle());
-
-
-    // Add the coroutine actor and prime it with a hello world message
-    actorThread.addCoroutineActor("echoer", echoerActor, "Hello World!!!");
-
-
-    // Wait until interrupted
-    while(true) {
-        Thread.sleep(1000L);
-    }
+Scanner inScanner = new Scanner(System.in);
+while(inScanner.hasNextLine()) {
+    // Read next line and forward to actor
+    String input = inScanner.nextLine();
+    directGateway.writeMessage(Address.fromString("actors:echoer"), input);
+    
+    // Wait for response from actor and print out
+    String response = (String) directGateway.readMessages().get(0).getMessage();
+    System.out.println(response);
 }
 ```
 
-The output is as follows:
+Example output:
 
 ```
-16:36:42.623 [LogGateway-log] DEBUG c.o.p.core.gateways.log.LogRunnable - Log gateway started
-... snip ...
-16:36:42.668 [LogGateway-log] DEBUG c.o.p.core.gateways.log.LogRunnable - actors:echoer - Received an echo: Hello World!!!
+hello! :)
+22:00:28.817 DEBUG c.o.p.core.gateways.log.LogRunnable - actors:echoer - Received a message: hello! :)
+Echoing back hello! :)
+test123
+22:00:44.111 DEBUG c.o.p.core.gateways.log.LogRunnable - actors:echoer - Received a message: test123
+Echoing back test123
 ```
 
 ### Real-world Examples

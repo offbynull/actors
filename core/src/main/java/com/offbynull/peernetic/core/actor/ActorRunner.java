@@ -314,6 +314,10 @@ public final class ActorRunner implements AutoCloseable {
 
             for (int i = 0; i < threads.length; i++) {
                 List<Message> threadMessages = threadMessagesList[i];
+                if (threadMessages.isEmpty()) {
+                    continue;
+                }
+                
                 LOG.debug("Shuttling {} messages to thread {}", threadMessages.size(), i);
                 threads[i].getIncomingShuttle().send(threadMessages);
             }

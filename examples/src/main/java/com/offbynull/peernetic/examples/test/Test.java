@@ -20,6 +20,9 @@ import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
+import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
+import com.offbynull.peernetic.core.gateways.log.LogGateway;
+import com.offbynull.peernetic.core.gateways.log.LogMessage;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
@@ -29,13 +32,15 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.network.gateways.udp.UdpGateway;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.Validate;
 
 public class Test {
 
     public static void main(String[] args) throws Exception {
-        cpuTest();
+        helloWorldTest();
+//        cpuTest();
         //basicTest();
         //basicTimer();
 //        basicUdp();
@@ -45,6 +50,53 @@ public class Test {
 //        testEnvironmentEcho();
 //        testEnvironmentRecordAndReplay();
 //        testRecordAndReplay();
+    }
+
+    private static void helloWorldTest() throws InterruptedException {
+        // Create coroutine actor that forwards messages to the logger
+        Coroutine echoerActor = (cnt) -> {
+            Context ctx = (Context) cnt.getContext();
+            
+            // First message is the priming message. It should be the address to the logger.
+            final Address loggerAddress = (Address) ctx.getIncomingMessage();
+            cnt.suspend();
+
+            // All messages after the first message are messages that we should log and echo back.
+            do {
+                Object msg = ctx.getIncomingMessage();
+                Address srcAddress = ctx.getSource();
+                ctx.addOutgoingMessage(loggerAddress, LogMessage.debug("Received a message: {}", msg));
+                ctx.addOutgoingMessage(srcAddress, "Echoing back " + msg);
+                cnt.suspend();
+            } while (true);
+        };
+
+        // Create the actor runner, logger gateway, and direct gateway.
+        ActorRunner actorRunner = new ActorRunner("actors"); // container for actors
+        LogGateway logGateway = new LogGateway("log"); // gateway that logs to slf4j
+        DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows allows interfacing with actors/gateways from normal java code
+
+        // Allow the actor runner to send messages to the log gateway
+        actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
+        
+        // Allow the actor runner and the direct gateway to send messages to eachother
+        actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
+        directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+
+        // Add the coroutine actor and prime it with a hello world message
+        actorRunner.addCoroutineActor("echoer", echoerActor, Address.of("log"));
+
+        
+        Scanner inScanner = new Scanner(System.in);
+        while(inScanner.hasNextLine()) {
+            // Read next line and forward to actor
+            String input = inScanner.nextLine();
+            directGateway.writeMessage(Address.fromString("actors:echoer"), input);
+            
+            // Wait for response from actor and print out
+            String response = (String) directGateway.readMessages().get(0).getMessage();
+            System.out.println(response);
+        }
     }
 
     private static void cpuTest() throws InterruptedException {
@@ -58,7 +110,7 @@ public class Test {
                 Address dstAddr = ctx.getIncomingMessage();
 
                 int j = 0;
-                while (true) {                    
+                while (true) {
                     ctx.addOutgoingMessage(dstAddr, j);
                     cnt.suspend();
                     Validate.isTrue(j == (int) ctx.getIncomingMessage());
@@ -76,11 +128,10 @@ public class Test {
                     cnt.suspend();
                 }
             };
-            
-            runner.addCoroutineActor("echoer" + i, echoer);
-            runner.addCoroutineActor("sender" + i, sender, Address.fromString("runner:echoer" +  + i));
-        }
 
+            runner.addCoroutineActor("echoer" + i, echoer);
+            runner.addCoroutineActor("sender" + i, sender, Address.fromString("runner:echoer" + +i));
+        }
 
         latch.await();
     }
@@ -131,7 +182,7 @@ public class Test {
             for (int i = 0; i < 10; i++) {
                 ctx.addOutgoingMessage(Address.of("hi"), dstAddr, i);
             }
-            
+
             while (true) {
                 cnt.suspend();
                 System.out.println(ctx.getIncomingMessage().toString());
@@ -149,8 +200,6 @@ public class Test {
             }
         };
 
-        
-        
         TimerGateway timerGateway = new TimerGateway("timer");
 
         ActorRunner echoerRunner = new ActorRunner("echoer");
@@ -168,7 +217,7 @@ public class Test {
                                 10,
                                 1500,
                                 new SimpleSerializer())));
-        
+
         ActorRunner senderRunner = new ActorRunner("sender");
         senderRunner.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
         senderRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(),
@@ -187,13 +236,13 @@ public class Test {
 
         echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
         echoerRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        
+
         senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
         senderRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
-        
+
         timerGateway.addOutgoingShuttle(senderRunner.getIncomingShuttle());
         timerGateway.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
-        
+
         Thread.sleep(10000L);
     }
 
@@ -280,7 +329,6 @@ public class Test {
 //
 //        latch.await();
 //    }
-
 //    private static void basicRetry() throws InterruptedException {
 //        CountDownLatch latch = new CountDownLatch(1);
 //
@@ -338,7 +386,6 @@ public class Test {
 //        
 //        latch.await();
 //    }
-
 //    private static void testEnvironmentTimer() {
 //        Coroutine tester = (cnt) -> {
 //            Context ctx = (Context) cnt.getContext();
@@ -358,7 +405,6 @@ public class Test {
 //            testHarness.process();
 //        }
 //    }
-
 //    private static void testEnvironmentEcho() {
 //        Coroutine sender = (cnt) -> {
 //            Context ctx = (Context) cnt.getContext();
@@ -392,7 +438,6 @@ public class Test {
 //            testHarness.process();
 //        }
 //    }
-    
 //    private static void testEnvironmentRecordAndReplay() throws Exception {
 //        File recordFile = File.createTempFile("recordtest", ".data");
 //        
@@ -461,7 +506,6 @@ public class Test {
 //            }
 //        }
 //    }
-    
 //    private static void testRecordAndReplay() throws InterruptedException, IOException {
 //        File eventsFile = File.createTempFile(Test.class.getSimpleName(), "data");
 //        

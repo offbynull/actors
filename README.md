@@ -48,40 +48,31 @@ The following example reads messages from System.in and forwards those messages 
 Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
 
 ```java
-// Create coroutine actor that logs and echos back incoming messages
+// Create coroutine actor that echos back incoming messages
 Coroutine echoerActor = (cnt) -> {
     Context ctx = (Context) cnt.getContext();
-    
-    // First message is the priming message. It should be the address to the logger.
-    final Address loggerAddress = (Address) ctx.getIncomingMessage();
-    cnt.suspend();
 
     // All messages after the first message are messages that we should log and echo back.
     do {
         Object msg = ctx.getIncomingMessage();
         Address srcAddress = ctx.getSource();
-        ctx.addOutgoingMessage(loggerAddress, LogMessage.debug("Received a message: {}", msg));
         ctx.addOutgoingMessage(srcAddress, "Echoing back " + msg);
         cnt.suspend();
     } while (true);
 };
 
-// Create the actor runner, logger gateway, and direct gateway.
+// Create the actor runner, and direct gateway.
 ActorRunner actorRunner = new ActorRunner("actors"); // container for actors
-LogGateway logGateway = new LogGateway("log"); // gateway that logs to slf4j
-DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows allows interfacing with actors/gateways from normal java code
+DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows interfacing with actors/gateways from normal java code
 
-// Allow the actor runner to send messages to the log gateway
-actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
-
-// Allow the actor runner and the direct gateway to send messages to eachother
+// Bind the runner and the direct gateway so that they can send messages to eachother
 actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
 directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 
-// Add the coroutine actor and prime it with a hello world message
-actorRunner.addCoroutineActor("echoer", echoerActor, Address.of("log"));
+// Add echoer to actor runner
+actorRunner.addCoroutineActor("echoer", echoerActor);
 
-
+// Read from System.in, forward to echoer actor, and write echo back out to System.out
 Scanner inScanner = new Scanner(System.in);
 while(inScanner.hasNextLine()) {
     // Read next line and forward to actor
@@ -97,12 +88,8 @@ while(inScanner.hasNextLine()) {
 Example output:
 
 ```
-hello! :)
-22:00:28.817 DEBUG c.o.p.core.gateways.log.LogRunnable - actors:echoer - Received a message: hello! :)
-Echoing back hello! :)
-test123
-22:00:44.111 DEBUG c.o.p.core.gateways.log.LogRunnable - actors:echoer - Received a message: test123
-Echoing back test123
+hello world! :)
+Echoing back hello world! :)
 ```
 
 ### Concepts

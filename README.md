@@ -11,13 +11,13 @@
  * [Examples](#examples)
    * [Unstructured Mesh Example](#unstructured-mesh-example)
      * [What is an Unstructured Mesh?](#what-is-an-unstructured-mesh)
-     * [How do I use the example?](#how-do-i-use-the-example)
+     * [Running the Example](#running-the-example)
    * [Chord Distributed Hash Table Example](#chord-distrubted-hash-table-example)
      * [What is Chord?](#what-is-chord)
-     * [How do I use the example?](#how-do-i-use-the-example-1)
+     * [Running the Example](#running-the-example-1)
    * [Raft Distributed Consensus Example](#raft-distributed-consensus-example)
      * [What is Raft?](#what-is-raft)
-     * [How do I use the example?](#how-do-i-use-the-example-2)
+     * [Running the Example](#running-the-example-2)
 
 ##Introduction
 
@@ -40,12 +40,7 @@ More information on the topic of actors and P2P can be found on the following pa
 
 ### Hello World Example
 
-The following example reads messages from System.in and forwards those messages to an actor which ...
-
- 1. logs the message
- 1. echos the message back to the sender
-
-Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
+The following is an example of an actor that echoes incoming messages back to the sender. Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
 
 ```java
 // Create coroutine actor that echos back incoming messages
@@ -147,7 +142,7 @@ The Unstructured Mesh example is located in the [examples project](examples/src/
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Peer-to-peer#Unstructured_networks): *Unstructured peer-to-peer networks do not impose a particular structure on the overlay network by design, but rather are formed by nodes that randomly form connections to each other. (Gnutella, Gossip, and Kazaa are examples of unstructured P2P protocols).*
 
-#### How do I use the example?
+#### Running the Example
 
 The Unstructured Mesh example comes with 5 executable Java classes...
 
@@ -175,7 +170,7 @@ The Chord DHT example is located in the [examples project](examples/src/main/jav
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Chord_(peer-to-peer)): *In computing, Chord is a protocol and algorithm for a peer-to-peer distributed hash table. A distributed hash table stores key-value pairs by assigning keys to different computers (known as "nodes"); a node will store the values for all the keys for which it is responsible. Chord specifies how keys are assigned to nodes, and how a node can discover the value for a given key by first locating the node responsible for that key.*
 
-#### How do I use the example?
+#### Running the Example
 
 The Chord example comes with 5 executable Java classes...
 
@@ -209,7 +204,7 @@ The Raft example is located in the [examples project](examples/src/main/java/com
 
 From [Wikipedia](https://en.wikipedia.org/wiki/Raft_(computer_science)): *Raft is a consensus algorithm designed as an alternative to Paxos. It was meant to be more understandable than Paxos by means of separation of logic, but it is also formally proven safe and offers some new features. Raft offers a generic way to distribute a state machine across a cluster of computing systems, ensuring that each node in the cluster agrees upon the same series of state transitions.*
 
-#### How do I use the example?
+#### Running the Example
 
 The Raft example comes with 5 executable Java classes...
 

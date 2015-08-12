@@ -70,8 +70,8 @@ public class RecorderGatewayTest {
         echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
 
         // Add coroutines
-        echoerRunner.addCoroutineActor("echoer", echoer);
-        senderRunner.addCoroutineActor("sender", sender, Address.of("recorder"));
+        echoerRunner.addActor("echoer", echoer);
+        senderRunner.addActor("sender", sender, Address.of("recorder"));
 
         latch.await();
         echoRecorderGateway.close();

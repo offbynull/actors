@@ -72,8 +72,8 @@ public class RecordAndReplayTest {
             echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
 
             // Add coroutines
-            echoerRunner.addCoroutineActor("echoer", echoer);
-            senderRunner.addCoroutineActor("sender", sender, Address.of("recorder"));
+            echoerRunner.addActor("echoer", echoer);
+            senderRunner.addActor("sender", sender, Address.of("recorder"));
 
             latch.await();
             echoRecorderGateway.close();
@@ -119,7 +119,7 @@ public class RecordAndReplayTest {
             echoerRunner.addOutgoingShuttle(new NullShuttle("sender"));
             
             // Add coroutines
-            echoerRunner.addCoroutineActor("echoer", echoer);
+            echoerRunner.addActor("echoer", echoer);
             
             // Create replayer that mocks out sender and replays previous events to echoer
             ReplayerGateway replayerGateway = ReplayerGateway.replay(

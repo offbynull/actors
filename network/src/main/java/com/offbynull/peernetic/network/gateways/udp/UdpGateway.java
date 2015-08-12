@@ -92,8 +92,8 @@ import org.apache.commons.lang3.Validate;
  * senderRunner.addOutgoingShuttle(senderUdpOutputShuttle);
  *
  * // Add actors to their respective runners
- * echoerRunner.addCoroutineActor("echoer", echoer);
- * senderRunner.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000")); // Notify sender to send initial msg
+ * echoerRunner.addActor("echoer", echoer);
+ * senderRunner.addActor("sender", sender, Address.fromString("internaludp:7f000001.1000")); // Notify sender to send initial msg
  *                                                                                                    // over UDP to localhost:1000
  *                                                                                                    // (echoer's address)
  *

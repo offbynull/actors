@@ -20,7 +20,7 @@ public class SubcoroutineStepperTest {
         final int stepCount = 5;
         
         Simulator testHarness = new Simulator();
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
 
             Subcoroutine<Integer> testSubcoroutine = new LoopSubcoroutine(stepCount);
@@ -45,7 +45,7 @@ public class SubcoroutineStepperTest {
         final int stepCount = 5;
         
         Simulator testHarness = new Simulator();
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
 
             Subcoroutine<Integer> testSubcoroutine = new LoopSubcoroutine(stepCount);
@@ -76,7 +76,7 @@ public class SubcoroutineStepperTest {
         final int stepCount = 5;
         
         Simulator testHarness = new Simulator();
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
 
             Subcoroutine<Integer> testSubcoroutine = new LoopSubcoroutine(stepCount);

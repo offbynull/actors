@@ -145,7 +145,7 @@ public final class RealtimeViaUdpSimulator {
         String idStr = Integer.toString(id);
         String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 udpSimProxyIdStr,
                 new UdpSimulatorCoroutine(),
                 new StartUdpSimulator(
@@ -175,7 +175,7 @@ public final class RealtimeViaUdpSimulator {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new ChordClientCoroutine(),
                 new Start(

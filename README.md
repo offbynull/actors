@@ -65,7 +65,7 @@ actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
 directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 
 // Add echoer to actor runner
-actorRunner.addCoroutineActor("echoer", echoerActor);
+actorRunner.addActor("echoer", echoerActor);
 
 // Read from System.in, forward to echoer actor, and write echo back out to System.out
 Scanner inScanner = new Scanner(System.in);

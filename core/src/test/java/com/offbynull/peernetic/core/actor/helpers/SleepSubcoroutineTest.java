@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
+import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.simulator.Simulator;
 import java.time.Duration;
@@ -13,7 +14,7 @@ public class SleepSubcoroutineTest {
     public void mustSleepFor1Second() throws Exception {
         Simulator testHarness = new Simulator();
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
                 SleepSubcoroutine fixture = new SleepSubcoroutine.Builder()
                         .sourceAddress(Address.of("sleep"))
                         .timerAddress(Address.of("timer"))

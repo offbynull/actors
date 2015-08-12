@@ -124,7 +124,7 @@ public final class Test {
         ActorRunner testerRunner = new ActorRunner("local");
 
         testerRunner.addOutgoingShuttle(graphInputShuttle);
-        testerRunner.addCoroutineActor("tester", tester, Address.of("graph"));
+        testerRunner.addActor("tester", tester, Address.of("graph"));
 
         GraphGateway.awaitShutdown();
     }

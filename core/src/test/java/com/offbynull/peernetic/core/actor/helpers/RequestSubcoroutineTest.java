@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
+import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.simulator.Simulator;
@@ -23,13 +24,13 @@ public class RequestSubcoroutineTest {
         
         Simulator testHarness = new Simulator();
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("rcvr", cnt -> {
+        testHarness.addActor("rcvr", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
             srcAddresses.add(ctx.getSource().toString());
             dstAddresses.add(ctx.getDestination().toString());
             recvdItems.add(ctx.getIncomingMessage());
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
                     .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")
@@ -59,7 +60,7 @@ public class RequestSubcoroutineTest {
         
         Simulator testHarness = new Simulator();
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("rcvr", cnt -> {
+        testHarness.addActor("rcvr", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {
                 srcAddresses.add(ctx.getSource().toString());
@@ -68,7 +69,7 @@ public class RequestSubcoroutineTest {
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
                     .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")
@@ -97,7 +98,7 @@ public class RequestSubcoroutineTest {
         
         Simulator testHarness = new Simulator();
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("rcvr", cnt -> {
+        testHarness.addActor("rcvr", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {
                 srcAddresses.add(ctx.getSource().toString());
@@ -108,7 +109,7 @@ public class RequestSubcoroutineTest {
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
                     .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")

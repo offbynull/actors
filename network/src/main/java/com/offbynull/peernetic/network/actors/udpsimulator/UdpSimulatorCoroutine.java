@@ -92,8 +92,8 @@ import java.time.Instant;
  * timerGateway.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
  *
  * // Create echoer actor + the udp simulator that proxies it
- * echoerRunner.addCoroutineActor("echoer", echoer);
- * echoerRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
+ * echoerRunner.addActor("echoer", echoer);
+ * echoerRunner.addActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
  *                 Address.fromString("echoer:echoer"),                                                      // Actor being proxied
@@ -108,8 +108,8 @@ import java.time.Instant;
  *                                new SimpleSerializer())));
  * 
  * // Create sender actor + the udp simulator that proxies it
- * senderRunner.addCoroutineActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
- * senderRunner.addCoroutineActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
+ * senderRunner.addActor("sender", sender, Address.fromString("sender:proxy:echoer:proxy"));
+ * senderRunner.addActor("proxy", new UdpSimulatorCoroutine(), // Create UDP simulator proxy and prime
  *         new StartUdpSimulator(
  *                 Address.of("timer"),                                                                      // Timer to use to delay msgs
  *                 Address.fromString("sender:sender"),                                                      // Actor being proxied

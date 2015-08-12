@@ -75,8 +75,8 @@ public class UdpGatewayTest {
             Shuttle senderUdpOutputShuttle = senderUdpGateway.getIncomingShuttle();
             senderRunner.addOutgoingShuttle(senderUdpOutputShuttle);
 
-            echoerRunner.addCoroutineActor("echoer", echoer);
-            senderRunner.addCoroutineActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
+            echoerRunner.addActor("echoer", echoer);
+            senderRunner.addActor("sender", sender, Address.fromString("internaludp:7f000001.1000"));
 
             while (true) {
                 if (queue.size() >= 10) {

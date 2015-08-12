@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.test.CaptureShuttle;
 import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
@@ -28,15 +29,15 @@ public class ActorRunnerTest {
     @Test
     public void mustCommunicateBetweenActorsWithinSameActorRunner() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        fixture.addCoroutineActor(
+        fixture.addActor(
                 "echoer",
-                cnt -> {
+                (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.addOutgoingMessage(Address.fromString("local:sender"), ctx.getIncomingMessage());
                 });
-        fixture.addCoroutineActor(
+        fixture.addActor(
                 "sender",
-                cnt -> {
+                (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.addOutgoingMessage(Address.fromString("local:echoer"), "hi");
                     
@@ -60,15 +61,15 @@ public class ActorRunnerTest {
             
             // Test
             CountDownLatch latch = new CountDownLatch(1);
-            secondaryActorRunner.addCoroutineActor(
+            secondaryActorRunner.addActor(
                     "echoer",
-                    cnt -> {
+                    (Continuation cnt) -> {
                         Context ctx = (Context) cnt.getContext();
                         ctx.addOutgoingMessage(ctx.getSource(), ctx.getIncomingMessage());
                     });
-            fixture.addCoroutineActor(
+            fixture.addActor(
                     "sender",
-                    cnt -> {
+                    (Continuation cnt) -> {
                         Context ctx = (Context) cnt.getContext();
                         ctx.addOutgoingMessage(Address.fromString("local2:echoer"), "hi");
                         cnt.suspend();
@@ -85,8 +86,8 @@ public class ActorRunnerTest {
     
     @Test
     public void mustFailWhenAddingActorWithSameName() throws Exception {
-        fixture.addActor("actor", x -> false);
-        fixture.addActor("actor", x -> false);
+        fixture.addActor("actor", (Context ctx) -> false);
+        fixture.addActor("actor", (Context ctx) -> false);
         fixture.join();
     }
     
@@ -128,9 +129,9 @@ public class ActorRunnerTest {
         fixture.addOutgoingShuttle(captureShuttle);
         fixture.removeOutgoingShuttle("fake");
         
-        fixture.addCoroutineActor(
+        fixture.addActor(
                 "sender",
-                cnt -> {
+                (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.addOutgoingMessage(Address.fromString("fake"), "1");
                     ctx.addOutgoingMessage(Address.fromString("local:sender"), new Object());
@@ -165,9 +166,9 @@ public class ActorRunnerTest {
         fixture.removeOutgoingShuttle("fake");
         fixture.addOutgoingShuttle(captureShuttle);
         
-        fixture.addCoroutineActor(
+        fixture.addActor(
                 "sender",
-                cnt -> {
+                (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.addOutgoingMessage(Address.fromString("fake"), "1");
                     ctx.addOutgoingMessage(Address.fromString("local:sender"), new Object());

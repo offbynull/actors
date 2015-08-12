@@ -152,7 +152,7 @@ public final class RealtimeViaUdpSimulator {
         String idStr = Integer.toString(id);
         String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 udpSimProxyIdStr,
                 new UdpSimulatorCoroutine(),
                 new StartUdpSimulator(
@@ -181,7 +181,7 @@ public final class RealtimeViaUdpSimulator {
                 .map(x -> String.format(SIMULATED_UDP_PROXY_ID_FORMAT, x))
                 .collect(Collectors.toSet());
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new RaftClientCoroutine(),
                 new StartClient(
@@ -209,7 +209,7 @@ public final class RealtimeViaUdpSimulator {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) serverId;
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new RaftServerCoroutine(),
                 new StartServer(

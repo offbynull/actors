@@ -175,7 +175,7 @@ public final class RealtimeViaUdpGateway {
                 .map(x -> LOCALHOST_HEX + "." + (START_PORT + x))
                 .collect(Collectors.toSet());
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new RaftClientCoroutine(),
                 new StartClient(
@@ -202,7 +202,7 @@ public final class RealtimeViaUdpGateway {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) serverId;
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new RaftServerCoroutine(),
                 new StartServer(

@@ -36,7 +36,7 @@ public class TimerGatewayTest {
         testerRunner.addOutgoingShuttle(timerInputShuttle);
         timerGateway.addOutgoingShuttle(testerInputShuttle);
 
-        testerRunner.addCoroutineActor("tester", tester, "timer");
+        testerRunner.addActor("tester", tester, "timer");
 
         assertEquals("timer:2000:extra", queue.take());
         assertEquals("local:tester:fromid", queue.take());

@@ -74,7 +74,7 @@ import org.apache.commons.lang3.Validate;
  * ActorRunner testerRunner = ActorRunner.create("local");
  *
  * testerRunner.addOutgoingShuttle(graphInputShuttle);
- * testerRunner.addCoroutineActor("tester", tester, Address.of("graph"));
+ * testerRunner.addActor("tester", tester, Address.of("graph"));
  *
  * GraphGateway.awaitShutdown();
  * </pre>

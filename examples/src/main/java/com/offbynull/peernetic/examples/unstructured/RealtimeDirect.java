@@ -64,7 +64,7 @@ public final class RealtimeDirect {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(

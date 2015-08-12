@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.examples.chord;
 
+import com.offbynull.coroutines.user.Continuation;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
 import com.offbynull.peernetic.core.common.SimpleSerializer;
 import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
@@ -43,9 +44,9 @@ public final class SimulationViaUdpSimulator {
         File tempFile = File.createTempFile(SimulationViaUdpSimulator.class.getSimpleName(), ".graphmsgs");
         MessageSink sink = new RecordMessageSink(BASE_GRAPH_ADDRESS_STRING, tempFile, new SimpleSerializer());
         simulator.addMessageSink(sink, time); // add sink
-        simulator.addCoroutineActor(          // add fake actor for "graph" so sink above actually gets sent msgs by simulator --
+        simulator.addActor(                    // add fake actor for "graph" so sink above actually gets sent msgs by simulator --
                 BASE_GRAPH_ADDRESS_STRING,     // simulator will not send messagesto sink if actor isn't present
-                cnt -> {
+                (Continuation cnt) -> {
                     while (true) {
                         cnt.suspend();
                     }
@@ -103,7 +104,7 @@ public final class SimulationViaUdpSimulator {
         String idStr = Integer.toString(id);
         String udpSimProxyIdStr = String.format(SIMULATED_UDP_PROXY_ID_FORMAT, id);
         
-        simulator.addCoroutineActor(
+        simulator.addActor(
                 udpSimProxyIdStr,
                 new UdpSimulatorCoroutine(),
                 Duration.ZERO,
@@ -133,7 +134,7 @@ public final class SimulationViaUdpSimulator {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) id;
         
-        simulator.addCoroutineActor(
+        simulator.addActor(
                 idStr,
                 new ChordClientCoroutine(),
                 Duration.ZERO,

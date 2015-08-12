@@ -46,7 +46,7 @@ import org.apache.commons.lang3.Validate;
  * 
  * testerRunner.addOutgoingShuttle(logInputShuttle);
  * 
- * testerRunner.addCoroutineActor("tester", tester, "logger");
+ * testerRunner.addActor("tester", tester, "logger");
  * </pre>
  * @author Kasra Faghihi
  */

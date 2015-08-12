@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
  * 
  * Simulator testHarness = new Simulator();
  * testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
- * testHarness.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
+ * testHarness.addActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
  * 
  * while (testHarness.hasMore()) {
  *     testHarness.process();
@@ -287,7 +287,7 @@ public final class Simulator {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code when} is before this simulator's current time, or {@code timeOffset} is negative
      */
-    public void addCoroutineActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
+    public void addActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
         Validate.notNull(coroutine);
         addActor(address, new CoroutineActor(coroutine), timeOffset, when, primingMessages);
     }

@@ -1,5 +1,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
+import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.Response;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -21,14 +22,14 @@ public class MultiRequestSubcoroutineTest {
         
         Simulator testHarness = new Simulator();
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("rcvr0", cnt -> { // ignore first 0 msgs
+        testHarness.addActor("rcvr0", (Continuation cnt) -> { // ignore first 0 msgs
             Context ctx = (Context) cnt.getContext();
             while (true) {
                 ctx.addOutgoingMessage(ctx.getSource(), "resp0");
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("rcvr1", cnt -> { // ignore first 1 msgs
+        testHarness.addActor("rcvr1", (Continuation cnt) -> { // ignore first 1 msgs
             Context ctx = (Context) cnt.getContext();
             cnt.suspend();
             while (true) {
@@ -36,7 +37,7 @@ public class MultiRequestSubcoroutineTest {
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("rcvr2", cnt -> { // ignore first 2 msgs
+        testHarness.addActor("rcvr2", (Continuation cnt) -> { // ignore first 2 msgs
             Context ctx = (Context) cnt.getContext();
             cnt.suspend();
             cnt.suspend();
@@ -45,7 +46,7 @@ public class MultiRequestSubcoroutineTest {
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             MultiRequestSubcoroutine<String> fixture = new MultiRequestSubcoroutine.Builder<String>()
                     .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")
@@ -83,7 +84,7 @@ public class MultiRequestSubcoroutineTest {
         Simulator testHarness = new Simulator();
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
 
-        testHarness.addCoroutineActor("test", cnt -> {
+        testHarness.addActor("test", (Continuation cnt) -> {
             MultiRequestSubcoroutine<String> fixture = new MultiRequestSubcoroutine.Builder<String>()
                     .sourceAddress(Address.of("fakeid"))
                     .request("reqmsg")

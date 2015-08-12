@@ -242,7 +242,7 @@ final class ActorRunnable implements Runnable {
         bus.add(aam);
     }
 
-    void addCoroutineActor(String id, Coroutine coroutine, Object ... primingMessages) {
+    void addActor(String id, Coroutine coroutine, Object ... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);

@@ -84,7 +84,7 @@ public class ReplayerGatewayTest {
         echoerRunner.addOutgoingShuttle(new NullShuttle("sender"));
 
         // Add coroutines
-        echoerRunner.addCoroutineActor("echoer", echoer);
+        echoerRunner.addActor("echoer", echoer);
 
         // Create replayer that mocks out sender and replays previous events to echoer
         ReplayerGateway replayerGateway = ReplayerGateway.replay(

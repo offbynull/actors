@@ -50,8 +50,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
-        fixture.addCoroutineActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        fixture.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
+        fixture.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -101,8 +101,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
-        fixture.addCoroutineActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        fixture.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
+        fixture.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
@@ -144,8 +144,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
-        fixture.addCoroutineActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
+        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -190,8 +190,8 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addCoroutineActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
-        fixture.addCoroutineActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
+        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -249,8 +249,8 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addCoroutineActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
-        fixture.addCoroutineActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
+        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -297,7 +297,7 @@ public class SimulatorTest {
 
         Simulator fixture = new Simulator();
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
-        fixture.addCoroutineActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), Address.of("timer"));
+        fixture.addActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), Address.of("timer"));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -334,7 +334,7 @@ public class SimulatorTest {
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
-        fixture.addCoroutineActor("local", tester, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("timer"));
+        fixture.addActor("local", tester, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("timer"));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -383,8 +383,8 @@ public class SimulatorTest {
                         (src, dst, msg, realDuration) -> Duration.ofSeconds(2L));
                 simulator.addTimer("timer", Instant.ofEpochSecond(10L));
                 simulator.addMessageSink(sink, Instant.ofEpochSecond(10L));
-                simulator.addCoroutineActor("sender", sender, Duration.ofSeconds(5L), Instant.ofEpochSecond(10L), Address.fromString("echoer"));
-                simulator.addCoroutineActor("echoer", echoer, Duration.ofSeconds(10L), Instant.ofEpochSecond(10L));
+                simulator.addActor("sender", sender, Duration.ofSeconds(5L), Instant.ofEpochSecond(10L), Address.fromString("echoer"));
+                simulator.addActor("echoer", echoer, Duration.ofSeconds(10L), Instant.ofEpochSecond(10L));
 
                 while (simulator.hasMore()) {
                     simulator.process();
@@ -415,7 +415,7 @@ public class SimulatorTest {
                         Instant.ofEpochMilli(0L),
                         (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
                 simulator.addTimer("timer", Instant.ofEpochMilli(0L));
-                simulator.addCoroutineActor("echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L));
+                simulator.addActor("echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L));
                 simulator.addMessageSource(source, Instant.ofEpochMilli(0L)); // add the msg source after the priming msg
 
                 while (simulator.hasMore()) {
@@ -452,9 +452,9 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(5L));
-        fixture.addCoroutineActor("test", ignoreActor, Duration.ZERO, Instant.ofEpochMilli(0L), "hi1", "hi2");
+        fixture.addActor("test", ignoreActor, Duration.ZERO, Instant.ofEpochMilli(0L), "hi1", "hi2");
         fixture.removeActor("test", Instant.ofEpochMilli(1L));
-        fixture.addCoroutineActor("test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
+        fixture.addActor("test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -478,13 +478,13 @@ public class SimulatorTest {
 
         Simulator fixture = new Simulator();
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
-        fixture.addCoroutineActor("test", triggerTimerActor, Duration.ZERO, Instant.ofEpochMilli(0L), "sendmsg");
+        fixture.addActor("test", triggerTimerActor, Duration.ZERO, Instant.ofEpochMilli(0L), "sendmsg");
 
         fixture.removeActor("test", Instant.ofEpochMilli(1L));
         fixture.removeTimer("timer", Instant.ofEpochMilli(1L));
 
         fixture.addTimer("timer", Instant.ofEpochMilli(2L));
-        fixture.addCoroutineActor("test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
+        fixture.addActor("test", failActor, Duration.ZERO, Instant.ofEpochMilli(2L));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -520,7 +520,7 @@ public class SimulatorTest {
         Coroutine actor = (cnt) -> {};
         
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("actor", actor, Duration.ZERO, Instant.EPOCH, "msg");
+        fixture.addActor("actor", actor, Duration.ZERO, Instant.EPOCH, "msg");
         fixture.removeActor("actor", Instant.ofEpochMilli(1L));
 
         exception.expect(IllegalArgumentException.class);
@@ -534,7 +534,7 @@ public class SimulatorTest {
         Coroutine actor = (cnt) -> {};
         
         Simulator fixture = new Simulator();
-        fixture.addCoroutineActor("actor", actor, Duration.ZERO, Instant.EPOCH);
+        fixture.addActor("actor", actor, Duration.ZERO, Instant.EPOCH);
         fixture.removeActor("actor", Instant.EPOCH);
 
         while (fixture.hasMore()) {
@@ -552,7 +552,7 @@ public class SimulatorTest {
         // should throw an exception
         Simulator fixture = new Simulator();
         fixture.removeActor("actor", Instant.EPOCH);
-        fixture.addCoroutineActor("actor", actor, Duration.ZERO, Instant.EPOCH);
+        fixture.addActor("actor", actor, Duration.ZERO, Instant.EPOCH);
 
         exception.expect(IllegalArgumentException.class);
         while (fixture.hasMore()) {

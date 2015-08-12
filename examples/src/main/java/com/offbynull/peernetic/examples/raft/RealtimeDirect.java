@@ -138,7 +138,7 @@ public final class RealtimeDirect {
         String idStr = Integer.toString(clientId);
         Set<String> allIdsAsStrs = allServerIds.stream().map(x -> Integer.toString(x)).collect(Collectors.toSet());
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new RaftClientCoroutine(),
                 new StartClient(
@@ -160,7 +160,7 @@ public final class RealtimeDirect {
         byte[] seed = new byte[MIN_SEED_SIZE];
         seed[0] = (byte) serverId;
         
-        actorRunner.addCoroutineActor(
+        actorRunner.addActor(
                 idStr,
                 new RaftServerCoroutine(),
                 new StartServer(

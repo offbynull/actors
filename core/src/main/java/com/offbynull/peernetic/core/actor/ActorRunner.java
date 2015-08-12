@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * // Add a new coroutine actor with the address "local:actor2". As soon as the actor is added, it will receive 2 incoming messages from
  * // itself: "start1" and "start2".
  * Coroutine myCoroutineActor = ...;
- * actorRunner.addCoroutineActor("actor2", myCoroutineActor, "start1", "start2");
+ * actorRunner.addActor("actor2", myCoroutineActor, "start1", "start2");
  * 
  * 
  * ... do some unrelated stuff here ...
@@ -192,8 +192,8 @@ public final class ActorRunner implements AutoCloseable {
      * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
-    public void addCoroutineActor(String id, Coroutine coroutine, Object... primingMessages) {
-        mapIdToActorThread(id).addCoroutineActor(id, coroutine, primingMessages);
+    public void addActor(String id, Coroutine coroutine, Object... primingMessages) {
+        mapIdToActorThread(id).addActor(id, coroutine, primingMessages);
     }
 
     /**

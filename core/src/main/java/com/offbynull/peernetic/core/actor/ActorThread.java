@@ -94,12 +94,12 @@ final class ActorThread {
         runnable.addActor(id, actor, primingMessages);
     }
 
-    public void addCoroutineActor(String id, Coroutine coroutine, Object... primingMessages) {
+    public void addActor(String id, Coroutine coroutine, Object... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        runnable.addCoroutineActor(id, coroutine, primingMessages);
+        runnable.addActor(id, coroutine, primingMessages);
     }
 
     public void removeActor(String id) {

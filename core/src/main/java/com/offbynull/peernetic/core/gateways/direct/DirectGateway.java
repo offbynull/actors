@@ -52,7 +52,7 @@ import org.apache.commons.lang3.Validate;
  * directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
  * actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
  * 
- * actorRunner.addCoroutineActor("echoer", echoerActor);
+ * actorRunner.addActor("echoer", echoerActor);
  * Address echoerAddress = Address.of("actors", "echoer");
  * 
  * String expected;

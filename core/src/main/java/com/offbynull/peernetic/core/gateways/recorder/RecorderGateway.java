@@ -98,8 +98,8 @@ import org.apache.commons.lang3.Validate;
  * echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
  * 
  * // Add coroutines
- * echoerRunner.addCoroutineActor("echoer", echoer);
- * senderRunner.addCoroutineActor("sender", sender, "recorder");
+ * echoerRunner.addActor("echoer", echoer);
+ * senderRunner.addActor("sender", sender, "recorder");
  * 
  * // Wait until sender actor finishes
  * latch.await();

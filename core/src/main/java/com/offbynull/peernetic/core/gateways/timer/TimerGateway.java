@@ -52,7 +52,7 @@ import org.apache.commons.lang3.Validate;
  * testerRunner.addOutgoingShuttle(timerInputShuttle);
  * timerGateway.addOutgoingShuttle(testerInputShuttle);
  * 
- * testerRunner.addCoroutineActor("tester", tester, "timer");
+ * testerRunner.addActor("tester", tester, "timer");
  * </pre>
  * @author Kasra Faghihi
  */

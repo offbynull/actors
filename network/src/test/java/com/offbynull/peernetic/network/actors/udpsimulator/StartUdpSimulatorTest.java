@@ -47,8 +47,8 @@ public class StartUdpSimulatorTest {
 
         Simulator simulator = new Simulator();
         simulator.addTimer("timer", Instant.ofEpochMilli(0L));
-        simulator.addCoroutineActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
-        simulator.addCoroutineActor("echoerproxy", new UdpSimulatorCoroutine(), Duration.ZERO, Instant.ofEpochMilli(0L),
+        simulator.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        simulator.addActor("echoerproxy", new UdpSimulatorCoroutine(), Duration.ZERO, Instant.ofEpochMilli(0L),
                 new StartUdpSimulator(
                         Address.of("timer"),
                         Address.fromString("echoer"),
@@ -61,9 +61,9 @@ public class StartUdpSimulatorTest {
                                 10,
                                 1500,
                                 new SimpleSerializer())));
-        simulator.addCoroutineActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L),
+        simulator.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L),
                 Address.fromString("senderproxy:echoerproxy"));
-        simulator.addCoroutineActor("senderproxy", new UdpSimulatorCoroutine(), Duration.ZERO, Instant.ofEpochMilli(0L),
+        simulator.addActor("senderproxy", new UdpSimulatorCoroutine(), Duration.ZERO, Instant.ofEpochMilli(0L),
                 new StartUdpSimulator(
                         Address.of("timer"),
                         Address.fromString("sender"),

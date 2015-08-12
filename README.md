@@ -7,7 +7,6 @@
    * [Concepts](#concepts)
      * [Actors](#actors)
      * [Gateways](#gateways)
-     * [Differences](#differences)
  * [Examples](#examples)
    * [Unstructured Mesh Example](#unstructured-mesh-example)
      * [What is an Unstructured Mesh?](#what-is-an-unstructured-mesh)
@@ -80,8 +79,6 @@ System.out.println(response);
 ```
 
 ### Concepts
-
-If you aren't familiar with the actor model and its role in concurrent/distributed computing, there's a good introduction available on [Programmers Stack Exchange](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used) and [Wikipedia](http://en.wikipedia.org/wiki/Actor_model).
 
 There are two primitives in Peernetic's implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable and should be serializable.
 
@@ -186,23 +183,6 @@ public final class CustomActor implements Actor {
 #### Gateways
 
 A Gateway, like an Actor, communicates with other components through message-passing, but isn't bound by any of the same rules as Actors. Gateways are mainly used to interface with third-party components that can't be communicated with via message-passing. As such, it's perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise block.
-
-Peernetic provides the following gateway implementations:
-
- * TimerGateway -- Echoes back messages after a certain duration of time.
- * DirectGateway -- Allows normal Java code to interface with actors/gateways.
- * LogGateway -- Logs messages to SLF4J.
- * RecorderGateway -- Saves incoming messages to a file.
- * ReplayerGateway -- Replays messages saved by a RecorderGateway.
- * VisualizerGateway -- Displays 2D directed graphs (in visualizer project).
- * UdpGateway -- Sends and receives messages over UDP (in network project).
-
-#### Differences
-
-Unlike some other actor frameworks ...
-
- 1. **Peernetic doesn't provide a "central directory" for actors/gateways.** Before a primitive can send messages to another primitive, it needs to be linked to that other primitive. This is done by binding Shuttles. If you've used other actor frameworks before, shuttles are similar to mailboxes.
- 1. **Peernetic doesn't provide guarantees around message delivery.** The underlying transport mechanism is what determines guarantees around message delivery. Actors/Gateways communicating locally will have messages that are delivered and in ordered. But, if messages are piped over a volatile transport (e.g. UDP), nothing is guaranteed.
 
 ## Examples
 

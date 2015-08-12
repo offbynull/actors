@@ -6,6 +6,8 @@
    * [Hello World Example](#hello-world-example)
    * [Concepts](#concepts)
      * [Actors](#actors)
+       * [Normal Actors](#normal-actors)
+       * [Coroutine Actors](#coroutine-actors)
      * [Gateways](#gateways)
      * [Differences](#differences)
  * [Examples](#examples)
@@ -97,9 +99,9 @@ Actors must adhere to the following constraints:
 
 Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
 
-##### Standard Actors
+##### Normal Actors
 
-Standard actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a standard actor:
+Normal actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a standard actor:
 
 ```java
 public final class CustomActor implements Actor {
@@ -226,13 +228,9 @@ The Unstructured Mesh example comes with 5 executable Java classes...
 
 ![Unstructured Example Screenshot](../gh-pages/unstructured_example1.png)
 
-##### Realtime executables
+Executables classes prefixed with **Realtime** don't require user input because they run pre-configured scenarios.
 
-Realtime executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
-
-##### Simulation executables
-
-Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+Executables classes prefixed with **Simulation** don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
 ### Chord Distrubted Hash Table Example
 
@@ -254,8 +252,6 @@ The Chord example comes with 5 executable Java classes...
 
 ![Chord Example Screenshot](../gh-pages/chord_example1.png)
 
-##### Realtime executables
-
 Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
 
 ```
@@ -264,9 +260,7 @@ boot 0
 start 1 63 0
 ```
 
-##### Simulation executables
-
-Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+Executables classes prefixed with **Simulation** don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
 
 ### Raft Distributed Consensus Example
 
@@ -288,8 +282,6 @@ The Raft example comes with 5 executable Java classes...
 
 ![Raft Example Screenshot](../gh-pages/raft_example1.png)
 
-##### Realtime executables
-
 Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 5-node Raft cluster and bring it online. Note that node 5 is the client that's reading from and writing to the cluster, while all other nodes (0 to 4) are Raft server nodes.
 
 ```
@@ -297,6 +289,4 @@ Executables classes prefixed with **Realtime** require user input. When the exam
 start 0 4
 ```
 
-##### Simulation executables
-
-Simulation executables don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.
+Executables classes prefixed with **Simulation** don't require user input because they run pre-configured scenarios. Simulation executables capture messages intended for a visualizer, and these messages are replayed to an actual visualizer once the simulation is complete.

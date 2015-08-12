@@ -7,7 +7,7 @@
    * [Concepts](#concepts)
      * [Actors](#actors)
        * [Normal Actors](#normal-actors)
-         * [Coroutine Actors](#coroutine-actors)
+       * [Coroutine Actors](#coroutine-actors)
      * [Gateways](#gateways)
      * [Differences](#differences)
  * [Examples](#examples)

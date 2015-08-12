@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  * Coroutine tester = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();
  * 
- *     // Normally actors shouldn't have system.outs in them.
+ *     // Normally, actors shouldn't be logging to System.out or doing any other IO. They're here for demonstrative purposes.
  *     System.out.println("Sending out at " + ctx.getTime());
  *     String timerPrefix = ctx.getIncomingMessage();
  *     ctx.addOutgoingMessage(timerPrefix + ":2000", 0);

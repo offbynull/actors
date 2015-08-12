@@ -34,8 +34,10 @@ import org.apache.commons.lang3.Validate;
  * Coroutine tester = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();
  * 
+ *     // Normally, actors shouldn't be logging to System.out or doing any other IO. They're logging to System.out here for simplicity. If 
+ *     // you need to do logging in your actor, use LogGateway instead.
  *     String timerPrefix = ctx.getIncomingMessage();
- *     ctx.addOutgoingMessage("fromid", timerPrefix + ":2000:extra", 0);
+ *     ctx.addOutgoingMessage(Address.fromString("fromid"), Address.fromString(timerPrefix + ":2000:extra"), 0);
  *     System.out.println("ADDED TRIGGER FOR FOR 2 SECOND");
  *     cnt.suspend();
  *     System.out.println("TRIGGERED FROM " + ctx.getSource()+ " TO " + ctx.getDestination()+ " WITH " + ctx.getIncomingMessage());

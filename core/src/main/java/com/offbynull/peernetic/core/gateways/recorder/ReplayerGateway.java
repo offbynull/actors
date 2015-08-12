@@ -34,6 +34,8 @@ import org.apache.commons.lang3.Validate;
  * Coroutine echoer = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();
  * 
+ *     // Normally, actors shouldn't be logging to System.out or doing any other IO. They're logging to System.out here for simplicity. If 
+ *     // you need to do logging in your actor, use LogGateway instead.
  *     while (true) {
  *         String src = ctx.getSource();
  *         Object msg = ctx.getIncomingMessage();

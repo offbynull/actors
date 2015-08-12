@@ -51,6 +51,8 @@ import java.time.Instant;
  *     // Print out messages as they come in
  *     while (true) {
  *         cnt.suspend();
+ *         // Normally, actors shouldn't be logging to System.out or doing any other IO. They're logging to System.out here for simplicity.
+ *         // If you need to do logging in your actor, use LogGateway instead.
  *         System.out.println(ctx.getIncomingMessage().toString()); // Shouldn't be doing I/O in actor, but this example so its okay
  *     }
  * };
@@ -83,6 +85,7 @@ import java.time.Instant;
  * // Bind shuttles for sender
  * senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());
  * senderRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
+ * senderRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
  * 
  * // Bind shuttles for timer gateway
  * timerGateway.addOutgoingShuttle(senderRunner.getIncomingShuttle());
@@ -120,7 +123,7 @@ import java.time.Instant;
  *                                 1500,
  *                                 new SimpleSerializer())));
  * 
- * // Sleep for 10 seconds so you can see the output in console
+ * // Sleep for 10 seconds so you can see the log output
  * Thread.sleep(10000L);
  * </pre>
  * @author Kasra Faghihi

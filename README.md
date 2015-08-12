@@ -111,11 +111,11 @@ Nearly all actor implementations, except for the most rudimentary, will end up r
 For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
 
 ```java
-for (int i = 0; i &lt; 10; i++) {
+for (int i = 0; i < 10; i++) {
    cnt.suspend();
    Message msg = context.getIncomingMessage();
    if (msg.isMultipart()) {
-      for (int j = 0; j &lt; msg.numberOfChunks(); j++) {
+      for (int j = 0; j < msg.numberOfChunks(); j++) {
           cnt.suspend();
           MessageChunk msgChunk = context.getIncomingMessage();
           processMultipartMessageChunk(msg, msgChunk);

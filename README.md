@@ -91,7 +91,9 @@ Echoing back hello world! :)
 
 If you aren't familiar with the actor model and its role in concurrent/distributed computing, there's a good introduction available on [Programmers Stack Exchange](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used) and [Wikipedia](http://en.wikipedia.org/wiki/Actor_model).
 
-There are two primitives in Peernetic's implementation of the actor model: Actors and Gateways. Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable and should be serializable.
+There are two primitives in Peernetic's implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable and should be serializable.
+
+![Unstructured Example Screenshot](../gh-pages/primitives_class_diagram.png)
 
 #### Actors
 
@@ -108,7 +110,7 @@ Following the above implementation rules means that, outside of receiving and se
 
 ##### Coroutine Actors
 
-Nearly all actor implementations, except for the most rudimentary, will end up requiring that execution state be retained between incoming messages and/or requiring multiple threads of execution. Writing your actor as a coroutine avoids the need to handle this through convoluted hand-written state machine logic.
+Nearly all actor implementations, except for the most rudimentary, will end up requiring that execution state be retained between incoming messages and/or requiring multiple threads of execution. Writing your actor as a [coroutine](https://github.com/offbynull/coroutines) avoids the need to handle this through convoluted hand-written state machine logic.
 
 For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
 
@@ -185,7 +187,7 @@ Gateways run in their own isolated thread / threadpools.
 Unlike some other actor frameworks ...
 
  1. **Peernetic doesn't provide a "central directory" for actors/gateways.** Before a primitive can send messages to another primitive, it needs to be linked to that other primitive. This is done by binding Shuttles. If you've used other actor frameworks before, shuttles are similar to mailboxes.
- 1. **Peernetic doesn't provide guarantees around message delivery.** The underlying transport mechanism is what determines guarantees around message delivery. Actors/Gateways communicating locally will have messages that are delivered and in ordered. But, if messages are piped over a volatile transport (e.g. UDP), nothing is guaranteed -- P2P algorithms should be able to operate in the face of message loss, message duplication, jitter, latency, etc..
+ 1. **Peernetic doesn't provide guarantees around message delivery.** The underlying transport mechanism is what determines guarantees around message delivery. Actors/Gateways communicating locally will have messages that are delivered and in ordered. But, if messages are piped over a volatile transport (e.g. UDP), nothing is guaranteed.
  1. **Peernetic doesn't use Futures/Promises for anything.**
 
 ## Examples

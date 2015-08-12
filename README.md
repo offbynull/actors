@@ -82,7 +82,7 @@ If you aren't familiar with the actor model and its role in concurrent/distribut
 
 There are two primitives in Peernetic's implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable and should be serializable.
 
-![Unstructured Example Screenshot](../gh-pages/primitives_class_diagram.png)
+![Primitives Class Diagram](../gh-pages/primitives_class_diagram.png)
 
 #### Actors
 
@@ -97,6 +97,23 @@ Actors must adhere to the following constraints:
 
 Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
 
+##### Standard Actors
+
+Standard actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a standard actor:
+
+```java
+public final class CustomActor implements Actor {
+    public boolean onStep(Context ctx) {
+        Object msg = ctx.getIncomingMessage();
+        Address srcAddress = ctx.getSource();
+
+        if ("Hi".equals(msg)) {
+            ctx.addOutgoingMessage(srcAddress, "Hi back to you!");
+        }
+    }
+}
+```
+
 ##### Coroutine Actors
 
 Nearly all actor implementations, except for the most rudimentary, will end up requiring that execution state be retained between incoming messages and/or requiring multiple threads of execution. Writing your actor as a [coroutine](https://github.com/offbynull/coroutines) avoids the need to handle this through convoluted hand-written state machine logic.
@@ -104,54 +121,62 @@ Nearly all actor implementations, except for the most rudimentary, will end up r
 For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
 
 ```java
-for (int i = 0; i < 10; i++) {
-   cnt.suspend();
-   Message msg = context.getIncomingMessage();
-   if (msg.isMultipart()) {
-      for (int j = 0; j < msg.numberOfChunks(); j++) {
-          cnt.suspend();
-          MessageChunk msgChunk = context.getIncomingMessage();
-          processMultipartMessageChunk(msg, msgChunk);
-      }
-   } else {
-      processMessage(msg);
-   }
+public final class CustomActor implements Coroutine {
+    public void run(Continuation cnt) {
+        for (int i = 0; i < 10; i++) {
+           cnt.suspend();
+           Message msg = context.getIncomingMessage();
+           if (msg.isMultipart()) {
+              for (int j = 0; j < msg.numberOfChunks(); j++) {
+                  cnt.suspend();
+                  MessageChunk msgChunk = context.getIncomingMessage();
+                  processMultipartMessageChunk(msg, msgChunk);
+              }
+           } else {
+              processMessage(msg);
+           }
+        }
+    }
 }
 ```
 
 However, if it were implemented as a normal actor, the logic would have to be written in a much more convoluted manner:
 
 ```java
-//
-// Keep in mind that, due to the need to retain state between calls to onStep(), all variables have become fields.
-// 
-switch (state) {
-    case START:
-        i = 0;
-        state = OUTER_LOOP;
-    case OUTER_LOOP:
-        if (i == 10) {
-            state = END;
-            return;
+public final class CustomActor implements Actor {
+    //
+    // Keep in mind that, due to the need to retain state between calls to onStep(), all variables have become fields.
+    // 
+    public boolean onStep(Context ctx) {
+        switch (state) {
+            case START:
+                i = 0;
+                state = OUTER_LOOP;
+            case OUTER_LOOP:
+                if (i == 10) {
+                    state = END;
+                    return;
+                }
+                i++;
+                msg = context.getIncomingMessage();
+                if (msg.isMultipart()) {
+                   state = INNER_LOOP;
+                } else {
+                   process(msg);
+                }
+                return;
+            case INNER_LOOP:
+                msgChunk = context.getIncomingMessage();
+                if (i == msg.getNumberOfChunks()) {
+                    state = OUTER_LOOP;
+                    return;
+                }
+                processMultipartMessageChunk(msg, msgChunk);
+                return;
+            case END:
+                return;
         }
-        i++;
-        msg = context.getIncomingMessage();
-        if (msg.isMultipart()) {
-           state = INNER_LOOP;
-        } else {
-           process(msg);
-        }
-        return;
-    case INNER_LOOP:
-        msgChunk = context.getIncomingMessage();
-        if (i == msg.getNumberOfChunks()) {
-            state = OUTER_LOOP;
-            return;
-        }
-        processMultipartMessageChunk(msg, msgChunk);
-        return;
-    case END:
-        return;
+    }
 }
 ```
 
@@ -163,13 +188,11 @@ Peernetic provides the following gateway implementations:
 
  * TimerGateway -- Echoes back messages after a certain duration of time.
  * DirectGateway -- Allows normal Java code to interface with actors/gateways.
- * VisualizerGateway -- Displays 2D directed graphs.
- * UdpGateway -- Sends and receives messages over UDP.
  * LogGateway -- Logs messages to SLF4J.
  * RecorderGateway -- Saves incoming messages to a file.
  * ReplayerGateway -- Replays messages saved by a RecorderGateway.
-
-Gateways run in their own isolated thread / threadpools.
+ * VisualizerGateway -- Displays 2D directed graphs (in visualizer project).
+ * UdpGateway -- Sends and receives messages over UDP (in network project).
 
 #### Differences
 

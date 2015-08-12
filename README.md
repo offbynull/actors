@@ -51,8 +51,11 @@ Coroutine echoerActor = (cnt) -> {
     do {
         Object msg = ctx.getIncomingMessage();
         Address srcAddress = ctx.getSource();
-        ctx.addOutgoingMessage(srcAddress, "Echoing back " + msg);
-        cnt.suspend();
+
+        if ("Hi".equals(msg)) {
+            ctx.addOutgoingMessage(srcAddress, "Hi back to you!");
+            cnt.suspend();
+        }
     } while (true);
 };
 
@@ -67,17 +70,10 @@ directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 // Add echoer to actor runner
 actorRunner.addActor("echoer", echoerActor);
 
-// Read from System.in, forward to echoer actor, and write echo back out to System.out
-Scanner inScanner = new Scanner(System.in);
-while(inScanner.hasNextLine()) {
-    // Read next line and forward to actor
-    String input = inScanner.nextLine();
-    directGateway.writeMessage(Address.fromString("actors:echoer"), input);
-    
-    // Wait for response from actor and print out
-    String response = (String) directGateway.readMessages().get(0).getMessage();
-    System.out.println(response);
-}
+// Send "Hi!" to actor and print out response
+directGateway.writeMessage(Address.fromString("actors:echoer"), "Hi!");
+String response = (String) directGateway.readMessages().get(0).getMessage();
+System.out.println(response);
 ```
 
 Example output:

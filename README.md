@@ -106,6 +106,64 @@ Actors must adhere to the following constraints:
 
 Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
 
+##### Coroutine Actors
+
+Nearly all actor implementations, except for the most rudimentary, will end up requiring that execution state be retained between incoming messages and/or requiring multiple threads of execution. Writing your actor as a coroutine avoids the need to handle this through convoluted hand-written state machine logic.
+
+For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
+
+```java
+for (int i = 0; i &lt; 10; i++) {
+   cnt.suspend();
+   Message msg = context.getIncomingMessage();
+   if (msg.isMultipart()) {
+      for (int j = 0; j &lt; msg.numberOfChunks(); j++) {
+          cnt.suspend();
+          MessageChunk msgChunk = context.getIncomingMessage();
+          processMultipartMessageChunk(msg, msgChunk);
+      }
+   } else {
+      processMessage(msg);
+   }
+}
+```
+
+However, if it were implemented as a normal actor, the logic would have to be written in a much more convoluted manner:
+
+```java
+//
+// Keep in mind that, due to the need to retain state between calls to onStep(), all variables have become fields.
+// 
+switch (state) {
+    case START:
+        i = 0;
+        state = OUTER_LOOP;
+    case OUTER_LOOP:
+        if (i == 10) {
+            state = END;
+            return;
+        }
+        i++;
+        msg = context.getIncomingMessage();
+        if (msg.isMultipart()) {
+           state = INNER_LOOP;
+        } else {
+           process(msg);
+        }
+        return;
+    case INNER_LOOP:
+        msgChunk = context.getIncomingMessage();
+        if (i == msg.getNumberOfChunks()) {
+            state = OUTER_LOOP;
+            return;
+        }
+        processMultipartMessageChunk(msg, msgChunk);
+        return;
+    case END:
+        return;
+}
+```
+
 #### Gateways
 
 A Gateway, like an Actor, communicates with other components through message-passing, but isn't bound by any of the same rules as Actors. Gateways are mainly used to interface with third-party components that can't be communicated with via message-passing. As such, it's perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise block.

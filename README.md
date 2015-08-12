@@ -40,7 +40,7 @@ More information on the topic of actors and P2P can be found on the following pa
 
 ### Hello World Example
 
-The following is an example of an actor that echoes incoming messages back to the sender. Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
+In the following example, when the actor receives "Hi", it'll reply with "Hi back to you!". Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
 
 ```java
 // Create coroutine actor that echos back incoming messages

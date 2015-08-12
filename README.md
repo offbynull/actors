@@ -40,12 +40,17 @@ Following the above implementation rules means that, outside of receiving and se
 
 ### Gateways
 
-A Gateway, like an Actor, communicates with other components through message-passing, but isn't bound by any of the same rules as Actors. Gateways are mainly used to interface with third-party components that can't be communicated with via message-passing. As such, it's perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise block. For example, a gateway could ...
+A Gateway, like an Actor, communicates with other components through message-passing, but isn't bound by any of the same rules as Actors. Gateways are mainly used to interface with third-party components that can't be communicated with via message-passing. As such, it's perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise block.
 
- * read messages from a TCP connection and forward them.
- * read messages from a file and forward them.
- * receive messages and write them to a file.
- * visualize incoming messages using Swing or JavaFX.
+Peernetic provides the following gateway implementations:
+
+ * TimerGateway -- Echoes back messages after a certain duration of time.
+ * LogGateway -- Logs to SLF4J.
+ * RecorderGateway -- Saves incoming messages to a file.
+ * ReplayerGateway -- Replays events saved by a RecorderGateway.
+ * DirectGateway -- Allows normal Java code to send and receive messages to other actors/gateways.
+ * UdpGateway -- Sends and receives messages over UDP.
+ * VisualizerGateway -- Displays 2D directed graphs.
 
 Gateways run in their own isolated thread / threadpools.
 
@@ -55,7 +60,7 @@ Unlike some other actor frameworks ...
 
  1. **Peernetic doesn't provide a "central directory" for actors/gateways.** Before a primitive can send messages to another primitive, it needs to be linked to that other primitive. This is done by binding Shuttles. If you've used other actor frameworks before, shuttles are similar to mailboxes.
  1. **Peernetic doesn't provide guarantees around message delivery.** The underlying transport mechanism is what determines guarantees around message delivery. Actors/Gateways communicating locally will have messages that are delivered and in ordered. But, if messages are piped over a volatile transport (e.g. UDP), nothing is guaranteed -- P2P algorithms should be able to operate in the face of message loss, message duplication, jitter, latency, etc..
- 1. **Peernetic doesn't use Futures/Promises.** Gateways are used instead.
+ 1. **Peernetic doesn't use Futures/Promises for anything.**
 
 ## Examples
 

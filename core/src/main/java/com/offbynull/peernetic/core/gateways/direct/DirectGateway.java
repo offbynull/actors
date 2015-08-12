@@ -36,32 +36,34 @@ import org.apache.commons.lang3.Validate;
 /**
  * {@link Gateway} that allows you read and write messages using normal Java code.
  * <p>
- * In the following example, the {@link Actor} called {@code tester} sends a message to the {@link DirectGateway} called {@code direct} and
- * expects that that same message is echo'd back to it.
+ * In the following example, the {@link Actor} called {@code echoer} gets a message from {@link DirectGateway} and echoes it back.
  * <pre>
- * Coroutine tester = (cnt) -&gt; {
+ * Coroutine echoer = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();
  * 
- *     String message = "HI!!!";
- *     Address directAddress = Address.of("direct");
- *     ctx.addOutgoingMessage(direct, message);
- *     cnt.suspend();
- *     Validate.isTrue(ctx.getIncomingMessage().equals(message));
- *     Validate.isTrue(ctx.getSource().equals(directAddress));
+ *     Address sender = ctx.getSource();
+ *     Object msg = ctx.getIncomingMessage();
+ *     ctx.addOutgoingMessage(sender, msg);
  * };
  * 
+ * ActorRunner actorRunner = new ActorRunner("actors");
  * DirectGateway directGateway = new DirectGateway("direct");
- * Shuttle directInputShuttle = directGateway.getIncomingShuttle();
  * 
- * ActorRunner testerRunner = ActorRunner.create("local");
- * Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
+ * directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+ * actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
  * 
- * testerRunner.addOutgoingShuttle(directInputShuttle);
- * directGateway.addOutgoingShuttle(testerInputShuttle);
+ * actorRunner.addCoroutineActor("echoer", echoerActor);
+ * Address echoerAddress = Address.of("actors", "echoer");
  * 
- * testerRunner.addCoroutineActor("tester", tester, "direct");
+ * String expected;
+ * String actual;
  * 
- * directGate
+ * directGateway.writeMessage(echoerAddress, "echotest");
+ * response = (String) directGateway.readMessages().get(0).getMessage();
+ * System.out.println(response);
+ * 
+ * actorRunner.close();
+ * directGateway.close();
  * </pre>
  * @author Kasra Faghihi
  */

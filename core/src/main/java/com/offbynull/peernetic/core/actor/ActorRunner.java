@@ -91,6 +91,7 @@ public final class ActorRunner implements AutoCloseable {
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code threadCount < 1}
      */
     public ActorRunner(String prefix, int threadCount) {
         Validate.notNull(prefix);

@@ -49,15 +49,14 @@ In the following example, when the actor receives "Hi", it'll reply with "Hi bac
 Coroutine echoerActor = (cnt) -> {
     Context ctx = (Context) cnt.getContext();
 
-    // All messages after the first message are messages that we should log and echo back.
     do {
         Object msg = ctx.getIncomingMessage();
-        Address srcAddress = ctx.getSource();
-
         if ("Hi".equals(msg)) {
+            Address srcAddress = ctx.getSource();
             ctx.addOutgoingMessage(srcAddress, "Hi back to you!");
-            cnt.suspend();
         }
+
+        cnt.suspend();
     } while (true);
 };
 

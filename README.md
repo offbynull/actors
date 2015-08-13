@@ -5,18 +5,10 @@
  * [Introduction](#introduction)
    * [Hello World Example](#hello-world-example)
    * [Concepts](#concepts)
-     * [Actors](#actors)
-     * [Gateways](#gateways)
  * [Examples](#examples)
    * [Unstructured Mesh Example](#unstructured-mesh-example)
-     * [What is an Unstructured Mesh?](#what-is-an-unstructured-mesh)
-     * [Running the Example](#running-the-example)
    * [Chord Distributed Hash Table Example](#chord-distrubted-hash-table-example)
-     * [What is Chord?](#what-is-chord)
-     * [Running the Example](#running-the-example-1)
    * [Raft Distributed Consensus Example](#raft-distributed-consensus-example)
-     * [What is Raft?](#what-is-raft)
-     * [Running the Example](#running-the-example-2)
 
 ##Introduction
 
@@ -34,8 +26,8 @@ Peernetic's high-level features include...
 
 More information on the topic of actors and P2P can be found on the following pages:
 
-* [Wikipedia: Actor model](https://en.wikipedia.org/wiki/Actor_model)
 * [Programmers Stack Exchange: How is the actor model used?](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used)
+* [Wikipedia: Actor model](https://en.wikipedia.org/wiki/Actor_model)
 * [Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer)
 
 *Please note that Peernetic is currently in beta.*

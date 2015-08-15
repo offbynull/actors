@@ -36,7 +36,7 @@ In the following example, when the actor receives "Hi", it'll reply with "Hi bac
 
 ```java
 // Create coroutine actor that echos back incoming messages
-Coroutine echoerActor = (cnt) -> {
+Coroutine echoActor = (Continuation cnt) -> {
     Context ctx = (Context) cnt.getContext();
 
     do {
@@ -59,7 +59,7 @@ actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
 directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 
 // Add echoer to actor runner
-actorRunner.addActor("echoer", echoerActor);
+actorRunner.addActor("echoer", echoActor);
 
 // Send "Hi!" to actor and print out response
 directGateway.writeMessage(Address.fromString("actors:echoer"), "Hi!");

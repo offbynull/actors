@@ -33,7 +33,6 @@ import org.apache.commons.lang3.Validate;
  * for (int i = 0; i &lt; 10; i++) {
  *    Context ctx = (Context) cnt.getContext();
  * 
- *    cnt.suspend();
  *    Message msg = context.getIncomingMessage();
  *    if (msg.isMultipart()) {
  *       for (int j = 0; j &lt; msg.numberOfChunks(); j++) {
@@ -44,6 +43,8 @@ import org.apache.commons.lang3.Validate;
  *    } else {
  *       processMessage(msg);
  *    }
+ * 
+ *    cnt.suspend();
  * }
  * </pre>
  * However, if it were implemented as a basic actor, the logic would have to be written in a much more convoluted manner:

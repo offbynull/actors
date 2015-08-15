@@ -109,7 +109,7 @@ public final class CustomActor implements Actor {
 
 Except for the most rudimentary, nearly all actor implementations require execution state be retained between incoming messages and/or require multiple threads of execution. Writing your actor as a [coroutine](https://github.com/offbynull/coroutines) avoids the need to handle this through convoluted hand-written state machine logic.
 
-For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
+For example, imagine the following scenario: an expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
 
 ```java
 public final class CustomActor implements Coroutine {

@@ -99,6 +99,8 @@ public final class CustomActor implements Actor {
         if ("Hi".equals(msg)) {
             ctx.addOutgoingMessage(srcAddress, "Hi back to you!");
         }
+
+        return true;
     }
 }
 ```

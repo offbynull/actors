@@ -22,8 +22,8 @@ import com.offbynull.coroutines.user.CoroutineRunner;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An {@link Actor} implementation that delegates to a {@link Coroutine}. Nearly all actor implementations, except for the most rudimentary,
- * will end up requiring that execution state be retained between incoming messages and/or requiring multiple threads of execution. Writing
+ * An {@link Actor} implementation that delegates to a {@link Coroutine}. Except for the most rudimentary, nearly all actor implementations
+ * require that execution state be retained between incoming messages and/or require multiple threads of execution. Writing
  * your actor as a coroutine avoids the need to handle this through convoluted hand-written state machine logic.
  * <p>
  * For example, imagine the following scenario: Our actor expects 10 messages to arrive. For each of those 10 that arrive, if the message

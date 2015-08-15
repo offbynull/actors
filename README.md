@@ -1,4 +1,4 @@
-# Peernetic Actor Framework
+# Peernetic Actor Framework (beta)
 
 <p align="center"><img src ="../gh-pages/logo.png" alt="Peernetic logo" /></p>
 
@@ -12,25 +12,23 @@
 
 ##Introduction
 
-Peernetic is a lightweight Java actor framework that was designed first and foremost with P2P algorithm/application development in mind. While Peernetic can be used as a generic actor framework, it provides features that remove some of the pain from distributed P2P development.
+Peernetic is a lightweight Java actor framework that was designed first and foremost with P2P application development in mind. While Peernetic can be used as a generic actor framework, it provides features that remove some of the pain from distributed P2P development.
 
 Peernetic's high-level features include...
 
 | Feature | Module | Description |
 |---------|--------|-------------|
-| Coroutines support | core | Retain your actor's execution state between incoming messages and/or have multiple threads of execution within your actor. [Coroutines](https://github.com/offbynull/coroutines) allow you to suspend the execution of logic within your actor without the need for tedious hand-written state machine logic. |
 | Simulator | core | Deterministicly simulate many actors interacting with each other in faster than real-time. The simulator makes it easy to write deterministic and reproducible tests for your actor logic. It also allows you to see how your actor deals with common P2P issues (e.g. high churn rate) |
-| Visualizer | visualizer | Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information, such as P2P network overlay information, in real-time. |
 | UDP Transport | network | Send messages transparently over a network using UDP. The UDP gateway allows you to send messages over UDP. |
 | UDP Simulator | network | Mimic a UDP-like environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..). The UDP Simulator proxy actor allows you to see how your actor's logic reacts to volatility. |
+| Visualizer | visualizer | Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information, such as P2P network overlay information, in real-time. |
+| Coroutines support | core | Retain your actor's execution state between incoming messages and/or have multiple threads of execution within your actor. [Coroutines](https://github.com/offbynull/coroutines) allow you to suspend the execution of logic within your actor without the need for tedious hand-written state machine logic. |
 
 More information on the topic of actors and P2P can be found on the following pages:
 
 * [Programmers Stack Exchange: How is the actor model used?](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used)
 * [Wikipedia: Actor model](https://en.wikipedia.org/wiki/Actor_model)
 * [Wikipedia: Peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer)
-
-*Please note that Peernetic is currently in beta.*
 
 ### Hello World Example
 

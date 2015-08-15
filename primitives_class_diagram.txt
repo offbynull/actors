@@ -1,9 +1,17 @@
-interface Actor {
-   + onStep(Context context)
+@startuml
+class ActorRunner {
+   + addActor(String id, Actor actor, Object... primingMessages)
+   + addActor(String id, Coroutine coroutine, Object... primingMessages)
+   + getIncomingShuttle()
+   + removeActor(String id)
+   + addOutgoingShuttle(Shuttle shuttle)
+   + removeOutgoingShuttle(String prefix)
+   + join()
+   + close()
 }
 
-class CoroutineActor {
-   + CoroutineActor(Coroutine task)
+
+interface Actor {
    + onStep(Context context)
 }
 
@@ -19,8 +27,9 @@ interface OutputGateway {
   + removeOutgoingShuttle(String shuttlePrefix)
 }
 
-Actor <|-- CoroutineActor
+Actor "0..*" o-- "1" ActorRunner
 Gateway <|-- OutputGateway
 Gateway <|-- InputGateway
 
 hide fields
+@enduml

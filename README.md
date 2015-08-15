@@ -146,7 +146,7 @@ public final class CustomActor implements Actor {
             case OUTER_LOOP:
                 if (i == 10) {
                     state = END;
-                    return;
+                    return false;
                 }
                 i++;
                 msg = context.getIncomingMessage();
@@ -155,17 +155,17 @@ public final class CustomActor implements Actor {
                 } else {
                    process(msg);
                 }
-                return;
+                return true;
             case INNER_LOOP:
                 msgChunk = context.getIncomingMessage();
                 if (i == msg.getNumberOfChunks()) {
                     state = OUTER_LOOP;
-                    return;
+                    return true;
                 }
                 processMultipartMessageChunk(msg, msgChunk);
-                return;
+                return true;
             case END:
-                return;
+                return false;
         }
     }
 }

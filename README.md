@@ -114,13 +114,15 @@ For example, imagine the following scenario: an actor expects 10 messages to arr
 ```java
 public final class CustomActor implements Coroutine {
     public void run(Continuation cnt) {
+        Context ctx = (Context) cnt.getContext();
+
         for (int i = 0; i < 10; i++) {
            cnt.suspend();
            Message msg = context.getIncomingMessage();
            if (msg.isMultipart()) {
               for (int j = 0; j < msg.numberOfChunks(); j++) {
                   cnt.suspend();
-                  MessageChunk msgChunk = context.getIncomingMessage();
+                  MessageChunk msgChunk = ctx.getIncomingMessage();
                   processMultipartMessageChunk(msg, msgChunk);
               }
            } else {

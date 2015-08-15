@@ -31,12 +31,14 @@ import org.apache.commons.lang3.Validate;
  * the logic would be written similar to this:
  * <pre>
  * for (int i = 0; i &lt; 10; i++) {
+ *    Context ctx = (Context) cnt.getContext();
+ * 
  *    cnt.suspend();
  *    Message msg = context.getIncomingMessage();
  *    if (msg.isMultipart()) {
  *       for (int j = 0; j &lt; msg.numberOfChunks(); j++) {
  *           cnt.suspend();
- *           MessageChunk msgChunk = context.getIncomingMessage();
+ *           MessageChunk msgChunk = ctx.getIncomingMessage();
  *           processMultipartMessageChunk(msg, msgChunk);
  *       }
  *    } else {

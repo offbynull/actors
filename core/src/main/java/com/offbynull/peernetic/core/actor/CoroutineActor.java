@@ -44,7 +44,7 @@ import org.apache.commons.lang3.Validate;
  *    }
  * }
  * </pre>
- * However, if it were implemented as a normal actor, the logic would have to be written in a much more convoluted manner:
+ * However, if it were implemented as a basic actor, the logic would have to be written in a much more convoluted manner:
  * <pre>
  * //
  * // Keep in mind that, due to the need to retain state between calls to onStep(), all variables have become fields.

@@ -86,9 +86,9 @@ Actors must adhere to the following constraints:
 
 Following the above implementation rules means that outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so you don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should be transparent).
 
-##### Normal Actors
+##### Basic Actors
 
-Normal actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a normal actor:
+Basic actors are classes that implement **Actor**. For every message that comes in to an actor, its onStep method will be invoked. Example of a basic actor:
 
 ```java
 public final class CustomActor implements Actor {
@@ -129,7 +129,7 @@ public final class CustomActor implements Coroutine {
 }
 ```
 
-However, if it were implemented as a normal actor, the logic would have to be written in a much more convoluted manner:
+However, if it were implemented as a basic actor, the logic would have to be written in a much more convoluted manner:
 
 ```java
 public final class CustomActor implements Actor {

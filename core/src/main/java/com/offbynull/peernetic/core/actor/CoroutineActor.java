@@ -78,7 +78,7 @@ import org.apache.commons.lang3.Validate;
  *         processMultipartMessageChunk(msg, msgChunk);
  *         return;
  *     case END:
- *         return;
+ *         throw new IllegalStateException();
  * }
  * </pre>
  * <p>

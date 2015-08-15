@@ -168,7 +168,7 @@ public final class CustomActor implements Actor {
                 processMultipartMessageChunk(msg, msgChunk);
                 return true;
             case END:
-                return false;
+                throw new IllegalStateException();
         }
     }
 }

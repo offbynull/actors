@@ -180,11 +180,11 @@ A Gateway, like an Actor, communicates with other components through message-pas
 
 ## Examples
 
-It's highly recommended that you go through the [concepts primer](#concepts) before digging in to these examples.
+It's highly recommended that you go through the [concepts primer](#concepts) before digging in to these [examples](examples/src/main/java/com/offbynull/peernetic/examples).
 
 ### Unstructured Mesh Example
 
-The Unstructured Mesh example is located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/unstructured).
+The Unstructured Mesh example is located [here](examples/src/main/java/com/offbynull/peernetic/examples/unstructured).
 
 #### What is an Unstructured Mesh?
 
@@ -208,7 +208,7 @@ Executables classes prefixed with **Simulation** don't require user input becaus
 
 ### Chord Distrubted Hash Table Example
 
-The Chord DHT example is located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/chord).
+The Chord DHT example is located [here](examples/src/main/java/com/offbynull/peernetic/examples/chord).
 
 #### What is Chord?
 
@@ -238,7 +238,7 @@ Executables classes prefixed with **Simulation** don't require user input becaus
 
 ### Raft Distributed Consensus Example
 
-The Raft example is located in the [examples project](examples/src/main/java/com/offbynull/peernetic/examples/raft).
+The Raft example is located [here](examples/src/main/java/com/offbynull/peernetic/examples/raft).
 
 #### What is Raft?
 

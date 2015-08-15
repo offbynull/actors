@@ -39,7 +39,7 @@ import java.time.Instant;
  * calls to Java's date and time APIs (e.g. {@link Instant} or {@link System#currentTimeMillis() }).</li>
  * </ul>
  * <p>
- * Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This
+ * Following the above implementation rules means that outside of receiving and sending messages, an actor is fully isolated. This
  * isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't
  * matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should be transparent).
  * 

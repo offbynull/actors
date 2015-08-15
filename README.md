@@ -19,8 +19,8 @@ Peernetic's high-level features include...
 | Feature | Module | Description |
 |---------|--------|-------------|
 | Coroutines support | core | Retain your actor's execution state between incoming messages and/or have multiple threads of execution within your actor. [Coroutines](https://github.com/offbynull/coroutines) allow you to suspend the execution of logic within your actor without the need for tedious hand-written state machine logic. |
-| Visualizer | visualizer | Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information, such as P2P network overlay information, in real-time. |
 | Simulator | core | Deterministicly simulate many actors interacting with each other in faster than real-time. The simulator makes it easy to write deterministic and reproducible tests for your actor logic. It also allows you to see how your actor deals with common P2P issues (e.g. high churn rate). |
+| Visualizer | visualizer | Visualize directed graphs with ease. The visualizer gateway makes it easy to visualize graph-related information, such as P2P network overlay information, in real-time. |
 | UDP Simulator | network | Mimic a UDP-like environment locally where you control the network conditions (e.g. packet loss. packet duplication, latency, jitter, etc..). The UDP Simulator proxy actor allows you to see how your actor's logic reacts to volatility. |
 | UDP Transport | network | Send messages transparently over a network using UDP. The UDP gateway allows you to send messages over UDP. |
 

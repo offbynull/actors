@@ -32,7 +32,7 @@ import java.time.Instant;
  * references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a
  * reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done
  * via message-passing.</li>
- * <li><b>Do not block,</b> whether it's for I/O, long running operations, thread synchronization, or otherwise. Multiple actors may be
+ * <li><b>Do not block</b> for I/O, long running operations, thread synchronization, or anything else. Multiple actors may be
  * running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages
  * in a timely manner.</li>
  * <li><b>Do not directly access time.</b> Actors must use the time supplied to them via {@link Context#getTime() } rather than making

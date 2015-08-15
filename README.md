@@ -75,7 +75,7 @@ There are two primitives in Peernetic's implementation of the actor model: [Acto
 
 #### Actors
 
-An Actor is an isolated class which communicates with the outside world through message-passing.
+An Actor is an isolated class that communicates with the outside world through message-passing.
 
 Actors must adhere to the following constraints:
 

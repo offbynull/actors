@@ -19,14 +19,14 @@ package com.offbynull.peernetic.core.actor;
 import java.time.Instant;
 
 /**
- * An {@link Actor} is an isolated "computational unit" who's only method of communicating with the outside world is through
+ * An {@link Actor} is an isolated "computational unit" whose only method of communicating with the outside world is through
  * message-passing. If you aren't familiar with the concept of actors and their role in concurrent/distributed computing, there's a good
  * introduction available on <a href="http://en.wikipedia.org/wiki/Actor_model">Wikipedia's Actor page</a>.
  * <p>
  * Implementations of this interface must adhere to the following constraints:
  * <ul>
  * <li><b>Do not expose any internal state.</b> Unlike traditional Java objects, actors should not provide any publicly accessibly methods
- * or fields that expose or change their state. If an outside component needs to know or change the state of this actor, it must request it
+ * or fields that expose or change their state. If an outside component needs to know or change the state of an actor, it must request it
  * via message-passing.</li>
  * <li><b>Do not share state.</b> Actors must only ever access/change their own internal state, meaning that an actor must not share any
  * references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a
@@ -41,7 +41,7 @@ import java.time.Instant;
  * <p>
  * Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This
  * isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't
- * matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
+ * matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should be transparent).
  * 
  * @author Kasra Faghihi
  */

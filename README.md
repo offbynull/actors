@@ -54,7 +54,7 @@ Coroutine echoActor = (Continuation cnt) -> {
 ActorRunner actorRunner = new ActorRunner("actors"); // container for actors
 DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows interfacing with actors/gateways from normal java code
 
-// Bind the runner and the direct gateway so that they can send messages to eachother
+// Bind the runner and the direct gateway so that they can send messages to each other
 actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
 directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 
@@ -69,22 +69,22 @@ System.out.println(response);
 
 ### Concepts
 
-There are two primitives in Peernetic's implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable and should be serializable.
+There are two primitives in Peernetic's implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable.
 
 ![Primitives Class Diagram](../gh-pages/primitives_class_diagram.png)
 
 #### Actors
 
-An Actor is an isolated class who's only method of communicating with the outside world is through message-passing.
+An Actor is an isolated class which communicates with the outside world through message-passing.
 
 Actors must adhere to the following constraints:
 
- 1. **Do not expose any internal state.** Unlike traditional Java objects, actors should not provide any publicly accessibly methods or fields that expose or change their state. If an outside component needs to know or change the state of this actor, it must request it via message-passing.
+ 1. **Do not expose any internal state.** Unlike traditional Java objects, actors should not provide any publicly accessibly methods or fields that expose or change their state. If an outside component needs to know or change the state of an actor, it must request it via message-passing.
  1. **Do not share state.** Actors must only ever access/change their own internal state, meaning that an actor must not share any references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done via message-passing.
  1. **Do not block,** whether it's for I/O, long running operations, thread synchronization, or otherwise. Multiple actors may be running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages in a timely manner.
  1. **Do not directly access time.** Actors must use the time supplied to them via the Context rather than making calls to Java's date and time APIs (e.g. Instant or System.currentTimeMillis()).
 
-Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should make it transparent).
+Following the above implementation rules means that, outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so we don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should be transparent).
 
 ##### Normal Actors
 

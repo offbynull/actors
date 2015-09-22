@@ -100,7 +100,7 @@ public final class SimpleAddressTransformer implements AddressTransformer {
 
     @Override
     public Address toAddress(String linkId) {
-        Validate.notNull(selfLinkId);
+        Validate.notNull(linkId);
         if (selfLinkId != null && selfLinkId.equals(linkId)) {
             Validate.validState(selfAddress != null); // sanity check
             return selfAddress;

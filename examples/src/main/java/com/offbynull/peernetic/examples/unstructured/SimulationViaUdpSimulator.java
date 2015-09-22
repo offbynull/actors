@@ -136,7 +136,7 @@ public final class SimulationViaUdpSimulator {
                 Duration.ZERO,
                 time,
                 new Start(
-                        new SimpleAddressTransformer(remoteBaseAddr, unreliableIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, Address.of(idStr), unreliableIdStr),
                         connIdStr,
                         seed,
                         BASE_TIMER_ADDRESS,

@@ -146,7 +146,7 @@ public final class SimulationViaUdpSimulator {
                 Duration.ZERO,
                 time,
                 new StartClient(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, Address.of(idStr), udpSimProxyIdStr),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,
@@ -174,7 +174,7 @@ public final class SimulationViaUdpSimulator {
                 Duration.ZERO,
                 time,
                 new StartServer(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, Address.of(idStr), udpSimProxyIdStr),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,

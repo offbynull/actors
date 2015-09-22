@@ -44,7 +44,7 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
         // e.g. actor:1:router:out0:7515937758611767298 -> actor:1
         Address initiatorRootSourceAddress = initiatorSourceAddress.removeSuffix(3); 
         // e.g. actor:1 -> 1
-        String initiatorLinkId = state.getAddressTransformer().remoteAddressToLinkId(initiatorRootSourceAddress);
+        String initiatorLinkId = state.getAddressTransformer().toLinkId(initiatorRootSourceAddress);
         // e.g. actor:1:router:out0:7515937758611767298 -> router:out0
         Address initiatorSuffix = initiatorSourceAddress.removeSuffix(1).removePrefix(initiatorRootSourceAddress);
 
@@ -75,7 +75,7 @@ final class IncomingLinkSubcoroutine implements Subcoroutine<Void> {
                         // e.g. actor:1:router:out0:7515937758611767298 -> actor:1
                         Address updaterRootSourceAddress = updaterSourceAddress.removeSuffix(3); 
                         // e.g. actor:1 -> 1
-                        String updaterLinkId = state.getAddressTransformer().remoteAddressToLinkId(updaterRootSourceAddress);
+                        String updaterLinkId = state.getAddressTransformer().toLinkId(updaterRootSourceAddress);
                         // e.g. actor:1:router:out0:7515937758611767298 -> router:out0
                         Address updaterSuffix = updaterSourceAddress.removeSuffix(1).removePrefix(updaterRootSourceAddress);
                         

@@ -104,7 +104,7 @@ public final class SimulationDirect {
                 Duration.ZERO,
                 time,
                 new Start(
-                        new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
+                        new SimpleAddressTransformer(EMPTY_ADDRESS, Address.of(idStr), idStr),
                         connIdStr,
                         seed,
                         BASE_TIMER_ADDRESS,

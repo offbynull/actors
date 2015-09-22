@@ -179,7 +179,7 @@ public final class RealtimeViaUdpGateway {
                 idStr,
                 new RaftClientCoroutine(),
                 new StartClient(
-                        new SimpleAddressTransformer(baseUdpAddress, selfLinkId),
+                        new SimpleAddressTransformer(baseUdpAddress, BASE_ACTOR_ADDRESS.appendSuffix(idStr), selfLinkId),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,
@@ -206,7 +206,7 @@ public final class RealtimeViaUdpGateway {
                 idStr,
                 new RaftServerCoroutine(),
                 new StartServer(
-                        new SimpleAddressTransformer(baseUdpAddress, selfLinkId),
+                        new SimpleAddressTransformer(baseUdpAddress, BASE_ACTOR_ADDRESS.appendSuffix(idStr), selfLinkId),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,

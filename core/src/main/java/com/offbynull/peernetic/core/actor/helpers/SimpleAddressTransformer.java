@@ -20,77 +20,93 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An {@link AddressTransformer} that takes the last element out of a remote address and uses it as the link identifier (and vice-versa).
+ * An {@link AddressTransformer} that takes the last element out of a remote address and uses it as the link identifier (and vice-versa), as
+ * well as handles conversion of the local address.
  * <p>
- * Examples of {@link #selfAddressToLinkId(com.offbynull.peernetic.core.shuttle.Address) }...
- * <pre>
- * e.g. remoteBase=actor, selfId=0                       actor:0 -&gt; 0
- * e.g. remoteBase=udp0, selfId=7f000001.10000           actor:0 -&gt; 7f000001.10000
- * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:0 -&gt; unrel0
- * </pre>
+ * This class relies on 3 properties:
+ * <ul>
+ * <li>remoteAddressBase - prefix of remote addresses</li>
+ * <li>selfAddress - address of owning actor</li>
+ * <li>selfLinkId - link id of owning actor</li>
+ * </ul>
+ * How {@link #toLinkId(com.offbynull.peernetic.core.shuttle.Address) } works...
  * <p>
- * Examples of {@link #remoteAddressToLinkId(com.offbynull.peernetic.core.shuttle.Address)  }...
- * <pre>
- * e.g. remoteBase=actor, selfId=0                       actor:0 -&gt; 0
- * e.g. remoteBase=udp0, selfId=7f000001.10000           udp0:7f000001.10001 -&gt; 7f000001.10001
- * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:unrel0:actor:unrel1 -&gt; unrel1
- * </pre>
+ * When using {@link #toLinkId(com.offbynull.peernetic.core.shuttle.Address) } with a remote address (an address with the prefix
+ * {@code remoteAddressBase}, it will return the next address element after the prefix. Note that this means any additional suffix won't
+ * be retained when the conversion takes place. For example, if {@code remoteAddressBase=actor_system_0:nodes}, and the address being
+ * converted is {@code actor_system_0:nodes:node_1:sub1:msg1}, the link id will be {@code node_1}.
  * <p>
- * Examples of {@link #linkIdToRemoteAddress(java.lang.String) }...
- * <pre>
- * e.g. remoteBase=actor, selfId=0                       1 -&gt; actor:1
- * e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -&gt; udp0:7f000001.10001
- * e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -&gt; actor:unrel0:actor:unrel1
- * </pre>
+ * When using {@link #toLinkId(com.offbynull.peernetic.core.shuttle.Address) } with your local address (an address with the prefix
+ * {@code selfAddress}, it will return {@code selfId}. Note that just like with remote addresses, any additional suffix won't  be retained
+ * when the conversion takes place.
+ * <p>
+ * <p>
+ * How {@link #toAddress(java.lang.String) } works...
+ * <p>
+ * When using {@link #toAddress(java.lang.String) }, if the link id is {@code selfLinkId} then {@code selfAddress} will be returned.
+ * Otherwise, the returned address will be the link id appended on to {@code remoteAddressBase}.
  * <p>
  * This class is immutable.
  * @author Kasra Faghihi
  */
 public final class SimpleAddressTransformer implements AddressTransformer {
 
-    private final Address remoteBase;
-    private final String selfId;
+    private final Address remoteBaseAddress;
+    private final Address selfAddress;
+    private final String selfLinkId;
+
+    /**
+     * Constructs a {@link SimpleAddressTransformer} without support for self link id / self address.
+     * @param remoteBaseAddress prefix for remote addresses
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public SimpleAddressTransformer(Address remoteBaseAddress) {
+        Validate.notNull(remoteBaseAddress);
+        this.remoteBaseAddress = remoteBaseAddress;
+        this.selfAddress = null;
+        this.selfLinkId = null;
+    }
 
     /**
      * Constructs a {@link SimpleAddressTransformer}.
-     * @param remoteBase prefix for remote addresses
-     * @param selfId identifier to return when {@link #selfAddressToLinkId(com.offbynull.peernetic.core.shuttle.Address) } is called
+     * @param remoteBaseAddress prefix for remote addresses
+     * @param selfAddress address to return when {@link #toAddress(java.lang.String)} is called with {@code selfLinkId}
+     * @param selfLinkId link id to return when {@link #toLinkId(com.offbynull.peernetic.core.shuttle.Address) } is called with an address
+     * that starts with {@code selfAddress}
      * @throws NullPointerException if any argument is {@code null}
      */
-    public SimpleAddressTransformer(Address remoteBase, String selfId) {
-        Validate.notNull(remoteBase);
-        Validate.notNull(selfId);
-        this.remoteBase = remoteBase;
-        this.selfId = selfId;
-    }
-    
-    // e.g. remoteBase=actor, selfId=0                       actor:0 -> 0
-    // e.g. remoteBase=udp0, selfId=7f000001.10000           actor:0 -> 7f000001.10000
-    // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:0 -> unrel0
-    @Override
-    public String selfAddressToLinkId(Address address) {
-        Validate.notNull(address);
-        return selfId;
+    public SimpleAddressTransformer(Address remoteBaseAddress, Address selfAddress, String selfLinkId) {
+        Validate.notNull(remoteBaseAddress);
+        Validate.notNull(selfAddress);
+        Validate.notNull(selfLinkId);
+        this.remoteBaseAddress = remoteBaseAddress;
+        this.selfAddress = selfAddress;
+        this.selfLinkId = selfLinkId;
     }
 
-    // e.g. remoteBase=actor, selfId=0                       actor:0 -> 0
-    // e.g. remoteBase=udp0, selfId=7f000001.10000           udp0:7f000001.10001 -> 7f000001.10001
-    // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     actor:unrel0:actor:unrel1 -> unrel1
     @Override
-    public String remoteAddressToLinkId(Address address) {
+    public String toLinkId(Address address) {
         Validate.notNull(address);
-        Validate.isTrue(remoteBase.isPrefixOf(address));
-        Validate.isTrue(address.size() == remoteBase.size() + 1);
-        return address.getElement(remoteBase.size());
+        if (selfAddress != null && selfAddress.isPrefixOf(address)) {
+            Validate.validState(selfLinkId != null); // sanity check
+            return selfLinkId;
+        } else if (remoteBaseAddress.isPrefixOf(address)) {
+            Validate.isTrue(address.size() > remoteBaseAddress.size()); // must be atleast 1 element larger
+            return address.getElement(remoteBaseAddress.size());
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
-    // e.g. remoteBase=actor, selfId=0                       0 -> actor:0
-    // e.g. remoteBase=udp0, selfId=7f000001.10000           7f000001.10001 -> udp0:7f000001.10001
-    // e.g. remoteBase=actor:unrel0:actor, selfId=unrel0     unrel1 -> actor:unrel0:actor:unrel1
     @Override
-    public Address linkIdToRemoteAddress(String linkId) {
-        Validate.notNull(linkId);
-        return remoteBase.appendSuffix(linkId);
+    public Address toAddress(String linkId) {
+        Validate.notNull(selfLinkId);
+        if (selfLinkId != null && selfLinkId.equals(linkId)) {
+            Validate.validState(selfAddress != null); // sanity check
+            return selfAddress;
+        } else {
+            return remoteBaseAddress.appendSuffix(linkId);
+        }
     }
     
 }

@@ -86,7 +86,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
             List<LogEntry> entries = Collections.emptyList();
             int prevLogIndex = state.getNextIndex(linkId) - 1;
             int prevLogTerm = state.getLogEntry(prevLogIndex).getTerm();
-            Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
+            Address dstAddress = state.getAddressTransformer().toAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
                     .timerAddress(timerAddress)
@@ -133,7 +133,7 @@ final class LeaderSubcoroutine extends AbstractRaftServerSubcoroutine {
             int prevLogIndex = nextLogIndex - 1;
             int prevLogTerm = state.getLogEntry(prevLogIndex).getTerm();
             List<LogEntry> entries = nextLogIndex > lastLogIndex ? Collections.emptyList() : state.getTailLogEntries(nextLogIndex);
-            Address dstAddress = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
+            Address dstAddress = state.getAddressTransformer().toAddress(linkId);
             AppendEntriesRequest req = new AppendEntriesRequest(term, prevLogIndex, prevLogTerm, entries, commitIndex);
             RequestSubcoroutine<AppendEntriesResponse> requestSubcoroutine = new RequestSubcoroutine.Builder<AppendEntriesResponse>()
                     .timerAddress(timerAddress)

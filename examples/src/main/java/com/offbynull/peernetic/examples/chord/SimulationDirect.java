@@ -11,7 +11,6 @@ import com.offbynull.peernetic.core.simulator.Simulator;
 import com.offbynull.peernetic.examples.chord.internalmessages.Start;
 import com.offbynull.peernetic.examples.chord.model.NodeId;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.io.File;
 import java.time.Duration;
@@ -108,7 +107,7 @@ public final class SimulationDirect {
                 Duration.ZERO,
                 time,
                 new Start(
-                        new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
+                        new SimpleAddressTransformer(EMPTY_ADDRESS, Address.of(idStr), idStr),
                         connIdStr,
                         new NodeId(id, bits),
                         seed,

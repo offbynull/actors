@@ -68,7 +68,7 @@ public final class RealtimeDirect {
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
+                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, BASE_ACTOR_ADDRESS.appendSuffix(idStr), idStr),
                         connIdStr,
                         seed,
                         BASE_TIMER_ADDRESS,

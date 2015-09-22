@@ -179,7 +179,7 @@ public final class RealtimeViaUdpSimulator {
                 idStr,
                 new ChordClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, BASE_ACTOR_ADDRESS.appendSuffix(idStr), udpSimProxyIdStr),
                         connIdStr,
                         new NodeId(id, bits),
                         seed,

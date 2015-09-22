@@ -172,7 +172,7 @@ public final class RealtimeViaUdpGateway {
                 idStr,
                 new ChordClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(baseUdpAddress, selfLinkId),
+                        new SimpleAddressTransformer(baseUdpAddress, BASE_ACTOR_ADDRESS.appendSuffix(idStr), selfLinkId),
                         connIdStr,
                         new NodeId(id, bits),
                         seed,

@@ -185,7 +185,7 @@ public final class RealtimeViaUdpSimulator {
                 idStr,
                 new RaftClientCoroutine(),
                 new StartClient(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, BASE_ACTOR_ADDRESS.appendSuffix(idStr), udpSimProxyIdStr),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,
@@ -213,7 +213,7 @@ public final class RealtimeViaUdpSimulator {
                 idStr,
                 new RaftServerCoroutine(),
                 new StartServer(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, BASE_ACTOR_ADDRESS.appendSuffix(idStr), udpSimProxyIdStr),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,

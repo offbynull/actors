@@ -81,7 +81,7 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
                 NodeId requesterId = extMsg.getChordId();
                 Address requesterAddress = fromAddress.removeSuffix(3); // e.g. actor:0:router:stabilize:2414144054146105661 -> actor:0
-                String requesterLinkId = state.getAddressTransformer().remoteAddressToLinkId(requesterAddress);
+                String requesterLinkId = state.getAddressTransformer().toLinkId(requesterAddress);
 
                 ExternalPointer newPredecessor = new ExternalPointer(requesterId, requesterLinkId);
                 ExternalPointer existingPredecessor = state.getPredecessor();
@@ -98,7 +98,7 @@ final class IncomingRequestHandlerSubcoroutine implements Subcoroutine<Void> {
                 UpdateFingerTableRequest extMsg = (UpdateFingerTableRequest) msg;
                 NodeId id = extMsg.getChordId();
                 Address address = fromAddress.removeSuffix(3); // e.g. actor:2:router:updateothers:4562701804747358225 -> actor:2
-                String linkId = state.getAddressTransformer().remoteAddressToLinkId(address);
+                String linkId = state.getAddressTransformer().toLinkId(address);
                 ExternalPointer newFinger = new ExternalPointer(id, linkId);
 
                 if (!state.isSelfId(id)) {

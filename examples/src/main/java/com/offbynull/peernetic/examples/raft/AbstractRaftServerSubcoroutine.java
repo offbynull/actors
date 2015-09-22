@@ -178,7 +178,7 @@ abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
         // follower mode (resets election timeout if already in follower mode) and assume that this is the node in
         // the server that's the leader. Otherwise, why would it be sending you appendentries? RAFT paper @ 5.2 paragraph 4
         Address baseSrc = src.removeSuffix(2); // actor:1:messager:-149223987249938403 -> actor:1
-        String newVoterId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
+        String newVoterId = state.getAddressTransformer().toLinkId(baseSrc);
         String oldVotedForId = state.getVotedForLinkId();
 
         if (!newVoterId.equals(oldVotedForId)) {
@@ -227,7 +227,7 @@ abstract class AbstractRaftServerSubcoroutine implements Subcoroutine<Mode> {
         // 2. If votedFor is (null or candidateId), and candidate's log is at least as up-to-date as receiver's log, grant vote
         String votedForLinkId = state.getVotedForLinkId();
         Address baseSrc = src.removeSuffix(3); // actor:0:4437113782736519168:mrsr:-7261648962812116991 -> actor:0
-        String candidateId = state.getAddressTransformer().remoteAddressToLinkId(baseSrc);
+        String candidateId = state.getAddressTransformer().toLinkId(baseSrc);
         boolean votedForCondition = votedForLinkId == null || votedForLinkId.equals(candidateId);
 
         // as specified in 5.4.1

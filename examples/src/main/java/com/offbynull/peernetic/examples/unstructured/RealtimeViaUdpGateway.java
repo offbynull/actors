@@ -97,7 +97,7 @@ public final class RealtimeViaUdpGateway {
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(baseUdpAddress, selfLinkId),
+                        new SimpleAddressTransformer(baseUdpAddress, BASE_ACTOR_ADDRESS.appendSuffix(idStr), selfLinkId),
                         connIdStr,
                         seed,
                         BASE_TIMER_ADDRESS,

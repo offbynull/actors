@@ -201,7 +201,7 @@ public final class MultiRequestSubcoroutine<T> implements Subcoroutine<List<Resp
 
         /**
          * The response.
-         * @return response
+         * @return response (will never be null)
          */
         public T getResponse() {
             return response;

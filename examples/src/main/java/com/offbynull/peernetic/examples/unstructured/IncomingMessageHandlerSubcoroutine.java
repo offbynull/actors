@@ -66,7 +66,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
 
                 // remove suffix of sourceAddress
                 Address reqSourceAddress = ctx.getSource().removeSuffix(3);    // e.g. actor:1:router:out0:1234 -> actor:1
-                String reqLinkId = state.getAddressTransformer().remoteAddressToLinkId(reqSourceAddress);
+                String reqLinkId = state.getAddressTransformer().toLinkId(reqSourceAddress);
 
                 // if we already have an active incominglinksubcoroutine for the sender, return its id 
                 Address reqSuffix = state.getIncomingLinkSuffix(reqLinkId);

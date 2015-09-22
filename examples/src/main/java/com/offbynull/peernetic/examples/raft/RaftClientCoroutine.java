@@ -49,7 +49,7 @@ public final class RaftClientCoroutine implements Coroutine {
         AddressTransformer addressTransformer = start.getAddressTransformer();
         
         Address self = ctx.getSelf();
-        String selfLink = addressTransformer.selfAddressToLinkId(self);
+        String selfLink = addressTransformer.toLinkId(self);
 
         String leaderLinkId = rotateToNextServer(serverLinks);
         
@@ -82,7 +82,7 @@ public final class RaftClientCoroutine implements Coroutine {
 
                 
                 
-                Address dstAddress = addressTransformer.linkIdToRemoteAddress(leaderLinkId);
+                Address dstAddress = addressTransformer.toAddress(leaderLinkId);
 
                 int writeValue = nextWriteValue;
                 nextWriteValue++;

@@ -66,7 +66,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
             
-            String selfLinkId = state.getAddressTransformer().selfAddressToLinkId(ctx.getSelf());
+            String selfLinkId = state.getAddressTransformer().toLinkId(ctx.getSelf());
             String outLinkId = state.getNextCachedLinkId();
             
             // make sure address we're connecting to isn't an already we're already connected to
@@ -89,7 +89,7 @@ final class OutgoingLinkSubcoroutine implements Subcoroutine<Void> {
 
             state.addPendingOutgoingLink(outLinkId);
             
-            Address baseAddr = state.getAddressTransformer().linkIdToRemoteAddress(outLinkId);
+            Address baseAddr = state.getAddressTransformer().toAddress(outLinkId);
             
             RequestSubcoroutine<Object> linkRequestSubcoroutine = new RequestSubcoroutine.Builder<>()
                     .sourceAddress(subAddress, idGenerator)

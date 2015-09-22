@@ -32,7 +32,7 @@ public final class RaftServerCoroutine implements Coroutine {
         byte[] seed = start.getSeed();
 
         Address self = ctx.getSelf();
-        String selfLink = addressTransformer.selfAddressToLinkId(self);
+        String selfLink = addressTransformer.toLinkId(self);
         
         ServerState state = new ServerState(timerAddress, graphAddress, logAddress, seed, minElectionTimeout, maxElectionTimeout, selfLink,
                 nodeLinks, addressTransformer);

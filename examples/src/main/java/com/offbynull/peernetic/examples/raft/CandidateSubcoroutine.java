@@ -80,7 +80,7 @@ final class CandidateSubcoroutine extends AbstractRaftServerSubcoroutine {
 
             AddressTransformer addressTransformer = state.getAddressTransformer();
             for (String linkId : otherLinkIds) {
-                Address dstAddr = addressTransformer.linkIdToRemoteAddress(linkId);
+                Address dstAddr = addressTransformer.toAddress(linkId);
                 builder.addDestinationAddress(idGenerator, dstAddr);
             }
 

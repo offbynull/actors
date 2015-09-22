@@ -14,7 +14,6 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.network.actors.udpsimulator.SimpleLine;
 import com.offbynull.peernetic.network.actors.udpsimulator.StartUdpSimulator;
 import com.offbynull.peernetic.network.actors.udpsimulator.UdpSimulatorCoroutine;
-import com.offbynull.peernetic.visualizer.gateways.graph.DefaultGraphNodeRemoveHandler;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import java.io.File;
 import java.time.Duration;
@@ -140,7 +139,7 @@ public final class SimulationViaUdpSimulator {
                 Duration.ZERO,
                 time,
                 new Start(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, Address.of(idStr), udpSimProxyIdStr),
                         connIdStr,
                         new NodeId(id, bits),
                         seed,

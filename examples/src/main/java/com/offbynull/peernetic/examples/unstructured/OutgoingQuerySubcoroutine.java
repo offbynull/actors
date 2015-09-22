@@ -57,7 +57,7 @@ final class OutgoingQuerySubcoroutine implements Subcoroutine<Void> {
             }
 
             String linkId = state.getNextCachedLinkId();
-            Address destination = state.getAddressTransformer().linkIdToRemoteAddress(linkId);
+            Address destination = state.getAddressTransformer().toAddress(linkId);
             ctx.addOutgoingMessage(subAddress, logAddress, info("Querying {}", linkId));
 
             QueryRequest request = new QueryRequest();

@@ -112,7 +112,7 @@ public final class SimulationDirect {
                 Duration.ZERO,
                 time,
                 new StartClient(
-                        new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
+                        new SimpleAddressTransformer(EMPTY_ADDRESS, Address.of(idStr), idStr),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,
@@ -136,7 +136,7 @@ public final class SimulationDirect {
                 Duration.ZERO,
                 time,
                 new StartServer(
-                        new SimpleAddressTransformer(EMPTY_ADDRESS, idStr),
+                        new SimpleAddressTransformer(EMPTY_ADDRESS, Address.of(idStr), idStr),
                         MIN_ELECTION_TIMEOUT,
                         MAX_ELECTION_TIMEOUT,
                         allIdsAsStrs,

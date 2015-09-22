@@ -113,7 +113,7 @@ final class InitRouteToSuccessorSubcoroutine implements Subcoroutine<Pointer> {
     
     private <T> T funnelToRequestCoroutine(Continuation cnt, String destinationLinkId, Object message,
             Class<T> expectedResponseClass) throws Exception {
-        Address destination = state.getAddressTransformer().linkIdToRemoteAddress(destinationLinkId);
+        Address destination = state.getAddressTransformer().toAddress(destinationLinkId);
         RequestSubcoroutine<T> requestSubcoroutine = new RequestSubcoroutine.Builder<T>()
                 .sourceAddress(subAddress, idGenerator)
                 .destinationAddress(destination.appendSuffix(ROUTER_HANDLER_RELATIVE_ADDRESS))

@@ -141,7 +141,7 @@ public final class RealtimeDirect {
                 idStr,
                 new ChordClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, idStr),
+                        new SimpleAddressTransformer(BASE_ACTOR_ADDRESS, BASE_ACTOR_ADDRESS.appendSuffix(idStr), idStr),
                         connIdStr,
                         new NodeId(id, bits),
                         seed,

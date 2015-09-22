@@ -17,7 +17,6 @@
 package com.offbynull.peernetic.core.actor.helpers;
 
 import com.offbynull.peernetic.core.actor.Actor;
-import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 
 /**
@@ -31,27 +30,19 @@ import com.offbynull.peernetic.core.shuttle.Address;
  */
 public interface AddressTransformer {
     /**
-     * Converts a self address (e.g. address returned by {@link Context#getSelf()}) to a link identifier.
-     * @param address self address
+     * Converts an address to a link identifier.
+     * @param address address
      * @return link identifier for address
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code address} is not of the expected format or is otherwise invalid
      */
-    String selfAddressToLinkId(Address address);
+    String toLinkId(Address address);
     /**
-     * Converts a remote address (address that isn't derived from {@link Context#getSelf()}) to a link identifier.
-     * @param address remote address
-     * @return link identifier for address
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code address} is not of the expected format or is otherwise invalid
-     */
-    String remoteAddressToLinkId(Address address);
-    /**
-     * Converts a link identifier to a remote address (address that isn't derived from {@link Context#getSelf()}).
+     * Converts a link identifier to an address.
      * @param linkId link identifier
      * @return address for link identifier
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code linkId} is not of the expected format or is otherwise invalid
      */
-    Address linkIdToRemoteAddress(String linkId);
+    Address toAddress(String linkId);
 }

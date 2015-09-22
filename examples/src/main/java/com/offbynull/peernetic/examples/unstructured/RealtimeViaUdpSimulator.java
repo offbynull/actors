@@ -104,7 +104,7 @@ public final class RealtimeViaUdpSimulator {
                 idStr,
                 new UnstructuredClientCoroutine(),
                 new Start(
-                        new SimpleAddressTransformer(remoteBaseAddr, udpSimProxyIdStr),
+                        new SimpleAddressTransformer(remoteBaseAddr, BASE_ACTOR_ADDRESS.appendSuffix(idStr), udpSimProxyIdStr),
                         connIdStr,                                                 
                         seed,
                         BASE_TIMER_ADDRESS,

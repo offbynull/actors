@@ -177,8 +177,10 @@ public final class DirectGateway implements InputGateway, OutputGateway {
         List<Message> ret = new LinkedList<>();
         
         Message msg = readQueue.poll(timeout, unit);
-        ret.add(msg);
-        readQueue.drainTo(ret);
+        if (msg != null) {
+            ret.add(msg);
+            readQueue.drainTo(ret);
+        }
         
         return ret;
     }

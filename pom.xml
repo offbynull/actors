@@ -18,8 +18,8 @@
         <module>build-tools</module>
         <module>core</module>
         <module>visualizer</module>
-        <module>network</module>
         <module>examples</module>
+        <module>io</module>
     </modules>
     
     <dependencyManagement>

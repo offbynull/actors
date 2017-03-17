@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,45 +24,45 @@ import org.apache.commons.lang3.Validate;
 /**
  * A helper class for {@link Actor}s that act as a proxy. Usage example:
  * <pre>
- * Context ctx = (Context) cont.getContext();
- *
- * StartUnreliableProxy startMsg = ctx.getIncomingMessage();
- *
- * Line line = startMsg.getLine();
- * String timerPrefix = startMsg.getTimerPrefix();
- * String actorPrefix = startMsg.getActorPrefix();
- *
- * ProxyHelper proxyHelper = new ProxyHelper(ctx, actorPrefix);
- *
- * while (true) {
- *     cont.suspend();
- *     Object msg = ctx.getIncomingMessage();
- *     Instant time = ctx.getTime();
- *
- *     if (proxyHelper.isMessageFromActor()) {
- *         // This is an outgoing message from the actor to the outside
- * 
- *         ... potentially do some processing here ...
- * 
- *         // Foward message to outside
- *         ForwardInformation forwardInfo = proxyHelper.generateOutboundForwardInformation();
- *         ctx.addOutgoingMessage(
- *                 forwardInfo.getProxyFromId(),
- *                 forwardInfo.getProxyToAddress(),
- *                 ctx.getIncomingMessage());
- *     } else {
- *         // This is an incoming message from the outside to the actor
- *         ForwardInformation forwardInfo = proxyHelper.generatInboundForwardInformation();
- * 
- *         ... potentially do some processing here ...
- * 
- *         ctx.addOutgoingMessage(
- *                 forwardInfo.getProxyFromId(),
- *                 forwardInfo.getProxyToAddress(),
- *                 ctx.getIncomingMessage());
- *     }
- * }
- * </pre>
+ Context ctx = (Context) cont.getContext();
+
+ StartUnreliableProxy startMsg = ctx.in();
+
+ Line line = startMsg.getLine();
+ String timerPrefix = startMsg.getTimerPrefix();
+ String actorPrefix = startMsg.getActorPrefix();
+
+ ProxyHelper proxyHelper = new ProxyHelper(ctx, actorPrefix);
+
+ while (true) {
+     cont.suspend();
+     Object msg = ctx.in();
+     Instant time = ctx.time();
+
+     if (proxyHelper.isMessageFromActor()) {
+         // This is an outgoing message from the actor to the outside
+ 
+         ... potentially do some processing here ...
+ 
+         // Foward message to outside
+         ForwardInformation forwardInfo = proxyHelper.generateOutboundForwardInformation();
+         ctx.out(
+                 forwardInfo.getProxyFromId(),
+                 forwardInfo.getProxyToAddress(),
+                 ctx.in());
+     } else {
+         // This is an incoming message from the outside to the actor
+         ForwardInformation forwardInfo = proxyHelper.generatInboundForwardInformation();
+ 
+         ... potentially do some processing here ...
+ 
+         ctx.out(
+                 forwardInfo.getProxyFromId(),
+                 forwardInfo.getProxyToAddress(),
+                 ctx.in());
+     }
+ }
+ </pre>
  * <p>
  * This class is not thread-safe / immutable.
  * @author Kasra Faghihi
@@ -104,13 +104,13 @@ public final class ProxyHelper {
      */
     public ForwardInformation generateOutboundForwardInformation() {
         // Get address to proxy to
-        Address selfAddr = context.getSelf();
-        Address dstAddr = context.getDestination();
+        Address selfAddr = context.self();
+        Address dstAddr = context.destination();
         Address proxyToAddress = dstAddr.removePrefix(selfAddr); // treat suffix for dst of this msg as address to proxy to
         Validate.validState(!proxyToAddress.isEmpty());
 
         // Get suffix for from address
-        Address srcAddr = context.getSource();
+        Address srcAddr = context.source();
         Address proxyFromAddress = srcAddr.removePrefix(actorPrefix); // proxyFromAddress is relative here, but isn't relative for
                                                                       // generateInboundForwardInformation?
         
@@ -134,13 +134,13 @@ public final class ProxyHelper {
      */
     public ForwardInformation generateInboundForwardInformation() {
         // Get suffix portion of incoming message's destination address
-        Address selfAddr = context.getSelf();
-        Address dstAddr = context.getDestination();
+        Address selfAddr = context.self();
+        Address dstAddr = context.destination();
         Address suffix = dstAddr.removePrefix(selfAddr);
         Address proxyToAddress = actorPrefix.appendSuffix(suffix);
         
         // Get sender
-        Address proxyFromAddress = context.getSource(); // proxyFromAddress is absolute here, but isn't absolute for
+        Address proxyFromAddress = context.source(); // proxyFromAddress is absolute here, but isn't absolute for
                                                         // generateOutboundForwardInformation?
         
         return new ForwardInformation(proxyFromAddress, proxyToAddress);
@@ -151,7 +151,7 @@ public final class ProxyHelper {
 //        
 //        ForwardInformation forwardInfo = generateOutboundForwardInformation();
 //
-//        context.addOutgoingMessage(
+//        context.out(
 //                forwardInfo.getProxyFromId(),
 //                forwardInfo.getProxyToAddress(),
 //                message);
@@ -162,7 +162,7 @@ public final class ProxyHelper {
 //        
 //        ForwardInformation forwardInfo = generatInboundForwardInformation();
 //
-//        context.addOutgoingMessage(
+//        context.out(
 //                forwardInfo.getProxyFromId(),
 //                forwardInfo.getProxyToAddress(),
 //                message);
@@ -178,14 +178,14 @@ public final class ProxyHelper {
     
     /**
      * Determines if the incoming message is from some address prefix. Convenience method equivalent to calling
-     * {@code addressPrefix.isPrefixOf(context.getSource())}.
+     * {@code addressPrefix.isPrefixOf(context.source())}.
      * @param addressPrefix address prefix
      * @throws NullPointerException if any argument is {@code null}
      * @return {@code true} if the incoming message is from the specified address prefix, {@code false} otherwise
      */
     public boolean isMessageFrom(Address addressPrefix) {
         Validate.notNull(addressPrefix);
-        return addressPrefix.isPrefixOf(context.getSource());
+        return addressPrefix.isPrefixOf(context.source());
     }
     
     /**

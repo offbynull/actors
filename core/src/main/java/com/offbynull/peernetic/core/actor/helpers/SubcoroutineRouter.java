@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -89,7 +89,7 @@ public final class SubcoroutineRouter {
     public ForwardResult forward() throws Exception {
         String key;
         try {
-            Address relativeDestinationAddress = context.getDestination().removePrefix(context.getSelf());
+            Address relativeDestinationAddress = context.destination().removePrefix(context.self());
             Validate.isTrue(address.isPrefixOf(relativeDestinationAddress));
             
             Address subId = relativeDestinationAddress.removePrefix(address);
@@ -118,7 +118,7 @@ public final class SubcoroutineRouter {
 
     /**
      * Get the address of this router. Incoming messages destined for this address should trigger this router to run. The address returned
-     * by this method must be relative to the calling actor's self address (relative to {@link Context#getSelf()}).
+     * by this method must be relative to the calling actor's self address (relative to {@link Context#self()}).
      * @return absolute relative address of this router
      */
     public Address getAddress() {
@@ -284,7 +284,7 @@ public final class SubcoroutineRouter {
 
         /**
          * Get the address of the router that owns this controller. The address returned by this method must be relative to the calling
-         * actor's self address (relative to {@link Context#getSelf()}).
+         * actor's self address (relative to {@link Context#self()}).
          * @return relative address of router
          */
         public Address getAddress() {

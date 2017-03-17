@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -87,11 +87,11 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
         for (int i = 0; i < maxAttempts; i++) {
             Object timeoutMarker = new Object();
 
-            ctx.addOutgoingMessage(
+            ctx.out(
                     sourceAddress,
                     destinationAddress,
                     request);
-            ctx.addOutgoingMessage(
+            ctx.out(
                     sourceAddress,
                     timerAddressPrefix.appendSuffix("" + attemptInterval.toMillis()),
                     timeoutMarker);
@@ -99,10 +99,10 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
             while (true) {
                 cnt.suspend();
 
-                Object incomingMessage = ctx.getIncomingMessage();
+                Object incomingMessage = ctx.in();
 
                 // If incoming message is from timer ...
-                if (timerAddressPrefix.isPrefixOf(ctx.getSource())) {
+                if (timerAddressPrefix.isPrefixOf(ctx.source())) {
                     // Re-attempt if the incoming message is the current timeoutmarker (timeout for this iteration), otherwise ignore and
                     // get next message
                     if (incomingMessage == timeoutMarker) {
@@ -113,7 +113,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
                 }
 
                 // If not a response from location we sent to
-                if (!ctx.getSource().equals(destinationAddress)) {
+                if (!ctx.source().equals(destinationAddress)) {
                     continue reattempt;
                 }
                 
@@ -175,7 +175,7 @@ public final class RequestSubcoroutine<T> implements Subcoroutine<T> {
 
         /**
          * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
-         * {@link Context#getSelf()}). Defaults to {@code null}.
+         * {@link Context#self()}). Defaults to {@code null}.
          * @param sourceAddress relative source address
          * @return this builder
          */

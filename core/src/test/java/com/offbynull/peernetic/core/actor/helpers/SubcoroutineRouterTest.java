@@ -38,9 +38,9 @@ public class SubcoroutineRouterTest {
 
     @Test
     public void mustSilentlyIgnoreForwardsToUnknownChildren() throws Exception {
-        when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
-        when(context.getIncomingMessage()).thenReturn(new Object());
+        when(context.self()).thenReturn(DST_ADDRESS_PREFIX);
+        when(context.destination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
+        when(context.in()).thenReturn(new Object());
         ForwardResult res = fixture.forward();
 
         assertFalse(res.isForwarded());
@@ -65,9 +65,9 @@ public class SubcoroutineRouterTest {
 
         fixture.getController().add(subcoroutine, ADD);
 
-        when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
-        when(context.getIncomingMessage()).thenReturn(new Object());
+        when(context.self()).thenReturn(DST_ADDRESS_PREFIX);
+        when(context.destination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
+        when(context.in()).thenReturn(new Object());
         ForwardResult res = fixture.forward();
 
         assertTrue(res.isForwarded());
@@ -91,9 +91,9 @@ public class SubcoroutineRouterTest {
             }
         };
 
-        when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
-        when(context.getIncomingMessage()).thenReturn(new Object());
+        when(context.self()).thenReturn(DST_ADDRESS_PREFIX);
+        when(context.destination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
+        when(context.in()).thenReturn(new Object());
         fixture.getController().add(subcoroutine, ADD_PRIME);
 
         assertEquals(1, mutableInt.intValue());
@@ -119,9 +119,9 @@ public class SubcoroutineRouterTest {
 
         fixture.getController().add(subcoroutine, ADD);
 
-        when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
-        when(context.getIncomingMessage()).thenReturn(new Object());
+        when(context.self()).thenReturn(DST_ADDRESS_PREFIX);
+        when(context.destination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
+        when(context.in()).thenReturn(new Object());
         ForwardResult res = fixture.forward();
 
         assertTrue(res.isForwarded());
@@ -153,9 +153,9 @@ public class SubcoroutineRouterTest {
             }
         };
 
-        when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
-        when(context.getIncomingMessage()).thenReturn(new Object());
+        when(context.self()).thenReturn(DST_ADDRESS_PREFIX);
+        when(context.destination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
+        when(context.in()).thenReturn(new Object());
         fixture.getController().add(subcoroutine, ADD_PRIME_NO_FINISH);
         
         assertEquals(1, mutableInt.intValue());
@@ -176,9 +176,9 @@ public class SubcoroutineRouterTest {
             }
         };
 
-        when(context.getSelf()).thenReturn(DST_ADDRESS_PREFIX);
-        when(context.getDestination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
-        when(context.getIncomingMessage()).thenReturn(new Object());
+        when(context.self()).thenReturn(DST_ADDRESS_PREFIX);
+        when(context.destination()).thenReturn(DST_ADDRESS_PREFIX.appendSuffix(CHILD_ID));
+        when(context.in()).thenReturn(new Object());
         
         exception.expect(IllegalStateException.class);
         

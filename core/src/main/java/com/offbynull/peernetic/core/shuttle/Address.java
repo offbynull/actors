@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
@@ -38,6 +39,11 @@ import org.apache.commons.lang3.Validate;
 public final class Address implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    
+    /**
+     * An empty address.
+     */
+    public static final Address EMPTY = new Address(Collections.emptyList());
     
     private static final char DELIM = ':';
     private static final char ESCAPE = '\\';
@@ -93,6 +99,11 @@ public final class Address implements Serializable {
     public static Address of(List<String> elements) {
         Validate.notNull(elements);
         Validate.noNullElements(elements);
+        
+        if (elements.isEmpty()) {
+            return EMPTY;
+        }
+        
         elements.stream().forEach(// is US-ASCII
                 x -> x.chars().forEach(
                         // this should cause surrogate pairs to fail as well, which is what we want!

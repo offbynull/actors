@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017 Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,7 +39,7 @@ public final class SourceContext implements Context {
     private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
 
     @Override
-    public Address getSelf() {
+    public Address self() {
         return self;
     }
 
@@ -56,7 +56,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public Instant getTime() {
+    public Instant time() {
         return time;
     }
 
@@ -71,7 +71,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public Address getSource() {
+    public Address source() {
         return source;
     }
 
@@ -88,7 +88,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public Address getDestination() {
+    public Address destination() {
         return destination;
     }
 
@@ -106,7 +106,7 @@ public final class SourceContext implements Context {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getIncomingMessage() {
+    public <T> T in() {
         return (T) incomingMessage;
     }
 
@@ -121,7 +121,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public void addOutgoingMessage(Address sourceId, Address destination, Object message) {
+    public void out(Address sourceId, Address destination, Object message) {
         // sourceId can be null
         Validate.notNull(sourceId);
         Validate.notNull(destination);
@@ -131,7 +131,7 @@ public final class SourceContext implements Context {
     }
     
     @Override
-    public List<BatchedOutgoingMessage> viewOutgoingMessages() {
+    public List<BatchedOutgoingMessage> viewOuts() {
         return Collections.unmodifiableList(outgoingMessages);
     }
     
@@ -155,38 +155,38 @@ public final class SourceContext implements Context {
         return new Context() {
 
             @Override
-            public void addOutgoingMessage(Address sourceId, Address destination, Object message) {
-                SourceContext.this.addOutgoingMessage(sourceId, destination, message);
+            public void out(Address sourceId, Address destination, Object message) {
+                SourceContext.this.out(sourceId, destination, message);
             }
             
             @Override
-            public List<BatchedOutgoingMessage> viewOutgoingMessages() {
-                return SourceContext.this.viewOutgoingMessages();
+            public List<BatchedOutgoingMessage> viewOuts() {
+                return SourceContext.this.viewOuts();
             }
 
             @Override
-            public Address getDestination() {
-                return SourceContext.this.getDestination();
+            public Address destination() {
+                return SourceContext.this.destination();
             }
 
             @Override
-            public <T> T getIncomingMessage() {
-                return SourceContext.this.getIncomingMessage();
+            public <T> T in() {
+                return SourceContext.this.in();
             }
 
             @Override
-            public Address getSelf() {
-                return SourceContext.this.getSelf();
+            public Address self() {
+                return SourceContext.this.self();
             }
 
             @Override
-            public Address getSource() {
-                return SourceContext.this.getSource();
+            public Address source() {
+                return SourceContext.this.source();
             }
 
             @Override
-            public Instant getTime() {
-                return SourceContext.this.getTime();
+            public Instant time() {
+                return SourceContext.this.time();
             }
         };
     }

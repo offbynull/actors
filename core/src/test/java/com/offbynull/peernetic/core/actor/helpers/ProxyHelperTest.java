@@ -31,9 +31,9 @@ public class ProxyHelperTest {
 
     @Test
     public void mustProperlyForwardOutgoing() {
-        when(context.getSelf()).thenReturn(Address.of(PROXY_PREFIX));
-        when(context.getSource()).thenReturn(Address.of(SOURCE_PREFIX, "sourceid"));
-        when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX, DESTINATION_PREFIX, "destid"));
+        when(context.self()).thenReturn(Address.of(PROXY_PREFIX));
+        when(context.source()).thenReturn(Address.of(SOURCE_PREFIX, "sourceid"));
+        when(context.destination()).thenReturn(Address.of(PROXY_PREFIX, DESTINATION_PREFIX, "destid"));
         
         ForwardInformation forwardInfo = fixture.generateOutboundForwardInformation();
         
@@ -43,9 +43,9 @@ public class ProxyHelperTest {
 
     @Test
     public void mustProperlyForwardIncoming() {
-        when(context.getSelf()).thenReturn(Address.of(PROXY_PREFIX));
-        when(context.getSource()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
-        when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX, "sourceid"));
+        when(context.self()).thenReturn(Address.of(PROXY_PREFIX));
+        when(context.source()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
+        when(context.destination()).thenReturn(Address.of(PROXY_PREFIX, "sourceid"));
         
         ForwardInformation forwardInfo = fixture.generateInboundForwardInformation();
         
@@ -55,9 +55,9 @@ public class ProxyHelperTest {
 
     @Test
     public void mustFailIfOutboundMessageIsNotFromProxiedActor() {
-        when(context.getSelf()).thenReturn(Address.of(PROXY_PREFIX));
-        when(context.getSource()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
-        when(context.getDestination()).thenReturn(Address.of(PROXY_PREFIX + "sourceid"));
+        when(context.self()).thenReturn(Address.of(PROXY_PREFIX));
+        when(context.source()).thenReturn(Address.of(DESTINATION_PREFIX, "destid"));
+        when(context.destination()).thenReturn(Address.of(PROXY_PREFIX + "sourceid"));
         
         exception.expect(IllegalArgumentException.class);
         fixture.generateOutboundForwardInformation();

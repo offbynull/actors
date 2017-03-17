@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,8 +23,6 @@ import com.offbynull.peernetic.core.actor.SourceContext;
 import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
 import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.gateway.Gateway;
-import com.offbynull.peernetic.core.gateways.recorder.RecorderGateway;
-import com.offbynull.peernetic.core.gateways.recorder.ReplayerGateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
@@ -56,30 +54,30 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The downside to this is that you cannot interface with any {@link Gateway}s. The reason for this is that gateway implementations may
  * be executing code that blocks, which means that the logic used by this class to mock-out blocking/waiting no longer applies. Instead,
- * mock functionality is provided to replace {@link TimerGateway}, {@link RecorderGateway}, and {@link ReplayerGateway}. If your actor
- * relies on any other gateway implementations, you'll need to mock those out yourself as custom actor implementations.
+ * mock functionality is provided to replace {@link TimerGateway}. If your actor relies on any other gateway implementations, you'll need to
+ * mock those out yourself as custom actor implementations.
  * <p>
  * The following example creates a simulation environment with a coroutine actor that sends a delayed message to itself.
  * <pre>
  * Coroutine tester = (cnt) -&gt; {
- *     Context ctx = (Context) cnt.getContext();
- * 
- *     // Normally, actors shouldn't be logging to System.out or doing any other IO. They're here for demonstrative purposes.
- *     System.out.println("Sending out at " + ctx.getTime());
- *     String timerPrefix = ctx.getIncomingMessage();
- *     ctx.addOutgoingMessage(timerPrefix + ":2000", 0);
- *     cnt.suspend();
- *     System.out.println("Got response at " + ctx.getTime());
- * };
- * 
- * Simulator testHarness = new Simulator();
- * testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
- * testHarness.addActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
- * 
- * while (testHarness.hasMore()) {
- *     testHarness.process();
- * }
- * </pre>
+     Context ctx = (Context) cnt.getContext();
+ 
+     // Normally, actors shouldn't be logging to System.out or doing any other IO. They're here for demonstrative purposes.
+     System.out.println("Sending out at " + ctx.time());
+     String timerPrefix = ctx.in();
+     ctx.out(timerPrefix + ":2000", 0);
+     cnt.suspend();
+     System.out.println("Got response at " + ctx.time());
+ };
+ 
+ Simulator testHarness = new Simulator();
+ testHarness.addTimer("timer", 0L, Instant.ofEpochMilli(0L));
+ testHarness.addActor("local", tester, Duration.ZERO, Instant.ofEpochMilli(0L), "timer");
+ 
+ while (testHarness.hasMore()) {
+     testHarness.process();
+ }
+ </pre>
  * Other important things to note when running your actors in a simulation:
  * <ol>
  * <li><b>Actors are added in to the simulator as-is.</b> When running actors in a real environment, you would normally run those actors in
@@ -200,7 +198,7 @@ public final class Simulator {
     
     /**
      * Queue a message sink to be added to this simulation. A {@link MessageSink} can be used to write messages from the simulation to
-     * some external source (e.g. simulate a {@link RecorderGateway} -- see {@link RecordMessageSink}).
+     * some external source.
      * <p>
      * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
      * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
@@ -219,7 +217,7 @@ public final class Simulator {
 
     /**
      * Queue a message source to be added to this simulation. A {@link MessageSource} can be used to read messages in to the simulation from
-     * some external source (e.g. simulate a {@link ReplayerGateway} -- see {@link ReplayMessageSource}).
+     * some external source.
      * <p>
      * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
      * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives

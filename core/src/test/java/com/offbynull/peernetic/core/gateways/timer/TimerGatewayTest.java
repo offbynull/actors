@@ -18,13 +18,13 @@ public class TimerGatewayTest {
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
 
-            String timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(Address.of("fromid"), Address.of(timerPrefix, "2000", "extra"), "msg");
+            String timerPrefix = ctx.in();
+            ctx.out(Address.of("fromid"), Address.of(timerPrefix, "2000", "extra"), "msg");
             cnt.suspend();
             
-            queue.add(ctx.getSource().toString());
-            queue.add(ctx.getDestination().toString());
-            queue.add(ctx.getIncomingMessage());
+            queue.add(ctx.source().toString());
+            queue.add(ctx.destination().toString());
+            queue.add(ctx.in());
         };
 
         TimerGateway timerGateway = new TimerGateway("timer");

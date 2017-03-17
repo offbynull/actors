@@ -29,12 +29,12 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            Address dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.in();
 
             for (int i = 0; i < 3; i++) {
-                ctx.addOutgoingMessage(dstAddr, i);
+                ctx.out(dstAddr, i);
                 cnt.suspend();
-                result.add((Integer) ctx.getIncomingMessage());
+                result.add((Integer) ctx.in());
             }
         };
 
@@ -42,9 +42,9 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                Address src = ctx.getSource();
-                Object msg = ctx.getIncomingMessage();
-                ctx.addOutgoingMessage(src, msg);
+                Address src = ctx.source();
+                Object msg = ctx.in();
+                ctx.out(src, msg);
                 cnt.suspend();
             }
         };
@@ -66,24 +66,24 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            Address dstAddr = ctx.getIncomingMessage();
+            Address dstAddr = ctx.in();
 
-            ctx.addOutgoingMessage(dstAddr, 0);
-            ctx.addOutgoingMessage(dstAddr, 1);
-            ctx.addOutgoingMessage(dstAddr, 2);
-            ctx.addOutgoingMessage(Address.fromString("timer:2000"), new Object());
-            ctx.addOutgoingMessage(dstAddr, 100);
-            ctx.addOutgoingMessage(dstAddr, 101);
-            ctx.addOutgoingMessage(dstAddr, 102);
+            ctx.out(dstAddr, 0);
+            ctx.out(dstAddr, 1);
+            ctx.out(dstAddr, 2);
+            ctx.out(Address.fromString("timer:2000"), new Object());
+            ctx.out(dstAddr, 100);
+            ctx.out(dstAddr, 101);
+            ctx.out(dstAddr, 102);
 
             for (int i = 0; i < 3; i++) {
                 cnt.suspend();
-                result.add((Integer) ctx.getIncomingMessage());
+                result.add((Integer) ctx.in());
             }
             
             for (int i = 0; i < 3; i++) {
                 cnt.suspend();
-                result.add((Integer) ctx.getIncomingMessage());
+                result.add((Integer) ctx.in());
             }
             
             cnt.suspend(); // wait for timer msg in 2 scs before stoping
@@ -93,9 +93,9 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                Address src = ctx.getSource();
-                Object msg = ctx.getIncomingMessage();
-                ctx.addOutgoingMessage(src, msg);
+                Address src = ctx.source();
+                Object msg = ctx.in();
+                ctx.out(src, msg);
                 cnt.suspend();
             }
         };
@@ -120,14 +120,14 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            Address dstAddr = ctx.getIncomingMessage();
-            senderTimes.add(ctx.getTime());
+            Address dstAddr = ctx.in();
+            senderTimes.add(ctx.time());
 
             for (int i = 0; i < 3; i++) {
-                ctx.addOutgoingMessage(dstAddr, i);
+                ctx.out(dstAddr, i);
                 cnt.suspend();
-                result.add((Integer) ctx.getIncomingMessage());
-                senderTimes.add(ctx.getTime());
+                result.add((Integer) ctx.in());
+                senderTimes.add(ctx.time());
             }
         };
 
@@ -135,10 +135,10 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                Address src = ctx.getSource();
-                Object msg = ctx.getIncomingMessage();
-                echoerTimes.add(ctx.getTime());
-                ctx.addOutgoingMessage(src, msg);
+                Address src = ctx.source();
+                Object msg = ctx.in();
+                echoerTimes.add(ctx.time());
+                ctx.out(src, msg);
                 cnt.suspend();
             }
         };
@@ -164,14 +164,14 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            Address dstAddr = ctx.getIncomingMessage();
-            senderTimes.add(ctx.getTime());
+            Address dstAddr = ctx.in();
+            senderTimes.add(ctx.time());
 
             for (int i = 0; i < 3; i++) {
-                ctx.addOutgoingMessage(dstAddr, i);
+                ctx.out(dstAddr, i);
                 cnt.suspend();
-                result.add((Integer) ctx.getIncomingMessage());
-                senderTimes.add(ctx.getTime());
+                result.add((Integer) ctx.in());
+                senderTimes.add(ctx.time());
             }
         };
 
@@ -179,10 +179,10 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                Address src = ctx.getSource();
-                Object msg = ctx.getIncomingMessage();
-                echoerTimes.add(ctx.getTime());
-                ctx.addOutgoingMessage(src, msg);
+                Address src = ctx.source();
+                Object msg = ctx.in();
+                echoerTimes.add(ctx.time());
+                ctx.out(src, msg);
                 cnt.suspend();
             }
         };
@@ -223,14 +223,14 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            Address dstAddr = ctx.getIncomingMessage();
-            senderTimes.add(ctx.getTime());
+            Address dstAddr = ctx.in();
+            senderTimes.add(ctx.time());
 
             for (int i = 0; i < 3; i++) {
-                ctx.addOutgoingMessage(dstAddr, i);
+                ctx.out(dstAddr, i);
                 cnt.suspend();
-                result.add((Integer) ctx.getIncomingMessage());
-                senderTimes.add(ctx.getTime());
+                result.add((Integer) ctx.in());
+                senderTimes.add(ctx.time());
             }
         };
 
@@ -238,10 +238,10 @@ public class SimulatorTest {
             Context ctx = (Context) cnt.getContext();
 
             while (true) {
-                Address src = ctx.getSource();
-                Object msg = ctx.getIncomingMessage();
-                echoerTimes.add(ctx.getTime());
-                ctx.addOutgoingMessage(src, msg);
+                Address src = ctx.source();
+                Object msg = ctx.in();
+                echoerTimes.add(ctx.time());
+                ctx.out(src, msg);
                 cnt.suspend();
             }
         };
@@ -284,15 +284,15 @@ public class SimulatorTest {
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
 
-            result.add(ctx.getIncomingMessage());
-            times.add(ctx.getTime());
+            result.add(ctx.in());
+            times.add(ctx.time());
 
-            Address timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix.appendSuffix("2000"), 0);
+            Address timerPrefix = ctx.in();
+            ctx.out(timerPrefix.appendSuffix("2000"), 0);
             cnt.suspend();
 
-            result.add(ctx.getIncomingMessage());
-            times.add(ctx.getTime());
+            result.add(ctx.in());
+            times.add(ctx.time());
         };
 
         Simulator fixture = new Simulator();
@@ -319,15 +319,15 @@ public class SimulatorTest {
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
 
-            result.add(ctx.getIncomingMessage());
-            times.add(ctx.getTime());
+            result.add(ctx.in());
+            times.add(ctx.time());
 
-            Address timerPrefix = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(timerPrefix.appendSuffix("2000"), 0);
+            Address timerPrefix = ctx.in();
+            ctx.out(timerPrefix.appendSuffix("2000"), 0);
             cnt.suspend();
 
-            result.add(ctx.getIncomingMessage());
-            times.add(ctx.getTime());
+            result.add(ctx.in());
+            times.add(ctx.time());
         };
 
         Simulator fixture = new Simulator(
@@ -347,94 +347,6 @@ public class SimulatorTest {
                         Instant.ofEpochSecond(4L)
                 ),
                 times);
-    }
-
-    @Test
-    public void mustRecordAndReplayMessagesWithTimeOffsetAndActorDelay() throws Exception {
-        File recordFile = File.createTempFile(getClass().getSimpleName(), ".data");
-        recordFile.deleteOnExit();
-
-        // recording echo
-        {
-            Coroutine sender = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-                Address dstAddr = ctx.getIncomingMessage();
-
-                for (int i = 0; i < 3; i++) {
-                    ctx.addOutgoingMessage(dstAddr, i);
-                    cnt.suspend();
-                }
-            };
-
-            Coroutine echoer = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-
-                while (true) {
-                    Address src = ctx.getSource();
-                    Object msg = ctx.getIncomingMessage();
-                    ctx.addOutgoingMessage(src, msg);
-                    cnt.suspend();
-                }
-            };
-
-            try (MessageSink sink = new RecordMessageSink("echoer", recordFile, new SimpleSerializer())) {
-                Simulator simulator = new Simulator(
-                        Instant.ofEpochSecond(10L),
-                        (src, dst, msg, realDuration) -> Duration.ofSeconds(2L));
-                simulator.addTimer("timer", Instant.ofEpochSecond(10L));
-                simulator.addMessageSink(sink, Instant.ofEpochSecond(10L));
-                simulator.addActor("sender", sender, Duration.ofSeconds(5L), Instant.ofEpochSecond(10L), Address.fromString("echoer"));
-                simulator.addActor("echoer", echoer, Duration.ofSeconds(10L), Instant.ofEpochSecond(10L));
-
-                while (simulator.hasMore()) {
-                    simulator.process();
-                }
-            }
-        }
-
-        // replaying recording of echo
-        {
-            List<Integer> result = new ArrayList<>();
-            List<Instant> echoerTimes = new ArrayList<>();
-
-            Coroutine echoer = (cnt) -> {
-                Context ctx = (Context) cnt.getContext();
-
-                while (true) {
-                    Address src = ctx.getSource();
-                    Object msg = ctx.getIncomingMessage();
-                    ctx.addOutgoingMessage(src, msg);
-                    result.add((Integer) ctx.getIncomingMessage());
-                    echoerTimes.add(ctx.getTime());
-                    cnt.suspend();
-                }
-            };
-
-            try (MessageSource source = new ReplayMessageSource("echoer", recordFile, new SimpleSerializer())) {
-                Simulator simulator = new Simulator(
-                        Instant.ofEpochMilli(0L),
-                        (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-                simulator.addTimer("timer", Instant.ofEpochMilli(0L));
-                simulator.addActor("echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L));
-                simulator.addMessageSource(source, Instant.ofEpochMilli(0L)); // add the msg source after the priming msg
-
-                while (simulator.hasMore()) {
-                    simulator.process();
-                }
-            }
-
-            // Note that this simulator was just replaying events with the durations it reads out. If the actor that processes these
-            // replayed messages delays (as this simulator was set to do), or the messages coming from the source delay (as this test
-            // simulator was also set to do), the simulator should properly account for this (the assertions below checks that it does)
-            assertEquals(Arrays.asList(0, 1, 2), result);
-            assertEquals(
-                    Arrays.asList(
-                            Instant.ofEpochSecond(1L),
-                            Instant.ofEpochSecond(2L),
-                            Instant.ofEpochSecond(5L)
-                    ),
-                    echoerTimes);
-        }
     }
 
     @Test
@@ -467,7 +379,7 @@ public class SimulatorTest {
     public void mustNotSendTimerMessageIfTimerWasRemovedAndReadded() {
         MutableBoolean failCalled = new MutableBoolean();
         Coroutine triggerTimerActor = (cnt) -> {
-            ((Context) cnt.getContext()).addOutgoingMessage(Address.of("timer", "5000"), "failmsg");
+            ((Context) cnt.getContext()).out(Address.of("timer", "5000"), "failmsg");
             while (true) {
                 cnt.suspend();
             }

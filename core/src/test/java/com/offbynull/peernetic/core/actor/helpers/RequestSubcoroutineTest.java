@@ -26,9 +26,9 @@ public class RequestSubcoroutineTest {
         testHarness.addTimer("timer", Instant.ofEpochMilli(0L));
         testHarness.addActor("rcvr", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            srcAddresses.add(ctx.getSource().toString());
-            dstAddresses.add(ctx.getDestination().toString());
-            recvdItems.add(ctx.getIncomingMessage());
+            srcAddresses.add(ctx.source().toString());
+            dstAddresses.add(ctx.destination().toString());
+            recvdItems.add(ctx.in());
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
         testHarness.addActor("test", (Continuation cnt) -> {
             RequestSubcoroutine<String> fixture = new RequestSubcoroutine.Builder<String>()
@@ -63,9 +63,9 @@ public class RequestSubcoroutineTest {
         testHarness.addActor("rcvr", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {
-                srcAddresses.add(ctx.getSource().toString());
-                dstAddresses.add(ctx.getDestination().toString());
-                recvdItems.add(ctx.getIncomingMessage());
+                srcAddresses.add(ctx.source().toString());
+                dstAddresses.add(ctx.destination().toString());
+                recvdItems.add(ctx.in());
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
@@ -101,11 +101,11 @@ public class RequestSubcoroutineTest {
         testHarness.addActor("rcvr", (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
             while (true) {
-                srcAddresses.add(ctx.getSource().toString());
-                dstAddresses.add(ctx.getDestination().toString());
-                recvdItems.add(ctx.getIncomingMessage());
+                srcAddresses.add(ctx.source().toString());
+                dstAddresses.add(ctx.destination().toString());
+                recvdItems.add(ctx.in());
                 
-                ctx.addOutgoingMessage(ctx.getSource(), "resp");
+                ctx.out(ctx.source(), "resp");
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));

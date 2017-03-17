@@ -25,7 +25,7 @@ public class MultiRequestSubcoroutineTest {
         testHarness.addActor("rcvr0", (Continuation cnt) -> { // ignore first 0 msgs
             Context ctx = (Context) cnt.getContext();
             while (true) {
-                ctx.addOutgoingMessage(ctx.getSource(), "resp0");
+                ctx.out(ctx.source(), "resp0");
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
@@ -33,7 +33,7 @@ public class MultiRequestSubcoroutineTest {
             Context ctx = (Context) cnt.getContext();
             cnt.suspend();
             while (true) {
-                ctx.addOutgoingMessage(ctx.getSource(), "resp1");
+                ctx.out(ctx.source(), "resp1");
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));
@@ -42,7 +42,7 @@ public class MultiRequestSubcoroutineTest {
             cnt.suspend();
             cnt.suspend();
             while (true) {
-                ctx.addOutgoingMessage(ctx.getSource(), "resp2");
+                ctx.out(ctx.source(), "resp2");
                 cnt.suspend();
             }
         }, Duration.ZERO, Instant.ofEpochMilli(0L));

@@ -14,9 +14,9 @@ public class DirectGatewayTest {
         Coroutine echoerActor = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
             
-            Address sender = ctx.getSource();
-            Object msg = ctx.getIncomingMessage();
-            ctx.addOutgoingMessage(sender, msg);
+            Address sender = ctx.source();
+            Object msg = ctx.in();
+            ctx.out(sender, msg);
         };
 
         ActorRunner actorRunner = new ActorRunner("actors");

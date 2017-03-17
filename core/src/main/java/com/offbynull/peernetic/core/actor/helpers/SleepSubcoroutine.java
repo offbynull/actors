@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -55,14 +55,14 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
         
         Object timeoutMarker = new Object();
         
-        ctx.addOutgoingMessage(sourceAddress,
+        ctx.out(sourceAddress,
                 timerAddress.appendSuffix("" + timeoutDuration.toMillis()),
                 timeoutMarker);
         
         Object incomingMessage;
         do {
             cnt.suspend();
-            incomingMessage = ctx.getIncomingMessage();
+            incomingMessage = ctx.in();
         } while (incomingMessage != timeoutMarker);
         
         return null;
@@ -83,7 +83,7 @@ public final class SleepSubcoroutine implements Subcoroutine<Void> {
 
         /**
          * Set the source address. The address set by this method must be relative to the calling actor's self address (relative to
-         * {@link Context#getSelf()}). Defaults to {@code null}.
+         * {@link Context#self()}). Defaults to {@code null}.
          * @param sourceAddress relative source address
          * @return this builder
          */

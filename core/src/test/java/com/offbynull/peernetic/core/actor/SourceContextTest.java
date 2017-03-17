@@ -20,11 +20,11 @@ public class SourceContextTest {
 
     @Test
     public void mustQueueUpOutgoingMessages() {
-        List<BatchedOutgoingMessage> outgoingMsgsView = fixture.viewOutgoingMessages();
+        List<BatchedOutgoingMessage> outgoingMsgsView = fixture.viewOuts();
         
-        fixture.addOutgoingMessage(Address.fromString("test1"), "1");
-        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test2"), "2");
-        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test3"), "3");
+        fixture.out(Address.fromString("test1"), "1");
+        fixture.out(Address.fromString("src"), Address.fromString("test2"), "2");
+        fixture.out(Address.fromString("src"), Address.fromString("test3"), "3");
         
         assertEquals(3, outgoingMsgsView.size());
         
@@ -43,14 +43,14 @@ public class SourceContextTest {
 
     @Test
     public void mustDrainOutgoingMessages() {
-        fixture.addOutgoingMessage(Address.fromString("test1"), "1");
-        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test2"), "2");
-        fixture.addOutgoingMessage(Address.fromString("src"), Address.fromString("test3"), "3");
+        fixture.out(Address.fromString("test1"), "1");
+        fixture.out(Address.fromString("src"), Address.fromString("test2"), "2");
+        fixture.out(Address.fromString("src"), Address.fromString("test3"), "3");
         
         List<BatchedOutgoingMessage> outgoingMsgs = fixture.copyAndClearOutgoingMessages();
         
         assertTrue(fixture.copyAndClearOutgoingMessages().isEmpty());
-        assertTrue(fixture.viewOutgoingMessages().isEmpty());
+        assertTrue(fixture.viewOuts().isEmpty());
         
         assertEquals(3, outgoingMsgs.size());
         
@@ -69,7 +69,7 @@ public class SourceContextTest {
 
     @Test
     public void mustConvertToNormalContext() {
-        fixture.addOutgoingMessage(Address.fromString("test1"), "1");
+        fixture.out(Address.fromString("test1"), "1");
         fixture.setDestination(Address.of("dest"));
         fixture.setIncomingMessage(Address.of("msg"));
         fixture.setSource(Address.of("src"));
@@ -78,17 +78,17 @@ public class SourceContextTest {
         
         Context normalContext = fixture.toNormalContext();
         
-        List<BatchedOutgoingMessage> outgoingMsgsView = normalContext.viewOutgoingMessages();
+        List<BatchedOutgoingMessage> outgoingMsgsView = normalContext.viewOuts();
         assertEquals(1, outgoingMsgsView.size());
         assertEquals(Address.of(), outgoingMsgsView.get(0).getSource());
         assertEquals(Address.of("test1"), outgoingMsgsView.get(0).getDestination());
         assertEquals("1", outgoingMsgsView.get(0).getMessage());
         
-        assertEquals(Address.of("dest"), normalContext.getDestination());
-        assertEquals(Address.of("msg"), normalContext.getIncomingMessage());
-        assertEquals(Address.of("src"), normalContext.getSource());
-        assertEquals(Address.of("self"), normalContext.getSelf());
-        assertEquals(Instant.MIN, normalContext.getTime());
+        assertEquals(Address.of("dest"), normalContext.destination());
+        assertEquals(Address.of("msg"), normalContext.in());
+        assertEquals(Address.of("src"), normalContext.source());
+        assertEquals(Address.of("self"), normalContext.self());
+        assertEquals(Instant.MIN, normalContext.time());
     }
     
 }

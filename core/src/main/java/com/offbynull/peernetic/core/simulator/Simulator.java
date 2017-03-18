@@ -828,12 +828,11 @@ public final class Simulator {
         // added to it as well.
         List<BatchedOutgoingMessage> batchedOutMsgs = context.copyAndClearOutgoingMessages();
         for (BatchedOutgoingMessage batchedOutMsg : batchedOutMsgs) {
-            Address outSrc = address;
-            Address outSrcId = batchedOutMsg.getSource();
-            if (outSrcId != null) {
-                outSrc = outSrc.appendSuffix(outSrcId);
-            }
-            queueMessageFromActorOrGateway(outSrc, batchedOutMsg.getDestination(), batchedOutMsg.getMessage(), execDuration);
+            queueMessageFromActorOrGateway(
+                    batchedOutMsg.getSource(),
+                    batchedOutMsg.getDestination(),
+                    batchedOutMsg.getMessage(),
+                    execDuration);
         }
 
         // Go through any messages queued to arrive at this actor before earliest possible onstep time. Reschedule each of those messages

@@ -37,24 +37,23 @@ import java.util.List;
 public interface Context {
     
     /**
-     * Equivalent to calling {@code out(Address.EMPTY, destination, message)}. 
+     * Equivalent to calling {@code out(self(), destination, message)}. 
      * @param destination destination address
      * @param message outgoing message
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code destination} is empty
      */
     default void out(Address destination, Object message) {
-        out(Address.EMPTY, destination, message);
+        out(self(), destination, message);
     }
 
     /**
      * Queue up an outgoing message.
-     * @param source source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param destination destination address
      * @param message outgoing message
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code destination} is empty
+     * @throws IllegalArgumentException if {@code destination} is empty, or if {@code source} doesn't start with {@link #self()}
      */
     void out(Address source, Address destination, Object message);
     
@@ -98,78 +97,78 @@ public interface Context {
     /**
      * Sends a timer request to the timer gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_TIMER_ADDRESS}.
-     * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param delay delay in milliseconds
      * @param message message to have the timer reflect back after {@code delay}
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void timer(Address from, long delay, Object message) {
-        out(from, DEFAULT_TIMER_ADDRESS.appendSuffix(Long.toString(delay)), message);
+    default void timer(Address source, long delay, Object message) {
+        out(source, DEFAULT_TIMER_ADDRESS.appendSuffix(Long.toString(delay)), message);
     }
 
     /**
      * Sends a error message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logError(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_ADDRESS, LogMessage.error(message, arguments));
+    default void logError(Address source, String message, Object... arguments) {
+        out(source, DEFAULT_LOG_ADDRESS, LogMessage.error(message, arguments));
     }
 
     /**
      * Sends a warn message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logWarn(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_ADDRESS, LogMessage.warn(message, arguments));
+    default void logWarn(Address source, String message, Object... arguments) {
+        out(source, DEFAULT_LOG_ADDRESS, LogMessage.warn(message, arguments));
     }
     
     /**
      * Sends a info message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logInfo(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_ADDRESS, LogMessage.info(message, arguments));
+    default void logInfo(Address source, String message, Object... arguments) {
+        out(source, DEFAULT_LOG_ADDRESS, LogMessage.info(message, arguments));
     }
     
     /**
      * Sends a debug message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logDebug(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_ADDRESS, LogMessage.debug(message, arguments));
+    default void logDebug(Address source, String message, Object... arguments) {
+        out(source, DEFAULT_LOG_ADDRESS, LogMessage.debug(message, arguments));
     }
     
     /**
      * Sends a trace message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
-     * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
+     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logTrace(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));
+    default void logTrace(Address source, String message, Object... arguments) {
+        out(source, DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));
     }
 }

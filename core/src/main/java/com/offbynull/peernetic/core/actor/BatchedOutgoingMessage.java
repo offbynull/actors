@@ -39,8 +39,8 @@ public final class BatchedOutgoingMessage {
     }
 
     /**
-     * Source address of the outgoing message, relative to the actor which this message is from.
-     * @return relative source address
+     * Source address of the outgoing message.
+     * @return source address
      */
     public Address getSource() {
         return source;

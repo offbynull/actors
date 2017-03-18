@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  */
 
 /**
- * Provides common code and helpers for {@link com.offbynull.peernetic.core.actor.Actor} implementations.
+ * Provides common code and helpers for actor implementations.
  * 
  * @author Kasra Faghihi
  */

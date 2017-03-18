@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.core.shuttle;
 
-import com.offbynull.peernetic.core.gateway.Gateway;
 import java.util.Collection;
 
 /**

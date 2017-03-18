@@ -18,7 +18,7 @@ public class ActorRunnerTest {
 
     @Before
     public void setUp() {
-        fixture = new ActorRunner("local");
+        fixture = ActorRunner.create("local");
     }
 
     @After
@@ -54,7 +54,7 @@ public class ActorRunnerTest {
 
     @Test
     public void mustCommunicateBetweenActorsWithinDifferentActorRunners() throws Exception {
-        try (ActorRunner secondaryActorRunner = new ActorRunner("local2")) {
+        try (ActorRunner secondaryActorRunner = ActorRunner.create("local2")) {
             // Wire together
             fixture.addOutgoingShuttle(secondaryActorRunner.getIncomingShuttle());
             secondaryActorRunner.addOutgoingShuttle(fixture.getIncomingShuttle());

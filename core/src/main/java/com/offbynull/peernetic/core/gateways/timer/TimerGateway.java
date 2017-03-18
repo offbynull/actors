@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.timer;
 
+import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_TIMER;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
@@ -61,13 +62,28 @@ public final class TimerGateway implements InputGateway, OutputGateway {
     private final Bus bus;
     
     private final SimpleShuttle shuttle;
+    
+    /**
+     * Create a {@link TimerGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_TIMER)}.
+     * @return new direct gateway
+     */
+    public static TimerGateway create() {
+        return create(DEFAULT_TIMER);
+    }
 
     /**
-     * Constructs a {@link TimerGateway} instance.
+     * Create a {@link TimerGateway} instance.
      * @param prefix address prefix for this gateway
+     * @return new direct gateway
      * @throws NullPointerException if any argument is {@code null}
      */
-    public TimerGateway(String prefix) {
+    public static TimerGateway create(String prefix) {
+        TimerGateway gateway = new TimerGateway(prefix);
+        gateway.thread.start();
+        return gateway;
+    }
+    
+    private TimerGateway(String prefix) {
         Validate.notNull(prefix);
 
         bus = new Bus();
@@ -75,7 +91,6 @@ public final class TimerGateway implements InputGateway, OutputGateway {
         thread = new Thread(new TimerRunnable(bus));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
-        thread.start();
     }
 
     @Override

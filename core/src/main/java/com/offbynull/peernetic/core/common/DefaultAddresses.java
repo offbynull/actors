@@ -35,6 +35,11 @@ public final class DefaultAddresses {
     public static final String DEFAULT_TIMER = "timer";
     
     /**
+     * Default address to direct gateway as String.
+     */
+    public static final String DEFAULT_GATEWAY = "gateway";
+    
+    /**
      * Default address to log gateway.
      */
     public static final Address DEFAULT_LOG_ADDRESS = Address.of(DEFAULT_LOG);
@@ -43,6 +48,11 @@ public final class DefaultAddresses {
      * Default address to timer gateway.
      */
     public static final Address DEFAULT_TIMER_ADDRESS = Address.of(DEFAULT_TIMER);
+
+    /**
+     * Default address to gateway gateway.
+     */
+    public static final Address DEFAULT_GATEWAY_ADDRESS = Address.of(DEFAULT_GATEWAY);
 
     private DefaultAddresses() {
         // do nothing

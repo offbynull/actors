@@ -30,10 +30,10 @@ public class TimerGatewayTest {
             queue.add(ctx.in());
         };
 
-        TimerGateway timerGateway = new TimerGateway("timer");
+        TimerGateway timerGateway = TimerGateway.create("timer");
         Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
 
-        ActorRunner testerRunner = new ActorRunner("local");
+        ActorRunner testerRunner = ActorRunner.create("local");
         Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
 
         testerRunner.addOutgoingShuttle(timerInputShuttle);

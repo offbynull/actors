@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.direct;
 
+import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_GATEWAY;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
@@ -24,7 +25,6 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,7 +46,7 @@ import org.apache.commons.lang3.Validate;
  * };
  * 
  * ActorRunner actorRunner = new ActorRunner("actors");
- * DirectGateway directGateway = new DirectGateway("direct");
+ * DirectGateway directGateway = DirectGateway.create("direct");
  * 
  * directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
  * actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
@@ -75,12 +75,26 @@ public final class DirectGateway implements InputGateway, OutputGateway {
     private final SimpleShuttle shuttle;
 
     /**
-     * Constructs a {@link DirectGateway} instance.
-     * @param prefix address prefix for this gateway
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalStateException if failed to initialize the underlying {@link SecureRandom} object used for message ids
+     * Create a {@link DirectGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_GATEWAY)}.
+     * @return new direct gateway
      */
-    public DirectGateway(String prefix) {
+    public static DirectGateway create() {
+        return create(DEFAULT_GATEWAY);
+    }
+
+    /**
+     * Create a {@link DirectGateway} instance.
+     * @param prefix address prefix for this gateway
+     * @return new direct gateway
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static DirectGateway create(String prefix) {
+        DirectGateway gateway = new DirectGateway(prefix);
+        gateway.thread.start();
+        return gateway;
+    }
+
+    private DirectGateway(String prefix) {
         Validate.notNull(prefix);
         
         bus = new Bus();
@@ -89,7 +103,6 @@ public final class DirectGateway implements InputGateway, OutputGateway {
         thread = new Thread(new DirectRunnable(bus, readQueue));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
-        thread.start();
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.gateways.log;
 
+import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_LOG;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
@@ -36,7 +37,7 @@ import org.apache.commons.lang3.Validate;
  *     cnt.suspend();
  * };
  * 
- * LogGateway logger = new LogGateway("logger");
+ * LogGateway logger = LogGateway.create("logger");
  * Shuttle logInputShuttle = logGateway.getIncomingShuttle();
  * 
  * ActorRunner testerRunner = ActorRunner.create("local");
@@ -56,11 +57,26 @@ public final class LogGateway implements InputGateway {
     private final SimpleShuttle shuttle;
 
     /**
-     * Constructs a {@link LogGateway} instance.
+     * Create a {@link LogGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_LOG)}.
+     * @return new direct gateway
+     */
+    public static LogGateway create() {
+        return create(DEFAULT_LOG);
+    }
+
+    /**
+     * Create a {@link LogGateway} instance.
      * @param prefix address prefix for this gateway
+     * @return new direct gateway
      * @throws NullPointerException if any argument is {@code null}
      */
-    public LogGateway(String prefix) {
+    public static LogGateway create(String prefix) {
+        LogGateway gateway = new LogGateway(prefix);
+        gateway.thread.start();
+        return gateway;
+    }
+
+    private LogGateway(String prefix) {
         Validate.notNull(prefix);
 
         bus = new Bus();
@@ -68,7 +84,6 @@ public final class LogGateway implements InputGateway {
         thread = new Thread(new LogRunnable(bus));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
-        thread.start();
     }
 
     @Override

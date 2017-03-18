@@ -19,8 +19,8 @@ public class DirectGatewayTest {
             ctx.out(sender, msg);
         };
 
-        ActorRunner actorRunner = new ActorRunner("actors");
-        DirectGateway directGateway = new DirectGateway("direct");
+        ActorRunner actorRunner = ActorRunner.create("actors");
+        DirectGateway directGateway = DirectGateway.create("direct");
 
         directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
         actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());

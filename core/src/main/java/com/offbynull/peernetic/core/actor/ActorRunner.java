@@ -69,25 +69,32 @@ public final class ActorRunner implements AutoCloseable {
     private final String prefix;
     private final ActorThread[] threads;
     private final RunnerShuttle shuttle;
-    
+
     /**
-     * Constructs a new {@link ActorRunner} object with the number of threads set to the number of processors available on the system.
-     * Equivalent to calling {@code new ActorRunner(prefix, Runtime.getRuntime().availableProcessors())}.
+     * Create an {@link ActorRunner} instance. with the number of threads set to the number of processors available on the system.
+     * Equivalent to calling {@code ActorRunner.create(prefix, Runtime.getRuntime().availableProcessors())}.
      * @param prefix address prefix to use for actors that get added to this runner
      * @throws NullPointerException if any argument is {@code null}
+     * @return new actor runner
      */
-    public ActorRunner(String prefix) {
-        this(prefix, Runtime.getRuntime().availableProcessors());
+    public static ActorRunner create(String prefix) {
+        return new ActorRunner(prefix, Runtime.getRuntime().availableProcessors());
     }
 
     /**
-     * Constructs a new {@link ActorRunner} object.
+     * Create an {@link ActorRunner} instance. with the number of threads set to the number of processors available on the system.
+     * Equivalent to calling {@code ActorRunner.create(prefix, Runtime.getRuntime().availableProcessors())}.
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code threadCount < 1}
+     * @return new actor runner
      */
-    public ActorRunner(String prefix, int threadCount) {
+    public static ActorRunner create(String prefix, int threadCount) {
+        return new ActorRunner(prefix, Runtime.getRuntime().availableProcessors());
+    }
+    
+    private ActorRunner(String prefix, int threadCount) {
         Validate.notNull(prefix);
         Validate.isTrue(threadCount > 0);
         

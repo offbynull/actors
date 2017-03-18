@@ -17,11 +17,10 @@
 package com.offbynull.peernetic.core.simulator;
 
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.SourceContext;
 import com.offbynull.peernetic.core.actor.BatchedOutgoingMessage;
-import com.offbynull.peernetic.core.actor.CoroutineActor;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -46,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A simulation environment for {@link Actor}s.
+ * A simulation environment for actors.
  * <p>
  * The main benefit to testing your actors using this class versus using {@link ActorRunner} is that this class is designed to run actors
  * "faster than real-time". That is, most actors tend to spend a majority of their time waiting for messages to arrive. This class exploits
@@ -271,26 +270,6 @@ public final class Simulator {
     }
 
     /**
-     * Queue a coroutine actor to be added to this simulation. Equivalent to calling
-     * {@code addActor(address, new CoroutineActor(coroutine), timeOffset, when, primingMessages)}.
-     * <p>
-     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
-     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
-     * at the event added by this call.
-     * @param address address of this actor
-     * @param coroutine coroutine actor being added
-     * @param timeOffset time offset of this actor
-     * @param when time in simulation environment when event should take place
-     * @param primingMessages messages to pass in to {@code actor} for priming
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code when} is before this simulator's current time, or {@code timeOffset} is negative
-     */
-    public void addActor(String address, Coroutine coroutine, Duration timeOffset, Instant when, Object... primingMessages) {
-        Validate.notNull(coroutine);
-        addActor(address, new CoroutineActor(coroutine), timeOffset, when, primingMessages);
-    }
-
-    /**
      * Queue an actor to be added to this simulation. An actor can have a time offset associated with it, meaning that the time passed in to
      * the actor by this simulator can be offset by some amount. The offset is used to simulate actors running on remote systems -- the
      * clocks on two systems are likely to be slightly out of sync, even though they're incrementing at the same rate.
@@ -306,7 +285,7 @@ public final class Simulator {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code when} is before this simulator's current time, or {@code timeOffset} is negative
      */
-    public void addActor(String address, Actor actor, Duration timeOffset, Instant when, Object... primingMessages) {
+    public void addActor(String address, Coroutine actor, Duration timeOffset, Instant when, Object... primingMessages) {
         Validate.notNull(address);
         Validate.notNull(actor);
         Validate.notNull(timeOffset);
@@ -446,14 +425,16 @@ public final class Simulator {
         AddActorEvent joinEvent = (AddActorEvent) event;
 
         String address = joinEvent.getAddress();
-        Actor actor = joinEvent.getActor();
+        Coroutine actor = joinEvent.getActor();
         Duration timeOffset = joinEvent.getTimeOffset();
         UnmodifiableList<Object> primingMessages = joinEvent.getPrimingMessages();
         Address addressObj = Address.of(address);
         
+        CoroutineRunner actorRunner = new CoroutineRunner(actor);
+        
         validateAddressDoesNotConflict(addressObj);
 
-        ActorHolder newHolder = new ActorHolder(addressObj, actor, timeOffset, currentTime);
+        ActorHolder newHolder = new ActorHolder(addressObj, actorRunner, timeOffset, currentTime);
         holders.put(addressObj, newHolder); // won't overwrite because validateAddresDoesNotConflict above will throw exception if it does
 
         for (Object message : primingMessages) {
@@ -792,7 +773,7 @@ public final class Simulator {
         // Set up values for calling onStep, and then call onStep. If onStep throws an exception, then log and remove the actor from the
         // test harness. In the real world, if an actor throws an exception, it'll get removed from the list of actors assigned to that
         // ActorRunner/ActorRunnable and no more execution is done on it.
-        Actor actor = destHolder.getActor();
+        CoroutineRunner actorRunner = destHolder.getActorRunner();
         Address address = destHolder.getAddress();
         SourceContext context = destHolder.getContext();
         Instant localActorTime = currentTime.plus(destHolder.getTimeOffset()); // This is the time as it appears to the actor. Clocks
@@ -819,7 +800,8 @@ public final class Simulator {
         boolean stopped;
         Instant execStartTime = Instant.now();
         try {
-            stopped = !actor.onStep(context.toNormalContext());
+            actorRunner.setContext(context.toNormalContext());
+            stopped = !actorRunner.execute();
         } catch (Exception e) {
             LOG.warn("Actor " + destHolder.getAddress() + " threw an exception", e);
             stopped = true;

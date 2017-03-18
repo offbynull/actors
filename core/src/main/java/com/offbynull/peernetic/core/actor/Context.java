@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.core.actor;
 
-import com.offbynull.peernetic.core.common.DefaultAddresses;
 import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_LOG_ADDRESS;
 import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_TIMER_ADDRESS;
 import com.offbynull.peernetic.core.gateways.log.LogMessage;
@@ -25,7 +24,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Context of an {@link Actor}. An actor's context is passed in to an actor each time an incoming message arrives. It contains ...
+ * Context of an actor. An actor's context is passed in to an actor each time an incoming message arrives. It contains ...
  * <ul>
  * <li>address of the actor.</li>
  * <li>time which the actor was triggered.</li>
@@ -97,7 +96,8 @@ public interface Context {
     Instant time();
     
     /**
-     * Sends a timer request to the timer gateway located at address {@link DefaultAddresses#DEFAULT_TIMER_ADDRESS}.
+     * Sends a timer request to the timer gateway located at address
+     * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_TIMER_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param delay delay in milliseconds
@@ -109,7 +109,8 @@ public interface Context {
     }
 
     /**
-     * Sends a error message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
+     * Sends a error message to the log gateway located at address
+     * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -121,7 +122,8 @@ public interface Context {
     }
 
     /**
-     * Sends a warn message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
+     * Sends a warn message to the log gateway located at address
+     * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -133,7 +135,8 @@ public interface Context {
     }
     
     /**
-     * Sends a info message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
+     * Sends a info message to the log gateway located at address
+     * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -145,7 +148,8 @@ public interface Context {
     }
     
     /**
-     * Sends a debug message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
+     * Sends a debug message to the log gateway located at address
+     * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -157,7 +161,8 @@ public interface Context {
     }
     
     /**
-     * Sends a trace message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
+     * Sends a trace message to the log gateway located at address
+     * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)

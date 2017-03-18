@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.core.gateways.timer;
 
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
@@ -28,8 +27,8 @@ import org.apache.commons.lang3.Validate;
 /**
  * {@link Gateway} that accepts a message and echoes them back after a certain duration of time.
  * <p>
- * In the following example, the {@link Actor} called {@code tester} sends a message to the {@link TimerGateway} called {@code timer} and
- * requests that message be echo'd back to it after 2000 milliseconds.
+ * In the following example, the actor called {@code tester} sends a message to the {@link TimerGateway} called {@code timer} and requests
+ * that message be echo'd back to it after 2000 milliseconds.
  * <pre>
  * Coroutine tester = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();

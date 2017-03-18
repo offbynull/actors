@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.core.gateways.direct;
 
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
@@ -36,7 +35,7 @@ import org.apache.commons.lang3.Validate;
 /**
  * {@link Gateway} that allows you read and write messages using normal Java code.
  * <p>
- * In the following example, the {@link Actor} called {@code echoer} gets a message from {@link DirectGateway} and echoes it back.
+ * In the following example, the actor called {@code echoer} gets a message from {@link DirectGateway} and echoes it back.
  * <pre>
  * Coroutine echoer = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();

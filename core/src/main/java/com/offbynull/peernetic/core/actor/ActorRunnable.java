@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -232,22 +232,13 @@ final class ActorRunnable implements Runnable {
     Shuttle getIncomingShuttle() {
         return incomingShuttle;
     }
-    
-    void addActor(String id, Actor actor, Object ... primingMessages) {
-        Validate.notNull(id);
-        Validate.notNull(actor);
-        Validate.notNull(primingMessages);
-        Validate.noNullElements(primingMessages);
-        AddActor aam = new AddActor(id, actor, primingMessages);
-        bus.add(aam);
-    }
 
     void addActor(String id, Coroutine coroutine, Object ... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        AddActor aam = new AddActor(id, new CoroutineActor(coroutine), primingMessages);
+        AddActor aam = new AddActor(id, new Actor(coroutine), primingMessages);
         bus.add(aam);
     }
 

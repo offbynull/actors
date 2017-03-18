@@ -26,7 +26,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A source context is an implementation of {@link Context} that allows modification of properties that normally shouldn't be modifiable
- * (e.g. incomingMessage). Do not pass directly in to an {@link Actor}, instead use {@link #toNormalContext() }.
+ * (e.g. incomingMessage). Do not pass directly in to an actor, instead use {@link #toNormalContext() }.
  * 
  * @author Kasra Faghihi
  */
@@ -148,7 +148,7 @@ public final class SourceContext implements Context {
     
     /**
      * Wraps this context in a new {@link Context} such that the setters aren't exposed / are hidden from access. Use this when you have to
-     * pass this context to an {@link Actor}.
+     * pass this context to an actor.
      * @return a wrapped version of this context that disables
      */
     public Context toNormalContext() {

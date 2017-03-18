@@ -16,13 +16,12 @@
  */
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A helper class for {@link Actor}s that act as a proxy. Usage example:
+ * A helper class for actors that act as a proxy. Usage example:
  * <pre>
  Context ctx = (Context) cont.getContext();
 

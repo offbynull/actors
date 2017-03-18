@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,6 @@
  */
 package com.offbynull.peernetic.core.gateways.log;
 
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
@@ -27,8 +26,7 @@ import org.apache.commons.lang3.Validate;
 /**
  * {@link Gateway} that logs by piping messages to SLF4J.
  * <p>
- * In the following example, the {@link Actor} called {@code tester} sends an info log message to the {@link LogGateway} called
- * {@code logger}.
+ * In the following example, the actor called {@code tester} sends an info log message to the {@link LogGateway} called {@code logger}.
  * <pre>
  * Coroutine tester = (cnt) -&gt; {
  *     Context ctx = (Context) cnt.getContext();

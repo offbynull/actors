@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.actor.SourceContext;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
@@ -25,28 +25,28 @@ import org.apache.commons.lang3.Validate;
 
 final class ActorHolder implements Holder {
     private final Address address;
-    private final Actor actor;
+    private final CoroutineRunner actorRunner;
     private final Duration timeOffset;
     private final SourceContext context;
     
     private Instant earliestPossibleOnStepTime;
 
-    public ActorHolder(Address address, Actor actor, Duration timeOffset, Instant earliestPossibleOnStepTime) {
+    public ActorHolder(Address address, CoroutineRunner actorRunner, Duration timeOffset, Instant earliestPossibleOnStepTime) {
         Validate.notNull(address);
-        Validate.notNull(actor);
+        Validate.notNull(actorRunner);
         Validate.notNull(timeOffset);
         Validate.notNull(earliestPossibleOnStepTime);
         Validate.isTrue(!address.isEmpty());
         Validate.isTrue(!timeOffset.isNegative());
         this.address = address;
-        this.actor = actor;
+        this.actorRunner = actorRunner;
         this.timeOffset = timeOffset;
         this.context = new SourceContext();
         this.earliestPossibleOnStepTime = earliestPossibleOnStepTime;
     }
 
-    public Actor getActor() {
-        return actor;
+    public CoroutineRunner getActorRunner() {
+        return actorRunner;
     }
 
     public Duration getTimeOffset() {

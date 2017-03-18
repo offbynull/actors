@@ -16,13 +16,10 @@
  */
 package com.offbynull.peernetic.core.gateway;
 
-import com.offbynull.peernetic.core.actor.Actor;
-
 /**
- * A {@link Gateway}, like an {@link Actor}, communicates with other components through message-passing, but isn't
- * bound by any of the same rules as {@link Actor}s. Gateways are mainly used to interface with third-party components. As such, it's
- * perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise
- * block.
+ * A gateway, like an actor, communicates with other components through message-passing, but isn't bound by any of the same rules as
+ * actors. Gateways are mainly used to interface with third-party components. As such, it's perfectly acceptable for a gateway to expose
+ * internal state, share state, perform I/O, perform thread synchronization, or otherwise block.
  * 
  * For example, a gateway could ...
  * 

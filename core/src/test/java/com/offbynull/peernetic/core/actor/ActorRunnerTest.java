@@ -86,8 +86,8 @@ public class ActorRunnerTest {
     
     @Test
     public void mustFailWhenAddingActorWithSameName() throws Exception {
-        fixture.addActor("actor", (Context ctx) -> false);
-        fixture.addActor("actor", (Context ctx) -> false);
+        fixture.addActor("actor", cnt -> { /* do nothing */ });
+        fixture.addActor("actor", cnt -> { /* do nothing */ });
         fixture.join();
     }
     

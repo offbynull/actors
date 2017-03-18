@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.actor.Actor;
+import com.offbynull.coroutines.user.Coroutine;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -26,11 +26,11 @@ import org.apache.commons.lang3.Validate;
 final class AddActorEvent extends Event {
 
     private final String address;
-    private final Actor actor;
+    private final Coroutine actor;
     private final Duration timeOffset;
     private final UnmodifiableList<Object> primingMessages;
 
-    public AddActorEvent(String address, Actor actor, Duration timeOffset, Instant triggerTime, long sequenceNumber,
+    public AddActorEvent(String address, Coroutine actor, Duration timeOffset, Instant triggerTime, long sequenceNumber,
             Object... primingMessages) {
         super(triggerTime, sequenceNumber);
         Validate.notNull(address);
@@ -50,7 +50,7 @@ final class AddActorEvent extends Event {
         return address;
     }
 
-    public Actor getActor() {
+    public Coroutine getActor() {
         return actor;
     }
 

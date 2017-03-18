@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,18 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Container used to execute {@link Actor}s.
+ * Container used to execute actors.
  * <p>
- * The following usage example creates an instance of {@link ActorRunner}, adds a normal {@link Actor} and a coroutine-based {@link Actor}
- * to it, and then shuts it down.
+ * The following usage example creates an instance of {@link ActorRunner}, adds an actor to it, and then shuts it down.
  * <pre>
  * // Create an ActorRunner. The address of all actors added will be prefixed with "local"
  * ActorRunner actorRunner = new ActorRunner("local");
- * 
- * // Add a new actor with the address "local:actor1". As soon as the actor is added, it will receive an incoming message from itself that
- * // is the string "start".
- * Actor myActor = ...;
- * actorRunner.addActor("actor1", myActor, "start");
  * 
  * // Add a new coroutine actor with the address "local:actor2". As soon as the actor is added, it will receive 2 incoming messages from
  * // itself: "start1" and "start2".
@@ -176,21 +170,8 @@ public final class ActorRunner implements AutoCloseable {
      * If this runner has been shutdown prior to calling this method, this method does nothing.
      * @param id id to use for {@code actor}. For example, if the prefix for this runner is "runner", and the id of the actor
      * being add is "test", that actor will be accessible via the address "runner:test".
-     * @param actor actor being added
+     * @param coroutine actor being added
      * @param primingMessages messages to send to {@code actor} (shown as coming from itself) once its been added
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     */
-    public void addActor(String id, Actor actor, Object... primingMessages) {
-        mapIdToActorThread(id).addActor(id, actor, primingMessages);
-    }
-
-    /**
-     * Queue a coroutine-based actor to be added. Equivalent to calling
-     * {@code addActor(id, new CoroutineActor(coroutine), primingMessages)}.
-     * @param id id to use for actor being added. For example, if the prefix for this runner is "runner", and the id of the actor
-     * being add is "test", that actor will be accessible via the address "runner:test".
-     * @param coroutine coroutine for actor being added
-     * @param primingMessages messages to send to this actor (shown as coming from itself) once the actor's been added
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
     public void addActor(String id, Coroutine coroutine, Object... primingMessages) {

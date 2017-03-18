@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -84,14 +84,6 @@ final class ActorThread {
     
     public Shuttle getIncomingShuttle() {
         return runnable.getIncomingShuttle();
-    }
-
-    public void addActor(String id, Actor actor, Object... primingMessages) {
-        Validate.notNull(id);
-        Validate.notNull(actor);
-        Validate.notNull(primingMessages);
-        Validate.noNullElements(primingMessages);
-        runnable.addActor(id, actor, primingMessages);
     }
 
     public void addActor(String id, Coroutine coroutine, Object... primingMessages) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,12 +16,11 @@
  */
 package com.offbynull.peernetic.core.actor.helpers;
 
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.shuttle.Address;
 
 /**
  * Transforms {@link Address}es to link identifiers and vice-versa. Use an address transformer when you want your addressing logic to be
- * decoupled from your {@link Actor}'s execution logic. This helps simplify communication logic between actors by hiding details that have
+ * decoupled from your actor's execution logic. This helps simplify communication logic between actors by hiding details that have
  * to do with addressing. For example, if you want your actor to send messages through a proxy actor, you can use a specific address
  * transformer that converts identifiers to addresses that pass through that proxy and vice-versa.
  * <p>

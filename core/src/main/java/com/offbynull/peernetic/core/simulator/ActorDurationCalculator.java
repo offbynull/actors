@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,19 +16,18 @@
  */
 package com.offbynull.peernetic.core.simulator;
 
-import com.offbynull.peernetic.core.actor.Actor;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Duration;
 
 /**
- * Used to calculate the amount of time an {@link Actor} takes to process an incoming message when running in a simulation. Use this to
+ * Used to calculate the amount of time an actor takes to process an incoming message when running in a simulation. Use this to
  * simulate conditions on a system (e.g. an actor running on a system that's under heavy load will take longer to process incoming
  * messages), or monitor how long actors are taking to execute (real execution durations are provided).
  * @author Kasra Faghihi
  */
 public interface ActorDurationCalculator {
     /**
-     * Calculates the amount of time an {@link Actor} takes to process an incoming message when running in a simulation.
+     * Calculates the amount of time an actor takes to process an incoming message when running in a simulation.
      * @param source source address
      * @param destination destination address
      * @param message message being processed

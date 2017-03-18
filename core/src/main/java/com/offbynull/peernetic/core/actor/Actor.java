@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@ import java.time.Instant;
  * <li><b>Do not block</b> for I/O, long running operations, thread synchronization, or anything else. Multiple actors may be
  * running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages
  * in a timely manner.</li>
- * <li><b>Do not directly access time.</b> Actors must use the time supplied to them via {@link Context#getTime() } rather than making
+ * <li><b>Do not directly access time.</b> Actors must use the time supplied to them via {@link Context#time() } rather than making
  * calls to Java's date and time APIs (e.g. {@link Instant} or {@link System#currentTimeMillis() }).</li>
  * </ul>
  * <p>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 public interface Subcoroutine<T> {
     /**
      * Get the address of this subcoroutine. Incoming messages destined for this address should trigger this subcoroutine to run. The
-     * address returned by this method must be relative to the calling actor's self address (relative to {@link Context#getSelf()}).
+     * address returned by this method must be relative to the calling actor's self address (relative to {@link Context#self()}).
      * @return relative address of this subcoroutine
      */
     Address getAddress();

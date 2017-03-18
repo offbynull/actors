@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,7 +39,6 @@ import org.apache.commons.lang3.Validate;
  * When using {@link #toLinkId(com.offbynull.peernetic.core.shuttle.Address) } with your local address (an address with the prefix
  * {@code selfAddress}, it will return {@code selfId}. Note that just like with remote addresses, any additional suffix won't  be retained
  * when the conversion takes place.
- * <p>
  * <p>
  * How {@link #toAddress(java.lang.String) } works...
  * <p>

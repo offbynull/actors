@@ -16,6 +16,9 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.peernetic.core.common.DefaultAddresses;
+import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_LOG_ADDRESS;
+import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_TIMER_ADDRESS;
 import com.offbynull.peernetic.core.gateways.log.LogMessage;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
@@ -33,26 +36,6 @@ import java.util.List;
  * @author Kasra Faghihi
  */
 public interface Context {
-    
-    /**
-     * Default address to log gateway as String.
-     */
-    String DEFAULT_LOG_PREFIX = "log";
-    
-    /**
-     * Default address to log gateway.
-     */
-    Address DEFAULT_LOG_PREFIX_ADDRESS = Address.of(DEFAULT_LOG_PREFIX);
-    
-    /**
-     * Default address to timer gateway as String.
-     */
-    String DEFAULT_TIMER_PREFIX = "timer";
-    
-    /**
-     * Default address to timer gateway.
-     */
-    Address DEFAULT_TIMER_PREFIX_ADDRESS = Address.of(DEFAULT_TIMER_PREFIX);
     
     /**
      * Equivalent to calling {@code out(Address.EMPTY, destination, message)}. 
@@ -114,7 +97,7 @@ public interface Context {
     Instant time();
     
     /**
-     * Sends a timer request to the timer gateway located at address {@code timer}.
+     * Sends a timer request to the timer gateway located at address {@link DefaultAddresses#DEFAULT_TIMER_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param delay delay in milliseconds
@@ -122,11 +105,11 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null}
      */
     default void timer(Address from, long delay, Object message) {
-        out(from, DEFAULT_TIMER_PREFIX_ADDRESS.appendSuffix(Long.toString(delay)), message);
+        out(from, DEFAULT_TIMER_ADDRESS.appendSuffix(Long.toString(delay)), message);
     }
 
     /**
-     * Sends a error message to the log gateway located at address {@code log}.
+     * Sends a error message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -134,11 +117,11 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null}
      */
     default void logError(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_PREFIX_ADDRESS, LogMessage.error(message, arguments));
+        out(from, DEFAULT_LOG_ADDRESS, LogMessage.error(message, arguments));
     }
 
     /**
-     * Sends a warn message to the log gateway located at address {@code log}.
+     * Sends a warn message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -146,11 +129,11 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null}
      */
     default void logWarn(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_PREFIX_ADDRESS, LogMessage.warn(message, arguments));
+        out(from, DEFAULT_LOG_ADDRESS, LogMessage.warn(message, arguments));
     }
     
     /**
-     * Sends a info message to the log gateway located at address {@code log}.
+     * Sends a info message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -158,11 +141,11 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null}
      */
     default void logInfo(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_PREFIX_ADDRESS, LogMessage.info(message, arguments));
+        out(from, DEFAULT_LOG_ADDRESS, LogMessage.info(message, arguments));
     }
     
     /**
-     * Sends a debug message to the log gateway located at address {@code log}.
+     * Sends a debug message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -170,11 +153,11 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null}
      */
     default void logDebug(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_PREFIX_ADDRESS, LogMessage.debug(message, arguments));
+        out(from, DEFAULT_LOG_ADDRESS, LogMessage.debug(message, arguments));
     }
     
     /**
-     * Sends a trace message to the log gateway located at address {@code log}.
+     * Sends a trace message to the log gateway located at address {@link DefaultAddresses#DEFAULT_LOG_ADDRESS}.
      * @param from source address, relative to {@link #self()}. For example, if {@link #self() } returns "actor:1" and this
      * parameter is set to "id1:id2", the source address for the outgoing message being sent will be "actor:1:id1:id2".
      * @param message message to be logged (SLF4J style)
@@ -182,6 +165,6 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null}
      */
     default void logTrace(Address from, String message, Object... arguments) {
-        out(from, DEFAULT_LOG_PREFIX_ADDRESS, LogMessage.trace(message, arguments));
+        out(from, DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));
     }
 }

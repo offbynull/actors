@@ -20,7 +20,7 @@ public class TimerGatewayTest {
 
             String timerPrefix = ctx.in();
             ctx.out(
-                    Address.fromString("local:tester:fromid"),
+                    Address.fromString("local:tester"),
                     Address.fromString("timer:2000:extra"),
                     "msg");
             cnt.suspend();
@@ -42,7 +42,7 @@ public class TimerGatewayTest {
         testerRunner.addActor("tester", tester, "timer");
 
         assertEquals("timer:2000:extra", queue.take());
-        assertEquals("local:tester:fromid", queue.take());
+        assertEquals("local:tester", queue.take());
         assertEquals("msg", queue.take());
         
         testerRunner.close();

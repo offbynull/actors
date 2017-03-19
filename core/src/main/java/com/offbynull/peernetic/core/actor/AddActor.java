@@ -16,16 +16,17 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.Coroutine;
 import java.util.Arrays;
 import org.apache.commons.collections4.collection.UnmodifiableCollection;
 import org.apache.commons.lang3.Validate;
 
 final class AddActor {
     private final String id;
-    private final Actor actor;
+    private final Coroutine actor;
     private final UnmodifiableCollection<Object> primingMessages;
 
-    public AddActor(String id, Actor actor, Object... primingMessages) {
+    public AddActor(String id, Coroutine actor, Object... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(actor);
         Validate.notNull(primingMessages);
@@ -40,7 +41,7 @@ final class AddActor {
         return id;
     }
 
-    public Actor getActor() {
+    public Coroutine getActor() {
         return actor;
     }
 

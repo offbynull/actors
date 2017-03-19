@@ -526,7 +526,7 @@ public final class Simulator {
         
         MessageSource source = pullFromMessageSourceEvent.getMessageSource();
         if (!sources.contains(source)) {
-            // The MessageSource was removed, so ignore this pull event.
+            // The MessageSource was removed, so block this pull event.
             return;
         }
         
@@ -756,7 +756,7 @@ public final class Simulator {
             Validate.isTrue(!timerDuration.isNegative());
         } catch (Exception e) {
             LOG.warn("Processing message to destination that doesn't exist: {}", destination);
-            // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll ignore the message
+            // TODO log here. nothing else, technically if the timer gets an unparsable duration it'll block the message
             return;
         }
         queueTimerTrigger(true, destination, source, message, timerDuration);
@@ -786,7 +786,7 @@ public final class Simulator {
         context.setSource(source);
         context.setDestination(destination);
         context.setSelf(address);
-        context.setIncomingMessage(message);
+        context.setIn(message);
 
         for (MessageSink sink : sinks) {
             try {

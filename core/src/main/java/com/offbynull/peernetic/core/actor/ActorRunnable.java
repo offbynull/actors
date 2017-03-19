@@ -19,6 +19,7 @@ package com.offbynull.peernetic.core.actor;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
@@ -108,7 +109,15 @@ final class ActorRunnable implements Runnable {
         LOG.debug("Processing management message: {}" , msg);
         if (msg instanceof AddActor) {
             AddActor aam = (AddActor) msg;
-            LoadedActor existingActor = actors.putIfAbsent(aam.getId(), new LoadedActor(aam.getActor(), new SourceContext()));
+            
+            CoroutineRunner actorRunner = new CoroutineRunner(aam.getActor());
+            SourceContext ctx = new SourceContext();
+            
+            ctx.setSelf(Address.of(prefix, aam.getId()));
+            ctx.setActorRunner(actorRunner);
+            actorRunner.setContext(ctx.toNormalContext());
+            
+            LoadedActor existingActor = actors.putIfAbsent(aam.getId(), new LoadedActor(ctx));
             
             Validate.isTrue(existingActor == null); // unable to add a actor with id that already exists
             
@@ -145,28 +154,44 @@ final class ActorRunnable implements Runnable {
         Validate.isTrue(dst.size() >= 2); // sanity check
         
         String dstPrefix = dst.getElement(0);
-        String dstImmediateId = dst.getElement(1);
+        String dstActorId = dst.getElement(1);
         Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
 
-        LoadedActor loadedActor = actors.get(dstImmediateId);
+        LoadedActor loadedActor = actors.get(dstActorId);
         if (loadedActor == null) {
-            LOG.warn("Undeliverable message: id={} message={}", dstImmediateId, msg);
+            LOG.warn("Actor not found for message: id={} message={}", dst, msg);
             return;
         }
 
+        SourceContext ctx = loadedActor.context;
+        
+        int nextDstIdx = 2;
+        while (ctx != null && nextDstIdx < dst.size()) {
+            String dstChildId = dst.getElement(nextDstIdx);
+            ctx = ctx.getChildContext(dstChildId);
+            
+            nextDstIdx++;
+        }
+        
+        if (ctx == null) {
+            LOG.warn("Child actor not found for message: id={} message={}", dst, msg);
+            return;
+        }
+        
+        
         LOG.debug("Processing message from {} to {} {}", src, dst, msg);
-        Actor actor = loadedActor.actor;
-        SourceContext context = loadedActor.context;
-        context.setSelf(Address.of(dstPrefix, dstImmediateId));
-        context.setIncomingMessage(msg);
-        context.setSource(src);
-        context.setDestination(dst);
-        context.setTime(Instant.now());
+
+        CoroutineRunner actorRunner = ctx.getActorRunner();
+        ctx.setIn(msg);
+        ctx.setSource(src);
+        ctx.setDestination(dst);
+        ctx.setTime(Instant.now());
+       
 
         // Pass to actor, shut down if returns false or throws exception
         boolean shutdown = false;
         try {
-            if (!actor.onStep(context.toNormalContext())) {
+            if (!actorRunner.execute()) {
                 shutdown = true;
             }
         } catch (Exception e) {
@@ -176,11 +201,11 @@ final class ActorRunnable implements Runnable {
 
         if (shutdown) {
             LOG.debug("Removing actor {}", dst);
-            actors.remove(dstImmediateId);
+            actors.remove(dstActorId);
         }
 
         // Queue up outgoing messages
-        List<BatchedOutgoingMessage> batchedOutgoingMessages = context.copyAndClearOutgoingMessages();
+        List<BatchedOutgoingMessage> batchedOutgoingMessages = ctx.copyAndClearOutgoingMessages();
         for (BatchedOutgoingMessage batchedOutgoingMessage : batchedOutgoingMessages) {
             Message outgoingMessage = new Message(
                     batchedOutgoingMessage.getSource(),
@@ -231,7 +256,7 @@ final class ActorRunnable implements Runnable {
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
         Validate.noNullElements(primingMessages);
-        AddActor aam = new AddActor(id, new Actor(coroutine), primingMessages);
+        AddActor aam = new AddActor(id, coroutine, primingMessages);
         bus.add(aam);
     }
 
@@ -255,19 +280,11 @@ final class ActorRunnable implements Runnable {
     }
     
     private static final class LoadedActor {
-        private final Actor actor;
         private final SourceContext context;
 
-        public LoadedActor(Actor actor, SourceContext context) {
-            Validate.notNull(actor);
+        public LoadedActor(SourceContext context) {
             Validate.notNull(context);
-            this.actor = actor;
             this.context = context;
         }
     }
-    
-
-
-
-
 }

@@ -73,7 +73,7 @@ public class SourceContextTest {
         fixture.setSelf(Address.fromString("self"));
         fixture.setSource(Address.fromString("self:src"));
         fixture.setDestination(Address.fromString("dest"));
-        fixture.setIncomingMessage("msg");
+        fixture.setIn("msg");
         fixture.setTime(Instant.MIN);
         
         Context normalContext = fixture.toNormalContext();

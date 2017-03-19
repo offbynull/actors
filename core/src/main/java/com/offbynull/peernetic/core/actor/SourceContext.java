@@ -16,12 +16,16 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.Coroutine;
+import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -31,13 +35,32 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class SourceContext implements Context {
+    private CoroutineRunner actor;
     private Address self;
     private Instant time;
     private Address source;
     private Address destination;
     private Object incomingMessage;
     private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
+    private final Map<String, SourceContext> children = new HashMap<>();
 
+    /**
+     * Sets the actor.
+     * @param actor actor
+     */
+    public void setActorRunner(CoroutineRunner actor) {
+        Validate.notNull(actor);
+        this.actor = actor;
+    }
+
+    /**
+     * Gets the actor.
+     * @return actor
+     */
+    public CoroutineRunner getActorRunner() {
+        return actor;
+    }
+    
     @Override
     public Address self() {
         return self;
@@ -115,14 +138,13 @@ public final class SourceContext implements Context {
      * @param incomingMessage incoming message
      * @throws NullPointerException if any argument is {@code null}
      */
-    public void setIncomingMessage(Object incomingMessage) {
+    public void setIn(Object incomingMessage) {
         Validate.notNull(incomingMessage);
         this.incomingMessage = incomingMessage;
     }
 
     @Override
     public void out(Address source, Address destination, Object message) {
-        // sourceId can be null
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
@@ -146,7 +168,36 @@ public final class SourceContext implements Context {
         
         return ret;
     }
-    
+
+    @Override
+    public void spawnChild(String id, Coroutine actor) {
+        Validate.notNull(id);
+        Validate.notNull(actor);
+        
+        Address childSelf = self().appendSuffix(id);
+        CoroutineRunner childActorRunner = new CoroutineRunner(actor);
+        
+        SourceContext childCtx = new SourceContext();
+        childCtx.setSelf(childSelf);
+        childCtx.setActorRunner(childActorRunner);
+        
+        childActorRunner.setContext(childCtx);
+        
+        SourceContext existingCtx = children.putIfAbsent(id, childCtx);
+        Validate.isTrue(existingCtx == null);
+    }
+
+    /**
+     * Get the context for a child.
+     * @param id id of child
+     * @return context for child, or {@code null} if no child exists with that id
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public SourceContext getChildContext(String id) {
+        Validate.notNull(id);
+        return children.get(id);
+    }
+
     /**
      * Wraps this context in a new {@link Context} such that the setters aren't exposed / are hidden from access. Use this when you have to
      * pass this context to an actor.
@@ -189,6 +240,12 @@ public final class SourceContext implements Context {
             public Instant time() {
                 return SourceContext.this.time();
             }
+
+            @Override
+            public void spawnChild(String id, Coroutine actor) {
+                SourceContext.this.spawnChild(id, actor);
+            }
+            
         };
     }
 }

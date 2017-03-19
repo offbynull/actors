@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_LOG_ADDRESS;
 import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_TIMER_ADDRESS;
 import com.offbynull.peernetic.core.gateways.log.LogMessage;
@@ -93,6 +94,75 @@ public interface Context {
      * @return current time
      */
     Instant time();
+    
+    /**
+     * Add a child actor.
+     * <p>
+     * The new child actor can share state with the parent actor (the invoker of this method). If the parent actor ends,
+     * so will the child actor. The child actor's address is {@code self().append(id)}.
+     * <p>
+     * Initially, the child actor will only be able to accept messages from its parent and itself.
+     * @param id id of actor to add
+     * @param actor actor being added
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code id} is empty, or if {@code id} is already a child
+     */
+    void spawnChild(String id, Coroutine actor);
+    
+//    /**
+//     * Remove a child actor. If this actor doesn't contain a child with the id {@code id}, this method does nothing.
+//     * @param id id of actor to remove
+//     * @throws NullPointerException if any argument is {@code null}
+//     */
+//    void destroyChild(String id);
+//    
+//    /**
+//     * Checks to see if a child actor exists.
+//     * @param id id of actor to check
+//     * @return {@code true} if the child actor exists, {@code false} otherwise
+//     * @throws NullPointerException if any argument is {@code null}
+//     */
+//    boolean containsChild(String id);
+//    
+//    /**
+//     * Allow any message from any source.
+//     */
+//    void allow();
+//    
+//    /**
+//     * Allow any message type from {@code source}.
+//     * @param source source address to allow messages from
+//     * @throws NullPointerException if any argument is {@code null}
+//     */
+//    void allow(Address source);
+//
+//    /**
+//     * Allow message of type {@code type} from {@code source}.
+//     * @param source source address to allow messages from
+//     * @param type type of messages to allow (child types aren't recognized)
+//     * @throws NullPointerException if any argument is {@code null}
+//     */
+//    void allow(Address source, Class<?> type);
+//
+//    /**
+//     * Block messages from any source.
+//     */
+//    void block();
+//    
+//    /**
+//     * Block messages of any type from {@code source}.
+//     * @param source source address to block messages from
+//     * @throws NullPointerException if any argument is {@code null}
+//     */
+//    void block(Address source);
+//
+//    /**
+//     * Block messages of type {@code type} from {@code source}.
+//     * @param source source address to block messages from
+//     * @param type type of messages to block (child types aren't recognized)
+//     * @throws NullPointerException if any argument is {@code null}
+//     */
+//    void block(Address source, Class<?> type);
     
     /**
      * Sends a timer request to the timer gateway located at address

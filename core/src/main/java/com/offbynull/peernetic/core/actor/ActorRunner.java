@@ -175,14 +175,14 @@ public final class ActorRunner implements AutoCloseable {
      * known to the caller. On error (e.g. actor with same id already exists), this runner terminates.
      * <p>
      * If this runner has been shutdown prior to calling this method, this method does nothing.
-     * @param id id to use for {@code actor}. For example, if the prefix for this runner is "runner", and the id of the actor
-     * being add is "test", that actor will be accessible via the address "runner:test".
-     * @param coroutine actor being added
+     * @param id id to use for actor. For example, if the prefix for this runner is "runner", and the id of the actor being add is "test",
+     * that actor will be accessible via the address "runner:test".
+     * @param actor actor being added
      * @param primingMessages messages to send to {@code actor} (shown as coming from itself) once its been added
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
-    public void addActor(String id, Coroutine coroutine, Object... primingMessages) {
-        mapIdToActorThread(id).addActor(id, coroutine, primingMessages);
+    public void addActor(String id, Coroutine actor, Object... primingMessages) {
+        mapIdToActorThread(id).addActor(id, actor, primingMessages);
     }
 
     /**

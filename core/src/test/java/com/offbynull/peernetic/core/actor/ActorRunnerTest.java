@@ -83,7 +83,41 @@ public class ActorRunnerTest {
             assertTrue(processed);
         }
     }
-    
+
+    @Test
+    public void mustCommunicateWithTheCorrectChildActor() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        fixture.addActor(
+                "echoer",
+                (Continuation cnt) -> {
+                    Context ctx = (Context) cnt.getContext();
+                    ctx.spawnChild(
+                            "child",
+                            (Continuation cnt2) -> {
+                                Context ctx2 = (Context) cnt2.getContext();
+                                ctx2.out(Address.fromString("local:sender"), ctx2.in());
+                            });
+                    
+                    cnt.suspend();
+                },
+                new Object());
+        fixture.addActor(
+                "sender",
+                (Continuation cnt) -> {
+                    Context ctx = (Context) cnt.getContext();
+                    ctx.out(Address.fromString("local:echoer:child"), "hi");
+                    
+                    cnt.suspend();
+                    
+                    assertEquals(ctx.in(), "hi");
+                    latch.countDown();
+                },
+                new Object());
+        
+        boolean processed = latch.await(9999999L, TimeUnit.SECONDS);
+        assertTrue(processed);
+    }
+
     @Test
     public void mustFailWhenAddingActorWithSameName() throws Exception {
         fixture.addActor("actor", cnt -> { /* do nothing */ });

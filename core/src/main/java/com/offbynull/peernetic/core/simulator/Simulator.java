@@ -781,12 +781,6 @@ public final class Simulator {
                                                                                // in sync. So, one actor may technically have a different
                                                                                // local time than another (because they may be running on
                                                                                // different machines).
-        
-        context.setTime(localActorTime);
-        context.setSource(source);
-        context.setDestination(destination);
-        context.setSelf(address);
-        context.setIn(message);
 
         for (MessageSink sink : sinks) {
             try {
@@ -800,8 +794,7 @@ public final class Simulator {
         boolean stopped;
         Instant execStartTime = Instant.now();
         try {
-            actorRunner.setContext(context.toNormalContext());
-            stopped = !actorRunner.execute();
+            stopped = context.fire(source, destination, localActorTime, message);
         } catch (Exception e) {
             LOG.warn("Actor " + destHolder.getAddress() + " threw an exception", e);
             stopped = true;

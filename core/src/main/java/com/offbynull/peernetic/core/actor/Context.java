@@ -109,21 +109,21 @@ public interface Context {
      */
     void spawnChild(String id, Coroutine actor);
     
-//    /**
-//     * Remove a child actor. If this actor doesn't contain a child with the id {@code id}, this method does nothing.
-//     * @param id id of actor to remove
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    void destroyChild(String id);
-//    
-//    /**
-//     * Checks to see if a child actor exists.
-//     * @param id id of actor to check
-//     * @return {@code true} if the child actor exists, {@code false} otherwise
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    boolean containsChild(String id);
-//    
+    /**
+     * Remove a child actor. If this actor doesn't contain a child with the id {@code id}, this method does nothing.
+     * @param id id of actor to remove
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    void destroyChild(String id);
+    
+    /**
+     * Checks to see if a child actor exists.
+     * @param id id of actor to check
+     * @return {@code true} if the child actor exists, {@code false} otherwise
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    boolean containsChild(String id);
+    
 //    /**
 //     * Allow any message from any source.
 //     */

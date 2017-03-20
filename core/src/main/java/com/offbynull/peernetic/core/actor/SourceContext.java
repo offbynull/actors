@@ -27,6 +27,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A source context is an implementation of {@link Context} that allows modification of properties that normally shouldn't be modifiable
@@ -35,30 +37,41 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class SourceContext implements Context {
-    private CoroutineRunner actor;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(SourceContext.class);
+    
+    private SourceContext parent;
+    private CoroutineRunner actorRunner;
     private Address self;
     private Instant time;
     private Address source;
     private Address destination;
-    private Object incomingMessage;
-    private List<BatchedOutgoingMessage> outgoingMessages = new LinkedList<>();
-    private final Map<String, SourceContext> children = new HashMap<>();
+    private Object in;
+    private List<BatchedOutgoingMessage> outs;
+    private final Map<String, SourceContext> children;
 
     /**
-     * Sets the actor.
-     * @param actor actor
+     * Constructs a {@link SourceContext} object.
+     * @param actorRunner actor runner
+     * @param self self address
+     * @throws NullPointerException if any argument is {@code null}
      */
-    public void setActorRunner(CoroutineRunner actor) {
-        Validate.notNull(actor);
-        this.actor = actor;
+    public SourceContext(CoroutineRunner actorRunner, Address self) {
+        Validate.notNull(actorRunner);
+        Validate.notNull(self);
+
+        this.actorRunner = actorRunner;
+        this.self = self;
+        this.outs = new LinkedList<>();
+        this.children = new HashMap<>();
     }
 
     /**
      * Gets the actor.
      * @return actor
      */
-    public CoroutineRunner getActorRunner() {
-        return actor;
+    public CoroutineRunner actorRunner() {
+        return actorRunner;
     }
     
     @Override
@@ -66,31 +79,9 @@ public final class SourceContext implements Context {
         return self;
     }
 
-    /**
-     * Sets the address of the actor that this context is for.
-     * @param self address of actor
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code self} is empty
-     */
-    public void setSelf(Address self) {
-        Validate.notNull(self);
-        Validate.isTrue(!self.isEmpty());
-        this.self = self;
-    }
-
     @Override
     public Instant time() {
         return time;
-    }
-
-    /**
-     * Set the current time. This may not be exact, it is essentially just the time when the actor was triggered with new incoming message.
-     * @param time current time
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void setTime(Instant time) {
-        Validate.notNull(time);
-        this.time = time;
     }
 
     @Override
@@ -98,49 +89,15 @@ public final class SourceContext implements Context {
         return source;
     }
 
-    /**
-     * Set the address the incoming message was sent from.
-     * @param source address of incoming message
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} is empty
-     */
-    public void setSource(Address source) {
-        Validate.notNull(source);
-        Validate.isTrue(!source.isEmpty());
-        this.source = source;
-    }
-
     @Override
     public Address destination() {
         return destination;
     }
 
-    /**
-     * Set the address the incoming message was sent to.
-     * @param destination address of incoming message
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code destination} is empty
-     */
-    public void setDestination(Address destination) {
-        Validate.notNull(destination);
-        Validate.isTrue(!destination.isEmpty());
-        this.destination = destination;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public <T> T in() {
-        return (T) incomingMessage;
-    }
-
-    /**
-     * Set the incoming message.
-     * @param incomingMessage incoming message
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void setIn(Object incomingMessage) {
-        Validate.notNull(incomingMessage);
-        this.incomingMessage = incomingMessage;
+        return (T) in;
     }
 
     @Override
@@ -150,12 +107,12 @@ public final class SourceContext implements Context {
         Validate.notNull(message);
         Validate.isTrue(self.isPrefixOf(source));
         Validate.isTrue(!destination.isEmpty());
-        outgoingMessages.add(new BatchedOutgoingMessage(source, destination, message));
+        outs.add(new BatchedOutgoingMessage(source, destination, message));
     }
     
     @Override
     public List<BatchedOutgoingMessage> viewOuts() {
-        return Collections.unmodifiableList(outgoingMessages);
+        return Collections.unmodifiableList(outs);
     }
     
     /**
@@ -163,8 +120,8 @@ public final class SourceContext implements Context {
      * @return list of queued outgoing messages
      */
     public List<BatchedOutgoingMessage> copyAndClearOutgoingMessages() {
-        List<BatchedOutgoingMessage> ret = new ArrayList<>(outgoingMessages);
-        outgoingMessages.clear();
+        List<BatchedOutgoingMessage> ret = new ArrayList<>(outs);
+        outs.clear();
         
         return ret;
     }
@@ -177,14 +134,98 @@ public final class SourceContext implements Context {
         Address childSelf = self().appendSuffix(id);
         CoroutineRunner childActorRunner = new CoroutineRunner(actor);
         
-        SourceContext childCtx = new SourceContext();
-        childCtx.setSelf(childSelf);
-        childCtx.setActorRunner(childActorRunner);
+        SourceContext childCtx = new SourceContext(childActorRunner, childSelf);
+        childCtx.parent = this;
+        childCtx.self = childSelf;
+        childCtx.actorRunner = childActorRunner;
+        childCtx.outs = outs; // all outgoing messages go in to the same queue
         
         childActorRunner.setContext(childCtx);
         
         SourceContext existingCtx = children.putIfAbsent(id, childCtx);
         Validate.isTrue(existingCtx == null);
+    }
+    
+    @Override
+    public void destroyChild(String id) {
+        Validate.notNull(id);
+        children.remove(id);
+    }
+
+    @Override
+    public boolean containsChild(String id) {
+        Validate.notNull(id);
+        return children.containsKey(id);
+    }
+
+    /**
+     * Fire a message to the actor associated with this context. If the destination is a child actor, the message will be correctly routed.
+     * @param src source
+     * @param dst destination
+     * @param time execution time
+     * @param msg incoming message
+     * @return {@code false} if the actor is still active, {@code true} if it should be discarded
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public boolean fire(Address src, Address dst, Instant time, Object msg) {
+        Validate.notNull(src);
+        Validate.notNull(dst);
+        Validate.notNull(msg);
+
+        int nextDstIdx = self.size();
+        SourceContext ctx = this;
+
+        while (ctx != null && nextDstIdx < dst.size()) {
+            String dstChildId = dst.getElement(nextDstIdx);
+            ctx = ctx.getChildContext(dstChildId);
+            
+            nextDstIdx++;
+        }
+        
+        if (ctx == null) {
+            LOG.warn("Actor not found for message: id={} message={}", dst, msg);
+            return false;
+        }
+        
+        
+        LOG.debug("Processing message from {} to {} {}", src, dst, msg);
+
+        ctx.in = msg;
+        ctx.source = src;
+        ctx.destination = dst;
+        ctx.time = time;
+       
+        try {
+            // Run the actor at the address we found
+            boolean finished = !ctx.actorRunner.execute();
+            
+            // Reset context fields
+            ctx.in = null;
+            ctx.source = null;
+            ctx.destination = null;
+            ctx.time = null;
+            
+            if (!finished) {
+                // The actor (regardless of if it's the root actor or a child actor) is still running, so return false to prevent the root
+                // actor from being discarded
+                return false;
+            }
+            
+            if (ctx.parent == null) {
+                // Main/root actor finished, return true to indicate that the main/root actor should be discarded
+                return true;
+            } else {
+                // Child actor finished, remove the child from the parent but return false because the main/root actor isn't effected (it
+                // should keep running)
+                String childId = dst.getElement(dst.size() - 1);
+                ctx.parent.children.remove(childId);
+                return false;
+            }
+        } catch (Exception e) {
+            // An unhandled exception occured -- return true to indicate that the main/root actor should be discarded
+            LOG.error("Actor " + dst + " threw an exception, shutting down the main actor", e);
+            return true;
+        }
     }
 
     /**
@@ -244,6 +285,16 @@ public final class SourceContext implements Context {
             @Override
             public void spawnChild(String id, Coroutine actor) {
                 SourceContext.this.spawnChild(id, actor);
+            }
+
+            @Override
+            public void destroyChild(String id) {
+                SourceContext.this.destroyChild(id);
+            }
+
+            @Override
+            public boolean containsChild(String id) {
+                return SourceContext.this.containsChild(id);
             }
             
         };

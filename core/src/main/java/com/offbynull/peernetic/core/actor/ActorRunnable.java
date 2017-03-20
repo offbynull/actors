@@ -110,11 +110,10 @@ final class ActorRunnable implements Runnable {
         if (msg instanceof AddActor) {
             AddActor aam = (AddActor) msg;
             
+            Address self = Address.of(prefix, aam.getId());
             CoroutineRunner actorRunner = new CoroutineRunner(aam.getActor());
-            SourceContext ctx = new SourceContext();
+            SourceContext ctx = new SourceContext(actorRunner, self);
             
-            ctx.setSelf(Address.of(prefix, aam.getId()));
-            ctx.setActorRunner(actorRunner);
             actorRunner.setContext(ctx.toNormalContext());
             
             LoadedActor existingActor = actors.putIfAbsent(aam.getId(), new LoadedActor(ctx));
@@ -165,40 +164,7 @@ final class ActorRunnable implements Runnable {
 
         SourceContext ctx = loadedActor.context;
         
-        int nextDstIdx = 2;
-        while (ctx != null && nextDstIdx < dst.size()) {
-            String dstChildId = dst.getElement(nextDstIdx);
-            ctx = ctx.getChildContext(dstChildId);
-            
-            nextDstIdx++;
-        }
-        
-        if (ctx == null) {
-            LOG.warn("Child actor not found for message: id={} message={}", dst, msg);
-            return;
-        }
-        
-        
-        LOG.debug("Processing message from {} to {} {}", src, dst, msg);
-
-        CoroutineRunner actorRunner = ctx.getActorRunner();
-        ctx.setIn(msg);
-        ctx.setSource(src);
-        ctx.setDestination(dst);
-        ctx.setTime(Instant.now());
-       
-
-        // Pass to actor, shut down if returns false or throws exception
-        boolean shutdown = false;
-        try {
-            if (!actorRunner.execute()) {
-                shutdown = true;
-            }
-        } catch (Exception e) {
-            LOG.error("Actor " + dst + " threw an exception", e);
-            shutdown = true;
-        }
-
+        boolean shutdown = ctx.fire(src, dst, Instant.now(), msg);
         if (shutdown) {
             LOG.debug("Removing actor {}", dst);
             actors.remove(dstActorId);

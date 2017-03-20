@@ -41,8 +41,10 @@ final class ActorHolder implements Holder {
         this.address = address;
         this.actorRunner = actorRunner;
         this.timeOffset = timeOffset;
-        this.context = new SourceContext();
+        this.context = new SourceContext(actorRunner, address);
         this.earliestPossibleOnStepTime = earliestPossibleOnStepTime;
+        
+        actorRunner.setContext(context.toNormalContext());
     }
 
     public CoroutineRunner getActorRunner() {

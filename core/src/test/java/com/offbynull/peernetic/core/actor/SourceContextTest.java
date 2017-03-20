@@ -1,7 +1,7 @@
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.peernetic.core.shuttle.Address;
-import java.time.Instant;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -14,8 +14,9 @@ public class SourceContextTest {
     
     @Before
     public void setUp() {
-        fixture = new SourceContext();
-        fixture.setSelf(Address.fromString("self"));
+        fixture = new SourceContext(
+                new CoroutineRunner(x -> { }),
+                Address.fromString("self"));
     }
 
     @Test
@@ -65,30 +66,6 @@ public class SourceContextTest {
         assertEquals(Address.fromString("self:a"), outgoingMsgs.get(2).getSource());
         assertEquals(Address.fromString("test3"), outgoingMsgs.get(2).getDestination());
         assertEquals("3", outgoingMsgs.get(2).getMessage());
-    }
-
-    @Test
-    public void mustConvertToNormalContext() {
-        fixture.out(Address.fromString("test1"), "1");
-        fixture.setSelf(Address.fromString("self"));
-        fixture.setSource(Address.fromString("self:src"));
-        fixture.setDestination(Address.fromString("dest"));
-        fixture.setIn("msg");
-        fixture.setTime(Instant.MIN);
-        
-        Context normalContext = fixture.toNormalContext();
-        
-        List<BatchedOutgoingMessage> outgoingMsgsView = normalContext.viewOuts();
-        assertEquals(1, outgoingMsgsView.size());
-        assertEquals(Address.fromString("self"), outgoingMsgsView.get(0).getSource());
-        assertEquals(Address.fromString("test1"), outgoingMsgsView.get(0).getDestination());
-        assertEquals("1", outgoingMsgsView.get(0).getMessage());
-        
-        assertEquals(Address.fromString("dest"), normalContext.destination());
-        assertEquals("msg", normalContext.in());
-        assertEquals(Address.fromString("self:src"), normalContext.source());
-        assertEquals(Address.fromString("self"), normalContext.self());
-        assertEquals(Instant.MIN, normalContext.time());
     }
     
 }

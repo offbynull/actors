@@ -10,9 +10,13 @@ import org.junit.Test;
 public class DirectGatewayTest {
 
     @Test
-    public void testSomeMethod() throws InterruptedException {
+    public void mustBeAbleToCommunicateBetweenActorAndDirectGateway() throws InterruptedException {
         Coroutine echoerActor = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            ctx.out(Address.fromString("direct"), "ready");
+            
+            cnt.suspend();
             
             Address sender = ctx.source();
             Object msg = ctx.in();
@@ -25,16 +29,12 @@ public class DirectGatewayTest {
         directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
         actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
 
-        actorRunner.addActor("echoer", echoerActor);
-        Address echoerAddress = Address.of("actors", "echoer");
+        actorRunner.addActor("echoer", echoerActor, new Object());
+        Address echoerAddress = Address.fromString("actors:echoer");
 
-        String expected;
-        String actual;
-
-        expected = "echotest";
-        directGateway.writeMessage(echoerAddress, expected);
-        actual = (String) directGateway.readMessages().get(0).getMessage();
-        Assert.assertEquals(expected, actual);
+        Assert.assertEquals("ready", directGateway.readMessages().get(0).getMessage());
+        directGateway.writeMessage(echoerAddress, "echotest");
+        Assert.assertEquals("echotest", directGateway.readMessages().get(0).getMessage());
 
         actorRunner.close();
         directGateway.close();

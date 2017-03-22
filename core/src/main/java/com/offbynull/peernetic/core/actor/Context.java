@@ -31,12 +31,15 @@ import java.util.List;
  * <li>time which the actor was triggered.</li>
  * <li>incoming message that caused the actor to be triggered.</li>
  * <li>outgoing messages that this actor is sending out.</li>
+ * <li>set of rules that define what type of messages an actor can accept and from where.</li>
  * </ul>
+ * 
+ * By default, a context is set to block all incoming messages except those coming from itself.
  * 
  * @author Kasra Faghihi
  */
 public interface Context {
-    
+
     /**
      * Equivalent to calling {@code out(self(), destination, message)}. 
      * @param destination destination address
@@ -104,10 +107,11 @@ public interface Context {
      * Initially, the child actor will only be able to accept messages from its parent and itself.
      * @param id id of actor to add
      * @param actor actor being added
-     * @throws NullPointerException if any argument is {@code null}
+     * @param primingMessages messages to send to {@code actor} (shown as coming from itself) once its been added
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @throws IllegalArgumentException if {@code id} is empty, or if {@code id} is already a child
      */
-    void spawnChild(String id, Coroutine actor);
+    void spawnChild(String id, Coroutine actor, Object ... primingMessages);
     
     /**
      * Remove a child actor. If this actor doesn't contain a child with the id {@code id}, this method does nothing.
@@ -124,45 +128,37 @@ public interface Context {
      */
     boolean containsChild(String id);
     
-//    /**
-//     * Allow any message from any source.
-//     */
-//    void allow();
-//    
-//    /**
-//     * Allow any message type from {@code source}.
-//     * @param source source address to allow messages from
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    void allow(Address source);
-//
-//    /**
-//     * Allow message of type {@code type} from {@code source}.
-//     * @param source source address to allow messages from
-//     * @param type type of messages to allow (child types aren't recognized)
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    void allow(Address source, Class<?> type);
-//
-//    /**
-//     * Block messages from any source.
-//     */
-//    void block();
-//    
-//    /**
-//     * Block messages of any type from {@code source}.
-//     * @param source source address to block messages from
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    void block(Address source);
-//
-//    /**
-//     * Block messages of type {@code type} from {@code source}.
-//     * @param source source address to block messages from
-//     * @param type type of messages to block (child types aren't recognized)
-//     * @throws NullPointerException if any argument is {@code null}
-//     */
-//    void block(Address source, Class<?> type);
+    /**
+     * Allow all incoming messages. All previously set allow/block rules are discarded.
+     */
+    void allow();
+
+    /**
+     * Allow incoming messages from some address. If no types are specified, all types are blocked.
+     * <p>
+     * Invoking this method overwrites any previous rule set for the address specified.
+     * @param source source address to allow messages from
+     * @param children if {@code true}, children of {@code source} will also be allowed
+     * @param types types of messages to allow (child types aren't recognized)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    void allow(Address source, boolean children, Class<?> ... types);
+
+    /**
+     * Block all incoming messages. All previously set allow/block rules are discarded.
+     */
+    void block();
+
+    /**
+     * Block incoming messages from some address. If no types are specified, all types are blocked.
+     * <p>
+     * Invoking this method overwrites any previous rule set for the address specified.
+     * @param source source address to block messages from
+     * @param children if {@code true}, children of {@code source} will also be blocked
+     * @param types types of messages to block (child types aren't recognized)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    void block(Address source, boolean children, Class<?> ... types);
     
     /**
      * Sends a timer request to the timer gateway located at address

@@ -18,6 +18,7 @@ package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
+import com.offbynull.peernetic.core.actor.RuleSet.AccessType;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public final class SourceContext implements Context {
     
     private SourceContext parent;
     private CoroutineRunner actorRunner;
+    private RuleSet ruleSet;
     private Address self;
     private Instant time;
     private Address source;
@@ -60,10 +62,15 @@ public final class SourceContext implements Context {
         Validate.notNull(actorRunner);
         Validate.notNull(self);
 
+        this.ruleSet = new RuleSet();
         this.actorRunner = actorRunner;
         this.self = self;
         this.outs = new LinkedList<>();
         this.children = new HashMap<>();
+        
+        // Allow only messages from yourself -- priming messages always show up as coming from you
+        ruleSet.rejectAll();
+        ruleSet.allow(self, false);
     }
 
     /**
@@ -127,18 +134,22 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public void spawnChild(String id, Coroutine actor) {
+    public void spawnChild(String id, Coroutine actor, Object ... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(actor);
+        Validate.notNull(primingMessages);
+        Validate.noNullElements(primingMessages);
         
         Address childSelf = self().appendSuffix(id);
         CoroutineRunner childActorRunner = new CoroutineRunner(actor);
         
         SourceContext childCtx = new SourceContext(childActorRunner, childSelf);
         childCtx.parent = this;
-        childCtx.self = childSelf;
-        childCtx.actorRunner = childActorRunner;
         childCtx.outs = outs; // all outgoing messages go in to the same queue
+        
+        for (Object primingMessage : primingMessages) {
+            childCtx.out(childSelf, childSelf, primingMessage);
+        }
         
         childActorRunner.setContext(childCtx);
         
@@ -156,6 +167,26 @@ public final class SourceContext implements Context {
     public boolean containsChild(String id) {
         Validate.notNull(id);
         return children.containsKey(id);
+    }
+
+    @Override
+    public void allow() {
+        ruleSet.allowAll();
+    }
+
+    @Override
+    public void allow(Address source, boolean children, Class<?>... types) {
+        ruleSet.allow(source, children, types);
+    }
+
+    @Override
+    public void block() {
+        ruleSet.rejectAll();
+    }
+
+    @Override
+    public void block(Address source, boolean children, Class<?>... types) {
+        ruleSet.reject(source, children, types);
     }
 
     /**
@@ -188,13 +219,19 @@ public final class SourceContext implements Context {
         }
         
         
-        LOG.debug("Processing message from {} to {} {}", src, dst, msg);
+        if (ctx.ruleSet.evaluate(src, msg.getClass()) != AccessType.ALLOW) {
+            LOG.warn("Actor ruleset rejected message: id={} message={}", dst, msg);
+            return false;
+        }
 
+        
+        LOG.debug("Processing message from {} to {} {}", src, dst, msg);
+        
         ctx.in = msg;
         ctx.source = src;
         ctx.destination = dst;
         ctx.time = time;
-       
+        
         try {
             // Run the actor at the address we found
             boolean finished = !ctx.actorRunner.execute();
@@ -283,8 +320,8 @@ public final class SourceContext implements Context {
             }
 
             @Override
-            public void spawnChild(String id, Coroutine actor) {
-                SourceContext.this.spawnChild(id, actor);
+            public void spawnChild(String id, Coroutine actor, Object... primingMessages) {
+                SourceContext.this.spawnChild(id, actor, primingMessages);
             }
 
             @Override
@@ -296,7 +333,27 @@ public final class SourceContext implements Context {
             public boolean containsChild(String id) {
                 return SourceContext.this.containsChild(id);
             }
-            
+
+            @Override
+            public void allow() {
+                SourceContext.this.allow();
+            }
+
+            @Override
+            public void allow(Address source, boolean children, Class<?>... types) {
+                SourceContext.this.allow(source, children, types);
+            }
+
+            @Override
+            public void block() {
+                SourceContext.this.block();
+            }
+
+            @Override
+            public void block(Address source, boolean children, Class<?>... types) {
+                SourceContext.this.block(source, children, types);
+            }
+
         };
     }
 }

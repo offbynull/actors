@@ -17,6 +17,7 @@ public class TimerGatewayTest {
 
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
             String timerPrefix = ctx.in();
             ctx.out(

@@ -27,6 +27,10 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
+            cnt.suspend();
+            
             Address dstAddr = ctx.in();
 
             for (int i = 0; i < 3; i++) {
@@ -38,7 +42,10 @@ public class SimulatorTest {
 
         Coroutine echoer = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
+            cnt.suspend();
+            
             while (true) {
                 Address src = ctx.source();
                 Object msg = ctx.in();
@@ -48,8 +55,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
-        fixture.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        fixture.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L), new Object());
+        fixture.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), new Object(), Address.fromString("echoer"));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -64,6 +71,10 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
+            cnt.suspend();
+            
             Address dstAddr = ctx.in();
 
             ctx.out(dstAddr, 0);
@@ -89,6 +100,9 @@ public class SimulatorTest {
 
         Coroutine echoer = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
+            cnt.suspend();
 
             while (true) {
                 Address src = ctx.source();
@@ -99,8 +113,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), Address.fromString("echoer"));
-        fixture.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L));
+        fixture.addActor("echoer", echoer, Duration.ZERO, Instant.ofEpochMilli(0L), new Object());
+        fixture.addActor("sender", sender, Duration.ZERO, Instant.ofEpochMilli(0L), new Object(), Address.fromString("echoer"));
         fixture.addTimer("timer", Instant.ofEpochMilli(0L));
 
         while (fixture.hasMore()) {
@@ -118,6 +132,10 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
+            cnt.suspend();
+            
             Address dstAddr = ctx.in();
             senderTimes.add(ctx.time());
 
@@ -131,7 +149,10 @@ public class SimulatorTest {
 
         Coroutine echoer = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
+            cnt.suspend();
+            
             while (true) {
                 Address src = ctx.source();
                 Object msg = ctx.in();
@@ -142,8 +163,8 @@ public class SimulatorTest {
         };
 
         Simulator fixture = new Simulator();
-        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
-        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L), new Object());
+        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), new Object(), Address.of("echoer"));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -162,6 +183,10 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
+            cnt.suspend();
+            
             Address dstAddr = ctx.in();
             senderTimes.add(ctx.time());
 
@@ -175,7 +200,10 @@ public class SimulatorTest {
 
         Coroutine echoer = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
+            cnt.suspend();
+            
             while (true) {
                 Address src = ctx.source();
                 Object msg = ctx.in();
@@ -188,8 +216,8 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
-        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addActor("echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), new Object());
+        fixture.addActor("sender", sender, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L), new Object(), Address.of("echoer"));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -198,10 +226,10 @@ public class SimulatorTest {
         assertEquals(Arrays.asList(0, 1, 2), result);
         assertEquals(
                 Arrays.asList(
-                        Instant.ofEpochSecond(1L), // each msg takes 1sec to process, initial priming msg comes in immediately w/o delay
-                        Instant.ofEpochSecond(3L),
+                        Instant.ofEpochSecond(3L), // each msg takes 1sec to process, initial priming msg comes in immediately w/o delay
                         Instant.ofEpochSecond(5L),
-                        Instant.ofEpochSecond(7L)
+                        Instant.ofEpochSecond(7L),
+                        Instant.ofEpochSecond(9L)
                 ),
                 senderTimes);
         assertEquals(
@@ -221,6 +249,10 @@ public class SimulatorTest {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
+            cnt.suspend();
+            
             Address dstAddr = ctx.in();
             senderTimes.add(ctx.time());
 
@@ -234,7 +266,10 @@ public class SimulatorTest {
 
         Coroutine echoer = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
+            cnt.suspend();
+            
             while (true) {
                 Address src = ctx.source();
                 Object msg = ctx.in();
@@ -247,8 +282,8 @@ public class SimulatorTest {
         Simulator fixture = new Simulator(
                 Instant.ofEpochMilli(0L),
                 (src, dst, msg, realDuration) -> Duration.ofSeconds(1L));
-        fixture.addActor("sender", sender, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), Address.of("echoer"));
-        fixture.addActor("echoer", echoer, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L));
+        fixture.addActor("echoer", echoer, Duration.ofSeconds(1L), Instant.ofEpochMilli(0L), new Object());
+        fixture.addActor("sender", sender, Duration.ofSeconds(2L), Instant.ofEpochMilli(0L), new Object(), Address.of("echoer"));
 
         while (fixture.hasMore()) {
             fixture.process();
@@ -260,10 +295,10 @@ public class SimulatorTest {
                         // each msg takes 1sec to process, initial priming msg comes in immediately w/o delay
                         // also, each msg takes 1sec to send, and 1sec to bounce back to sender... so 2sec in total
                         // don't forget priming msg also has a 1sec delay before arriving
-                        Instant.ofEpochSecond(1L),
                         Instant.ofEpochSecond(3L),
                         Instant.ofEpochSecond(5L),
-                        Instant.ofEpochSecond(7L)
+                        Instant.ofEpochSecond(7L),
+                        Instant.ofEpochSecond(9L)
                 ),
                 senderTimes);
         assertEquals(
@@ -281,6 +316,7 @@ public class SimulatorTest {
         List<Instant> times = new ArrayList<>();
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
             result.add(ctx.in());
             times.add(ctx.time());
@@ -316,6 +352,7 @@ public class SimulatorTest {
         List<Instant> times = new ArrayList<>();
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
             result.add(ctx.in());
             times.add(ctx.time());
@@ -377,7 +414,9 @@ public class SimulatorTest {
     public void mustNotSendTimerMessageIfTimerWasRemovedAndReadded() {
         MutableBoolean failCalled = new MutableBoolean();
         Coroutine triggerTimerActor = (cnt) -> {
-            ((Context) cnt.getContext()).out(Address.of("timer", "5000"), "failmsg");
+            Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            ctx.out(Address.of("timer", "5000"), "failmsg");
             while (true) {
                 cnt.suspend();
             }

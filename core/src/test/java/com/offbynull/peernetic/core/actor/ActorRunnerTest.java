@@ -33,12 +33,18 @@ public class ActorRunnerTest {
                 "echoer",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
+                    ctx.allow();
+                    
+                    cnt.suspend();
+                    
                     ctx.out(Address.fromString("local:sender"), ctx.in());
-                });
+                },
+                new Object());
         fixture.addActor(
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
+                    ctx.allow();
                     ctx.out(Address.fromString("local:echoer"), "hi");
                     
                     cnt.suspend();
@@ -61,21 +67,32 @@ public class ActorRunnerTest {
             
             // Test
             CountDownLatch latch = new CountDownLatch(1);
-            secondaryActorRunner.addActor(
-                    "echoer",
-                    (Continuation cnt) -> {
-                        Context ctx = (Context) cnt.getContext();
-                        ctx.out(ctx.source(), ctx.in());
-                    });
             fixture.addActor(
                     "sender",
                     (Continuation cnt) -> {
                         Context ctx = (Context) cnt.getContext();
+                        ctx.allow();
+                        
+                        cnt.suspend();
+                        assertEquals("ready", ctx.in());
                         ctx.out(Address.fromString("local2:echoer"), "hi");
+                        
                         cnt.suspend();
                         
                         assertEquals(ctx.in(), "hi");
                         latch.countDown();
+                    },
+                    new Object());
+            secondaryActorRunner.addActor(
+                    "echoer",
+                    (Continuation cnt) -> {
+                        Context ctx = (Context) cnt.getContext();
+                        ctx.allow();
+                        ctx.out(Address.fromString("local:sender"), "ready");
+                        
+                        cnt.suspend();
+                        
+                        ctx.out(ctx.source(), ctx.in());
                     },
                     new Object());
             
@@ -88,23 +105,13 @@ public class ActorRunnerTest {
     public void mustCommunicateWithTheCorrectChildActor() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         fixture.addActor(
-                "echoer",
-                (Continuation cnt) -> {
-                    Context ctx = (Context) cnt.getContext();
-                    ctx.spawnChild(
-                            "child",
-                            (Continuation cnt2) -> {
-                                Context ctx2 = (Context) cnt2.getContext();
-                                ctx2.out(Address.fromString("local:sender"), ctx2.in());
-                            });
-                    
-                    cnt.suspend();
-                },
-                new Object());
-        fixture.addActor(
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
+                    ctx.allow();
+                    
+                    cnt.suspend();
+                    assertEquals("ready", ctx.in());
                     ctx.out(Address.fromString("local:echoer:child"), "hi");
                     
                     cnt.suspend();
@@ -113,8 +120,29 @@ public class ActorRunnerTest {
                     latch.countDown();
                 },
                 new Object());
+        fixture.addActor(
+                "echoer",
+                (Continuation cnt) -> {
+                    Context ctx = (Context) cnt.getContext();
+                    ctx.allow();
+                    ctx.spawnChild(
+                            "child",
+                            (Continuation cnt2) -> {
+                                Context ctx2 = (Context) cnt2.getContext();
+                                ctx2.allow();
+                                ctx2.out(Address.fromString("local:sender"), "ready");
+                                
+                                cnt2.suspend();
+                                
+                                ctx2.out(Address.fromString("local:sender"), ctx2.in());
+                            },
+                            new Object());
+                    
+                    cnt.suspend();
+                },
+                new Object());
         
-        boolean processed = latch.await(9999999L, TimeUnit.SECONDS);
+        boolean processed = latch.await(5L, TimeUnit.SECONDS);
         assertTrue(processed);
     }
 
@@ -167,6 +195,7 @@ public class ActorRunnerTest {
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
+                    ctx.allow();
                     ctx.out(Address.fromString("fake"), "1");
                     ctx.out(Address.fromString("local:sender"), new Object());
         
@@ -204,6 +233,7 @@ public class ActorRunnerTest {
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
+                    ctx.allow();
                     ctx.out(Address.fromString("fake"), "1");
                     ctx.out(Address.fromString("local:sender"), new Object());
         

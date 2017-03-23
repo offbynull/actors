@@ -37,7 +37,7 @@ public class ActorRunnerTest {
                     
                     cnt.suspend();
                     
-                    ctx.out(Address.fromString("local:sender"), ctx.in());
+                    ctx.out("local:sender", ctx.in());
                 },
                 new Object());
         fixture.addActor(
@@ -45,7 +45,7 @@ public class ActorRunnerTest {
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.allow();
-                    ctx.out(Address.fromString("local:echoer"), "hi");
+                    ctx.out("local:echoer", "hi");
                     
                     cnt.suspend();
                     
@@ -75,7 +75,7 @@ public class ActorRunnerTest {
                         
                         cnt.suspend();
                         assertEquals("ready", ctx.in());
-                        ctx.out(Address.fromString("local2:echoer"), "hi");
+                        ctx.out("local2:echoer", "hi");
                         
                         cnt.suspend();
                         
@@ -88,7 +88,7 @@ public class ActorRunnerTest {
                     (Continuation cnt) -> {
                         Context ctx = (Context) cnt.getContext();
                         ctx.allow();
-                        ctx.out(Address.fromString("local:sender"), "ready");
+                        ctx.out("local:sender", "ready");
                         
                         cnt.suspend();
                         
@@ -112,7 +112,7 @@ public class ActorRunnerTest {
                     
                     cnt.suspend();
                     assertEquals("ready", ctx.in());
-                    ctx.out(Address.fromString("local:echoer:child"), "hi");
+                    ctx.out("local:echoer:child", "hi");
                     
                     cnt.suspend();
                     
@@ -130,11 +130,11 @@ public class ActorRunnerTest {
                             (Continuation cnt2) -> {
                                 Context ctx2 = (Context) cnt2.getContext();
                                 ctx2.allow();
-                                ctx2.out(Address.fromString("local:sender"), "ready");
+                                ctx2.out("local:sender", "ready");
                                 
                                 cnt2.suspend();
                                 
-                                ctx2.out(Address.fromString("local:sender"), ctx2.in());
+                                ctx2.out("local:sender", ctx2.in());
                             },
                             new Object());
                     
@@ -196,8 +196,8 @@ public class ActorRunnerTest {
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.allow();
-                    ctx.out(Address.fromString("fake"), "1");
-                    ctx.out(Address.fromString("local:sender"), new Object());
+                    ctx.out("fake", "1");
+                    ctx.out("local:sender", new Object());
         
                     // Suspend here. We'll continue when we get the msg we sent to ourselves, and at that point we can be sure that msgs to
                     // "fake" were sent
@@ -234,8 +234,8 @@ public class ActorRunnerTest {
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.allow();
-                    ctx.out(Address.fromString("fake"), "1");
-                    ctx.out(Address.fromString("local:sender"), new Object());
+                    ctx.out("fake", "1");
+                    ctx.out("local:sender", new Object());
         
                     // Suspend here. We'll continue when we get the msg we sent to ourselves, and at that point we can be sure that msgs to
                     // "fake" were sent

@@ -14,7 +14,7 @@ public class DirectGatewayTest {
         Coroutine echoerActor = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
             ctx.allow();
-            ctx.out(Address.fromString("direct"), "ready");
+            ctx.out("direct", "ready");
             
             cnt.suspend();
             

@@ -80,7 +80,7 @@ public class SimulatorTest {
             ctx.out(dstAddr, 0);
             ctx.out(dstAddr, 1);
             ctx.out(dstAddr, 2);
-            ctx.out(Address.fromString("timer:2000"), new Object());
+            ctx.out("timer:2000", new Object());
             ctx.out(dstAddr, 100);
             ctx.out(dstAddr, 101);
             ctx.out(dstAddr, 102);
@@ -416,7 +416,7 @@ public class SimulatorTest {
         Coroutine triggerTimerActor = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
             ctx.allow();
-            ctx.out(Address.of("timer", "5000"), "failmsg");
+            ctx.out("timer:5000", "failmsg");
             while (true) {
                 cnt.suspend();
             }

@@ -20,10 +20,7 @@ public class TimerGatewayTest {
             ctx.allow();
 
             String timerPrefix = ctx.in();
-            ctx.out(
-                    Address.fromString("local:tester"),
-                    Address.fromString("timer:2000:extra"),
-                    "msg");
+            ctx.out("local:tester", "timer:2000:extra", "msg");
             cnt.suspend();
             
             queue.add(ctx.source().toString());

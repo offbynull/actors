@@ -41,6 +41,17 @@ import java.util.List;
 public interface Context {
 
     /**
+     * Equivalent to calling {@code out(Address.fromString(destination), message)}. 
+     * @param destination destination address
+     * @param message outgoing message
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destination} is empty
+     */
+    default void out(String destination, Object message) {
+        out(Address.fromString(destination), message);
+    }
+
+    /**
      * Equivalent to calling {@code out(self(), destination, message)}. 
      * @param destination destination address
      * @param message outgoing message
@@ -49,6 +60,18 @@ public interface Context {
      */
     default void out(Address destination, Object message) {
         out(self(), destination, message);
+    }
+
+    /**
+     * Equivalent to calling {@code out(Address.fromString(source), Address.fromString(destination), message)}. 
+     * @param source source address (must start with {@link #self()})
+     * @param destination destination address
+     * @param message outgoing message
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code destination} is empty, or if {@code source} doesn't start with {@link #self()}
+     */
+    default void out(String source, String destination, Object message) {
+        out(Address.fromString(source), Address.fromString(destination), message);
     }
 
     /**

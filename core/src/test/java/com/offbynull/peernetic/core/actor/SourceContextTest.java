@@ -23,9 +23,9 @@ public class SourceContextTest {
     public void mustQueueUpOutgoingMessages() {
         List<BatchedOutgoingMessage> outgoingMsgsView = fixture.viewOuts();
         
-        fixture.out(Address.fromString("test1"), "1");
-        fixture.out(Address.fromString("self"), Address.fromString("test2"), "2");
-        fixture.out(Address.fromString("self:a"), Address.fromString("test3"), "3");
+        fixture.out("test1", "1");
+        fixture.out("self", "test2", "2");
+        fixture.out("self:a", "test3", "3");
         
         assertEquals(3, outgoingMsgsView.size());
         
@@ -44,9 +44,9 @@ public class SourceContextTest {
 
     @Test
     public void mustDrainOutgoingMessages() {
-        fixture.out(Address.fromString("test1"), "1");
-        fixture.out(Address.fromString("self"), Address.fromString("test2"), "2");
-        fixture.out(Address.fromString("self:a"), Address.fromString("test3"), "3");
+        fixture.out("test1", "1");
+        fixture.out("self", "test2", "2");
+        fixture.out("self:a", "test3", "3");
         
         List<BatchedOutgoingMessage> outgoingMsgs = fixture.copyAndClearOutgoingMessages();
         

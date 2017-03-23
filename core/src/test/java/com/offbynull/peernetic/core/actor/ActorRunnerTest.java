@@ -125,7 +125,7 @@ public class ActorRunnerTest {
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
                     ctx.allow();
-                    ctx.spawnChild(
+                    ctx.child(
                             "child",
                             (Continuation cnt2) -> {
                                 Context ctx2 = (Context) cnt2.getContext();

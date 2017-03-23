@@ -134,7 +134,7 @@ public final class SourceContext implements Context {
     }
 
     @Override
-    public void spawnChild(String id, Coroutine actor, Object ... primingMessages) {
+    public void child(String id, Coroutine actor, Object ... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(actor);
         Validate.notNull(primingMessages);
@@ -156,15 +156,9 @@ public final class SourceContext implements Context {
         SourceContext existingCtx = children.putIfAbsent(id, childCtx);
         Validate.isTrue(existingCtx == null);
     }
-    
-    @Override
-    public void destroyChild(String id) {
-        Validate.notNull(id);
-        children.remove(id);
-    }
 
     @Override
-    public boolean containsChild(String id) {
+    public boolean isChild(String id) {
         Validate.notNull(id);
         return children.containsKey(id);
     }
@@ -320,18 +314,13 @@ public final class SourceContext implements Context {
             }
 
             @Override
-            public void spawnChild(String id, Coroutine actor, Object... primingMessages) {
-                SourceContext.this.spawnChild(id, actor, primingMessages);
+            public void child(String id, Coroutine actor, Object... primingMessages) {
+                SourceContext.this.child(id, actor, primingMessages);
             }
 
             @Override
-            public void destroyChild(String id) {
-                SourceContext.this.destroyChild(id);
-            }
-
-            @Override
-            public boolean containsChild(String id) {
-                return SourceContext.this.containsChild(id);
+            public boolean isChild(String id) {
+                return SourceContext.this.isChild(id);
             }
 
             @Override

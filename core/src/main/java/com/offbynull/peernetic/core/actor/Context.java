@@ -134,14 +134,7 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @throws IllegalArgumentException if {@code id} is empty, or if {@code id} is already a child
      */
-    void spawnChild(String id, Coroutine actor, Object ... primingMessages);
-    
-    /**
-     * Remove a child actor. If this actor doesn't contain a child with the id {@code id}, this method does nothing.
-     * @param id id of actor to remove
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    void destroyChild(String id);
+    void child(String id, Coroutine actor, Object ... primingMessages);
     
     /**
      * Checks to see if a child actor exists.
@@ -149,7 +142,7 @@ public interface Context {
      * @return {@code true} if the child actor exists, {@code false} otherwise
      * @throws NullPointerException if any argument is {@code null}
      */
-    boolean containsChild(String id);
+    boolean isChild(String id);
     
     /**
      * Allow all incoming messages. All previously set allow/block rules are discarded.

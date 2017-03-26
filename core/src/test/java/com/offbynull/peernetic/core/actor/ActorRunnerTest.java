@@ -1,7 +1,6 @@
 package com.offbynull.peernetic.core.actor;
 
 import com.offbynull.coroutines.user.Continuation;
-import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.test.CaptureShuttle;
 import com.offbynull.peernetic.core.shuttles.test.NullShuttle;
 import java.util.concurrent.CountDownLatch;
@@ -99,51 +98,6 @@ public class ActorRunnerTest {
             boolean processed = latch.await(5L, TimeUnit.SECONDS);
             assertTrue(processed);
         }
-    }
-
-    @Test
-    public void mustCommunicateWithTheCorrectChildActor() throws Exception {
-        CountDownLatch latch = new CountDownLatch(1);
-        fixture.addActor(
-                "sender",
-                (Continuation cnt) -> {
-                    Context ctx = (Context) cnt.getContext();
-                    ctx.allow();
-                    
-                    cnt.suspend();
-                    assertEquals("ready", ctx.in());
-                    ctx.out("local:echoer:child", "hi");
-                    
-                    cnt.suspend();
-                    
-                    assertEquals(ctx.in(), "hi");
-                    latch.countDown();
-                },
-                new Object());
-        fixture.addActor(
-                "echoer",
-                (Continuation cnt) -> {
-                    Context ctx = (Context) cnt.getContext();
-                    ctx.allow();
-                    ctx.child(
-                            "child",
-                            (Continuation cnt2) -> {
-                                Context ctx2 = (Context) cnt2.getContext();
-                                ctx2.allow();
-                                ctx2.out("local:sender", "ready");
-                                
-                                cnt2.suspend();
-                                
-                                ctx2.out("local:sender", ctx2.in());
-                            },
-                            new Object());
-                    
-                    cnt.suspend();
-                },
-                new Object());
-        
-        boolean processed = latch.await(5L, TimeUnit.SECONDS);
-        assertTrue(processed);
     }
 
     @Test

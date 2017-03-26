@@ -794,7 +794,7 @@ public final class Simulator {
         boolean stopped;
         Instant execStartTime = Instant.now();
         try {
-            stopped = context.fire(source, destination, localActorTime, message);
+            stopped = SourceContext.fire(context, source, destination, localActorTime, message);
         } catch (Exception e) {
             LOG.warn("Actor " + destHolder.getAddress() + " threw an exception", e);
             stopped = true;

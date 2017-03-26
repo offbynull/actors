@@ -16,6 +16,7 @@
  */
 package com.offbynull.peernetic.core.actor;
 
+import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_LOG_ADDRESS;
 import static com.offbynull.peernetic.core.common.DefaultAddresses.DEFAULT_TIMER_ADDRESS;
@@ -145,6 +146,51 @@ public interface Context {
     boolean isChild(String id);
     
     /**
+     * Intercept messages going to child actors. If the intercept flag is set, messages destined for children (and their children down the
+     * chain) will first be sent to this actor (the parent). Should this actor choose to feed the message down the chain,
+     * {@link #forward() } can be used.
+     * @param intercept {@code true} to intercept messages to children, {@code false} otherwise
+     */
+    void intercept(boolean intercept);
+    
+    /**
+     * Sets message forwarding behaviour on next suspend. If set to anything other than {@link ForwardMode#DO_NOT_FORWARD}, the incoming
+     * message will get fed to any child expecting it once {@link Continuation#suspend() } is invoked.
+     * <p>
+     * If mode is set to...
+     * <ul>
+     * <li>{@link ForwardMode#DO_NOT_FORWARD}, the message won't be forwarded to any child actors.</li>
+     * <li>{@link ForwardMode#FORWARD_AND_FORGET}, the message will be forwarded to child actors.</li>
+     * <li>{@link ForwardMode#FORWARD_AND_RETURN}, the message will be forwarded to child actors and control will be given back to this
+     * actor once child actors are done with the message. {@link Continuation#suspend() } can then be invoked again to suspend this
+     * actor.</li>
+     * </ul>
+     * Note that the forward mode being set here isn't retained. It gets reset to {@link ForwardMode#DO_NOT_FORWARD} after a forward.
+     * <p>
+     * An example...
+     * {@code
+     * (Continuation cnt) -> {
+     *     Context ctx = (Context) cnt.getContext();
+     *     ctx.allow();                      // Set flag to allow any message from any source
+     *     ctx.intercept(true);              // Set flag to intercept incoming messages for children
+     * 
+     *     cnt.suspend(FORWARD_AND_RETURN);  // Wait for incoming message
+     * 
+     *     Object msg = ctx.in();            // Get incoming message
+     * 
+     *     ctx.forward();                    // Set flag to forward msg to children on next suspend()
+     * 
+     *     ctx.logDebug("About to fwd!");
+     *     cnt.suspend();                    // Forward to children
+     *     ctx.logDebug("Done fwding!");
+     * }
+     * }
+     * @param forwardMode forward mode
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    void forward(ForwardMode forwardMode);
+    
+    /**
      * Allow all incoming messages. All previously set allow/block rules are discarded.
      */
     void allow();
@@ -252,5 +298,23 @@ public interface Context {
      */
     default void logTrace(Address source, String message, Object... arguments) {
         out(source, DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));
+    }
+    
+    /**
+     * Forward mode.
+     */
+    public enum ForwardMode {
+        /**
+         * Do not forward message to child actors.
+         */
+        DO_NOT_FORWARD,
+        /**
+         * Forward the message to child actors.
+         */
+        FORWARD_AND_FORGET,
+        /**
+         * Forward the message to child actors and release control back to forwarder once child actors are done with the message.
+         */
+        FORWARD_AND_RETURN
     }
 }

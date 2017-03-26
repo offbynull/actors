@@ -51,6 +51,9 @@ public final class SourceContext implements Context {
     private Object in;
     private List<BatchedOutgoingMessage> outs;
     private final Map<String, SourceContext> children;
+    
+    private boolean intercept;
+    private ForwardMode forwardMode;
 
     /**
      * Constructs a {@link SourceContext} object.
@@ -164,6 +167,17 @@ public final class SourceContext implements Context {
     }
 
     @Override
+    public void intercept(boolean intercept) {
+        this.intercept = true;
+    }
+
+    @Override
+    public void forward(ForwardMode mode) {
+        Validate.notNull(mode);
+        forwardMode = mode;
+    }
+
+    @Override
     public void allow() {
         ruleSet.allowAll();
     }
@@ -185,6 +199,7 @@ public final class SourceContext implements Context {
 
     /**
      * Fire a message to the actor associated with this context. If the destination is a child actor, the message will be correctly routed.
+     * @param ctx starting context
      * @param src source
      * @param dst destination
      * @param time execution time
@@ -192,27 +207,89 @@ public final class SourceContext implements Context {
      * @return {@code false} if the actor is still active, {@code true} if it should be discarded
      * @throws NullPointerException if any argument is {@code null}
      */
-    public boolean fire(Address src, Address dst, Instant time, Object msg) {
+    public static boolean fire(SourceContext ctx, Address src, Address dst, Instant time, Object msg) {
+        Validate.notNull(ctx);
         Validate.notNull(src);
         Validate.notNull(dst);
+        Validate.notNull(time);
         Validate.notNull(msg);
 
-        int nextDstIdx = self.size();
-        SourceContext ctx = this;
 
-        while (ctx != null && nextDstIdx < dst.size()) {
-            String dstChildId = dst.getElement(nextDstIdx);
-            ctx = ctx.getChildContext(dstChildId);
-            
-            nextDstIdx++;
+        // Walk up the context chain until you reach the topmost actor
+        while (ctx.parent != null) {
+            ctx = ctx.parent;
         }
         
+        return fireRecurse(ctx, src, dst, time, msg);
+    }
+    
+    private static boolean fireRecurse(SourceContext ctx, Address src, Address dst, Instant time, Object msg) {
         if (ctx == null) {
-            LOG.warn("Actor not found for message: id={} message={}", dst, msg);
             return false;
         }
         
         
+        
+        if (ctx.self.equals(dst)) {
+            // The message is for us. There's no further child to recurse to so process and get out.
+            ctx.forwardMode = ForwardMode.DO_NOT_FORWARD;
+            boolean done = invoke(ctx, src, dst, time, msg);
+            return done;
+        }
+        
+        
+        
+        
+        if (ctx.intercept) {
+            // The message is for one of our children, but we want to intercept it....
+            boolean done = invoke(ctx, src, dst, time, msg);
+            if (done) {
+                return true; // we are the main actor and we died/finished OR we are a child actor that had an error, so return
+            }
+
+            if (ctx.forwardMode == ForwardMode.DO_NOT_FORWARD) {
+                return false; // we gave instructions NOT to forward, so return
+            }
+        }
+        
+        
+        
+        // Recurse down 1 level
+        String childId = dst.removePrefix(ctx.self).getElement(0);
+        SourceContext childCtx = ctx.getChildContext(childId);
+        if (childCtx != null) {
+            fireRecurse(childCtx, src, dst, time, msg);
+        }
+
+        
+        
+        
+        // reset forward flag 
+        ForwardMode oldForwardMode = ctx.forwardMode;
+        ctx.forwardMode = ForwardMode.DO_NOT_FORWARD;
+        if (ctx.intercept && oldForwardMode == ForwardMode.FORWARD_AND_RETURN) {
+            // If we intercepted this message and forwarded it + asked control to be release back, then release control back
+            boolean done = invoke(ctx, src, dst, time, msg);
+            if (done) {
+                return true;
+            }
+            
+            // If were instructed to forward to children at this point, something is wrong with the actor logic. We're releasing control
+            // back to the actor from a forward for cleanup purposes. It makes zero sense to try to forward again. As such, kill the entire
+            // actor stream
+            if (ctx.forwardMode != ForwardMode.DO_NOT_FORWARD) {
+                LOG.error("Actor " + dst + " is instructing to forward on release from a forward -- not allowed");
+                return true;
+            }
+        }
+
+        
+        
+        // Return okay status
+        return false;
+    }
+    
+    private static boolean invoke(SourceContext ctx, Address src, Address dst, Instant time, Object msg) {
         if (ctx.ruleSet.evaluate(src, msg.getClass()) != AccessType.ALLOW) {
             LOG.warn("Actor ruleset rejected message: id={} message={}", dst, msg);
             return false;
@@ -321,6 +398,16 @@ public final class SourceContext implements Context {
             @Override
             public boolean isChild(String id) {
                 return SourceContext.this.isChild(id);
+            }
+
+            @Override
+            public void intercept(boolean intercept) {
+                SourceContext.this.intercept(intercept);
+            }
+
+            @Override
+            public void forward(ForwardMode mode) {
+                SourceContext.this.forward(mode);
             }
 
             @Override

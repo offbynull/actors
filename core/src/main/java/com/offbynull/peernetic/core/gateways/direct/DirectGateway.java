@@ -140,6 +140,17 @@ public final class DirectGateway implements InputGateway, OutputGateway {
     }
     
     /**
+     * Writes one message to an actor or gateway. Equivalent to calling {@code writeMessages(Address.fromString(destination), message))}.
+     * @param destination destination address
+     * @param message message to send
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any source address in {@code messages} does not start with this gateway's prefix
+     */
+    public void writeMessage(String destination, Object message) {
+        writeMessage(Address.fromString(destination), message);
+    }
+    
+    /**
      * Writes one or more messages to an actor or gateway.
      * @param messages messages to send
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
@@ -158,6 +169,58 @@ public final class DirectGateway implements InputGateway, OutputGateway {
         
         
         bus.add(new SendMessages(messageList));
+    }
+
+    /**
+     * Reads the next message sent to this gateway.
+     * @param timeout how long to wait before giving up, in units of {@code unit} unit
+     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return incoming message payload, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws InterruptedException if this thread is interrupted
+     */
+    public Message readMessage(long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.notNull(unit);
+        
+        return readQueue.poll(timeout, unit);
+    }
+
+    /**
+     * Reads the next message sent to this gateway.
+     * @return incoming message payload
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws InterruptedException if this thread is interrupted
+     */
+    public Message readMessage() throws InterruptedException {
+        return readQueue.take();
+    }
+
+    /**
+     * Equivalent to calling {@code readMessage(timeout, unit).getMessage()}.
+     * @param <T> expected payload type
+     * @param timeout how long to wait before giving up, in units of {@code unit} unit
+     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return incoming message payload only, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws InterruptedException if this thread is interrupted
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T readMessagePayloadOnly(long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.notNull(unit);
+        
+        Message msg = readMessage(timeout, unit);
+        return msg == null ? null : (T) msg.getMessage();
+    }
+
+    /**
+     * Equivalent to calling {@code readMessage().getMessage()}.
+     * @param <T> expected payload type
+     * @return incoming message payload only
+     * @throws InterruptedException if this thread is interrupted
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T readMessagePayloadOnly() throws InterruptedException {
+        return (T) readMessage().getMessage();
     }
 
     /**

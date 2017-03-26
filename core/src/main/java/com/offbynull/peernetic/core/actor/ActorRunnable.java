@@ -164,7 +164,7 @@ final class ActorRunnable implements Runnable {
 
         SourceContext ctx = loadedActor.context;
         
-        boolean shutdown = ctx.fire(src, dst, Instant.now(), msg);
+        boolean shutdown = SourceContext.fire(ctx, src, dst, Instant.now(), msg);
         if (shutdown) {
             LOG.debug("Removing actor {}", dst);
             actors.remove(dstActorId);

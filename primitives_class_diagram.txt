@@ -1,0 +1,35 @@
+@startuml
+class ActorRunner {
+   + addActor(String id, Actor actor, Object... primingMessages)
+   + addActor(String id, Coroutine coroutine, Object... primingMessages)
+   + getIncomingShuttle()
+   + removeActor(String id)
+   + addOutgoingShuttle(Shuttle shuttle)
+   + removeOutgoingShuttle(String prefix)
+   + join()
+   + close()
+}
+
+
+interface Actor {
+   + onStep(Context context)
+}
+
+interface Gateway {
+}
+
+interface InputGateway {
+  + getIncomingShuttle()
+}
+
+interface OutputGateway {
+  + addOutgoingShuttle(Shuttle shuttle)
+  + removeOutgoingShuttle(String shuttlePrefix)
+}
+
+Actor "0..*" o-- "1" ActorRunner
+Gateway <|-- OutputGateway
+Gateway <|-- InputGateway
+
+hide fields
+@enduml

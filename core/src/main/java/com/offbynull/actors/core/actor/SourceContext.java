@@ -165,6 +165,14 @@ public final class SourceContext implements Context {
         Validate.notNull(id);
         return children.containsKey(id);
     }
+    
+    /**
+     * Get context of parent actor.
+     * @return parent context ({@code null} if no parent)
+     */
+    public SourceContext parent() {
+        return parent;
+    }
 
     @Override
     public void intercept(boolean intercept) {

@@ -261,7 +261,6 @@ public interface Context {
      * @param delay delay in milliseconds
      * @param message message to have the timer reflect back after {@code delay}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     default void timer(long delay, Object message) {
         out(DEFAULT_TIMER_ADDRESS.appendSuffix(Long.toString(delay)), message);
@@ -273,7 +272,6 @@ public interface Context {
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     default void logError(String message, Object... arguments) {
         out(DEFAULT_LOG_ADDRESS, LogMessage.error(message, arguments));
@@ -285,7 +283,6 @@ public interface Context {
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     default void logWarn(String message, Object... arguments) {
         out(DEFAULT_LOG_ADDRESS, LogMessage.warn(message, arguments));
@@ -297,7 +294,6 @@ public interface Context {
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     default void logInfo(String message, Object... arguments) {
         out(DEFAULT_LOG_ADDRESS, LogMessage.info(message, arguments));
@@ -309,7 +305,6 @@ public interface Context {
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     default void logDebug(String message, Object... arguments) {
         out(DEFAULT_LOG_ADDRESS, LogMessage.debug(message, arguments));
@@ -321,7 +316,6 @@ public interface Context {
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     default void logTrace(String message, Object... arguments) {
         out(DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));

@@ -15,7 +15,7 @@
     <!-- The following block will enable DEBUG level logging with LogRunnable, everything else will be WARN level. This cuts down on the
          amount of logging, and as such CPU utilization by actors shoots up to around 100% (see not at beginning of this xml file). -->
     <!--
-    <logger name="com.offbynull.peernetic.core.gateways.log.LogRunnable" level="DEBUG" />
+    <logger name="com.offbynull.actors.core.gateways.log.LogRunnable" level="DEBUG" />
     
     <root level="warn">
         <appender-ref ref="STDOUT" />

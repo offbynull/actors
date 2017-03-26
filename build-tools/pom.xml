@@ -3,11 +3,11 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.offbynull.peernetic</groupId>
+        <groupId>com.offbynull.actors</groupId>
         <artifactId>parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <groupId>com.offbynull.peernetic</groupId>
+    <groupId>com.offbynull.actors</groupId>
     <artifactId>build-tools</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <properties>

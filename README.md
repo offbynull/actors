@@ -1,6 +1,6 @@
 # Peernetic Actor Framework (beta)
 
-<p align="center"><img src ="../gh-pages/logo.png" alt="Peernetic logo" /></p>
+<p align="center"><img src ="logo.png" alt="Peernetic logo" /></p>
 
  * [Introduction](#introduction)
    * [Hello World Example](#hello-world-example)
@@ -71,7 +71,7 @@ System.out.println(response);
 
 There are two primitives in Peernetic's implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable.
 
-![Primitives Class Diagram](../gh-pages/primitives_class_diagram.png)
+![Primitives Class Diagram](primitives_class_diagram.png)
 
 #### Actors
 
@@ -200,7 +200,7 @@ The Unstructured Mesh example comes with 5 executable Java classes...
  * **SimulationDirect** - Nodes run in a simulation and communicate directly. 
  * **SimulationViaUdpSimulator** - Nodes run in a simulation and communicate via simulated UDP.
 
-![Unstructured Example Screenshot](../gh-pages/unstructured_example1.png)
+![Unstructured Example Screenshot](unstructured_example1.png)
 
 Executables classes prefixed with **Realtime** don't require user input because they run pre-configured scenarios.
 
@@ -224,7 +224,7 @@ The Chord example comes with 5 executable Java classes...
  * **SimulationDirect** - Chord nodes run in a simulation and communicate directly. 
  * **SimulationViaUdpSimulator** - Chord nodes run in a simulation and communicate via simulated UDP.
 
-![Chord Example Screenshot](../gh-pages/chord_example1.png)
+![Chord Example Screenshot](chord_example1.png)
 
 Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 64-node Chord cluster and bring it online. Note that node 0 will start as the bootstrap node, and all other nodes (1 to 63) will enter the network via node 0 when they start.
 
@@ -254,7 +254,7 @@ The Raft example comes with 5 executable Java classes...
  * **SimulationDirect** - Raft nodes run in a simulation and communicate directly. 
  * **SimulationViaUdpSimulator** - Raft nodes run in a simulation and communicate via simulated UDP.
 
-![Raft Example Screenshot](../gh-pages/raft_example1.png)
+![Raft Example Screenshot](raft_example1.png)
 
 Executables classes prefixed with **Realtime** require user input. When the example starts, a console-like window is presented. The following sequence of commands will create a 5-node Raft cluster and bring it online. Note that node 5 is the client that's reading from and writing to the cluster, while all other nodes (0 to 4) are Raft server nodes.
 

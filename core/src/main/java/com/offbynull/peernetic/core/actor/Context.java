@@ -64,6 +64,15 @@ public interface Context {
     }
 
     /**
+     * Equivalent to calling {@code out(self(), source(), message)}. 
+     * @param message outgoing message
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    default void out(Object message) {
+        out(self(), source(), message);
+    }
+
+    /**
      * Equivalent to calling {@code out(Address.fromString(source), Address.fromString(destination), message)}. 
      * @param source source address (must start with {@link #self()})
      * @param destination destination address
@@ -168,23 +177,25 @@ public interface Context {
      * Note that the forward mode being set here isn't retained. It gets reset to {@link ForwardMode#DO_NOT_FORWARD} after a forward.
      * <p>
      * An example...
-     * {@code
-     * (Continuation cnt) -> {
+     * <pre>
+     * (Continuation cnt) -&gt; {
      *     Context ctx = (Context) cnt.getContext();
      *     ctx.allow();                      // Set flag to allow any message from any source
      *     ctx.intercept(true);              // Set flag to intercept incoming messages for children
      * 
-     *     cnt.suspend(FORWARD_AND_RETURN);  // Wait for incoming message
+     *     cnt.suspend();                    // Wait for incoming message
      * 
      *     Object msg = ctx.in();            // Get incoming message
      * 
-     *     ctx.forward();                    // Set flag to forward msg to children on next suspend()
+     *     ctx.forward(FORWARD_AND_RETURN); // Set flag to forward msg to children on next suspend()
      * 
      *     ctx.logDebug("About to fwd!");
      *     cnt.suspend();                    // Forward to children
      *     ctx.logDebug("Done fwding!");
+     * 
+     *     cnt.suspend();                    // Suspend actor
      * }
-     * }
+     * </pre>
      * @param forwardMode forward mode
      * @throws NullPointerException if any argument is {@code null}
      */
@@ -205,6 +216,17 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
     void allow(Address source, boolean children, Class<?> ... types);
+    
+    /**
+     * Equivalent to calling {@code allow(Address.fromString(source), children, types)}.
+     * @param source source address to allow messages from
+     * @param children if {@code true}, children of {@code source} will also be allowed
+     * @param types types of messages to allow (child types aren't recognized)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    default void allow(String source, boolean children, Class<?> ... types) {
+        allow(Address.fromString(source), children, types);
+    }
 
     /**
      * Block all incoming messages. All previously set allow/block rules are discarded.
@@ -221,83 +243,88 @@ public interface Context {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
     void block(Address source, boolean children, Class<?> ... types);
+
+    /**
+     * Equivalent to calling {@code block(Address.fromString(source), children, types)}.
+     * @param source source address to block messages from
+     * @param children if {@code true}, children of {@code source} will also be blocked
+     * @param types types of messages to block (child types aren't recognized)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    default void block(String source, boolean children, Class<?> ... types) {
+        block(Address.fromString(source), children, types);
+    }
     
     /**
      * Sends a timer request to the timer gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_TIMER_ADDRESS}.
-     * @param source source address (must start with {@link #self()})
      * @param delay delay in milliseconds
      * @param message message to have the timer reflect back after {@code delay}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void timer(Address source, long delay, Object message) {
-        out(source, DEFAULT_TIMER_ADDRESS.appendSuffix(Long.toString(delay)), message);
+    default void timer(long delay, Object message) {
+        out(DEFAULT_TIMER_ADDRESS.appendSuffix(Long.toString(delay)), message);
     }
 
     /**
      * Sends a error message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logError(Address source, String message, Object... arguments) {
-        out(source, DEFAULT_LOG_ADDRESS, LogMessage.error(message, arguments));
+    default void logError(String message, Object... arguments) {
+        out(DEFAULT_LOG_ADDRESS, LogMessage.error(message, arguments));
     }
 
     /**
      * Sends a warn message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logWarn(Address source, String message, Object... arguments) {
-        out(source, DEFAULT_LOG_ADDRESS, LogMessage.warn(message, arguments));
+    default void logWarn(String message, Object... arguments) {
+        out(DEFAULT_LOG_ADDRESS, LogMessage.warn(message, arguments));
     }
     
     /**
      * Sends a info message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logInfo(Address source, String message, Object... arguments) {
-        out(source, DEFAULT_LOG_ADDRESS, LogMessage.info(message, arguments));
+    default void logInfo(String message, Object... arguments) {
+        out(DEFAULT_LOG_ADDRESS, LogMessage.info(message, arguments));
     }
     
     /**
      * Sends a debug message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logDebug(Address source, String message, Object... arguments) {
-        out(source, DEFAULT_LOG_ADDRESS, LogMessage.debug(message, arguments));
+    default void logDebug(String message, Object... arguments) {
+        out(DEFAULT_LOG_ADDRESS, LogMessage.debug(message, arguments));
     }
     
     /**
      * Sends a trace message to the log gateway located at address
      * {@link com.offbynull.peernetic.core.common.DefaultAddresses#DEFAULT_LOG_ADDRESS}.
-     * @param source source address (must start with {@link #self()})
      * @param message message to be logged (SLF4J style)
      * @param arguments arguments to insert in to {@code message}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
-    default void logTrace(Address source, String message, Object... arguments) {
-        out(source, DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));
+    default void logTrace(String message, Object... arguments) {
+        out(DEFAULT_LOG_ADDRESS, LogMessage.trace(message, arguments));
     }
     
     /**

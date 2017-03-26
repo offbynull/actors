@@ -21,7 +21,6 @@ import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.peernetic.core.gateways.log.LogGateway;
-import com.offbynull.peernetic.core.gateways.log.LogMessage;
 import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
@@ -40,25 +39,24 @@ public class Test {
         // Create coroutine actor that forwards messages to the logger
         Coroutine echoerActor = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
             
-            // First message is the priming message. It should be the address to the logger.
-            final Address loggerAddress = (Address) ctx.in();
+            // First message is the priming message.
             cnt.suspend();
 
             // All messages after the first message are messages that we should log and echo back.
             do {
                 Object msg = ctx.in();
-                Address srcAddress = ctx.source();
-                ctx.out(loggerAddress, LogMessage.debug("Received a message: {}", msg));
-                ctx.out(srcAddress, "Echoing back " + msg);
+                ctx.logDebug("Received a message: {}", msg);
+                ctx.out("Echoing back " + msg);
                 cnt.suspend();
             } while (true);
         };
 
         // Create the actor runner, logger gateway, and direct gateway.
-        ActorRunner actorRunner = new ActorRunner("actors"); // container for actors
-        LogGateway logGateway = new LogGateway("log"); // gateway that logs to slf4j
-        DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows allows interfacing with actors/gateways from normal java code
+        ActorRunner actorRunner = ActorRunner.create("actors"); // container for actors
+        LogGateway logGateway = LogGateway.create(); // gateway that logs to slf4j
+        DirectGateway directGateway = DirectGateway.create(); // gateway that allows allows interfacing with actors/gateways from normal java code
 
         // Allow the actor runner to send messages to the log gateway
         actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
@@ -68,17 +66,17 @@ public class Test {
         directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 
         // Add the coroutine actor and prime it with a hello world message
-        actorRunner.addActor("echoer", echoerActor, Address.of("log"));
+        actorRunner.addActor("echoer", echoerActor, new Object());
 
         
         Scanner inScanner = new Scanner(System.in);
         while(inScanner.hasNextLine()) {
             // Read next line and forward to actor
             String input = inScanner.nextLine();
-            directGateway.writeMessage(Address.fromString("actors:echoer"), input);
+            directGateway.writeMessage("actors:echoer", input);
             
             // Wait for response from actor and print out
-            String response = (String) directGateway.readMessages().get(0).getMessage();
+            String response = directGateway.readMessagePayloadOnly();
             System.out.println(response);
         }
     }
@@ -86,11 +84,13 @@ public class Test {
     private static void cpuTest() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
 
-        ActorRunner runner = new ActorRunner("runner");
+        ActorRunner runner = ActorRunner.create("runner");
 
         for (int i = 0; i < 3000; i++) {
             Coroutine sender = (cnt) -> {
                 Context ctx = (Context) cnt.getContext();
+                ctx.allow();
+                
                 Address dstAddr = ctx.in();
 
                 int j = 0;
@@ -104,6 +104,7 @@ public class Test {
 
             Coroutine echoer = (cnt) -> {
                 Context ctx = (Context) cnt.getContext();
+                ctx.allow();
 
                 while (true) {
                     Address src = ctx.source();
@@ -125,6 +126,8 @@ public class Test {
 
         Coroutine sender = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            
             Address dstAddr = ctx.in();
 
             for (int i = 0; i < 10; i++) {
@@ -138,6 +141,7 @@ public class Test {
 
         Coroutine echoer = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
+            ctx.allow();
 
             while (true) {
                 Address src = ctx.source();
@@ -147,8 +151,8 @@ public class Test {
             }
         };
 
-        ActorRunner echoerRunner = new ActorRunner("echoer");
-        ActorRunner senderRunner = new ActorRunner("sender");
+        ActorRunner echoerRunner = ActorRunner.create("echoer");
+        ActorRunner senderRunner = ActorRunner.create("sender");
 
         echoerRunner.addOutgoingShuttle(senderRunner.getIncomingShuttle());
         senderRunner.addOutgoingShuttle(echoerRunner.getIncomingShuttle());

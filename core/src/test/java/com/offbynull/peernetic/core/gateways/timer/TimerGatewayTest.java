@@ -3,7 +3,6 @@ package com.offbynull.peernetic.core.gateways.timer;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.actor.ActorRunner;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import java.util.concurrent.ArrayBlockingQueue;
 import static org.junit.Assert.assertEquals;
@@ -31,7 +30,7 @@ public class TimerGatewayTest {
         TimerGateway timerGateway = TimerGateway.create("timer");
         Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
 
-        ActorRunner testerRunner = ActorRunner.create("local");
+        ActorRunner testerRunner = ActorRunner.create("local", 1);
         Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
 
         testerRunner.addOutgoingShuttle(timerInputShuttle);

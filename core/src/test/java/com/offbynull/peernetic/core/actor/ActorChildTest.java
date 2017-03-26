@@ -18,7 +18,7 @@ public class ActorChildTest {
 
     @Before
     public void setUp() {
-        runner = ActorRunner.create("runner");
+        runner = ActorRunner.create("runner", 1);
         direct = DirectGateway.create("direct");
         
         direct.addOutgoingShuttle(runner.getIncomingShuttle());

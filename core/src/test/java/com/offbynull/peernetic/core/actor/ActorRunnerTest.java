@@ -17,7 +17,7 @@ public class ActorRunnerTest {
 
     @Before
     public void setUp() {
-        fixture = ActorRunner.create("local");
+        fixture = ActorRunner.create("local", 1);
     }
 
     @After
@@ -25,7 +25,7 @@ public class ActorRunnerTest {
         fixture.close();
     }
 
-    @Test
+    @Test(timeout = 2000L)
     public void mustCommunicateBetweenActorsWithinSameActorRunner() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         fixture.addActor(
@@ -53,11 +53,10 @@ public class ActorRunnerTest {
                 },
                 new Object());
         
-        boolean processed = latch.await(5L, TimeUnit.SECONDS);
-        assertTrue(processed);
+        latch.await();
     }
 
-    @Test
+    @Test(timeout = 2000L)
     public void mustCommunicateBetweenActorsWithinDifferentActorRunners() throws Exception {
         try (ActorRunner secondaryActorRunner = ActorRunner.create("local2")) {
             // Wire together
@@ -95,25 +94,24 @@ public class ActorRunnerTest {
                     },
                     new Object());
             
-            boolean processed = latch.await(5L, TimeUnit.SECONDS);
-            assertTrue(processed);
+            latch.await();
         }
     }
 
-    @Test
+    @Test(timeout = 2000L)
     public void mustFailWhenAddingActorWithSameName() throws Exception {
         fixture.addActor("actor", cnt -> { /* do nothing */ });
         fixture.addActor("actor", cnt -> { /* do nothing */ });
         fixture.join();
     }
     
-    @Test
+    @Test(timeout = 2000L)
     public void mustFailWhenRemoveActorThatDoesntExist() throws Exception {
         fixture.removeActor("actor");
         fixture.join();
     }
 
-    @Test
+    @Test(timeout = 2000L)
     public void mustFailWhenAddingOutgoingShuttleWithSameName() throws Exception {
         NullShuttle shuttle = new NullShuttle("local");
         // Queue outgoing shuttle with prefix as ourselves ("local") be added. We won't be notified of rejection right away, but the add
@@ -123,7 +121,7 @@ public class ActorRunnerTest {
         fixture.join();
     }
 
-    @Test
+    @Test(timeout = 2000L)
     public void mustFailWhenAddingConflictingOutgoingShuttle() throws Exception {
         // Should get added
         CaptureShuttle captureShuttle = new CaptureShuttle("fake");
@@ -137,7 +135,7 @@ public class ActorRunnerTest {
         fixture.join();
     }
     
-    @Test
+    @Test(timeout = 2000L)
     public void mustRemoveOutgoingShuttle() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         
@@ -167,14 +165,14 @@ public class ActorRunnerTest {
         assertTrue(captureShuttle.drainMessages().isEmpty());
     }
     
-    @Test
+    @Test(timeout = 2000L)
     public void mustFailWhenRemovingIncomingShuttleThatDoesntExist() throws Exception {
         // Should cause a failure
         fixture.removeOutgoingShuttle("fake");
         fixture.join();
     }
 
-    @Test
+    @Test(timeout = 2000L)
     public void mustStillRunIfOutgoingShuttleRemovedThenAddedAgain() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         

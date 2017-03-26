@@ -23,21 +23,17 @@ public class DirectGatewayTest {
             ctx.out(sender, msg);
         };
 
-        ActorRunner actorRunner = ActorRunner.create("actors");
-        DirectGateway directGateway = DirectGateway.create("direct");
+        try (ActorRunner actorRunner = ActorRunner.create("actors", 1);
+                DirectGateway directGateway = DirectGateway.create("direct")) {            
+            directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+            actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
 
-        directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
-        actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
+            actorRunner.addActor("echoer", echoerActor, new Object());
+            Address echoerAddress = Address.fromString("actors:echoer");
 
-        actorRunner.addActor("echoer", echoerActor, new Object());
-        Address echoerAddress = Address.fromString("actors:echoer");
-
-        Assert.assertEquals("ready", directGateway.readMessages().get(0).getMessage());
-        directGateway.writeMessage(echoerAddress, "echotest");
-        Assert.assertEquals("echotest", directGateway.readMessages().get(0).getMessage());
-
-        actorRunner.close();
-        directGateway.close();
+            Assert.assertEquals("ready", directGateway.readMessages().get(0).getMessage());
+            directGateway.writeMessage(echoerAddress, "echotest");
+            Assert.assertEquals("echotest", directGateway.readMessages().get(0).getMessage());
+        }
     }
-
 }

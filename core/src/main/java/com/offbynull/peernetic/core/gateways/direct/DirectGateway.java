@@ -123,12 +123,27 @@ public final class DirectGateway implements InputGateway, OutputGateway {
     }
 
     /**
+     * Writes one message to an actor or gateway. Equivalent to calling {@code writeMessages(new Message(source, destination, message))}.
+     * @param source source address
+     * @param destination destination address
+     * @param message message to send
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} does not start with this gateway's prefix
+     */
+    public void writeMessage(Address source, Address destination, Object message) {
+        Validate.notNull(source);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        
+        writeMessages(new Message(source, destination, message));
+    }
+
+    /**
      * Writes one message to an actor or gateway. Equivalent to calling
      * {@code writeMessages(new Message(Address.of(getIncomingShuttle().getPrefix()), destination, message))}.
      * @param destination destination address
      * @param message message to send
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if any source address in {@code messages} does not start with this gateway's prefix
      */
     public void writeMessage(Address destination, Object message) {
         Validate.notNull(destination);
@@ -144,12 +159,28 @@ public final class DirectGateway implements InputGateway, OutputGateway {
      * @param destination destination address
      * @param message message to send
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if any source address in {@code messages} does not start with this gateway's prefix
      */
     public void writeMessage(String destination, Object message) {
         writeMessage(Address.fromString(destination), message);
     }
-    
+
+    /**
+     * Writes one message to an actor or gateway. Equivalent to calling
+     * {@code writeMessages(Address.fromString(source), Address.fromString(destination), message))}.
+     * @param source source address
+     * @param destination destination address
+     * @param message message to send
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code source} does not start with this gateway's prefix
+     */
+    public void writeMessage(String source, String destination, Object message) {
+        Validate.notNull(source);
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        
+        writeMessage(Address.fromString(source), Address.fromString(destination), message);
+    }
+
     /**
      * Writes one or more messages to an actor or gateway.
      * @param messages messages to send

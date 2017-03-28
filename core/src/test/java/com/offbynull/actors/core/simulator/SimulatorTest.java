@@ -1,8 +1,7 @@
 package com.offbynull.actors.core.simulator;
 
-import com.offbynull.actors.core.simulator.Simulator;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.actors.core.actor.Context;
+import com.offbynull.actors.core.context.Context;
 import com.offbynull.actors.core.shuttle.Address;
 import java.time.Duration;
 import java.time.Instant;

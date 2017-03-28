@@ -1,7 +1,6 @@
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.actor.Context;
-import com.offbynull.actors.core.actor.ActorRunner;
+import com.offbynull.actors.core.context.Context;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.actors.core.shuttles.test.CaptureShuttle;
 import com.offbynull.actors.core.shuttles.test.NullShuttle;

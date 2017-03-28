@@ -1,7 +1,5 @@
-package com.offbynull.actors.core.actor;
+package com.offbynull.actors.core.context;
 
-import com.offbynull.actors.core.actor.BatchedOutgoingMessage;
-import com.offbynull.actors.core.actor.SourceContext;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.actors.core.shuttle.Address;
 import java.util.List;

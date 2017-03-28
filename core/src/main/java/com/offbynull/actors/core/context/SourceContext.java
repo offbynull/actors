@@ -14,12 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.actor;
+package com.offbynull.actors.core.context;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
-import com.offbynull.actors.core.actor.RuleSet.AccessType;
+import com.offbynull.actors.core.context.RuleSet.AccessType;
 import com.offbynull.actors.core.shuttle.Address;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,8 +38,9 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Kasra Faghihi
  */
-public final class SourceContext implements Context {
+public final class SourceContext implements Context, Serializable {
     
+    private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(SourceContext.class);
     
     private SourceContext parent;
@@ -50,7 +52,7 @@ public final class SourceContext implements Context {
     private Address destination;
     private Object in;
     private List<BatchedOutgoingMessage> outs;
-    private final Map<String, SourceContext> children;
+    private Map<String, SourceContext> children;
     
     private boolean intercept;
     private ForwardMode forwardMode;
@@ -76,22 +78,38 @@ public final class SourceContext implements Context {
         ruleSet.allow(self, false);
     }
 
-    /**
-     * Gets the actor.
-     * @return actor
-     */
-    public CoroutineRunner actorRunner() {
+    SourceContext parent() {
+        return parent;
+    }
+    
+    void parent(SourceContext parent) {
+        this.parent = parent;
+    }
+
+    CoroutineRunner actorRunner() {
         return actorRunner;
+    }
+    
+    void actorRunner(CoroutineRunner actorRunner) {
+        this.actorRunner = actorRunner;
     }
     
     @Override
     public Address self() {
         return self;
     }
+    
+    void self(Address self) {
+        this.self = self;
+    }
 
     @Override
     public Instant time() {
         return time;
+    }
+    
+    void time(Instant time) {
+        this.time = time;
     }
 
     @Override
@@ -99,15 +117,43 @@ public final class SourceContext implements Context {
         return source;
     }
 
+    void source(Address source) {
+        this.source = source;
+    }
+
     @Override
     public Address destination() {
         return destination;
+    }
+    
+    void destination(Address destination) {
+        this.destination = destination;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> T in() {
         return (T) in;
+    }
+    
+    <T> void in(T in) {
+        this.in = in;
+    }
+
+    List<BatchedOutgoingMessage> outs() {
+        return outs;
+    }
+    
+    Map<String, SourceContext> children() {
+        return children;
+    }
+
+    boolean intercept() {
+        return intercept;
+    }
+    
+    ForwardMode forwardMode() {
+        return forwardMode;
     }
 
     @Override
@@ -164,14 +210,6 @@ public final class SourceContext implements Context {
     public boolean isChild(String id) {
         Validate.notNull(id);
         return children.containsKey(id);
-    }
-    
-    /**
-     * Get context of parent actor.
-     * @return parent context ({@code null} if no parent)
-     */
-    public SourceContext parent() {
-        return parent;
     }
 
     @Override
@@ -361,83 +399,86 @@ public final class SourceContext implements Context {
      * @return a wrapped version of this context that disables
      */
     public Context toNormalContext() {
-        return new Context() {
+        return new NormalContext();
+    }
+    
+    private class NormalContext implements Context, Serializable {
 
-            @Override
-            public void out(Address source, Address destination, Object message) {
-                SourceContext.this.out(source, destination, message);
-            }
-            
-            @Override
-            public List<BatchedOutgoingMessage> viewOuts() {
-                return SourceContext.this.viewOuts();
-            }
+        private static final long serialVersionUID = 1L;
 
-            @Override
-            public Address destination() {
-                return SourceContext.this.destination();
-            }
+        @Override
+        public void out(Address source, Address destination, Object message) {
+            SourceContext.this.out(source, destination, message);
+        }
 
-            @Override
-            public <T> T in() {
-                return SourceContext.this.in();
-            }
+        @Override
+        public List<BatchedOutgoingMessage> viewOuts() {
+            return SourceContext.this.viewOuts();
+        }
 
-            @Override
-            public Address self() {
-                return SourceContext.this.self();
-            }
+        @Override
+        public Address destination() {
+            return SourceContext.this.destination();
+        }
 
-            @Override
-            public Address source() {
-                return SourceContext.this.source();
-            }
+        @Override
+        public <T> T in() {
+            return SourceContext.this.in();
+        }
 
-            @Override
-            public Instant time() {
-                return SourceContext.this.time();
-            }
+        @Override
+        public Address self() {
+            return SourceContext.this.self();
+        }
 
-            @Override
-            public void child(String id, Coroutine actor, Object... primingMessages) {
-                SourceContext.this.child(id, actor, primingMessages);
-            }
+        @Override
+        public Address source() {
+            return SourceContext.this.source();
+        }
 
-            @Override
-            public boolean isChild(String id) {
-                return SourceContext.this.isChild(id);
-            }
+        @Override
+        public Instant time() {
+            return SourceContext.this.time();
+        }
 
-            @Override
-            public void intercept(boolean intercept) {
-                SourceContext.this.intercept(intercept);
-            }
+        @Override
+        public void child(String id, Coroutine actor, Object... primingMessages) {
+            SourceContext.this.child(id, actor, primingMessages);
+        }
 
-            @Override
-            public void forward(ForwardMode mode) {
-                SourceContext.this.forward(mode);
-            }
+        @Override
+        public boolean isChild(String id) {
+            return SourceContext.this.isChild(id);
+        }
 
-            @Override
-            public void allow() {
-                SourceContext.this.allow();
-            }
+        @Override
+        public void intercept(boolean intercept) {
+            SourceContext.this.intercept(intercept);
+        }
 
-            @Override
-            public void allow(Address source, boolean children, Class<?>... types) {
-                SourceContext.this.allow(source, children, types);
-            }
+        @Override
+        public void forward(ForwardMode mode) {
+            SourceContext.this.forward(mode);
+        }
 
-            @Override
-            public void block() {
-                SourceContext.this.block();
-            }
+        @Override
+        public void allow() {
+            SourceContext.this.allow();
+        }
 
-            @Override
-            public void block(Address source, boolean children, Class<?>... types) {
-                SourceContext.this.block(source, children, types);
-            }
+        @Override
+        public void allow(Address source, boolean children, Class<?>... types) {
+            SourceContext.this.allow(source, children, types);
+        }
 
-        };
+        @Override
+        public void block() {
+            SourceContext.this.block();
+        }
+
+        @Override
+        public void block(Address source, boolean children, Class<?>... types) {
+            SourceContext.this.block(source, children, types);
+        }
     }
 }

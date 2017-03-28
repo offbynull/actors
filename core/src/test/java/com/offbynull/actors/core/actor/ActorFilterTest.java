@@ -1,9 +1,8 @@
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.actor.Context;
-import com.offbynull.actors.core.actor.ActorRunner;
+import com.offbynull.actors.core.context.Context;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.actors.core.actor.Context.ForwardMode.FORWARD_AND_FORGET;
+import static com.offbynull.actors.core.context.Context.ForwardMode.FORWARD_AND_FORGET;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.actors.core.shuttle.Address;
 import java.util.concurrent.TimeUnit;

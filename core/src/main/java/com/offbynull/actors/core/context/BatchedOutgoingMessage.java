@@ -14,16 +14,21 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.actor;
+package com.offbynull.actors.core.context;
 
 import com.offbynull.actors.core.shuttle.Address;
+import java.io.Serializable;
+import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 /**
  * A queued outgoing message.
  * @author Kasra Faghihi
  */
-public final class BatchedOutgoingMessage {
+public final class BatchedOutgoingMessage implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+    
     private final Address source;
     private final Address destination;
     private final Object message;
@@ -60,6 +65,39 @@ public final class BatchedOutgoingMessage {
      */
     public Object getMessage() {
         return message;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 47 * hash + Objects.hashCode(this.source);
+        hash = 47 * hash + Objects.hashCode(this.destination);
+        hash = 47 * hash + Objects.hashCode(this.message);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final BatchedOutgoingMessage other = (BatchedOutgoingMessage) obj;
+        if (!Objects.equals(this.source, other.source)) {
+            return false;
+        }
+        if (!Objects.equals(this.destination, other.destination)) {
+            return false;
+        }
+        if (!Objects.equals(this.message, other.message)) {
+            return false;
+        }
+        return true;
     }
     
 }

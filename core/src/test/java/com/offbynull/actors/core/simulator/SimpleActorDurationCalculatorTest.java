@@ -1,6 +1,5 @@
 package com.offbynull.actors.core.simulator;
 
-import com.offbynull.actors.core.simulator.SimpleActorDurationCalculator;
 import com.offbynull.actors.core.shuttle.Address;
 import java.time.Duration;
 import static org.junit.Assert.assertEquals;

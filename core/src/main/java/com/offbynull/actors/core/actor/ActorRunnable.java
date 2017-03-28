@@ -16,6 +16,8 @@
  */
 package com.offbynull.actors.core.actor;
 
+import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.context.BatchedOutgoingMessage;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;

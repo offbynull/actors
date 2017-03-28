@@ -14,9 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.actor;
+package com.offbynull.actors.core.context;
 
 import com.offbynull.actors.core.shuttle.Address;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,26 +27,45 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
-final class RuleSet {
+/**
+ * Access control rules. Controls what type of messages can come from which sources.
+ * @author Kasra Faghihi
+ */
+public final class RuleSet implements Serializable {
+
+    private static final long serialVersionUID = 1L;
     
     private AccessType defaultAccessType;
     private final Map<Address, AddressRule> rules;
     
-    public RuleSet() {
+    RuleSet() {
         defaultAccessType = AccessType.REJECT;
         rules = new HashMap<>();
     }
     
+    /**
+     * Allow incoming messages from any source of any type. All previous rules are cleared.
+     */
     public void allowAll() {
         defaultAccessType = AccessType.ALLOW;
         rules.clear();
     }
 
+    /**
+     * Block incoming messages from any source of any type. All previous rules are cleared.
+     */
     public void rejectAll() {
         defaultAccessType = AccessType.REJECT;
         rules.clear();
     }
 
+    /**
+     * Allow incoming messages from some specific source with some specific type.
+     * @param address source address to allow
+     * @param includeChildren if {@code true}, children of {@code address} will also be allowed through
+     * @param types message types to allow through (if empty, all message types are allowed through)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
     public void allow(Address address, boolean includeChildren, Class<?> ... types) {
         Validate.notNull(address);
         Validate.notNull(types);
@@ -53,6 +73,13 @@ final class RuleSet {
         rules.put(address, new AddressRule(includeChildren, AccessType.ALLOW, Arrays.asList(types)));
     }
 
+    /**
+     * Block incoming messages from some specific source with some specific type.
+     * @param address source address to block
+     * @param includeChildren if {@code true}, children of {@code address} will also be blocked
+     * @param types message types to block (if empty, all message types are blocked)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
     public void reject(Address address, boolean includeChildren, Class<?> ... types) {
         Validate.notNull(address);
         Validate.notNull(types);
@@ -60,6 +87,12 @@ final class RuleSet {
         rules.put(address, new AddressRule(includeChildren, AccessType.REJECT, Arrays.asList(types)));
     }
     
+    /**
+     * Evaluate whether some message from an some address should be blocked or allowed through.
+     * @param address source address
+     * @param type message type
+     * @return allow or block
+     */
     public AccessType evaluate(Address address, Class<?> type) {
         Validate.notNull(address);
         Validate.notNull(type);
@@ -90,7 +123,10 @@ final class RuleSet {
     }
     
 
-    private static final class AddressRule {
+    private static final class AddressRule implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+        
         private final boolean includeChildren;
         private final AccessType accessType;
         private final Set<Class<?>> types;
@@ -119,8 +155,17 @@ final class RuleSet {
         
     }
     
+    /**
+     * Access type.
+     */
     public enum AccessType {
+        /**
+         * Access should be allowed.
+         */
         ALLOW,
+        /**
+         * Access should be blocked.
+         */
         REJECT
     }
 }

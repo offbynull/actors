@@ -1,9 +1,8 @@
 package com.offbynull.actors.core.gateways.direct;
 
-import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.actor.ActorRunner;
-import com.offbynull.actors.core.actor.Context;
+import com.offbynull.actors.core.context.Context;
 import com.offbynull.actors.core.shuttle.Address;
 import org.junit.Assert;
 import org.junit.Test;

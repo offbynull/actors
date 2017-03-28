@@ -1,9 +1,8 @@
 package com.offbynull.actors.core.gateways.timer;
 
-import com.offbynull.actors.core.gateways.timer.TimerGateway;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.actor.ActorRunner;
-import com.offbynull.actors.core.actor.Context;
+import com.offbynull.actors.core.context.Context;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import java.util.concurrent.ArrayBlockingQueue;
 import static org.junit.Assert.assertEquals;

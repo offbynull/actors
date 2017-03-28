@@ -1,6 +1,5 @@
 package com.offbynull.actors.core.shuttle;
 
-import com.offbynull.actors.core.shuttle.Address;
 import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

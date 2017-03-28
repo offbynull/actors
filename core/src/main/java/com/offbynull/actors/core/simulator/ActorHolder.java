@@ -17,7 +17,7 @@
 package com.offbynull.actors.core.simulator;
 
 import com.offbynull.coroutines.user.CoroutineRunner;
-import com.offbynull.actors.core.actor.SourceContext;
+import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.shuttle.Address;
 import java.time.Duration;
 import java.time.Instant;

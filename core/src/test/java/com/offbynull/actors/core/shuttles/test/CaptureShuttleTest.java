@@ -1,6 +1,5 @@
 package com.offbynull.actors.core.shuttles.test;
 
-import com.offbynull.actors.core.shuttles.test.CaptureShuttle;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Message;
 import java.util.Arrays;

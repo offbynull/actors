@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.examples.test;
 
-import com.offbynull.actors.core.actor.Context;
+import com.offbynull.actors.core.context.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.actor.ActorRunner;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;

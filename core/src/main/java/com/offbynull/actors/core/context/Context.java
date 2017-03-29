@@ -155,6 +155,12 @@ public interface Context {
     boolean isChild(String id);
     
     /**
+     * Check to see if this actor is a root actor (not a child of some other actor).
+     * @return {@code true} if root actor, {@code false} if child actor
+     */
+    boolean isRoot();
+    
+    /**
      * Intercept messages going to child actors. If the intercept flag is set, messages destined for children (and their children down the
      * chain) will first be sent to this actor (the parent). Should this actor choose to feed the message down the chain,
      * {@link #forward() } can be used.

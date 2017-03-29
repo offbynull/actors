@@ -85,6 +85,11 @@ public final class SourceContext implements Context, Serializable {
     void parent(SourceContext parent) {
         this.parent = parent;
     }
+    
+    @Override
+    public boolean isRoot() {
+        return parent == null;
+    }
 
     CoroutineRunner actorRunner() {
         return actorRunner;
@@ -449,6 +454,11 @@ public final class SourceContext implements Context, Serializable {
         @Override
         public boolean isChild(String id) {
             return SourceContext.this.isChild(id);
+        }
+
+        @Override
+        public boolean isRoot() {
+            return SourceContext.this.isRoot();
         }
 
         @Override

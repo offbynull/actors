@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.junit.Before;
 
-public class ActorChildTest {
+public class ActorChildSpawnTest {
     
     private ActorRunner runner;
     private DirectGateway direct;

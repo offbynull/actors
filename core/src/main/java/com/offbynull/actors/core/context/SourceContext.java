@@ -52,6 +52,7 @@ public final class SourceContext implements Context, Serializable {
     private Address destination;
     private Object in;
     private List<BatchedOutgoingMessage> outs;
+    private List<BatchedCreateActorCommand> newRoots;
     private Map<String, SourceContext> children;
     
     private boolean intercept;
@@ -71,6 +72,7 @@ public final class SourceContext implements Context, Serializable {
         this.actorRunner = actorRunner;
         this.self = self;
         this.outs = new LinkedList<>();
+        this.newRoots = new LinkedList<>();
         this.children = new HashMap<>();
         
         // Allow only messages from yourself -- priming messages always show up as coming from you
@@ -185,6 +187,27 @@ public final class SourceContext implements Context, Serializable {
         outs.clear();
         
         return ret;
+    }
+    
+    /**
+     * Get a copy of the new root actors queue and clear the original.
+     * @return list of new root actors to create
+     */
+    public List<BatchedCreateActorCommand> copyAndClearNewRoots() {
+        List<BatchedCreateActorCommand> ret = new ArrayList<>(newRoots);
+        newRoots.clear();
+        
+        return ret;
+    }
+
+    @Override
+    public void neighbour(String id, Coroutine actor, Object... primingMessages) {
+        Validate.notNull(id);
+        Validate.notNull(actor);
+        Validate.notNull(primingMessages);
+        Validate.noNullElements(primingMessages);
+        
+        newRoots.add(new BatchedCreateActorCommand(id, actor, primingMessages));
     }
 
     @Override
@@ -444,6 +467,11 @@ public final class SourceContext implements Context, Serializable {
         @Override
         public Instant time() {
             return SourceContext.this.time();
+        }
+
+        @Override
+        public void neighbour(String id, Coroutine actor, Object... primingMessages) {
+            SourceContext.this.neighbour(id, actor, primingMessages);
         }
 
         @Override

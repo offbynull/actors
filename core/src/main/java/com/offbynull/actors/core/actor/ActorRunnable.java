@@ -16,6 +16,7 @@
  */
 package com.offbynull.actors.core.actor;
 
+import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
 import com.offbynull.actors.core.shuttle.Shuttle;
@@ -43,17 +44,20 @@ final class ActorRunnable implements Runnable {
     private final Bus bus;
     private final SimpleShuttle incomingShuttle;
     private final Runnable criticalFailureHandler;
+    private final ActorRunner owner;
 
-    ActorRunnable(String prefix, Bus bus, Runnable criticalFailureHandler) {
+    ActorRunnable(String prefix, Bus bus, Runnable criticalFailureHandler, ActorRunner owner) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
         Validate.notNull(criticalFailureHandler);
+        Validate.notNull(owner);
         Validate.notEmpty(prefix);
 
         this.prefix = prefix;
         this.bus = bus;
         this.incomingShuttle = new SimpleShuttle(prefix, bus);
         this.criticalFailureHandler = criticalFailureHandler;
+        this.owner = owner;
     }
 
     @Override
@@ -170,6 +174,15 @@ final class ActorRunnable implements Runnable {
         if (shutdown) {
             LOG.debug("Removing actor {}", dst);
             actors.remove(dstActorId);
+        }
+
+        // Queue up new actors
+        List<BatchedCreateActorCommand> batchedCreateActorCommands = ctx.copyAndClearNewRoots();
+        for (BatchedCreateActorCommand batchedCreateActorCommand : batchedCreateActorCommands) {
+            owner.addActor(
+                    batchedCreateActorCommand.getId(),
+                    batchedCreateActorCommand.getActor(),
+                    batchedCreateActorCommand.getPrimingMessages());
         }
 
         // Queue up outgoing messages

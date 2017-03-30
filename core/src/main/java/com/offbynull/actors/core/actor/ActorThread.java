@@ -41,14 +41,15 @@ final class ActorThread {
     
     // it should be fine to have this be a constructor since the this pointer never gets passed to the runnable, but have this factory
     // method anyway...
-    public static ActorThread create(String prefix, Shuttle selfShuttle, Runnable criticalFailureHandler) {
+    public static ActorThread create(String prefix, Shuttle selfShuttle, Runnable criticalFailureHandler, ActorRunner owner) {
         Validate.notNull(prefix);
         Validate.notNull(selfShuttle);
         Validate.notNull(criticalFailureHandler);
+        Validate.notNull(owner);
         
         // create runnable
         Bus bus = new Bus();
-        ActorRunnable runnable = new ActorRunnable(prefix, bus, criticalFailureHandler);
+        ActorRunnable runnable = new ActorRunnable(prefix, bus, criticalFailureHandler, owner);
 
         // add in our own shuttle as well so we can send msgs to ourselves
         bus.add(new AddShuttle(selfShuttle));

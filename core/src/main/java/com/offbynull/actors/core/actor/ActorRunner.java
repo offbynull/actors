@@ -78,7 +78,7 @@ public final class ActorRunner implements AutoCloseable {
      * @return new actor runner
      */
     public static ActorRunner create(String prefix) {
-        return new ActorRunner(prefix, Runtime.getRuntime().availableProcessors());
+        return ActorRunner.create(prefix, Runtime.getRuntime().availableProcessors());
     }
 
     /**
@@ -91,23 +91,17 @@ public final class ActorRunner implements AutoCloseable {
      * @return new actor runner
      */
     public static ActorRunner create(String prefix, int threadCount) {
-        return new ActorRunner(prefix, Runtime.getRuntime().availableProcessors());
-    }
-    
-    private ActorRunner(String prefix, int threadCount) {
         Validate.notNull(prefix);
         Validate.isTrue(threadCount > 0);
-        
-        this.prefix = prefix;
-        this.threads = new ActorThread[threadCount];
-        this.shuttle = new RunnerShuttle();
+
+        ActorRunner ret = new ActorRunner(prefix, threadCount);
         
         // Handler to call if any of the threads encounter a problem while they're running. If any thread encounters a critical error, then
         // all threads must be shut down!
         Runnable criticalFailureHandler = () -> {
             LOG.error("Critical failure handler invoked! Signalling all threads to close.");
             
-            for (ActorThread thread : threads) {
+            for (ActorThread thread : ret.threads) {
                 // Wrap in try catch just to be safe... we want to make sure close is called on every thread.
                 try {
                     thread.close();
@@ -120,11 +114,11 @@ public final class ActorRunner implements AutoCloseable {
         // Start threads
         try {
             for (int i = 0; i < threadCount; i++) {
-                this.threads[i] = ActorThread.create(prefix, shuttle, criticalFailureHandler);
+                ret.threads[i] = ActorThread.create(prefix, ret.shuttle, criticalFailureHandler, ret);
             }
         } catch (RuntimeException e) {
             // A problem happened while creating new threads... shut down any threads that were created.
-            for (ActorThread thread : threads) {
+            for (ActorThread thread : ret.threads) {
                 if (thread != null) {
                     thread.close(); // Signal shutdown, but don't wait until thread actually stops before returning
                 }
@@ -132,6 +126,17 @@ public final class ActorRunner implements AutoCloseable {
             
             throw e;
         }
+        
+        return ret;
+    }
+    
+    private ActorRunner(String prefix, int threadCount) {
+        Validate.notNull(prefix);
+        Validate.isTrue(threadCount > 0);
+        
+        this.prefix = prefix;
+        this.threads = new ActorThread[threadCount];
+        this.shuttle = new RunnerShuttle();
     }
     
     /**

@@ -19,24 +19,21 @@ package com.offbynull.actors.core.simulator;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.actors.core.actor.ActorRunner;
+import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
 import com.offbynull.actors.core.gateway.Gateway;
 import com.offbynull.actors.core.gateways.timer.TimerGateway;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Shuttle;
-import com.offbynull.actors.core.simulator.MessageSource.SourceMessage;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.collections4.map.UnmodifiableMap;
@@ -131,8 +128,6 @@ public final class Simulator {
     private final UnmodifiableMap<Class<? extends Event>, Consumer<Event>> eventHandlers;
     private final PriorityQueue<Event> events;
     private final Map<Address, Holder> holders;
-    private final Set<MessageSink> sinks;
-    private final Set<MessageSource> sources;
     private final ActorDurationCalculator actorDurationCalculator;
     private Instant currentTime;
     private long nextSequenceNumber; // Each time an event created and added to the events collection, this sequence number is incremented
@@ -181,92 +176,10 @@ public final class Simulator {
         eventHandlers.put(RemoveTimerEvent.class, this::handleRemoveTimerEvent);
         eventHandlers.put(TimerTriggerEvent.class, this::handleTimerTriggerEvent);
         eventHandlers.put(MessageEvent.class, this::handleMessageEvent);
-        eventHandlers.put(AddMessageSourceEvent.class, this::handleAddMessageSourceEvent);
-        eventHandlers.put(PullFromMessageSourceEvent.class, this::handlePullFromMessageSourceEvent);
-        eventHandlers.put(RemoveMessageSourceEvent.class, this::handleRemoveMessageSourceEvent);
-        eventHandlers.put(AddMessageSinkEvent.class, this::handleAddMessageSinkEvent);
-        eventHandlers.put(RemoveMessageSinkEvent.class, this::handleRemoveMessageSinkEvent);
         
         this.eventHandlers =
                 (UnmodifiableMap<Class<? extends Event>, Consumer<Event>>) UnmodifiableMap.unmodifiableMap(eventHandlers);
         this.actorDurationCalculator = actorDurationCalculator;
-        
-        this.sinks = new HashSet<>();
-        this.sources = new HashSet<>();
-    }
-    
-    /**
-     * Queue a message sink to be added to this simulation. A {@link MessageSink} can be used to write messages from the simulation to
-     * some external source.
-     * <p>
-     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
-     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
-     * at the event added by this call.
-     * @param sink sink to add
-     * @param when time in simulation environment when event should take place
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
-     */
-    public void addMessageSink(MessageSink sink, Instant when) {
-        Validate.notNull(sink);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
-        
-        events.add(new AddMessageSinkEvent(sink, when, nextSequenceNumber++));
-    }
-
-    /**
-     * Queue a message source to be added to this simulation. A {@link MessageSource} can be used to read messages in to the simulation from
-     * some external source.
-     * <p>
-     * Note that this method queues an add. As such, this method will returns before operation actually takes place. Any error during
-     * encountered during adding will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
-     * at the event added by this call.
-     * @param source source to add
-     * @param when time in simulation environment when event should take place
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
-     */
-    public void addMessageSource(MessageSource source, Instant when) {
-        Validate.notNull(source);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
-        
-        events.add(new AddMessageSourceEvent(source, when, nextSequenceNumber++));
-    }
-
-    /**
-     * Queue a message sink to be removed from this simulation.
-     * <p>
-     * Note that this method queues a remove. As such, this method will returns before operation actually takes place. Any error during
-     * encountered during removing will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
-     * at the event added by this call.
-     * @param sink sink to remove
-     * @param when time in simulation environment when event should take place
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
-     */
-    public void removeSink(MessageSink sink, Instant when) {
-        Validate.notNull(sink);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
-        
-        events.add(new RemoveMessageSinkEvent(sink, when, nextSequenceNumber++));
-    }
-
-    /**
-     * Queue a message source to be removed from this simulation.
-     * <p>
-     * Note that this method queues a remove. As such, this method will returns before operation actually takes place. Any error during
-     * encountered during removing will not be known to the caller. Instead, {@link #process() } will encounter an exception when it arrives
-     * at the event added by this call.
-     * @param source source to remove
-     * @param when time in simulation environment when event should take place
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code when} is before this simulator's current time
-     */
-    public void removeSource(MessageSource source, Instant when) {
-        Validate.notNull(source);
-        Validate.isTrue(!when.isBefore(currentTime), "Attempting to add event prior to current time");
-        
-        events.add(new RemoveMessageSourceEvent(source, when, nextSequenceNumber++));
     }
 
     /**
@@ -510,75 +423,6 @@ public final class Simulator {
         }
     }
     
-    private void handleAddMessageSourceEvent(Event event) {
-        AddMessageSourceEvent addMessageSourceEvent = (AddMessageSourceEvent) event;
-        
-        MessageSource source = addMessageSourceEvent.getMessageSource();
-        Validate.isTrue(!sources.contains(source));
-        sources.add(source);
-        
-        // Queue an immediate pull
-        events.add(new PullFromMessageSourceEvent(source, currentTime, nextSequenceNumber++));
-    }
-
-    private void handlePullFromMessageSourceEvent(Event event) {
-        PullFromMessageSourceEvent pullFromMessageSourceEvent = (PullFromMessageSourceEvent) event;
-        
-        MessageSource source = pullFromMessageSourceEvent.getMessageSource();
-        if (!sources.contains(source)) {
-            // The MessageSource was removed, so block this pull event.
-            return;
-        }
-        
-        // Read the message from the message source
-        SourceMessage sourceMessage;
-        try {
-            sourceMessage = source.readNextMessage();
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Unable to read message from source", ex);
-        }
-        
-        if (sourceMessage == null) {
-            // We've reached the end of the message source. Remove+close the message source and return.
-            try {
-                source.close();
-            } catch (Exception ex) {
-                throw new IllegalArgumentException("Unable to close source", ex);
-            }
-            sources.remove(source);
-            return;
-        }
-        
-        // Queue message
-        queueMessageFromMessageSource(sourceMessage.getSource(), sourceMessage.getDestination(), sourceMessage.getMessage());
-        
-        // Queue another pull (read the next message) once the message arrives
-        Instant nextPullTime = currentTime.plus(sourceMessage.getDuration());
-        events.add(new PullFromMessageSourceEvent(source, nextPullTime, nextSequenceNumber++));
-    }
-    
-    private void handleRemoveMessageSourceEvent(Event event) {
-        RemoveMessageSourceEvent removeMessageSourceEvent = (RemoveMessageSourceEvent) event;
-        
-        MessageSource source = removeMessageSourceEvent.getMessageSource();
-        Validate.isTrue(sources.remove(source));
-    }
-    
-    private void handleAddMessageSinkEvent(Event event) {
-        AddMessageSinkEvent addMessageSinkEvent = (AddMessageSinkEvent) event;
-
-        MessageSink sink = addMessageSinkEvent.getMessageSink();
-        Validate.isTrue(!sinks.contains(sink));
-        sinks.add(sink);
-    }
-    
-    private void handleRemoveMessageSinkEvent(Event event) {
-        RemoveMessageSinkEvent removeMessageSinkEvent = (RemoveMessageSinkEvent) event;
-        
-        MessageSink sink = removeMessageSinkEvent.getMessageSink();
-        Validate.isTrue(sinks.remove(sink));
-    }
-    
     private void validateAddressDoesNotConflict(Address address) {
         Validate.notNull(address);
         Validate.isTrue(!address.isEmpty());
@@ -677,7 +521,48 @@ public final class Simulator {
         
         events.add(new MessageEvent(sourceAddress, destinationAddress, message, arriveTime, nextSequenceNumber++));
     }
-    
+
+    private void queueNewActorFromActor(
+            ActorHolder creatorHolder,
+            String newId,
+            Coroutine newActor,
+            List<Object> primingMessages,
+            Duration creatorExecDuration) {
+        Validate.notNull(creatorHolder);
+        Validate.notNull(newId);
+        Validate.notNull(newActor);
+        Validate.notNull(primingMessages);
+        Validate.noNullElements(primingMessages);
+        Validate.notNull(creatorExecDuration);
+        Validate.isTrue(!creatorExecDuration.isNegative());
+        
+        // Source must exist.
+        //
+        // Destination doesn't have to exist. It's perfectly valid to send a message to an actor that doesn't exist yet but may have come in
+        // to existance exist by the time the message arrives.
+        Validate.isTrue(findHolder(creatorHolder.getAddress()) == creatorHolder);
+        
+        Instant arriveTime = currentTime;
+        
+        // Add how far in the future this message is sent. This is here because an actors's onStep() may take some time to execute. Messages
+        // sent by that actor are sent after the onStep() completes. As such, we need to make it seem as if this message was sent in the
+        // future after onStep()'s completion.
+        //
+        // If not sent by an actor, this value should be Duration.ZERO
+        arriveTime = arriveTime.plus(creatorExecDuration);
+        
+        events.add(
+                new AddActorEvent(
+                        newId,
+                        newActor,
+                        creatorHolder.getTimeOffset(),
+                        arriveTime,
+                        nextSequenceNumber++,
+                        primingMessages.toArray()
+                )
+        );
+    }
+
     private void queueTimerTrigger(
             boolean sourceMustExistFlag,
             Address sourceAddress,
@@ -782,14 +667,6 @@ public final class Simulator {
                                                                                // local time than another (because they may be running on
                                                                                // different machines).
 
-        for (MessageSink sink : sinks) {
-            try {
-                sink.writeNextMessage(source, destination, localActorTime, message);
-            } catch (IOException ioe) {
-                throw new IllegalStateException("Unable to write to sink", ioe);
-            }
-        }
-
         Duration realExecDuration;
         boolean stopped;
         Instant execStartTime = Instant.now();
@@ -819,6 +696,16 @@ public final class Simulator {
         
         // All messages going out from this onStep() call go out at the end, which means that their arrival time needs to have execDuration
         // added to it as well.
+        List<BatchedCreateActorCommand> batchedNewRoots = context.copyAndClearNewRoots();
+        for (BatchedCreateActorCommand batchedNewRoot : batchedNewRoots) {
+            queueNewActorFromActor(
+                    destHolder,
+                    batchedNewRoot.getId(),
+                    batchedNewRoot.getActor(),
+                    batchedNewRoot.getPrimingMessages(),
+                    execDuration);
+        }
+        
         List<BatchedOutgoingMessage> batchedOutMsgs = context.copyAndClearOutgoingMessages();
         for (BatchedOutgoingMessage batchedOutMsg : batchedOutMsgs) {
             queueMessageFromActorOrGateway(

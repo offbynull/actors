@@ -130,12 +130,27 @@ public interface Context {
      * @return current time
      */
     Instant time();
-    
+
+    /**
+     * Queue a root actor to be added.
+     * <p>
+     * The new root actor can't share state with this actor or its parent/child actors. It's a standalone actor that will run alongside this
+     * actor.
+     * <p>
+     * If a actor runner already contains an actor with {@code id}, nothing happens.
+     * @param id id of actor to add
+     * @param actor actor being added
+     * @param primingMessages messages to send to {@code actor} (shown as coming from itself) once its been added
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code id} is empty
+     */
+    void neighbour(String id, Coroutine actor, Object ... primingMessages);
+
     /**
      * Add a child actor.
      * <p>
-     * The new child actor can share state with the parent actor (the invoker of this method). If the parent actor ends,
-     * so will the child actor. The child actor's address is {@code self().append(id)}.
+     * The new child actor can share state with this actor. If the parent actor ends, so will the child actor. The child actor's address is
+     * {@code self().append(id)}.
      * <p>
      * Initially, the child actor will only be able to accept messages from its parent and itself.
      * @param id id of actor to add

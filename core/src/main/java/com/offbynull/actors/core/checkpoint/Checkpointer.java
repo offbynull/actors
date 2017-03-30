@@ -17,26 +17,39 @@
 package com.offbynull.actors.core.checkpoint;
 
 import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.shuttle.Address;
 import java.util.concurrent.Future;
 
 /**
  * Saves and restores actors.
+ * <p>
+ * The idea behind checkpointing is that an actor gets stored at some critical point in its execution. With checkpointing, if a system
+ * crashes, actors can continue from the last place where they were checkpointed.
  * @author Kasra Faghihi
  */
 public interface Checkpointer extends AutoCloseable {
 
     /**
-     * Save actor.
+     * Checkpoint actor.
      * @param ctx context to save
      * @return a future that completes once the actor has saved
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code ctx} is not for a root actor
      */
     Future<Void> checkpoint(SourceContext ctx);
+
+    /**
+     * Delete checkpoint.
+     * @param address address of checkpointed actor
+     * @return a future that completes once the actor has saved
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code ctx} is not for a root actor
+     */
+    Future<Void> delete(Address address);
     
     /**
-     * Restore actors. Note that closing this checkpointer won't necessarily also close the iterators returned by this method.
-     * @return iterator that returns checkpointed actors
+     * Restore actors.
+     * @return iterator that returns checkpointed actors (note that closing the checkpointer won't necessarily also close this iterator)
      * @throws IllegalStateException if problem accessing storage
      */
     RestoreResultIterator restore();

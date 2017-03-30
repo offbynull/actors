@@ -97,7 +97,14 @@ public final class FileSystemCheckpointer implements Checkpointer {
         Address addr = ctx.self();
         byte[] data = serializer.serialize(ctx);
         
-        return executor.submit(new FileWriteCallable(directory, new FileData(addr, data)));
+        return executor.submit(new FileWriteCallable(directory, addr, data));
+    }
+
+    @Override
+    public Future<Void> delete(Address address) {
+        Validate.notNull(address);
+        
+        return executor.submit(new FileDeleteCallable(directory, address));
     }
 
     @Override
@@ -113,40 +120,64 @@ public final class FileSystemCheckpointer implements Checkpointer {
     public void close() throws Exception {
         executor.shutdownNow();
     }
-    
-    private static final class FileData {
-        private final Address address;
-        private final byte[] data;
-
-        public FileData(Address address, byte[] data) {
-            this.address = address;
-            this.data = data;
-        }
-    }
 
     private static final class FileWriteCallable implements Callable<Void> {
 
         private final Path directory;
-        private final FileData fileData;
+        private final Address address;
+        private final byte[] data;
 
-        public FileWriteCallable(Path directory, FileData fileData) {
+        public FileWriteCallable(Path directory, Address address, byte[] data) {
             this.directory = directory;
-            this.fileData = fileData;
+            this.address = address;
+            this.data = data;
         }
 
         @Override
         public Void call() throws Exception {
             String filename;
             try {
-                filename = URLEncoder.encode(fileData.address.toString(), "UTF-8");
+                filename = URLEncoder.encode(address.toString(), "UTF-8");
             } catch (UnsupportedEncodingException use) {
-                LOG.error("Unable to encode filename {}", fileData.address, use);
+                LOG.error("Unable to encode filename {}", address, use);
                 throw use;
             }
 
             Path filepath = directory.resolve(filename);
             try {
-                FileUtils.writeByteArrayToFile(filepath.toFile(), fileData.data);
+                Files.write(filepath, data);
+            } catch (IOException ioe) {
+                LOG.error("Unable to write file {}", filepath, ioe);
+                throw ioe;
+            }
+            
+            return null;
+        }
+    }
+
+    private static final class FileDeleteCallable implements Callable<Void> {
+
+        private final Path directory;
+        private final Address address;
+
+        public FileDeleteCallable(Path directory, Address address) {
+            this.directory = directory;
+            this.address = address;
+        }
+
+        @Override
+        public Void call() throws Exception {
+            String filename;
+            try {
+                filename = URLEncoder.encode(address.toString(), "UTF-8");
+            } catch (UnsupportedEncodingException use) {
+                LOG.error("Unable to encode filename {}", address, use);
+                throw use;
+            }
+
+            Path filepath = directory.resolve(filename);
+            try {
+                Files.delete(filepath);
             } catch (IOException ioe) {
                 LOG.error("Unable to write file {}", filepath, ioe);
                 throw ioe;
@@ -194,6 +225,12 @@ public final class FileSystemCheckpointer implements Checkpointer {
                     ctx = serializer.unserialize(data);
                 } catch (IllegalArgumentException iae) {
                     LOG.error("Unable to unserialize file {}", filepath, iae);
+                    continue;
+                }
+
+
+                if (!ctx.isRoot()) {
+                    LOG.error("Unserialized non-root actor {}", filepath); // should never really happen? we test for root when we write
                     continue;
                 }
                 

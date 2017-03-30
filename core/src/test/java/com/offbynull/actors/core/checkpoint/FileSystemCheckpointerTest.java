@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,11 +35,23 @@ public class FileSystemCheckpointerTest {
     @Test
     public void mustSaveAndRestoreContext() throws Exception{
         SourceContext ctxIn = new SourceContext(new CoroutineRunner((Coroutine & Serializable) cnt -> {}), Address.fromString("test1:test2"));
+        
+        // Checkpoint
         fixture.checkpoint(ctxIn).get();
         
+        // Validate that it exists
         try (RestoreResultIterator it = fixture.restore()) {
             SourceContext ctxOut = it.next();
             assertEquals(ctxIn.self(), ctxOut.self());
+        }
+        
+        // Delete it
+        fixture.delete(ctxIn.self()).get();
+        
+        // Validate that it no longer exists
+        try (RestoreResultIterator it = fixture.restore()) {
+            SourceContext ctxOut = it.next();
+            assertNull(ctxOut);
         }
     }
     

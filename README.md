@@ -1,6 +1,6 @@
-# Peernetic Actor Framework (beta)
+# Actors (beta)
 
-<p align="center"><img src ="../gh-pages/logo.png" alt="Peernetic logo" /></p>
+<p align="center"><img src ="logo.png" alt="Actors logo" /></p>
 
  * [Introduction](#introduction)
    * [Hello World Example](#hello-world-example)

@@ -25,7 +25,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +86,7 @@ public final class FileSystemCacher implements Cacher {
 
         Path filepath = directory.resolve(filename);
         try {
-            FileUtils.writeByteArrayToFile(filepath.toFile(), data);
+            Files.write(filepath, data);
         } catch (IOException ioe) {
             LOG.error("Unable to write file {}", filepath, ioe);
             return false;
@@ -111,7 +110,7 @@ public final class FileSystemCacher implements Cacher {
         Path filepath = directory.resolve(filename);
         byte[] data;
         try {
-            data = FileUtils.readFileToByteArray(filepath.toFile());
+            data = Files.readAllBytes(filepath);
         } catch (IOException ioe) {
             LOG.error("Unable to read file {}", filepath, ioe);
             return null;

@@ -31,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
@@ -214,7 +213,7 @@ public final class FileSystemCheckpointer implements Checkpointer {
                 
                 byte[] data;
                 try {
-                    data = FileUtils.readFileToByteArray(filepath.toFile());
+                    data = Files.readAllBytes(filepath);
                 } catch (IOException ioe) {
                     LOG.error("Unable to read file {}", filepath, ioe);
                     continue;

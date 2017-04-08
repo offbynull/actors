@@ -46,20 +46,15 @@ public interface Cacher extends AutoCloseable {
      * The cached data must be marked as non-loadable in the same transaction that read the data. This needs to be done in order to prevent
      * potential race conditions with restoring and caching actors with the same address.
      * @param address address of actor to restore
-     * @return context restored from save, or {@code null} if no such address was cached
+     * @return context restored from save, or {@code null} if no such address was cached / if there was a problem accessing cache
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalStateException if problem accessing storage
      */
     SourceContext restore(Address address);
 
     /**
      * Delete cached actor.
-     * <p>
-     * The cached data must be deleted in the same transaction that read the data. This needs to be done in order to prevent potential race
-     * conditions with restoring and caching actors with the same address.
      * @param address address of actor to restore
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalStateException if problem accessing storage
      */
     void delete(Address address);
 }

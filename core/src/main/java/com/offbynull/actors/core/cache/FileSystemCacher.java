@@ -44,11 +44,11 @@ public final class FileSystemCacher implements Cacher {
     private final Serializer serializer;
 
     /**
-     * Create a {@link FileSystemCheckpointer} object.
+     * Create a {@link FileSystemCacher} object.
      *
      * @param serializer serializer to use for saving/restoring actors
      * @param directory storage directory for serialized actors
-     * @return new instance of {@link FileSystemCheckpointer}
+     * @return new instance of {@link FileSystemCacher}
      */
     public static FileSystemCacher create(Serializer serializer, Path directory) {
         Validate.notNull(serializer);
@@ -163,7 +163,7 @@ public final class FileSystemCacher implements Cacher {
         try {
             Files.delete(savePath);
         } catch (IOException ioe) {
-            LOG.error("Unable to delete file {}", savePath, ioe);
+            LOG.error("Unable to delete file {} ({})", savePath, ioe.toString());
             return;
         }
 
@@ -171,7 +171,7 @@ public final class FileSystemCacher implements Cacher {
         try {
             Files.delete(restorePath);
         } catch (IOException ioe) {
-            LOG.error("Unable to delete file {}", restorePath, ioe);
+            LOG.error("Unable to delete file {} ({})", restorePath, ioe.toString());
             return;
         }
     }

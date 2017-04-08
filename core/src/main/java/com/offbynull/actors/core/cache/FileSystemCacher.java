@@ -16,7 +16,6 @@
  */
 package com.offbynull.actors.core.cache;
 
-import com.offbynull.actors.core.checkpoint.FileSystemCheckpointer;
 import com.offbynull.actors.core.context.Serializer;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.shuttle.Address;
@@ -30,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Caches and restores actors via the filesystem.
+ * Saves and restores actors via the filesystem.
  *
  * @author Kasra Faghihi
  */
@@ -38,7 +37,8 @@ public final class FileSystemCacher implements Cacher {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemCacher.class);
 
-    private final Path directory;
+    private final Path savedDirectory;
+    private final Path restoredDirectory;
     private final Serializer serializer;
 
     /**
@@ -52,24 +52,29 @@ public final class FileSystemCacher implements Cacher {
         Validate.notNull(serializer);
         Validate.notNull(directory);
 
+        Path savedDirectory = directory.resolve("saved");
+        Path restoredDirectory = directory.resolve("restored");
         try {
-            Files.createDirectories(directory);
+            Files.createDirectories(savedDirectory);
+            Files.createDirectories(restoredDirectory);
         } catch (IOException ioe) {
             throw new IllegalArgumentException(ioe);
         }
 
-        return new FileSystemCacher(serializer, directory);
+        return new FileSystemCacher(serializer, savedDirectory, restoredDirectory);
     }
 
-    private FileSystemCacher(Serializer serializer, Path directory) {
+    private FileSystemCacher(Serializer serializer, Path savedDirectory, Path restoredDirectory) {
         Validate.notNull(serializer);
-        Validate.notNull(directory);
+        Validate.notNull(savedDirectory);
+        Validate.notNull(restoredDirectory);
         this.serializer = serializer;
-        this.directory = directory;
+        this.savedDirectory = savedDirectory;
+        this.restoredDirectory = restoredDirectory;
     }
 
     @Override
-    public boolean cache(SourceContext ctx) {
+    public boolean save(SourceContext ctx) {
         Validate.notNull(ctx);
         Validate.isTrue(ctx.isRoot());
 
@@ -84,7 +89,7 @@ public final class FileSystemCacher implements Cacher {
             return false;
         }
 
-        Path filepath = directory.resolve(filename);
+        Path filepath = savedDirectory.resolve(filename);
         try {
             Files.write(filepath, data);
         } catch (IOException ioe) {
@@ -96,7 +101,7 @@ public final class FileSystemCacher implements Cacher {
     }
 
     @Override
-    public SourceContext load(Address address) {
+    public SourceContext restore(Address address) {
         Validate.notNull(address);
         
         String filename;
@@ -107,12 +112,13 @@ public final class FileSystemCacher implements Cacher {
             return null;
         }
 
-        Path filepath = directory.resolve(filename);
+        Path savedFilepath = savedDirectory.resolve(filename);
+        Path restoredFilepath = restoredDirectory.resolve(filename);
         byte[] data;
         try {
-            data = Files.readAllBytes(filepath);
+            data = Files.readAllBytes(savedFilepath);
         } catch (IOException ioe) {
-            LOG.error("Unable to read file {}", filepath, ioe);
+            LOG.error("Unable to read file {}", savedFilepath, ioe);
             return null;
         }
 
@@ -120,18 +126,48 @@ public final class FileSystemCacher implements Cacher {
         try {
             ctx = serializer.unserialize(data);
         } catch (IllegalArgumentException iae) {
-            LOG.error("Unable to unserialize file {}", filepath, iae);
+            LOG.error("Unable to unserialize file {}", savedFilepath, iae);
             return null;
         }
-        
-        Validate.isTrue(ctx.isRoot()); // sanity check... because we test when we cache, this would never happen
+
+        if (!ctx.isRoot()) {
+            LOG.error("Context is not root {}", savedFilepath);
+            return null;
+        }
+
+        try {
+            Files.move(savedFilepath, restoredFilepath);
+        } catch (IOException ioe) {
+            LOG.error("Unable to move file {} to {}", savedFilepath, restoredFilepath, ioe);
+            return null;
+        }
 
         return ctx;
     }
 
     @Override
+    public void delete(Address address) {
+        Validate.notNull(address);
+        
+        String filename;
+        try {
+            filename = URLEncoder.encode(address.toString(), "UTF-8");
+        } catch (UnsupportedEncodingException use) {
+            LOG.error("Unable to encode filename {}", address, use);
+            return;
+        }
+
+        Path filepath = savedDirectory.resolve(filename);
+        try {
+            Files.delete(filepath);
+        } catch (IOException ioe) {
+            LOG.error("Unable to delete file {}", filepath, ioe);
+            return;
+        }
+    }
+    
+    @Override
     public void close() {
         // do nothing
     }
-
 }

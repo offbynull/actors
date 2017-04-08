@@ -16,9 +16,11 @@
  */
 package com.offbynull.actors.core.actor;
 
+import com.offbynull.actors.core.cache.Cacher;
 import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.CACHE;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
@@ -45,19 +47,27 @@ final class ActorRunnable implements Runnable {
     private final SimpleShuttle incomingShuttle;
     private final Runnable criticalFailureHandler;
     private final ActorRunner owner;
+    private final Cacher cacher;
 
-    ActorRunnable(String prefix, Bus bus, Runnable criticalFailureHandler, ActorRunner owner) {
+    ActorRunnable(
+            String prefix,
+            Bus bus,
+            Runnable failHandler,
+            ActorRunner owner,
+            Cacher cacher) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
-        Validate.notNull(criticalFailureHandler);
+        Validate.notNull(failHandler);
         Validate.notNull(owner);
+        Validate.notNull(cacher);
         Validate.notEmpty(prefix);
 
         this.prefix = prefix;
         this.bus = bus;
         this.incomingShuttle = new SimpleShuttle(prefix, bus);
-        this.criticalFailureHandler = criticalFailureHandler;
+        this.criticalFailureHandler = failHandler;
         this.owner = owner;
+        this.cacher = cacher;
     }
 
     @Override
@@ -161,19 +171,37 @@ final class ActorRunnable implements Runnable {
         String dstPrefix = dst.getElement(0);
         String dstActorId = dst.getElement(1);
         Validate.isTrue(dstPrefix.equals(prefix)); // sanity check
+        
+        Address actorAddr = Address.of(dstPrefix, dstActorId);
 
         LoadedActor loadedActor = actors.get(dstActorId);
+        SourceContext ctx;
         if (loadedActor == null) {
-            LOG.warn("Actor not found for message: id={} message={}", dst, msg);
-            return;
+            LOG.warn("Actor not found in memory for {} (dst={} msg={})", actorAddr, dst, msg);
+            ctx = cacher.restore(actorAddr);
+            
+            if (ctx == null) {
+                LOG.warn("Actor not found in cache for {}", actorAddr);
+                return;
+            } else {
+                LOG.debug("Actor found in cache: id={}", actorAddr);
+                actors.put(dstActorId, new LoadedActor(ctx));
+            }
+        } else {
+            ctx = loadedActor.context;
         }
-
-        SourceContext ctx = loadedActor.context;
         
         boolean shutdown = SourceContext.fire(ctx, src, dst, Instant.now(), msg);
         if (shutdown) {
-            LOG.debug("Removing actor {}", dst);
+            LOG.debug("Actor shut down {} -- removing from memory and removing from cache", actorAddr);
+            cacher.delete(actorAddr);
             actors.remove(dstActorId);
+        } else {
+            if (ctx.containsMode(CACHE)) {
+                LOG.debug("Actor requests cache {} -- removing from memory and adding to cache", actorAddr);
+                cacher.save(ctx);
+                actors.remove(dstActorId);
+            }
         }
 
         // Queue up new actors

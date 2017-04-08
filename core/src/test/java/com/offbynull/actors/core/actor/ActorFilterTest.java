@@ -1,8 +1,9 @@
 package com.offbynull.actors.core.actor;
 
 import com.offbynull.actors.core.context.Context;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.coroutines.user.Coroutine;
-import static com.offbynull.actors.core.context.Context.ForwardMode.FORWARD_AND_FORGET;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.actors.core.shuttle.Address;
 import java.util.concurrent.TimeUnit;
@@ -142,7 +143,7 @@ public class ActorFilterTest {
 
             while (true) {
                 cnt.suspend();
-                ctx.forward(FORWARD_AND_FORGET);
+                ctx.mode(FORWARD, RELEASE);
                 if (ctx.source().getElement(0).equals("direct1")) {
                     ctx.out(ctx.source(), ctx.in() + "0");
                 }
@@ -194,7 +195,7 @@ public class ActorFilterTest {
 
             while (true) {
                 cnt.suspend();
-                ctx.forward(FORWARD_AND_FORGET);
+                ctx.mode(FORWARD, RELEASE);
                 if (ctx.source().getElement(0).equals("direct1")) {
                     ctx.out(ctx.source(), ctx.in() + "0");
                 }
@@ -277,7 +278,7 @@ public class ActorFilterTest {
 
             while (true) {
                 cnt.suspend();
-                ctx.forward(FORWARD_AND_FORGET);
+                ctx.mode(FORWARD, RELEASE);
                 if (ctx.source().getElement(0).equals("direct1")) {
                     ctx.out(ctx.source(), ctx.in() + "0");
                 }

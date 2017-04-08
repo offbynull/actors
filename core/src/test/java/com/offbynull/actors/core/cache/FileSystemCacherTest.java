@@ -1,6 +1,5 @@
 package com.offbynull.actors.core.cache;
 
-import com.offbynull.actors.core.checkpoint.RestoreResultIterator;
 import com.offbynull.actors.core.context.ObjectStreamSerializer;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.shuttle.Address;
@@ -37,10 +36,10 @@ public class FileSystemCacherTest {
     public void mustSaveAndRestoreContext() throws Exception{
         Address self = Address.fromString("test1:test2");
         SourceContext ctxIn = new SourceContext(new CoroutineRunner((Coroutine & Serializable) cnt -> {}), self);
-        boolean cached = fixture.cache(ctxIn);
+        boolean cached = fixture.save(ctxIn);
         assertTrue(cached);
         
-        SourceContext ctxOut = fixture.load(self);
+        SourceContext ctxOut = fixture.restore(self);
         assertEquals(ctxIn.self(), ctxOut.self());
     }
     

@@ -14,19 +14,39 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.checkpoint;
+package com.offbynull.actors.core.cache;
 
 import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.shuttle.Address;
+import org.apache.commons.lang3.Validate;
 
 /**
- * Iterator that restores and returns checkpointed actors.
+ * A cacher implementation that does no caching.
  * @author Kasra Faghihi
  */
-public interface RestoreResultIterator extends AutoCloseable {
-    /**
-     * Restore next actor.
-     * @return restored actor, or {@code null} if no more actors to restore 
-    */
-    SourceContext next();
-    
+public final class NullCacher implements Cacher {
+
+    @Override
+    public boolean save(SourceContext ctx) {
+        Validate.notNull(ctx);
+        Validate.isTrue(ctx.isRoot());
+        return false;
+    }
+
+    @Override
+    public SourceContext restore(Address address) {
+        Validate.notNull(address);
+        return null;
+    }
+
+    @Override
+    public void delete(Address address) {
+        Validate.notNull(address);
+        // do nothing
+    }
+
+    @Override
+    public void close() {
+        // do nothing
+    }
 }

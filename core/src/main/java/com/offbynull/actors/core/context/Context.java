@@ -184,43 +184,16 @@ public interface Context {
     void intercept(boolean intercept);
     
     /**
-     * Sets message forwarding behaviour on next suspend. If set to anything other than {@link ForwardMode#DO_NOT_FORWARD}, the incoming
-     * message will get fed to any child expecting it once {@link Continuation#suspend() } is invoked.
+     * Sets the behavior to perform on next suspend. See {@link SuspendFlag} for more information.
      * <p>
-     * If mode is set to...
-     * <ul>
-     * <li>{@link ForwardMode#DO_NOT_FORWARD}, the message won't be forwarded to any child actors.</li>
-     * <li>{@link ForwardMode#FORWARD_AND_FORGET}, the message will be forwarded to child actors.</li>
-     * <li>{@link ForwardMode#FORWARD_AND_RETURN}, the message will be forwarded to child actors and control will be given back to this
-     * actor once child actors are done with the message. {@link Continuation#suspend() } can then be invoked again to suspend this
-     * actor.</li>
-     * </ul>
-     * Note that the forward mode being set here isn't retained. It gets reset to {@link ForwardMode#DO_NOT_FORWARD} after a forward.
-     * <p>
-     * An example...
-     * <pre>
-     * (Continuation cnt) -&gt; {
-     *     Context ctx = (Context) cnt.getContext();
-     *     ctx.allow();                      // Set flag to allow any message from any source
-     *     ctx.intercept(true);              // Set flag to intercept incoming messages for children
-     * 
-     *     cnt.suspend();                    // Wait for incoming message
-     * 
-     *     Object msg = ctx.in();            // Get incoming message
-     * 
-     *     ctx.forward(FORWARD_AND_RETURN); // Set flag to forward msg to children on next suspend()
-     * 
-     *     ctx.logDebug("About to fwd!");
-     *     cnt.suspend();                    // Forward to children
-     *     ctx.logDebug("Done fwding!");
-     * 
-     *     cnt.suspend();                    // Suspend actor
-     * }
-     * </pre>
-     * @param forwardMode forward mode
-     * @throws NullPointerException if any argument is {@code null}
+     * Note that the mode being set here isn't retained. It gets reset to {@link SuspendFlag#RELEASE} after a call to
+     * {@link Continuation#suspend()}.
+     * @param flags behavior flags to apply on suspend
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code flags} is empty, or if flags contains {@link SuspendFlag#CACHE} or
+     * {@link SuspendFlag#CHECKPOINT} are present in {@code flags} but {@link SuspendFlag#RELEASE} isn't, or if {@code flags} is empty
      */
-    void forward(ForwardMode forwardMode);
+    void mode(SuspendFlag ... flags);
     
     /**
      * Allow all incoming messages. All previously set allow/block rules are discarded.
@@ -343,20 +316,23 @@ public interface Context {
     }
     
     /**
-     * Forward mode.
+     * Suspend mode.
      */
-    public enum ForwardMode {
+    public enum SuspendFlag {
         /**
-         * Do not forward message to child actors.
+         * Release control of the actor on suspend.
          */
-        DO_NOT_FORWARD,
+        RELEASE,
         /**
-         * Forward the message to child actors.
+         * Forward the message to child actors on suspend.
+         * <p>
+         * If submitted with {@link #RELEASE}, the actor will release after the message is forwarded to child actors. If submitted without
+         * {@link #RELEASE}, control is given back to forwarder once child actors are done with the message.
          */
-        FORWARD_AND_FORGET,
+        FORWARD,
         /**
-         * Forward the message to child actors and release control back to forwarder once child actors are done with the message.
+         * Cache actor on suspend. Must be used with {@link #RELEASE}.
          */
-        FORWARD_AND_RETURN
+        CACHE
     }
 }

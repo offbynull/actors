@@ -33,22 +33,33 @@ public interface Cacher extends AutoCloseable {
      * <p>
      * The caller must be removed from actor being cached from memory once caching successfully completes. If caching fails for whatever
      * reason, the caller should not remove the actor from memory.
-     * @param ctx context to cache
+     * @param ctx context to save
      * @return {@code true} if successfully cached, {@code false} if couldn't be cached for whatever reason (e.g. external storage is down)
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code ctx} is not for a root actor
      */
-    boolean cache(SourceContext ctx);
+    boolean save(SourceContext ctx);
 
     /**
      * Restore cached actor.
      * <p>
-     * The cached data must be deleted in the same transaction that read the data. This needs to be done in order to prevent potential race
-     * conditions with restoring and caching actors with the same address.
+     * The cached data must be marked as non-loadable in the same transaction that read the data. This needs to be done in order to prevent
+     * potential race conditions with restoring and caching actors with the same address.
      * @param address address of actor to restore
-     * @return context restored from cache, or {@code null} if no such address was cached
+     * @return context restored from save, or {@code null} if no such address was cached
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalStateException if problem accessing storage
      */
-    SourceContext load(Address address);
+    SourceContext restore(Address address);
+
+    /**
+     * Delete cached actor.
+     * <p>
+     * The cached data must be deleted in the same transaction that read the data. This needs to be done in order to prevent potential race
+     * conditions with restoring and caching actors with the same address.
+     * @param address address of actor to restore
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if problem accessing storage
+     */
+    void delete(Address address);
 }

@@ -16,6 +16,7 @@
  */
 package com.offbynull.actors.core.actor;
 
+import com.offbynull.actors.core.cache.Cacher;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
@@ -41,15 +42,16 @@ final class ActorThread {
     
     // it should be fine to have this be a constructor since the this pointer never gets passed to the runnable, but have this factory
     // method anyway...
-    public static ActorThread create(String prefix, Shuttle selfShuttle, Runnable criticalFailureHandler, ActorRunner owner) {
+    public static ActorThread create(String prefix, Shuttle selfShuttle, Runnable failureHandler, ActorRunner owner, Cacher cacher) {
         Validate.notNull(prefix);
         Validate.notNull(selfShuttle);
-        Validate.notNull(criticalFailureHandler);
+        Validate.notNull(failureHandler);
         Validate.notNull(owner);
+        Validate.notNull(cacher);
         
         // create runnable
         Bus bus = new Bus();
-        ActorRunnable runnable = new ActorRunnable(prefix, bus, criticalFailureHandler, owner);
+        ActorRunnable runnable = new ActorRunnable(prefix, bus, failureHandler, owner, cacher);
 
         // add in our own shuttle as well so we can send msgs to ourselves
         bus.add(new AddShuttle(selfShuttle));

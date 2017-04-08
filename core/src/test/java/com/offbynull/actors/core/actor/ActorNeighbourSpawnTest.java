@@ -2,14 +2,11 @@
 package com.offbynull.actors.core.actor;
 
 import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.ForwardMode.FORWARD_AND_FORGET;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
-import com.offbynull.actors.core.shuttle.Address;
-import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import org.junit.After;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.Before;
 
 public class ActorNeighbourSpawnTest {

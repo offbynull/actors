@@ -23,11 +23,14 @@ import com.offbynull.actors.core.shuttle.Address;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +59,7 @@ public final class SourceContext implements Context, Serializable {
     private Map<String, SourceContext> children;
     
     private boolean intercept;
-    private ForwardMode forwardMode;
+    private Set<SuspendFlag> flags;
 
     /**
      * Constructs a {@link SourceContext} object.
@@ -74,6 +77,8 @@ public final class SourceContext implements Context, Serializable {
         this.outs = new LinkedList<>();
         this.newRoots = new LinkedList<>();
         this.children = new HashMap<>();
+        
+        this.flags = new HashSet<>();
         
         // Allow only messages from yourself -- priming messages always show up as coming from you
         ruleSet.rejectAll();
@@ -159,8 +164,17 @@ public final class SourceContext implements Context, Serializable {
         return intercept;
     }
     
-    ForwardMode forwardMode() {
-        return forwardMode;
+    Set<SuspendFlag> mode() {
+        return flags;
+    }
+    
+    /**
+     * Checks to see if a certain mode flag.
+     * @param flag flag to check
+     * @return {@code true} if set, {@code false} otherwise
+     */
+    public boolean containsMode(SuspendFlag flag) {
+        return flags.contains(flag);
     }
 
     @Override
@@ -246,9 +260,19 @@ public final class SourceContext implements Context, Serializable {
     }
 
     @Override
-    public void forward(ForwardMode mode) {
-        Validate.notNull(mode);
-        forwardMode = mode;
+    public void mode(SuspendFlag ... flags) {
+        Validate.notNull(flags);
+        Validate.noNullElements(flags);
+        Validate.isTrue(flags.length > 0);
+
+        Set<SuspendFlag> flagsSet = new HashSet<>(Arrays.asList(flags));
+        Validate.isTrue(flags.length == flagsSet.size());
+        if (flagsSet.contains(SuspendFlag.CACHE)) {
+            Validate.isTrue(flagsSet.contains(SuspendFlag.RELEASE));
+        }
+
+        this.flags.clear();
+        this.flags.addAll(flagsSet);
     }
 
     @Override
@@ -306,7 +330,7 @@ public final class SourceContext implements Context, Serializable {
         
         if (ctx.self.equals(dst)) {
             // The message is for us. There's no further child to recurse to so process and get out.
-            ctx.forwardMode = ForwardMode.DO_NOT_FORWARD;
+            ctx.mode(SuspendFlag.RELEASE);
             boolean done = invoke(ctx, src, dst, time, msg);
             return done;
         }
@@ -318,10 +342,12 @@ public final class SourceContext implements Context, Serializable {
             // The message is for one of our children, but we want to intercept it....
             boolean done = invoke(ctx, src, dst, time, msg);
             if (done) {
+                ctx.mode(SuspendFlag.RELEASE);
                 return true; // we are the main actor and we died/finished OR we are a child actor that had an error, so return
             }
 
-            if (ctx.forwardMode == ForwardMode.DO_NOT_FORWARD) {
+            if (!ctx.mode().contains(SuspendFlag.FORWARD)) {
+                ctx.mode(SuspendFlag.RELEASE);
                 return false; // we gave instructions NOT to forward, so return
             }
         }
@@ -338,21 +364,21 @@ public final class SourceContext implements Context, Serializable {
         
         
         
-        // reset forward flag 
-        ForwardMode oldForwardMode = ctx.forwardMode;
-        ctx.forwardMode = ForwardMode.DO_NOT_FORWARD;
-        if (ctx.intercept && oldForwardMode == ForwardMode.FORWARD_AND_RETURN) {
-            // If we intercepted this message and forwarded it + asked control to be release back, then release control back
+        if (ctx.intercept && ctx.mode().contains(SuspendFlag.FORWARD) && !ctx.mode().contains(SuspendFlag.RELEASE)) {
+            // If we intercepted this message and forwarded it + asked control to be release back (no Flag.RELEASE), then release control
+            // back
             boolean done = invoke(ctx, src, dst, time, msg);
             if (done) {
+                ctx.mode(SuspendFlag.RELEASE);
                 return true;
             }
             
             // If were instructed to forward to children at this point, something is wrong with the actor logic. We're releasing control
             // back to the actor from a forward for cleanup purposes. It makes zero sense to try to forward again. As such, kill the entire
             // actor stream
-            if (ctx.forwardMode != ForwardMode.DO_NOT_FORWARD) {
+            if (ctx.mode().contains(SuspendFlag.FORWARD)) {
                 LOG.error("Actor " + dst + " is instructing to forward on release from a forward -- not allowed");
+                ctx.mode(SuspendFlag.RELEASE);
                 return true;
             }
         }
@@ -360,6 +386,7 @@ public final class SourceContext implements Context, Serializable {
         
         
         // Return okay status
+        ctx.mode(SuspendFlag.RELEASE);
         return false;
     }
     
@@ -495,8 +522,8 @@ public final class SourceContext implements Context, Serializable {
         }
 
         @Override
-        public void forward(ForwardMode mode) {
-            SourceContext.this.forward(mode);
+        public void mode(SuspendFlag ... flags) {
+            SourceContext.this.mode(flags);
         }
 
         @Override

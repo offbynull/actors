@@ -137,7 +137,7 @@ public class ActorCacheTest {
         }
     }
 
-    @Test(timeout = 2000L)
+    @Test(timeout = 4000L)
     public void mustDropStateAfterActorTermination() throws Exception {
         Coroutine actor0 = (Serializable & Coroutine) cnt -> {
             Context ctx = (Context) cnt.getContext();
@@ -177,7 +177,90 @@ public class ActorCacheTest {
             assertEquals("echo 1:hello", direct.readMessagePayloadOnly());
             
             direct.writeMessage("runner:actor0", "bonjour");
-            assertNull(direct.readMessagePayloadOnly(500L, TimeUnit.MILLISECONDS));
+            assertNull(direct.readMessagePayloadOnly(250L, TimeUnit.MILLISECONDS));
+        }
+        
+        
+        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+                DirectGateway direct = DirectGateway.create("direct");){
+            
+            runner.addOutgoingShuttle(direct.getIncomingShuttle());
+            direct.addOutgoingShuttle(runner.getIncomingShuttle());
+            
+            
+            direct.writeMessage("runner:actor0", "hola");
+            assertNull(direct.readMessagePayloadOnly(250L, TimeUnit.MILLISECONDS));
+            
+            direct.writeMessage("runner:actor0", "salaam");
+            assertNull(direct.readMessagePayloadOnly(250L, TimeUnit.MILLISECONDS));
+            
+            direct.writeMessage("runner:actor0", "namaste");
+            assertNull(direct.readMessagePayloadOnly(250L, TimeUnit.MILLISECONDS));
+        }
+    }
+    
+    @Test(timeout = 4000L)
+    public void mustRestoreActiveActorOnRestart() throws Exception {
+        Coroutine actor0 = (Serializable & Coroutine) cnt -> {
+            Context ctx = (Context) cnt.getContext();
+            ctx.allow();
+            ctx.out("direct", "ready");
+            
+            String msg;
+            ctx.mode(RELEASE, CACHE);
+            
+            
+            cnt.suspend();
+            msg = ctx.in();
+            ctx.out("echo 0:" + msg);
+
+
+            cnt.suspend();
+            msg = ctx.in();
+            ctx.out("echo 1:" + msg);
+
+
+            cnt.suspend();
+            msg = ctx.in();
+            ctx.out("echo 2:" + msg);
+        };
+            
+            
+        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+                DirectGateway direct = DirectGateway.create("direct");){
+            
+            runner.addOutgoingShuttle(direct.getIncomingShuttle());
+            direct.addOutgoingShuttle(runner.getIncomingShuttle());
+
+            
+            runner.addActor("actor0", actor0, new Object());
+            
+            
+            assertEquals("ready", direct.readMessagePayloadOnly());
+            
+            direct.writeMessage("runner:actor0", "hi");
+            assertEquals("echo 0:hi", direct.readMessagePayloadOnly());
+            
+            direct.writeMessage("runner:actor0", "hello");
+            assertEquals("echo 1:hello", direct.readMessagePayloadOnly());
+        }
+        
+        
+        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+                DirectGateway direct = DirectGateway.create("direct");){
+            
+            runner.addOutgoingShuttle(direct.getIncomingShuttle());
+            direct.addOutgoingShuttle(runner.getIncomingShuttle());
+            
+            
+            direct.writeMessage("runner:actor0", "hi");
+            assertEquals("echo 0:hi", direct.readMessagePayloadOnly());
+            
+            direct.writeMessage("runner:actor0", "hello");
+            assertEquals("echo 1:hello", direct.readMessagePayloadOnly());
         }
     }
 }

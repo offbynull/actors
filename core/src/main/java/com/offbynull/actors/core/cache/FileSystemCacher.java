@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -44,13 +45,29 @@ public final class FileSystemCacher implements Cacher {
     private final Serializer serializer;
 
     /**
-     * Create a {@link FileSystemCacher} object.
+     * Create a {@link FileSystemCacher} object that restores running/active actors from their previous cache state. Equivalent to calling
+     * {@code FileSystemCacher.create(serializer, directory, true)}.
      *
      * @param serializer serializer to use for saving/restoring actors
      * @param directory storage directory for serialized actors
      * @return new instance of {@link FileSystemCacher}
+     * @throws IOException if problems restoring running/active actors
      */
-    public static FileSystemCacher create(Serializer serializer, Path directory) {
+    public static FileSystemCacher create(Serializer serializer, Path directory) throws IOException {
+        return create(serializer, directory, true);
+    }
+
+    /**
+     * Create a {@link FileSystemCacher} object.
+     *
+     * @param serializer serializer to use for saving/restoring actors
+     * @param directory storage directory for serialized actors
+     * @param restoreRunning restores running/active actors from their previous cache state as well as cached actors if {@code true},
+     * restores only saved actors only if {@code false}
+     * @return new instance of {@link FileSystemCacher}
+     * @throws IOException if problems restoring running/active actors
+     */
+    public static FileSystemCacher create(Serializer serializer, Path directory, boolean restoreRunning) throws IOException {
         Validate.notNull(serializer);
         Validate.notNull(directory);
 
@@ -61,6 +78,18 @@ public final class FileSystemCacher implements Cacher {
             Files.createDirectories(restoredDirectory);
         } catch (IOException ioe) {
             throw new IllegalArgumentException(ioe);
+        }
+        
+        if (restoreRunning) {
+            Files.walk(restoredDirectory, 1)
+                    .filter(p -> Files.isRegularFile(p))
+                    .forEach(p -> {
+                        try {
+                            Files.move(p, savedDirectory.resolve(p.getFileName()));
+                        } catch (IOException ioe) {
+                            LOG.warn("Failed to restore {} ({})", p, ioe);
+                        }
+                    });
         }
 
         return new FileSystemCacher(serializer, savedDirectory, restoredDirectory);
@@ -162,17 +191,19 @@ public final class FileSystemCacher implements Cacher {
         Path savePath = savedDirectory.resolve(filename);
         try {
             Files.delete(savePath);
+        } catch (NoSuchFileException nsfe) {
+            // do nothing -- this is an expected case
         } catch (IOException ioe) {
-            LOG.error("Unable to delete file {} ({})", savePath, ioe.toString());
-            return;
+            LOG.error("Unable to delete file {} ({})", savePath, ioe);
         }
 
         Path restorePath = restoredDirectory.resolve(filename);
         try {
             Files.delete(restorePath);
+        } catch (NoSuchFileException nsfe) {
+            // do nothing -- this is an expected case
         } catch (IOException ioe) {
-            LOG.error("Unable to delete file {} ({})", restorePath, ioe.toString());
-            return;
+            LOG.error("Unable to delete file {} ({})", restorePath, ioe);
         }
     }
     

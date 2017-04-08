@@ -6,8 +6,8 @@ import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Test;
@@ -21,8 +21,8 @@ public class FileSystemCacherTest {
     public Path path;
     
     @Before
-    public void before() {
-        path = Paths.get("fsc_test");
+    public void before() throws Exception {
+        path = Files.createTempDirectory("fsc_test");
         fixture = FileSystemCacher.create(new ObjectStreamSerializer(), path);
     }
     

@@ -24,6 +24,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +138,7 @@ public final class FileSystemCacher implements Cacher {
         }
 
         try {
-            Files.move(savedFilepath, restoredFilepath);
+            Files.move(savedFilepath, restoredFilepath, REPLACE_EXISTING, ATOMIC_MOVE);
         } catch (IOException ioe) {
             LOG.error("Unable to move file {} to {}", savedFilepath, restoredFilepath, ioe);
             return null;
@@ -157,11 +159,19 @@ public final class FileSystemCacher implements Cacher {
             return;
         }
 
-        Path filepath = savedDirectory.resolve(filename);
+        Path savePath = savedDirectory.resolve(filename);
         try {
-            Files.delete(filepath);
+            Files.delete(savePath);
         } catch (IOException ioe) {
-            LOG.error("Unable to delete file {}", filepath, ioe);
+            LOG.error("Unable to delete file {}", savePath, ioe);
+            return;
+        }
+
+        Path restorePath = restoredDirectory.resolve(filename);
+        try {
+            Files.delete(restorePath);
+        } catch (IOException ioe) {
+            LOG.error("Unable to delete file {}", restorePath, ioe);
             return;
         }
     }

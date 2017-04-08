@@ -21,6 +21,7 @@ import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
 import static com.offbynull.actors.core.context.Context.SuspendFlag.CACHE;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
@@ -45,7 +46,7 @@ final class ActorRunnable implements Runnable {
     private final String prefix;
     private final Bus bus;
     private final SimpleShuttle incomingShuttle;
-    private final Runnable criticalFailureHandler;
+    private final Runnable failHandler;
     private final ActorRunner owner;
     private final Cacher cacher;
 
@@ -65,7 +66,7 @@ final class ActorRunnable implements Runnable {
         this.prefix = prefix;
         this.bus = bus;
         this.incomingShuttle = new SimpleShuttle(prefix, bus);
-        this.criticalFailureHandler = failHandler;
+        this.failHandler = failHandler;
         this.owner = owner;
         this.cacher = cacher;
     }
@@ -102,7 +103,7 @@ final class ActorRunnable implements Runnable {
             
             // Invoke critical failure handler
             try {
-                criticalFailureHandler.run();
+                failHandler.run();
             } catch (RuntimeException innerRe) {
                 LOG.error("Handler failed", innerRe);
             } 
@@ -111,7 +112,7 @@ final class ActorRunnable implements Runnable {
             
             // Invoke critical failure handler
             try {
-                criticalFailureHandler.run();
+                failHandler.run();
             } catch (RuntimeException innerRe) {
                 LOG.error("Handler failed", innerRe);
             } 
@@ -186,6 +187,10 @@ final class ActorRunnable implements Runnable {
             } else {
                 LOG.debug("Actor found in cache: id={}", actorAddr);
                 actors.put(dstActorId, new LoadedActor(ctx));
+                
+                // Reset restored context state
+                ctx.copyAndClearOutgoingMessages();
+                ctx.mode(RELEASE);
             }
         } else {
             ctx = loadedActor.context;

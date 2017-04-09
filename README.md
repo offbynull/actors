@@ -2,13 +2,13 @@
 
 <p align="center"><img src ="logo.png" alt="Actors logo" /></p>
 
-The Actors project is a lightweight Java actor framework that works off the ide of coroutines/fibers. Why use Actors over other actor frameworks? 
+The Actors project is a lightweight Java actor framework that greatly simplifies the design and development of highly concurrent software. Why use Actors over other actor frameworks? 
 
- * Designed first and foremost with developer productivity in mind
+ * Actors as lightweight fibers/coroutines
+ * Seamlessly serialize and store actors
  * Seamlessly distribute actors
- * Seamlessly serialize/store actors
- * Avoid complicated FSM logic via coroutines
- * Run actors in simulations (great for unit testing)
+ * Avoid handwritten FSMs for actor logic
+ * Test actors in different scenarios via simulations
 
 More information on the topic of actors can be found on the following pages:
 
@@ -65,7 +65,10 @@ The Actors project has two basic primitives in its implementation of the actor m
 
 ### Actors
 
-An Actor is a coroutine which can only communicate with the outside world through message-passing.
+An Actor is an isolated fiber/coroutine which reacts when messages sent to it.
+
+ * Isolation in this case means that the actor segregates itself off from all other components, only communicating with the outside world through message-passing.
+ * Reacting in this case means that the actor can only execute its logic when messages are sent to it -- it has no active functionality.
 
 Actors must adhere to the following constraints:
 
@@ -73,7 +76,7 @@ Actors must adhere to the following constraints:
  1. **Do not share state.** Actors must only ever access/change their own internal state, meaning that an actor must not share any references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done via message-passing.
  1. **Do not block** for I/O, long running operations, thread synchronization, or anything else. Multiple actors may be running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages in a timely manner.
  1. **Do not directly access time.** Actors must use the time supplied to them via the Context rather than making calls to Java's date and time APIs (e.g. Instant or System.currentTimeMillis()).
- 1. **Only make use of serializable objects.** Actors must only make use of objects that are serializable. This includes fields on the actor as well as local variables and items on the operand stack. Doing so ensures that we can easily store and load the actor (should the choice be made to do so).
+ 1. **Do not use non-serializable objects.** Actors must only make use of objects that are serializable. This includes fields on the actor as well as local variables and items on the operand stack. Doing so ensures that we can easily store and load the actor (should the choice be made to do so).
 
 Following the above implementation rules means that outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so you don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should be transparent).
 

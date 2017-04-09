@@ -16,7 +16,7 @@
  */
 
 /**
- * Provides classes and interfaces for cache actors.
+ * Provides classes and interfaces to cache actors.
  * 
  * @author Kasra Faghihi
  */

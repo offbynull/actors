@@ -130,6 +130,14 @@ public interface Context {
      * @return current time
      */
     Instant time();
+    
+    /**
+     * Add shortcircuit logic for incoming message types.
+     * @param cls class to add shortcircuit logic for
+     * @param shortcircuit shortcircuit logic (or {@code null} to remove the existing shortcircuit logic)
+     * @throws NullPointerException if {@code cls} is {@code null}
+     */
+    void shortcircuit(Class<?> cls, Shortcircuit shortcircuit);
 
     /**
      * Queue a root actor to be added.
@@ -178,7 +186,7 @@ public interface Context {
     /**
      * Intercept messages going to child actors. If the intercept flag is set, messages destined for children (and their children down the
      * chain) will first be sent to this actor (the parent). Should this actor choose to feed the message down the chain,
-     * {@link #forward() } can be used.
+     * {@link #mode(com.offbynull.actors.core.context.Context.SuspendFlag...) } can be used.
      * @param intercept {@code true} to intercept messages to children, {@code false} otherwise
      */
     void intercept(boolean intercept);
@@ -190,8 +198,8 @@ public interface Context {
      * {@link Continuation#suspend()}.
      * @param flags behavior flags to apply on suspend
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if {@code flags} is empty, or if flags contains {@link SuspendFlag#CACHE} or
-     * {@link SuspendFlag#CHECKPOINT} are present in {@code flags} but {@link SuspendFlag#RELEASE} isn't, or if {@code flags} is empty
+     * @throws IllegalArgumentException if {@code flags} is empty, or if flags contains {@link SuspendFlag#CACHE} is present in
+     * {@code flags} but {@link SuspendFlag#RELEASE} isn't
      */
     void mode(SuspendFlag ... flags);
     
@@ -334,5 +342,36 @@ public interface Context {
          * Cache actor on suspend. Must be used with {@link #RELEASE}.
          */
         CACHE
+    }
+    
+
+    /**
+     * Shortcircuit logic to perform.
+     */
+    public interface Shortcircuit {
+        /**
+         * Perform shortcircuit logic.
+         * @param ctx actor context
+         * @return shortcircuit action
+         */
+        ShortcircuitAction perform(Context ctx);
+    }
+    
+    /**
+     * Action to perform after having shortcircuited an incoming message.
+     */
+    public enum ShortcircuitAction {
+        /**
+         * Execute the actor.
+         */
+        PROCESS,
+        /**
+         * Do not execute the actor.
+         */
+        PASS,
+        /**
+         * Terminate the actor.
+         */
+        TERMINATE
     }
 }

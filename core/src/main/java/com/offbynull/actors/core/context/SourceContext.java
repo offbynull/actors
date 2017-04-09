@@ -58,6 +58,8 @@ public final class SourceContext implements Context, Serializable {
     private List<BatchedCreateActorCommand> newRoots;
     private Map<String, SourceContext> children;
     
+    private Map<Class<?>, Shortcircuit> shortcircuits;
+    
     private boolean intercept;
     private Set<SuspendFlag> flags;
 
@@ -77,6 +79,8 @@ public final class SourceContext implements Context, Serializable {
         this.outs = new LinkedList<>();
         this.newRoots = new LinkedList<>();
         this.children = new HashMap<>();
+        
+        this.shortcircuits = new HashMap<>();
         
         this.flags = new HashSet<>();
         
@@ -122,6 +126,17 @@ public final class SourceContext implements Context, Serializable {
     
     void time(Instant time) {
         this.time = time;
+    }
+
+    @Override
+    public void shortcircuit(Class<?> cls, Shortcircuit shortcircuit) {
+        Validate.notNull(cls);
+        
+        if (shortcircuit == null) { // remove
+            shortcircuits.remove(cls);
+        } else {
+            shortcircuits.put(cls, shortcircuit);
+        }
     }
 
     @Override
@@ -405,8 +420,33 @@ public final class SourceContext implements Context, Serializable {
         ctx.time = time;
         
         try {
-            // Run the actor at the address we found
-            boolean finished = !ctx.actorRunner.execute();
+            Shortcircuit shortcircuit = ctx.shortcircuits.get(msg.getClass());
+            
+            boolean finished;
+            if (shortcircuit != null) {
+                ShortcircuitAction action = shortcircuit.perform(ctx);
+                
+                switch (action) {
+                    case PASS:
+                        // Shortcircuit asked us to ignore running the actor
+                        finished = false;
+                        break;
+                    case PROCESS:
+                        // Shortcircuit asked us to run the actor as we normally would
+                        finished = !ctx.actorRunner.execute();
+                        break;
+                    case TERMINATE:
+                        // Shortcircuit asked us to terminate the actor
+                        finished = true;
+                        break;
+                    default:
+                        // This should never happen
+                        throw new IllegalStateException("Unknown action encountered: " + action);
+                }
+            } else {
+                // No shortcircuit for this msg type -- run the actor as normal
+                finished = !ctx.actorRunner.execute();
+            }
             
             // Reset context fields
             ctx.in = null;
@@ -494,6 +534,11 @@ public final class SourceContext implements Context, Serializable {
         @Override
         public Instant time() {
             return SourceContext.this.time();
+        }
+
+        @Override
+        public void shortcircuit(Class<?> cls, Shortcircuit shortcircuit) {
+            SourceContext.this.shortcircuit(cls, shortcircuit);
         }
 
         @Override

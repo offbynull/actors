@@ -17,6 +17,7 @@
 package com.offbynull.actors.core.context;
 
 import com.offbynull.coroutines.user.Coroutine;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +27,10 @@ import org.apache.commons.lang3.Validate;
  * A queued command to spawn a root actor.
  * @author Kasra Faghihi
  */
-public final class BatchedCreateActorCommand {
+public final class BatchedCreateActorCommand implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+    
     private final String id;
     private final Coroutine actor;
     private final List<Object> primingMessages;

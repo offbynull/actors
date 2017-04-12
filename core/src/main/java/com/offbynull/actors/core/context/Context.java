@@ -137,7 +137,7 @@ public interface Context {
      * @param shortcircuit shortcircuit logic (or {@code null} to remove the existing shortcircuit logic)
      * @throws NullPointerException if {@code cls} is {@code null}
      */
-    void shortcircuit(Class<?> cls, Shortcircuit shortcircuit);
+    void shortcircuit(Class<?> cls, ShortcircuitLogic shortcircuit);
 
     /**
      * Queue a root actor to be added.
@@ -192,16 +192,20 @@ public interface Context {
     void intercept(boolean intercept);
     
     /**
+     * Cache actor once control has been released.
+     * @param flag {@code true} to cache, {@code false} to not cache
+     */
+    void cache(boolean flag);
+    
+    /**
      * Sets the behavior to perform on next suspend. See {@link SuspendFlag} for more information.
      * <p>
      * Note that the mode being set here isn't retained. It gets reset to {@link SuspendFlag#RELEASE} after a call to
      * {@link Continuation#suspend()}.
-     * @param flags behavior flags to apply on suspend
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if {@code flags} is empty, or if flags contains {@link SuspendFlag#CACHE} is present in
-     * {@code flags} but {@link SuspendFlag#RELEASE} isn't
+     * @param flag behavior flag to apply on suspend
+     * @throws NullPointerException if any argument is {@code null}
      */
-    void mode(SuspendFlag ... flags);
+    void mode(SuspendFlag flag);
     
     /**
      * Allow all incoming messages. All previously set allow/block rules are discarded.
@@ -332,23 +336,21 @@ public interface Context {
          */
         RELEASE,
         /**
-         * Forward the message to child actors on suspend.
-         * <p>
-         * If submitted with {@link #RELEASE}, the actor will release after the message is forwarded to child actors. If submitted without
-         * {@link #RELEASE}, control is given back to forwarder once child actors are done with the message.
+         * Forward the message to child actors on suspend and release control after the message has been forwarded to child actors.
          */
-        FORWARD,
+        FORWARD_AND_RELEASE,
         /**
-         * Cache actor on suspend. Must be used with {@link #RELEASE}.
+         * Forward the message to child actors on suspend and control is given back to forwarder once message has been forwarded to child
+         * actors.
          */
-        CACHE
+        FORWARD_AND_RETURN
     }
     
 
     /**
      * Shortcircuit logic to perform.
      */
-    public interface Shortcircuit {
+    public interface ShortcircuitLogic {
         /**
          * Perform shortcircuit logic.
          * @param ctx actor context

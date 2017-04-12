@@ -1,7 +1,8 @@
 package com.offbynull.actors.core.actor;
 
 import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD_AND_RELEASE;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD_AND_RETURN;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
@@ -10,7 +11,6 @@ import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.junit.Before;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 
 public class ActorChildSpawnTest {
     
@@ -67,7 +67,7 @@ public class ActorChildSpawnTest {
             ctx.child("level1_1", level1_1, new Object());
 
             while (true) {
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 cnt.suspend();
             }
         };
@@ -89,7 +89,7 @@ public class ActorChildSpawnTest {
 
             ctx.out("direct", "child ready!");
             while (true) {
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 cnt.suspend();
                 if (Address.fromString("direct").equals(ctx.source())) {
                     ctx.out(ctx.source(), "hello from child!");
@@ -106,7 +106,7 @@ public class ActorChildSpawnTest {
             ctx.child("level1", level1, new Object());
 
             while (true) {
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 cnt.suspend();
                 if (Address.fromString("direct").equals(ctx.source())) {
                     ctx.out(ctx.source(), "hello from main!");
@@ -132,7 +132,7 @@ public class ActorChildSpawnTest {
 
             ctx.out("direct", "child ready!");
             while (true) {
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 cnt.suspend();
                 if (Address.fromString("direct").equals(ctx.source())) {
                     ctx.out(ctx.source(), "hello from child!");
@@ -151,12 +151,12 @@ public class ActorChildSpawnTest {
             while (true) {
                 cnt.suspend();
                 if (Address.fromString("direct").equals(ctx.source())) {
-                    ctx.mode(FORWARD);
+                    ctx.mode(FORWARD_AND_RETURN);
                     ctx.out(ctx.source(), "pre-hello from main!");
                     cnt.suspend();
                     ctx.out(ctx.source(), "post-hello from main!");
                 } else {
-                    ctx.mode(FORWARD, RELEASE);
+                    ctx.mode(FORWARD_AND_RELEASE);
                 }
             }
         };

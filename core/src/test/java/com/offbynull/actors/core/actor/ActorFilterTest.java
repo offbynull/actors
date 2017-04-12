@@ -1,8 +1,7 @@
 package com.offbynull.actors.core.actor;
 
 import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
+import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD_AND_RELEASE;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.actors.core.shuttle.Address;
@@ -143,7 +142,7 @@ public class ActorFilterTest {
 
             while (true) {
                 cnt.suspend();
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 if (ctx.source().getElement(0).equals("direct1")) {
                     ctx.out(ctx.source(), ctx.in() + "0");
                 }
@@ -195,7 +194,7 @@ public class ActorFilterTest {
 
             while (true) {
                 cnt.suspend();
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 if (ctx.source().getElement(0).equals("direct1")) {
                     ctx.out(ctx.source(), ctx.in() + "0");
                 }
@@ -278,7 +277,7 @@ public class ActorFilterTest {
 
             while (true) {
                 cnt.suspend();
-                ctx.mode(FORWARD, RELEASE);
+                ctx.mode(FORWARD_AND_RELEASE);
                 if (ctx.source().getElement(0).equals("direct1")) {
                     ctx.out(ctx.source(), ctx.in() + "0");
                 }

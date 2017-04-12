@@ -4,7 +4,6 @@ package com.offbynull.actors.core.actor;
 import com.offbynull.actors.core.cache.Cacher;
 import com.offbynull.actors.core.cache.FileSystemCacher;
 import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.CACHE;
 import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.context.ObjectStreamSerializer;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
@@ -56,7 +55,8 @@ public class ActorCacheTest {
                     ctx.out("echo " + counter + ":" + msg);
                     counter++;
                     
-                    ctx.mode(RELEASE, CACHE);
+                    ctx.cache(true);
+                    ctx.mode(RELEASE);
                 }
             };
 
@@ -89,7 +89,8 @@ public class ActorCacheTest {
                 ctx.out("echo " + counter + ":" + msg);
                 counter++;
 
-                ctx.mode(RELEASE, CACHE);
+                ctx.cache(true);
+                ctx.mode(RELEASE);
             }
         };
             
@@ -152,7 +153,8 @@ public class ActorCacheTest {
                 ctx.out("echo " + counter + ":" + msg);
                 counter++;
                 
-                ctx.mode(RELEASE, CACHE);
+                ctx.cache(true);
+                ctx.mode(RELEASE);
             }
         };
             
@@ -208,7 +210,8 @@ public class ActorCacheTest {
             ctx.out("direct", "ready");
             
             String msg;
-            ctx.mode(RELEASE, CACHE);
+            ctx.cache(true);
+            ctx.mode(RELEASE);
             
             
             cnt.suspend();

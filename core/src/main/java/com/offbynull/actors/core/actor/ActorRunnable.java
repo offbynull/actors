@@ -20,7 +20,6 @@ import com.offbynull.actors.core.cache.Cacher;
 import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.CACHE;
 import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
@@ -190,6 +189,7 @@ final class ActorRunnable implements Runnable {
                 
                 // Reset restored context state
                 ctx.copyAndClearOutgoingMessages();
+                ctx.cache(false);
                 ctx.mode(RELEASE);
             }
         } else {
@@ -202,7 +202,7 @@ final class ActorRunnable implements Runnable {
             cacher.delete(actorAddr);
             actors.remove(dstActorId);
         } else {
-            if (ctx.containsMode(CACHE)) {
+            if (ctx.cache()) {
                 LOG.debug("Actor requests cache {} -- removing from memory and adding to cache", actorAddr);
                 cacher.save(ctx);
                 actors.remove(dstActorId);

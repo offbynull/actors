@@ -23,14 +23,11 @@ import com.offbynull.actors.core.shuttle.Address;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,10 +55,11 @@ public final class SourceContext implements Context, Serializable {
     private List<BatchedCreateActorCommand> newRoots;
     private Map<String, SourceContext> children;
     
-    private Map<Class<?>, Shortcircuit> shortcircuits;
+    private Map<Class<?>, ShortcircuitLogic> shortcircuits;
     
     private boolean intercept;
-    private Set<SuspendFlag> flags;
+    private boolean cache;
+    private SuspendFlag flag;
 
     /**
      * Constructs a {@link SourceContext} object.
@@ -82,7 +80,7 @@ public final class SourceContext implements Context, Serializable {
         
         this.shortcircuits = new HashMap<>();
         
-        this.flags = new HashSet<>();
+        this.flag = SuspendFlag.RELEASE;
         
         // Allow only messages from yourself -- priming messages always show up as coming from you
         ruleSet.rejectAll();
@@ -129,7 +127,7 @@ public final class SourceContext implements Context, Serializable {
     }
 
     @Override
-    public void shortcircuit(Class<?> cls, Shortcircuit shortcircuit) {
+    public void shortcircuit(Class<?> cls, ShortcircuitLogic shortcircuit) {
         Validate.notNull(cls);
         
         if (shortcircuit == null) { // remove
@@ -179,17 +177,12 @@ public final class SourceContext implements Context, Serializable {
         return intercept;
     }
     
-    Set<SuspendFlag> mode() {
-        return flags;
-    }
-    
     /**
-     * Checks to see if a certain mode flag.
-     * @param flag flag to check
-     * @return {@code true} if set, {@code false} otherwise
+     * Get mode.
+     * @return mode
      */
-    public boolean containsMode(SuspendFlag flag) {
-        return flags.contains(flag);
+    public SuspendFlag mode() {
+        return flag;
     }
 
     @Override
@@ -275,19 +268,22 @@ public final class SourceContext implements Context, Serializable {
     }
 
     @Override
-    public void mode(SuspendFlag ... flags) {
-        Validate.notNull(flags);
-        Validate.noNullElements(flags);
-        Validate.isTrue(flags.length > 0);
+    public void cache(boolean flag) {
+        this.cache = flag;
+    }
 
-        Set<SuspendFlag> flagsSet = new HashSet<>(Arrays.asList(flags));
-        Validate.isTrue(flags.length == flagsSet.size());
-        if (flagsSet.contains(SuspendFlag.CACHE)) {
-            Validate.isTrue(flagsSet.contains(SuspendFlag.RELEASE));
-        }
+    /**
+     * Checks to see if cache flag is set.
+     * @return {@code true} if set, {@code false} otherwise
+     */
+    public boolean cache() {
+        return this.cache;
+    }
 
-        this.flags.clear();
-        this.flags.addAll(flagsSet);
+    @Override
+    public void mode(SuspendFlag flag) {
+        Validate.notNull(flag);
+        this.flag = flag;
     }
 
     @Override
@@ -361,7 +357,7 @@ public final class SourceContext implements Context, Serializable {
                 return true; // we are the main actor and we died/finished OR we are a child actor that had an error, so return
             }
 
-            if (!ctx.mode().contains(SuspendFlag.FORWARD)) {
+            if (ctx.mode() == SuspendFlag.RELEASE) {
                 ctx.mode(SuspendFlag.RELEASE);
                 return false; // we gave instructions NOT to forward, so return
             }
@@ -379,9 +375,8 @@ public final class SourceContext implements Context, Serializable {
         
         
         
-        if (ctx.intercept && ctx.mode().contains(SuspendFlag.FORWARD) && !ctx.mode().contains(SuspendFlag.RELEASE)) {
-            // If we intercepted this message and forwarded it + asked control to be release back (no Flag.RELEASE), then release control
-            // back
+        if (ctx.intercept && ctx.mode() == SuspendFlag.FORWARD_AND_RETURN) {
+            // If we intercepted this message and forwarded it + asked control to be returned back to the forwarder
             boolean done = invoke(ctx, src, dst, time, msg);
             if (done) {
                 ctx.mode(SuspendFlag.RELEASE);
@@ -391,7 +386,7 @@ public final class SourceContext implements Context, Serializable {
             // If were instructed to forward to children at this point, something is wrong with the actor logic. We're releasing control
             // back to the actor from a forward for cleanup purposes. It makes zero sense to try to forward again. As such, kill the entire
             // actor stream
-            if (ctx.mode().contains(SuspendFlag.FORWARD)) {
+            if (ctx.mode() == SuspendFlag.FORWARD_AND_RETURN || ctx.mode() == SuspendFlag.FORWARD_AND_RELEASE) {
                 LOG.error("Actor " + dst + " is instructing to forward on release from a forward -- not allowed");
                 ctx.mode(SuspendFlag.RELEASE);
                 return true;
@@ -420,7 +415,7 @@ public final class SourceContext implements Context, Serializable {
         ctx.time = time;
         
         try {
-            Shortcircuit shortcircuit = ctx.shortcircuits.get(msg.getClass());
+            ShortcircuitLogic shortcircuit = ctx.shortcircuits.get(msg.getClass());
             
             boolean finished;
             if (shortcircuit != null) {
@@ -428,15 +423,15 @@ public final class SourceContext implements Context, Serializable {
                 
                 switch (action) {
                     case PASS:
-                        // Shortcircuit asked us to ignore running the actor
+                        // ShortcircuitLogic asked us to ignore running the actor
                         finished = false;
                         break;
                     case PROCESS:
-                        // Shortcircuit asked us to run the actor as we normally would
+                        // ShortcircuitLogic asked us to run the actor as we normally would
                         finished = !ctx.actorRunner.execute();
                         break;
                     case TERMINATE:
-                        // Shortcircuit asked us to terminate the actor
+                        // ShortcircuitLogic asked us to terminate the actor
                         finished = true;
                         break;
                     default:
@@ -537,7 +532,7 @@ public final class SourceContext implements Context, Serializable {
         }
 
         @Override
-        public void shortcircuit(Class<?> cls, Shortcircuit shortcircuit) {
+        public void shortcircuit(Class<?> cls, ShortcircuitLogic shortcircuit) {
             SourceContext.this.shortcircuit(cls, shortcircuit);
         }
 
@@ -567,8 +562,13 @@ public final class SourceContext implements Context, Serializable {
         }
 
         @Override
-        public void mode(SuspendFlag ... flags) {
-            SourceContext.this.mode(flags);
+        public void cache(boolean flag) {
+            SourceContext.this.cache(flag);
+        }
+
+        @Override
+        public void mode(SuspendFlag flag) {
+            SourceContext.this.mode(flag);
         }
 
         @Override

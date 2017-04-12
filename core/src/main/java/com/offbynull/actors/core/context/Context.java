@@ -22,6 +22,7 @@ import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_LOG_ADDR
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_TIMER_ADDRESS;
 import com.offbynull.actors.core.gateways.log.LogMessage;
 import com.offbynull.actors.core.shuttle.Address;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 
@@ -195,7 +196,19 @@ public interface Context {
      * Cache actor once control has been released.
      * @param flag {@code true} to cache, {@code false} to not cache
      */
-    void cache(boolean flag);
+    default void cache(boolean flag) {
+        if (flag) {
+            cache((Serializable & CacheRestoreLogic) ctx -> { /* do nothing */ });
+        } else {
+            cache(null);
+        }
+    }
+    
+    /**
+     * Cache actor once control has been released.
+     * @param restore restore logic to perform when restoring cache (or {@code null} to not cache)
+     */
+    void cache(CacheRestoreLogic restore);
     
     /**
      * Sets the behavior to perform on next suspend. See {@link SuspendFlag} for more information.
@@ -346,6 +359,16 @@ public interface Context {
         FORWARD_AND_RETURN
     }
     
+    /**
+     * Restore logic to perform.
+     */
+    public interface CacheRestoreLogic {
+        /**
+         * Perform restore logic.
+         * @param ctx actor context
+         */
+        void perform(Context ctx);
+    }
 
     /**
      * Shortcircuit logic to perform.

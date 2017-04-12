@@ -20,6 +20,7 @@ import com.offbynull.actors.core.cache.Cacher;
 import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
+import com.offbynull.actors.core.context.Context.CacheRestoreLogic;
 import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
@@ -187,10 +188,16 @@ final class ActorRunnable implements Runnable {
                 LOG.debug("Actor found in cache: id={}", actorAddr);
                 actors.put(dstActorId, new LoadedActor(ctx));
                 
+                // Get restore logic to perform
+                CacheRestoreLogic restoreLogic = ctx.cache();
+                
                 // Reset restored context state
                 ctx.copyAndClearOutgoingMessages();
-                ctx.cache(false);
+                ctx.cache(null);
                 ctx.mode(RELEASE);
+                
+                // Perform restore logic
+                restoreLogic.perform(ctx);
             }
         } else {
             ctx = loadedActor.context;
@@ -202,7 +209,7 @@ final class ActorRunnable implements Runnable {
             cacher.delete(actorAddr);
             actors.remove(dstActorId);
         } else {
-            if (ctx.cache()) {
+            if (ctx.cache() != null) {
                 LOG.debug("Actor requests cache {} -- removing from memory and adding to cache", actorAddr);
                 cacher.save(ctx);
                 actors.remove(dstActorId);

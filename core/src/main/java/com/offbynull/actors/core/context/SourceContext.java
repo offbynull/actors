@@ -58,7 +58,7 @@ public final class SourceContext implements Context, Serializable {
     private Map<Class<?>, ShortcircuitLogic> shortcircuits;
     
     private boolean intercept;
-    private boolean cache;
+    private CacheRestoreLogic cacheRestoreLogic;
     private SuspendFlag flag;
 
     /**
@@ -268,16 +268,16 @@ public final class SourceContext implements Context, Serializable {
     }
 
     @Override
-    public void cache(boolean flag) {
-        this.cache = flag;
+    public void cache(CacheRestoreLogic restore) {
+        this.cacheRestoreLogic = restore;
     }
 
     /**
-     * Checks to see if cache flag is set.
-     * @return {@code true} if set, {@code false} otherwise
+     * Checks to see if caching has been set.
+     * @return cache restore logic (or {@code null} if not set)
      */
-    public boolean cache() {
-        return this.cache;
+    public CacheRestoreLogic cache() {
+        return this.cacheRestoreLogic;
     }
 
     @Override
@@ -562,8 +562,8 @@ public final class SourceContext implements Context, Serializable {
         }
 
         @Override
-        public void cache(boolean flag) {
-            SourceContext.this.cache(flag);
+        public void cache(CacheRestoreLogic restore) {
+            SourceContext.this.cache(restore);
         }
 
         @Override

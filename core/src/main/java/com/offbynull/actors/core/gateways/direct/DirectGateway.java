@@ -16,7 +16,6 @@
  */
 package com.offbynull.actors.core.gateways.direct;
 
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_GATEWAY;
 import com.offbynull.actors.core.gateway.Gateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.gateway.InputGateway;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
+import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
 
 /**
  * {@link Gateway} that allows you read and write messages using normal Java code.
@@ -75,11 +75,11 @@ public final class DirectGateway implements InputGateway, OutputGateway {
     private final SimpleShuttle shuttle;
 
     /**
-     * Create a {@link DirectGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_GATEWAY)}.
+     * Create a {@link DirectGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_DIRECT)}.
      * @return new direct gateway
      */
     public static DirectGateway create() {
-        return create(DEFAULT_GATEWAY);
+        return create(DEFAULT_DIRECT);
     }
 
     /**

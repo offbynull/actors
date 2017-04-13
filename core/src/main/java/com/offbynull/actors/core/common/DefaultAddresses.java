@@ -25,6 +25,11 @@ import com.offbynull.actors.core.shuttle.Address;
 public final class DefaultAddresses {
 
     /**
+     * Default address to actor runner as String.
+     */
+    public static final String DEFAULT_RUNNER = "runner";
+
+    /**
      * Default address to log gateway as String.
      */
     public static final String DEFAULT_LOG = "log";
@@ -37,8 +42,13 @@ public final class DefaultAddresses {
     /**
      * Default address to direct gateway as String.
      */
-    public static final String DEFAULT_GATEWAY = "gateway";
+    public static final String DEFAULT_DIRECT = "direct";
     
+    /**
+     * Default address to actor runner.
+     */
+    public static final Address DEFAULT_RUNNER_ADDRESS = Address.of(DEFAULT_RUNNER);
+
     /**
      * Default address to log gateway.
      */
@@ -52,7 +62,7 @@ public final class DefaultAddresses {
     /**
      * Default address to gateway gateway.
      */
-    public static final Address DEFAULT_GATEWAY_ADDRESS = Address.of(DEFAULT_GATEWAY);
+    public static final Address DEFAULT_GATEWAY_ADDRESS = Address.of(DEFAULT_DIRECT);
 
     private DefaultAddresses() {
         // do nothing

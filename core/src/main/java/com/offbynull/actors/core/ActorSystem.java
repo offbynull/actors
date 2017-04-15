@@ -31,12 +31,14 @@ import com.offbynull.actors.core.gateways.log.LogGateway;
 import com.offbynull.actors.core.gateways.timer.TimerGateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.coroutines.user.Coroutine;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 /**
@@ -55,25 +57,30 @@ public final class ActorSystem implements AutoCloseable {
 
     private ActorSystem(
             Map<String, ImmutablePair<Coroutine, Object[]>> actors,
-            Set<Gateway> gateways,
+            List<Supplier<Gateway>> gatewayFactories,
             String runnerName,
             int runnerCores,
             Cacher runnerCacher) {
         ActorRunner runner = null;
         DirectGateway directGateway = null;
 
+        gateways = new HashSet<>();
+        
         try {
             this.cacher = runnerCacher;
-            this.gateways = new HashSet<>(gateways);
+            
+            for (Supplier<Gateway> gatewayFactory : gatewayFactories) {
+                gateways.add(gatewayFactory.get());
+            }
         
             runner = ActorRunner.create(runnerName, runnerCores, runnerCacher);
             
             directGateway = DirectGateway.create(DEFAULT_DIRECT);
-            this.gateways.add(TimerGateway.create(DEFAULT_TIMER));
-            this.gateways.add(LogGateway.create(DEFAULT_LOG));
-            this.gateways.add(directGateway);
+            gateways.add(TimerGateway.create(DEFAULT_TIMER));
+            gateways.add(LogGateway.create(DEFAULT_LOG));
+            gateways.add(directGateway);
 
-            for (Gateway gateway : this.gateways) {
+            for (Gateway gateway : gateways) {
                 bindGatewayToOthers(gateway, gateways, runner);
             }
 
@@ -132,16 +139,16 @@ public final class ActorSystem implements AutoCloseable {
         }
         
         // Add gateway to other gateways
-//        if (gateway instanceof InputGateway) {
-//            Shuttle shuttle = ((InputGateway) gateway).getIncomingShuttle();
-//            for (Gateway otherGateway : allGateways) {
-//                if (otherGateway == gateway || !(otherGateway instanceof OutputGateway)) {
-//                    continue;
-//                }
-//
-//                ((OutputGateway) otherGateway).addOutgoingShuttle(shuttle);
-//            }
-//        }
+        if (gateway instanceof InputGateway) {
+            Shuttle shuttle = ((InputGateway) gateway).getIncomingShuttle();
+            for (Gateway otherGateway : allGateways) {
+                if (otherGateway == gateway || !(otherGateway instanceof OutputGateway)) {
+                    continue;
+                }
+
+                ((OutputGateway) otherGateway).addOutgoingShuttle(shuttle);
+            }
+        }
     }
 
     /**
@@ -195,14 +202,14 @@ public final class ActorSystem implements AutoCloseable {
     public static final class Builder {
         
         private LinkedHashMap<String, ImmutablePair<Coroutine, Object[]>> actors;
-        private LinkedHashSet<Gateway> gateways;
+        private List<Supplier<Gateway>> gatewayFactories;
         private String runnerName;
         private int runnerCores;
         private Cacher runnerCacher;
         
         private Builder() {
             actors = new LinkedHashMap<>();
-            gateways = new LinkedHashSet<>();
+            gatewayFactories = new ArrayList<>();
             runnerName = DEFAULT_RUNNER;
             runnerCores = Runtime.getRuntime().availableProcessors();
             runnerCacher = new NullCacher();
@@ -210,13 +217,31 @@ public final class ActorSystem implements AutoCloseable {
         
         /**
          * Add gateway to new actor system being built.
+         * <p>
+         * If it all possible, use {@link #withGatewayFactory(java.util.function.Supplier) } instead.
          * @param gateway gateway
          * @return this builder
+         * @see #withGatewayFactory(java.util.function.Supplier) 
          */
         public Builder withGateway(Gateway gateway) {
-            gateways.add(gateway);
+            gatewayFactories.add(() -> gateway);
             return this;
         }
+        
+        /**
+         * Add gateway factory to new actor system being built. Using a factory is the preferred way of adding a gateway. The reason is that
+         * the gateway being added will be created as needed. It will be isolated to the actor system being built. As such, you won't have
+         * to worry about manually closing the gateway if a critical error is encountered.
+         * <p>
+         * Usage example... {@code withGatewayFactory(() -> SshGateway.create("ssh", 20)) }
+         * @param gatewayFactory gateway factory
+         * @return this builder
+         */
+        public Builder withGatewayFactory(Supplier<Gateway> gatewayFactory) {
+            gatewayFactories.add(gatewayFactory);
+            return this;
+        }
+
         /**
          * Add actor to new actor system being built.
          * @param id id of actor
@@ -266,7 +291,7 @@ public final class ActorSystem implements AutoCloseable {
          * @throws RuntimeException on bad build parameters
          */
         public ActorSystem build() {
-            return new ActorSystem(actors, gateways, runnerName, runnerCores, runnerCacher);
+            return new ActorSystem(actors, gatewayFactories, runnerName, runnerCores, runnerCacher);
         }
     }
 }

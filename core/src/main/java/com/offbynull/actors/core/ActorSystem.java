@@ -24,8 +24,6 @@ import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_LOG;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_RUNNER;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_TIMER;
 import com.offbynull.actors.core.gateway.Gateway;
-import com.offbynull.actors.core.gateway.InputGateway;
-import com.offbynull.actors.core.gateway.OutputGateway;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.actors.core.gateways.log.LogGateway;
 import com.offbynull.actors.core.gateways.timer.TimerGateway;
@@ -126,29 +124,16 @@ public final class ActorSystem implements AutoCloseable {
     }
     
     private static void bindGatewayToOthers(Gateway gateway, Set<Gateway> allGateways, ActorRunner runner) {
-        // Add gateway to runner
-        if (gateway instanceof InputGateway) {
-            Shuttle shuttle = ((InputGateway) gateway).getIncomingShuttle();
-            runner.addOutgoingShuttle(shuttle);
+        // Add gateway to runner+gateways
+        Shuttle gatewayShuttle = gateway.getIncomingShuttle();
+        runner.addOutgoingShuttle(gatewayShuttle);
+        for (Gateway otherGateway : allGateways) {
+            otherGateway.addOutgoingShuttle(gatewayShuttle);
         }
 
         // Add runner to gateway
-        if (gateway instanceof OutputGateway) {
-            Shuttle shuttle = runner.getIncomingShuttle();
-            ((OutputGateway) gateway).addOutgoingShuttle(shuttle);
-        }
-        
-        // Add gateway to other gateways
-        if (gateway instanceof InputGateway) {
-            Shuttle shuttle = ((InputGateway) gateway).getIncomingShuttle();
-            for (Gateway otherGateway : allGateways) {
-                if (otherGateway == gateway || !(otherGateway instanceof OutputGateway)) {
-                    continue;
-                }
-
-                ((OutputGateway) otherGateway).addOutgoingShuttle(shuttle);
-            }
-        }
+        Shuttle runnerShuttle = runner.getIncomingShuttle();
+        gateway.addOutgoingShuttle(runnerShuttle);
     }
 
     /**

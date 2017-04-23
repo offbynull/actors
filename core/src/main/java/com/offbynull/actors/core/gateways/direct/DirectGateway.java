@@ -18,8 +18,6 @@ package com.offbynull.actors.core.gateways.direct;
 
 import com.offbynull.actors.core.gateway.Gateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
-import com.offbynull.actors.core.gateway.InputGateway;
-import com.offbynull.actors.core.gateway.OutputGateway;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttles.simple.Bus;
@@ -66,7 +64,7 @@ import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
  * </pre>
  * @author Kasra Faghihi
  */
-public final class DirectGateway implements InputGateway, OutputGateway {
+public final class DirectGateway implements Gateway {
 
     private final Thread thread;
     private final Bus bus;

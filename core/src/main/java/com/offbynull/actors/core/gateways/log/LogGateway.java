@@ -19,7 +19,6 @@ package com.offbynull.actors.core.gateways.log;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_LOG;
 import com.offbynull.actors.core.gateway.Gateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
-import com.offbynull.actors.core.gateway.InputGateway;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import com.offbynull.actors.core.shuttles.simple.SimpleShuttle;
 import org.apache.commons.lang3.Validate;
@@ -49,7 +48,7 @@ import org.apache.commons.lang3.Validate;
  * </pre>
  * @author Kasra Faghihi
  */
-public final class LogGateway implements InputGateway {
+public final class LogGateway implements Gateway {
 
     private final Thread thread;
     private final Bus bus;
@@ -89,6 +88,18 @@ public final class LogGateway implements InputGateway {
     @Override
     public Shuttle getIncomingShuttle() {
         return shuttle;
+    }
+
+    @Override
+    public void addOutgoingShuttle(Shuttle shuttle) {
+        Validate.notNull(shuttle);
+        // does nothing
+    }
+
+    @Override
+    public void removeOutgoingShuttle(String shuttlePrefix) {
+        Validate.notNull(shuttlePrefix);
+        // does nothing
     }
 
     @Override

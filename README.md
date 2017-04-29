@@ -5,8 +5,8 @@
 The Actors project is a lightweight Java actor framework that greatly simplifies the design and development of highly concurrent software. Why use Actors over other actor frameworks? 
 
  * Actors as lightweight fibers/coroutines
- * Seamlessly serialize and store actors
- * Seamlessly distribute actors
+ * Seamless checkpointing of actors to offline storage
+ * Seamless distribution of actors across a cluster
  * Avoid handwritten FSMs for actor logic
  * Test actors in different scenarios via simulations
 
@@ -42,21 +42,18 @@ Coroutine echoActor = (Continuation cnt) -> {
     } while (true);
 };
 
-// Create the actor runner, and direct gateway.
-ActorRunner actorRunner = new ActorRunner("actors"); // container for actors
-DirectGateway directGateway = new DirectGateway("direct"); // gateway that allows interfacing with actors/gateways from normal java code
+ActorSystem actorSystem = ActorSystem.builder()
+        .withRunnerName("actors")
+        .withActor("echoer", echoActor)
+        .build()) {
 
-// Bind the runner and the direct gateway so that they can send messages to each other
-actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
-directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
+DirectGateway direct = actorSystem.getDirectGateway();
 
-// Add echoer to actor runner
-actorRunner.addActor("echoer", echoActor);
-
-// Send "Hi!" to actor and print out response
 directGateway.writeMessage("actors:echoer", "Hi!");
 String response = directGateway.readPayload();
 System.out.println(response);
+
+actorSystem.close();
 ```
 
 ## Concepts

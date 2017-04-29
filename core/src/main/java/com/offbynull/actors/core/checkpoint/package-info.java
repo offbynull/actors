@@ -16,8 +16,8 @@
  */
 
 /**
- * Provides classes and interfaces to cache actors.
+ * Provides classes and interfaces to checkpoint actors.
  * 
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.core.cache;
+package com.offbynull.actors.core.checkpoint;

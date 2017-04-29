@@ -16,11 +16,10 @@
  */
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.cache.Cacher;
 import com.offbynull.actors.core.context.BatchedCreateActorCommand;
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.context.BatchedOutgoingMessage;
-import com.offbynull.actors.core.context.Context.CacheRestoreLogic;
+import com.offbynull.actors.core.context.Context.CheckpointRestoreLogic;
 import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
@@ -38,6 +37,7 @@ import java.util.Map.Entry;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.offbynull.actors.core.checkpoint.Checkpointer;
 
 final class ActorRunnable implements Runnable {
 
@@ -48,19 +48,19 @@ final class ActorRunnable implements Runnable {
     private final SimpleShuttle incomingShuttle;
     private final Runnable failHandler;
     private final ActorRunner owner;
-    private final Cacher cacher;
+    private final Checkpointer checkpointer;
 
     ActorRunnable(
             String prefix,
             Bus bus,
             Runnable failHandler,
             ActorRunner owner,
-            Cacher cacher) {
+            Checkpointer checkpointer) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
         Validate.notNull(failHandler);
         Validate.notNull(owner);
-        Validate.notNull(cacher);
+        Validate.notNull(checkpointer);
         Validate.notEmpty(prefix);
 
         this.prefix = prefix;
@@ -68,7 +68,7 @@ final class ActorRunnable implements Runnable {
         this.incomingShuttle = new SimpleShuttle(prefix, bus);
         this.failHandler = failHandler;
         this.owner = owner;
-        this.cacher = cacher;
+        this.checkpointer = checkpointer;
     }
 
     @Override
@@ -179,21 +179,21 @@ final class ActorRunnable implements Runnable {
         SourceContext ctx;
         if (loadedActor == null) {
             LOG.warn("Actor not found in memory for {} (dst={} msg={})", actorAddr, dst, msg);
-            ctx = cacher.restore(actorAddr);
+            ctx = checkpointer.restore(actorAddr);
             
             if (ctx == null) {
-                LOG.warn("Actor not found in cache for {}", actorAddr);
+                LOG.warn("Actor not found in checkpoint for {}", actorAddr);
                 return;
             } else {
-                LOG.debug("Actor found in cache: id={}", actorAddr);
+                LOG.debug("Actor found in checkpoint: id={}", actorAddr);
                 actors.put(dstActorId, new LoadedActor(ctx));
                 
                 // Get restore logic to perform
-                CacheRestoreLogic restoreLogic = ctx.cache();
+                CheckpointRestoreLogic restoreLogic = ctx.checkpoint();
                 
                 // Reset restored context state
                 ctx.copyAndClearOutgoingMessages();
-                ctx.cache(null);
+                ctx.checkpoint(null);
                 ctx.mode(RELEASE);
                 
                 // Perform restore logic
@@ -205,13 +205,13 @@ final class ActorRunnable implements Runnable {
         
         boolean shutdown = SourceContext.fire(ctx, src, dst, Instant.now(), msg);
         if (shutdown) {
-            LOG.debug("Actor shut down {} -- removing from memory and removing from cache", actorAddr);
-            cacher.delete(actorAddr);
+            LOG.debug("Actor shut down {} -- removing from memory and removing from checkpoint", actorAddr);
+            checkpointer.delete(actorAddr);
             actors.remove(dstActorId);
         } else {
-            if (ctx.cache() != null) {
-                LOG.debug("Actor requests cache {} -- removing from memory and adding to cache", actorAddr);
-                cacher.save(ctx);
+            if (ctx.checkpoint() != null) {
+                LOG.debug("Actor requests checkpoint {} -- removing from memory and adding to checkpoint", actorAddr);
+                checkpointer.save(ctx);
                 actors.remove(dstActorId);
             }
         }

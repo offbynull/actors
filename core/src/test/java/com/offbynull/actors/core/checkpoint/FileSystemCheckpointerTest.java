@@ -1,4 +1,4 @@
-package com.offbynull.actors.core.cache;
+package com.offbynull.actors.core.checkpoint;
 
 import com.offbynull.actors.core.context.ObjectStreamSerializer;
 import com.offbynull.actors.core.context.SourceContext;
@@ -15,15 +15,15 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 
 
-public class FileSystemCacherTest {
+public class FileSystemCheckpointerTest {
     
-    public FileSystemCacher fixture;
+    public FileSystemCheckpointer fixture;
     public Path path;
     
     @Before
     public void before() throws Exception {
         path = Files.createTempDirectory("fsc_test");
-        fixture = FileSystemCacher.create(new ObjectStreamSerializer(), path);
+        fixture = FileSystemCheckpointer.create(new ObjectStreamSerializer(), path);
     }
     
     @After
@@ -36,8 +36,8 @@ public class FileSystemCacherTest {
     public void mustSaveAndRestoreContext() throws Exception{
         Address self = Address.fromString("test1:test2");
         SourceContext ctxIn = new SourceContext(new CoroutineRunner((Coroutine & Serializable) cnt -> {}), self);
-        boolean cached = fixture.save(ctxIn);
-        assertTrue(cached);
+        boolean checkpointed = fixture.save(ctxIn);
+        assertTrue(checkpointed);
         
         SourceContext ctxOut = fixture.restore(self);
         assertEquals(ctxIn.self(), ctxOut.self());

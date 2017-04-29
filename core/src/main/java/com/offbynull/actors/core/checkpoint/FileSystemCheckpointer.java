@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.cache;
+package com.offbynull.actors.core.checkpoint;
 
 import com.offbynull.actors.core.context.Serializer;
 import com.offbynull.actors.core.context.SourceContext;
@@ -36,38 +36,38 @@ import org.slf4j.LoggerFactory;
  *
  * @author Kasra Faghihi
  */
-public final class FileSystemCacher implements Cacher {
+public final class FileSystemCheckpointer implements Checkpointer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FileSystemCacher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileSystemCheckpointer.class);
 
     private final Path savedDirectory;
     private final Path restoredDirectory;
     private final Serializer serializer;
 
     /**
-     * Create a {@link FileSystemCacher} object that restores running/active actors from their previous cache state. Equivalent to calling
-     * {@code FileSystemCacher.create(serializer, directory, true)}.
+     * Create a {@link FileSystemCheckpointer} object that restores running/active actors from their previous checkpoint state. Equivalent
+     * to calling {@code create(serializer, directory, true)}.
      *
      * @param serializer serializer to use for saving/restoring actors
      * @param directory storage directory for serialized actors
-     * @return new instance of {@link FileSystemCacher}
+     * @return new instance of {@link FileSystemCheckpointer}
      * @throws IOException if problems restoring running/active actors
      */
-    public static FileSystemCacher create(Serializer serializer, Path directory) throws IOException {
+    public static FileSystemCheckpointer create(Serializer serializer, Path directory) throws IOException {
         return create(serializer, directory, true);
     }
 
     /**
-     * Create a {@link FileSystemCacher} object.
+     * Create a {@link FileSystemCheckpointer} object.
      *
      * @param serializer serializer to use for saving/restoring actors
      * @param directory storage directory for serialized actors
-     * @param restoreRunning restores running/active actors from their previous cache state as well as cached actors if {@code true},
-     * restores only saved actors only if {@code false}
-     * @return new instance of {@link FileSystemCacher}
+     * @param restoreRunning restores running/active actors from their previous checkpoint state as well as checkpointed actors if
+     * {@code true}, restores only saved actors only if {@code false}
+     * @return new instance of {@link FileSystemCheckpointer}
      * @throws IOException if problems restoring running/active actors
      */
-    public static FileSystemCacher create(Serializer serializer, Path directory, boolean restoreRunning) throws IOException {
+    public static FileSystemCheckpointer create(Serializer serializer, Path directory, boolean restoreRunning) throws IOException {
         Validate.notNull(serializer);
         Validate.notNull(directory);
 
@@ -92,10 +92,10 @@ public final class FileSystemCacher implements Cacher {
                     });
         }
 
-        return new FileSystemCacher(serializer, savedDirectory, restoredDirectory);
+        return new FileSystemCheckpointer(serializer, savedDirectory, restoredDirectory);
     }
 
-    private FileSystemCacher(Serializer serializer, Path savedDirectory, Path restoredDirectory) {
+    private FileSystemCheckpointer(Serializer serializer, Path savedDirectory, Path restoredDirectory) {
         Validate.notNull(serializer);
         Validate.notNull(savedDirectory);
         Validate.notNull(restoredDirectory);

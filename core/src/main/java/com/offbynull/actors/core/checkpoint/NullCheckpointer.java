@@ -14,17 +14,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.cache;
+package com.offbynull.actors.core.checkpoint;
 
 import com.offbynull.actors.core.context.SourceContext;
 import com.offbynull.actors.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A cacher implementation that does no caching.
+ * A checkpointer implementation that does no checkpointing.
  * @author Kasra Faghihi
  */
-public final class NullCacher implements Cacher {
+public final class NullCheckpointer implements Checkpointer {
 
     @Override
     public boolean save(SourceContext ctx) {

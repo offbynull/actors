@@ -193,22 +193,22 @@ public interface Context {
     void intercept(boolean intercept);
     
     /**
-     * Cache actor once control has been released.
-     * @param flag {@code true} to cache, {@code false} to not cache
+     * Checkpoint actor once control has been released.
+     * @param flag {@code true} to checkpoint, {@code false} to not checkpoint
      */
-    default void cache(boolean flag) {
+    default void checkpoint(boolean flag) {
         if (flag) {
-            cache((Serializable & CacheRestoreLogic) ctx -> { /* do nothing */ });
+            Context.this.checkpoint((Serializable & CheckpointRestoreLogic) ctx -> { /* do nothing */ });
         } else {
-            cache(null);
+            Context.this.checkpoint(null);
         }
     }
     
     /**
-     * Cache actor once control has been released.
-     * @param restore restore logic to perform when restoring cache (or {@code null} to not cache)
+     * Checkpoint actor once control has been released.
+     * @param restore restore logic to perform when restoring checkpoint (or {@code null} to not checkpoint)
      */
-    void cache(CacheRestoreLogic restore);
+    void checkpoint(CheckpointRestoreLogic restore);
     
     /**
      * Sets the behavior to perform on next suspend. See {@link SuspendFlag} for more information.
@@ -362,7 +362,7 @@ public interface Context {
     /**
      * Restore logic to perform.
      */
-    public interface CacheRestoreLogic {
+    public interface CheckpointRestoreLogic {
         /**
          * Perform restore logic.
          * @param ctx actor context

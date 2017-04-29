@@ -17,6 +17,7 @@
 package com.offbynull.actors.core.shuttle;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * A {@link Shuttle} transports {@link Message}s to a specific actor or gateway. Shuttles provide no reliability guarantees -- meaning that
@@ -38,4 +39,14 @@ public interface Shuttle {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
     void send(Collection<Message> messages);
+    
+    /**
+     * Sends a {@link Message} to the specific actor or gateway this {@link Shuttle} is for. Equivalent to calling
+     * {@code send(Collections.singleton(message))}.
+     * @param message message to send
+     * @throws NullPointerException if any argument is {@code null}
+     */    
+    default void send(Message message) {
+        send(Collections.singleton(message));
+    }
 }

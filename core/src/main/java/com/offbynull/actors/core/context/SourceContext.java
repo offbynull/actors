@@ -58,7 +58,7 @@ public final class SourceContext implements Context, Serializable {
     private Map<Class<?>, ShortcircuitLogic> shortcircuits;
     
     private boolean intercept;
-    private CacheRestoreLogic cacheRestoreLogic;
+    private CheckpointRestoreLogic checkpointRestoreLogic;
     private SuspendFlag flag;
 
     /**
@@ -268,16 +268,16 @@ public final class SourceContext implements Context, Serializable {
     }
 
     @Override
-    public void cache(CacheRestoreLogic restore) {
-        this.cacheRestoreLogic = restore;
+    public void checkpoint(CheckpointRestoreLogic restore) {
+        this.checkpointRestoreLogic = restore;
     }
 
     /**
-     * Checks to see if caching has been set.
-     * @return cache restore logic (or {@code null} if not set)
+     * Checks to see if checkpointing has been set.
+     * @return checkpoint restore logic (or {@code null} if not set)
      */
-    public CacheRestoreLogic cache() {
-        return this.cacheRestoreLogic;
+    public CheckpointRestoreLogic checkpoint() {
+        return this.checkpointRestoreLogic;
     }
 
     @Override
@@ -562,8 +562,8 @@ public final class SourceContext implements Context, Serializable {
         }
 
         @Override
-        public void cache(CacheRestoreLogic restore) {
-            SourceContext.this.cache(restore);
+        public void checkpoint(CheckpointRestoreLogic restore) {
+            SourceContext.this.checkpoint(restore);
         }
 
         @Override

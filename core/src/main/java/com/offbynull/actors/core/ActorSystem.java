@@ -17,8 +17,7 @@
 package com.offbynull.actors.core;
 
 import com.offbynull.actors.core.actor.ActorRunner;
-import com.offbynull.actors.core.cache.Cacher;
-import com.offbynull.actors.core.cache.NullCacher;
+import com.offbynull.actors.core.checkpoint.NullCheckpointer;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_LOG;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_RUNNER;
@@ -38,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.offbynull.actors.core.checkpoint.Checkpointer;
 
 /**
  * Actor system.
@@ -47,7 +47,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
  */
 public final class ActorSystem implements AutoCloseable {
     private final ActorRunner runner;
-    private final Cacher cacher;
+    private final Checkpointer checkpointer;
     
     private final Set<Gateway> gateways;
     
@@ -58,20 +58,20 @@ public final class ActorSystem implements AutoCloseable {
             List<Supplier<Gateway>> gatewayFactories,
             String runnerName,
             int runnerCores,
-            Cacher runnerCacher) {
+            Checkpointer runnerCheckpointer) {
         ActorRunner runner = null;
         DirectGateway directGateway = null;
 
         gateways = new HashSet<>();
         
         try {
-            this.cacher = runnerCacher;
+            this.checkpointer = runnerCheckpointer;
             
             for (Supplier<Gateway> gatewayFactory : gatewayFactories) {
                 gateways.add(gatewayFactory.get());
             }
         
-            runner = ActorRunner.create(runnerName, runnerCores, runnerCacher);
+            runner = ActorRunner.create(runnerName, runnerCores, runnerCheckpointer);
             
             directGateway = DirectGateway.create(DEFAULT_DIRECT);
             gateways.add(TimerGateway.create(DEFAULT_TIMER));
@@ -90,9 +90,9 @@ public final class ActorSystem implements AutoCloseable {
                 runner.addActor(id, actor, primingMessages);
             }
         } catch (RuntimeException re) {
-            if (runnerCacher != null) {
+            if (runnerCheckpointer != null) {
                 try {
-                    runnerCacher.close();
+                    runnerCheckpointer.close();
                 } catch (Exception e) {
                     // do nothing
                 }
@@ -146,9 +146,9 @@ public final class ActorSystem implements AutoCloseable {
     
     @Override
     public void close() {
-        if (cacher != null) {
+        if (checkpointer != null) {
             try {
-                cacher.close();
+                checkpointer.close();
             } catch (Exception e) {
                 // do nothing
             }
@@ -190,14 +190,14 @@ public final class ActorSystem implements AutoCloseable {
         private List<Supplier<Gateway>> gatewayFactories;
         private String runnerName;
         private int runnerCores;
-        private Cacher runnerCacher;
+        private Checkpointer runnerCheckpointer;
         
         private Builder() {
             actors = new LinkedHashMap<>();
             gatewayFactories = new ArrayList<>();
             runnerName = DEFAULT_RUNNER;
             runnerCores = Runtime.getRuntime().availableProcessors();
-            runnerCacher = new NullCacher();
+            runnerCheckpointer = new NullCheckpointer();
         }
         
         /**
@@ -261,12 +261,12 @@ public final class ActorSystem implements AutoCloseable {
         }
         
         /**
-         * Caching backend to use for actors.
-         * @param cacher cacher
+         * Checkpointing backend to use for actors.
+         * @param checkpointer checkpointer
          * @return this builder
          */
-        public Builder withRunnerCacher(Cacher cacher) {
-            this.runnerCacher = cacher;
+        public Builder withRunnerCheckpointer(Checkpointer checkpointer) {
+            this.runnerCheckpointer = checkpointer;
             return this;
         }
         
@@ -276,7 +276,7 @@ public final class ActorSystem implements AutoCloseable {
          * @throws RuntimeException on bad build parameters
          */
         public ActorSystem build() {
-            return new ActorSystem(actors, gatewayFactories, runnerName, runnerCores, runnerCacher);
+            return new ActorSystem(actors, gatewayFactories, runnerName, runnerCores, runnerCheckpointer);
         }
     }
 }

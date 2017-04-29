@@ -1,8 +1,7 @@
 
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.cache.Cacher;
-import com.offbynull.actors.core.cache.FileSystemCacher;
+import com.offbynull.actors.core.checkpoint.FileSystemCheckpointer;
 import com.offbynull.actors.core.context.Context;
 import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.context.ObjectStreamSerializer;
@@ -18,14 +17,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import org.junit.Before;
 import org.junit.Test;
+import com.offbynull.actors.core.checkpoint.Checkpointer;
 
-public class ActorCacheTest {
+public class ActorCheckpointTest {
     
     public Path tempPath;
     
     @Before
     public void before() throws Exception {
-        tempPath = Files.createTempDirectory(ActorCacheTest.class.getSimpleName());
+        tempPath = Files.createTempDirectory(ActorCheckpointTest.class.getSimpleName());
     }
     
     @After
@@ -34,9 +34,9 @@ public class ActorCacheTest {
     }
     
     @Test(timeout = 2000L)
-    public void mustCacheAndRestoreState() throws Exception {
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+    public void mustCheckpointAndRestoreState() throws Exception {
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());
@@ -55,7 +55,7 @@ public class ActorCacheTest {
                     ctx.out("echo " + counter + ":" + msg);
                     counter++;
                     
-                    ctx.cache(true);
+                    ctx.checkpoint(true);
                     ctx.mode(RELEASE);
                 }
             };
@@ -89,14 +89,14 @@ public class ActorCacheTest {
                 ctx.out("echo " + counter + ":" + msg);
                 counter++;
 
-                ctx.cache(true);
+                ctx.checkpoint(true);
                 ctx.mode(RELEASE);
             }
         };
             
             
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());
@@ -119,8 +119,8 @@ public class ActorCacheTest {
         }
 
 
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());
@@ -153,14 +153,14 @@ public class ActorCacheTest {
                 ctx.out("echo " + counter + ":" + msg);
                 counter++;
                 
-                ctx.cache(true);
+                ctx.checkpoint(true);
                 ctx.mode(RELEASE);
             }
         };
             
             
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());
@@ -183,8 +183,8 @@ public class ActorCacheTest {
         }
         
         
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());
@@ -210,7 +210,7 @@ public class ActorCacheTest {
             ctx.out("direct", "ready");
             
             String msg;
-            ctx.cache(true);
+            ctx.checkpoint(true);
             ctx.mode(RELEASE);
             
             
@@ -230,8 +230,8 @@ public class ActorCacheTest {
         };
             
             
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());
@@ -251,8 +251,8 @@ public class ActorCacheTest {
         }
         
         
-        try (Cacher cacher = FileSystemCacher.create(new ObjectStreamSerializer(), tempPath);
-                ActorRunner runner = ActorRunner.create("runner", 1, cacher);
+        try (Checkpointer checkpointer = FileSystemCheckpointer.create(new ObjectStreamSerializer(), tempPath);
+                ActorRunner runner = ActorRunner.create("runner", 1, checkpointer);
                 DirectGateway direct = DirectGateway.create("direct");){
             
             runner.addOutgoingShuttle(direct.getIncomingShuttle());

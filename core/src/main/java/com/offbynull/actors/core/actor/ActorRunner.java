@@ -16,8 +16,7 @@
  */
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.cache.Cacher;
-import com.offbynull.actors.core.cache.NullCacher;
+import com.offbynull.actors.core.checkpoint.NullCheckpointer;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Message;
@@ -29,6 +28,7 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.offbynull.actors.core.checkpoint.Checkpointer;
 
 /**
  * Container used to execute actors.
@@ -85,7 +85,7 @@ public final class ActorRunner implements AutoCloseable {
 
     /**
      * Create an {@link ActorRunner} instance. Equivalent to calling
-     * {@code ActorRunner.create(prefix, threadCount, new NullCacher())}.
+     * {@code ActorRunner.create(prefix, threadCount, new NullCheckpointer())}.
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
      * @throws NullPointerException if any argument is {@code null}
@@ -93,21 +93,21 @@ public final class ActorRunner implements AutoCloseable {
      * @return new actor runner
      */
     public static ActorRunner create(String prefix, int threadCount) {
-        return ActorRunner.create(prefix, threadCount, new NullCacher());
+        return ActorRunner.create(prefix, threadCount, new NullCheckpointer());
     }
 
     /**
      * Create an {@link ActorRunner} instance.
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
-     * @param cacher cacher
+     * @param checkpointer checkpointer
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code threadCount < 1}
      * @return new actor runner
      */
-    public static ActorRunner create(String prefix, int threadCount, Cacher cacher) {
+    public static ActorRunner create(String prefix, int threadCount, Checkpointer checkpointer) {
         Validate.notNull(prefix);
-        Validate.notNull(cacher);
+        Validate.notNull(checkpointer);
         Validate.isTrue(threadCount > 0);
 
         ActorRunner ret = new ActorRunner(prefix, threadCount);
@@ -130,7 +130,7 @@ public final class ActorRunner implements AutoCloseable {
         // Start threads
         try {
             for (int i = 0; i < threadCount; i++) {
-                ret.threads[i] = ActorThread.create(prefix, ret.shuttle, criticalFailureHandler, ret, cacher);
+                ret.threads[i] = ActorThread.create(prefix, ret.shuttle, criticalFailureHandler, ret, checkpointer);
             }
         } catch (RuntimeException e) {
             // A problem happened while creating new threads... shut down any threads that were created.

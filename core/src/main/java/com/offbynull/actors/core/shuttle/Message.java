@@ -48,6 +48,19 @@ public final class Message {
     }
 
     /**
+     * Constructs a {@link Message} instance. Equivalent to calling
+     * {@code new Message(Address.fromString(sourceAddress), Address.fromString(destinationAddress), message)}
+     * @param sourceAddress source address of this message
+     * @param destinationAddress destination address of this message
+     * @param message content of this message
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if either {@code sourceAddress} or {@code destinationAddress} is empty
+     */
+    public Message(String sourceAddress, String destinationAddress, Object message) {
+        this(Address.fromString(sourceAddress), Address.fromString(destinationAddress), message);
+    }
+
+    /**
      * Get the source address.
      * @return source address
      */

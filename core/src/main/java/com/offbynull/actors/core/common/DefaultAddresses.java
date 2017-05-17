@@ -45,6 +45,11 @@ public final class DefaultAddresses {
     public static final String DEFAULT_DIRECT = "direct";
     
     /**
+     * Default address to web gateway as String.
+     */
+    public static final String DEFAULT_WEB = "web";
+    
+    /**
      * Default address to actor runner.
      */
     public static final Address DEFAULT_RUNNER_ADDRESS = Address.of(DEFAULT_RUNNER);
@@ -60,9 +65,14 @@ public final class DefaultAddresses {
     public static final Address DEFAULT_TIMER_ADDRESS = Address.of(DEFAULT_TIMER);
 
     /**
-     * Default address to gateway gateway.
+     * Default address to direct gateway.
      */
     public static final Address DEFAULT_GATEWAY_ADDRESS = Address.of(DEFAULT_DIRECT);
+
+    /**
+     * Default address to web gateway.
+     */
+    public static final Address DEFAULT_WEB_ADDRESS = Address.of(DEFAULT_WEB);
 
     private DefaultAddresses() {
         // do nothing

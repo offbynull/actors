@@ -17,7 +17,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(DEFAULT_WEB));
         gsonBuilder.registerTypeAdapter(HttpToSystemBundle.class, new HttpToSystemBundleJsonDeserializer(DEFAULT_WEB));
-        fixture = gsonBuilder.create();
+        fixture = gsonBuilder.serializeNulls().create();
     }
     
     @Test
@@ -59,6 +59,217 @@ public class HttpToSystemBundleJsonDeserializerTest {
         assertEquals(new TestObject(3), actual.getMessages().get(1).getMessage());
     }
     
+    @Test
+    public void mustDeserializeEmptyMessages() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: []\n"
+                + "}";
+        HttpToSystemBundle actual = fixture.fromJson(json, HttpToSystemBundle.class);
+        
+        assertEquals("custom_id", actual.getHttpAddressId());
+        assertEquals(1L, actual.getHttpToSystemOffset());
+        assertEquals(2L, actual.getSystemToHttpOffset());
+        
+        assertEquals(0, actual.getMessages().size());
+    }
+    
+    @Test(expected=IllegalArgumentException.class)
+    public void mustFailToDeserializeOnBadPrefix() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"BAD_PREFIX:custom_id\",\n"
+                + "            destination: \"direct\",\n"
+                + "            type: \"java.lang.String\",\n"
+                + "            content: \"HI!\"\n"
+                + "        },\n"
+                + "        {\n"
+                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"" + TestObject.class.getName() + "\",\n"
+                + "            content: { myInt: 3 }\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void mustFailToDeserializeOnNoPrefix() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"\",\n"
+                + "            destination: \"direct\",\n"
+                + "            type: \"java.lang.String\",\n"
+                + "            content: \"HI!\"\n"
+                + "        },\n"
+                + "        {\n"
+                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"" + TestObject.class.getName() + "\",\n"
+                + "            content: { myInt: 3 }\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+    
+    @Test(expected=IllegalArgumentException.class)
+    public void mustFailToDeserializeOnBadId() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"web:BAD_ID\",\n"
+                + "            destination: \"direct\",\n"
+                + "            type: \"java.lang.String\",\n"
+                + "            content: \"HI!\"\n"
+                + "        },\n"
+                + "        {\n"
+                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"" + TestObject.class.getName() + "\",\n"
+                + "            content: { myInt: 3 }\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+    
+    @Test(expected=IllegalArgumentException.class)
+    public void mustFailToDeserializeOnNoId() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"web\",\n"
+                + "            destination: \"direct\",\n"
+                + "            type: \"java.lang.String\",\n"
+                + "            content: \"HI!\"\n"
+                + "        },\n"
+                + "        {\n"
+                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"" + TestObject.class.getName() + "\",\n"
+                + "            content: { myInt: 3 }\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void mustFailToDeserializeOnIncorrectType() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"" + TestObject.class.getName() + "\",\n"
+                + "            content: \"HI!\"\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void mustFailToDeserializeOnNullOrMissingSourceAddress() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"java.lang.String\",\n"
+                + "            content: \"HI!\"\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+    
+
+    @Test(expected=NullPointerException.class)
+    public void mustFailToDeserializeOnNullOrMissingDesteinationAddress() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"web:custom_id\",\n"
+                + "            type: \"java.lang.String\",\n"
+                + "            content: \"HI!\"\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+    
+
+    @Test(expected=NullPointerException.class)
+    public void mustFailToDeserializeOnNullOrMissingType() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"web:custom_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            content: \"HI!\"\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
+    
+
+    @Test(expected=NullPointerException.class)
+    public void mustFailToDeserializeOnNullOrMissingContent() {
+        String json = ""
+                + "{\n"
+                + "    httpAddressId: \"custom_id\",\n"
+                + "    httpToSystemOffset: 1,\n"
+                + "    systemToHttpOffset: 2,\n"
+                + "    messages: [\n"
+                + "        {\n"
+                + "            source: \"web:custom_id\",\n"
+                + "            destination: \"actors:my_actor\",\n"
+                + "            type: \"java.lang.String\"\n"
+                + "        }\n"
+                + "    ]\n"
+                + "}";
+        fixture.fromJson(json, HttpToSystemBundle.class);
+    }
     
     public static final class TestObject {
 

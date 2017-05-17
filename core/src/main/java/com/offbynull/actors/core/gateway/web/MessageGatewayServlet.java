@@ -52,7 +52,7 @@ final class MessageGatewayServlet extends HttpServlet {
         gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(prefix));
         gsonBuilder.registerTypeAdapter(HttpToSystemBundle.class, new HttpToSystemBundleJsonDeserializer(prefix));
         gsonBuilder.registerTypeAdapter(SystemToHttpBundle.class, new SystemToHttpBundleJsonSerializer(prefix));
-        gson = gsonBuilder.create();
+        gson = gsonBuilder.serializeNulls().create();
         
         this.httpToSystemMessageFilter = new HttpToSystemMessageFilter(prefix, 60000L);
         this.systemToHttpMessageCache = new SystemToHttpMessageCache(prefix, 60000L);

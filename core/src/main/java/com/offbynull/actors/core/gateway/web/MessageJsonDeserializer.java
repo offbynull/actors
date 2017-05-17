@@ -42,30 +42,34 @@ final class MessageJsonDeserializer implements JsonDeserializer<Message> {
 
     @Override
     public Message deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-        JsonObject jsonObject = json.getAsJsonObject();
-        
-        String from = jsonObject.get(SOURCE_PROPERTY).getAsString();
-        Address fromAddress = Address.fromString(from);
-        
-        String dstPrefix = fromAddress.getElement(0);
-        Validate.isTrue(dstPrefix.equals(prefix));
-        
-        String to = jsonObject.get(DESTINATION_PROPERTY).getAsString();
-        Address toAddress = Address.fromString(to);
-
-        JsonElement jsonType = jsonObject.get(TYPE_PROPERTY);
-        String type = jsonType.getAsString();
-        Class<?> cls;
-        
         try {
-            cls = Class.forName(type, false, getClass().getClassLoader());
-        } catch (ClassNotFoundException cnfe) {
-            throw new IllegalArgumentException(cnfe);
-        }
+            JsonObject jsonObject = json.getAsJsonObject();
 
-        JsonElement jsonContent = jsonObject.get(CONTENT_PROPERTY);
-        Object obj = context.deserialize(jsonContent, cls);
-        
-        return new Message(fromAddress, toAddress, obj);
+            String from = jsonObject.get(SOURCE_PROPERTY).getAsString();
+            Address fromAddress = Address.fromString(from);
+
+            String dstPrefix = fromAddress.getElement(0);
+            Validate.isTrue(dstPrefix.equals(prefix));
+
+            String to = jsonObject.get(DESTINATION_PROPERTY).getAsString();
+            Address toAddress = Address.fromString(to);
+
+            JsonElement jsonType = jsonObject.get(TYPE_PROPERTY);
+            String type = jsonType.getAsString();
+            Class<?> cls;
+
+            try {
+                cls = Class.forName(type, false, getClass().getClassLoader());
+            } catch (ClassNotFoundException cnfe) {
+                throw new IllegalArgumentException(cnfe);
+            }
+
+            JsonElement jsonContent = jsonObject.get(CONTENT_PROPERTY);
+            Object obj = context.deserialize(jsonContent, cls);
+
+            return new Message(fromAddress, toAddress, obj);
+        } catch (JsonParseException jpe) {
+            throw new IllegalArgumentException(jpe);
+        }
     }
 }

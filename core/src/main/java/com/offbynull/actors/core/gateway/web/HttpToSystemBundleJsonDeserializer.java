@@ -54,8 +54,11 @@ final class HttpToSystemBundleJsonDeserializer implements JsonDeserializer<HttpT
         List<Message> messages = context.deserialize(jsonObject.get("messages").getAsJsonArray(), messageListType);
         
         messages.forEach(msg -> {
+            Validate.isTrue(msg.getSourceAddress().size() >= 2);
             String srcPrefix = msg.getSourceAddress().getElement(0);
+            String srcId = msg.getSourceAddress().getElement(1);
             Validate.isTrue(srcPrefix.equals(prefix));
+            Validate.isTrue(srcId.equals(httpAddressId));
         });
         
         return new HttpToSystemBundle(httpAddressId, httpToSystemOffset, systemToHttpOffset, messages);

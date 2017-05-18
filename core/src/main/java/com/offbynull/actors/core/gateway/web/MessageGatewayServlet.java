@@ -39,8 +39,7 @@ final class MessageGatewayServlet extends HttpServlet {
     
     private final HttpToSystemMessageFilter httpToSystemMessageFilter;
     private final SystemToHttpMessageCache systemToHttpMessageCache;
-    
-    private final String prefix;
+
     private final Bus toSystemBus;
     private final Bus toHttpBus;
     
@@ -50,14 +49,14 @@ final class MessageGatewayServlet extends HttpServlet {
 
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(prefix));
+        gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonSerializer(prefix));
         gsonBuilder.registerTypeAdapter(HttpToSystemBundle.class, new HttpToSystemBundleJsonDeserializer(prefix));
         gsonBuilder.registerTypeAdapter(SystemToHttpBundle.class, new SystemToHttpBundleJsonSerializer(prefix));
         gson = gsonBuilder.serializeNulls().create();
         
-        this.httpToSystemMessageFilter = new HttpToSystemMessageFilter(prefix, 60000L);
-        this.systemToHttpMessageCache = new SystemToHttpMessageCache(prefix, 60000L);
-        
-        this.prefix = prefix;
+        this.httpToSystemMessageFilter = new HttpToSystemMessageFilter(60000L);
+        this.systemToHttpMessageCache = new SystemToHttpMessageCache(60000L);
+
         this.toSystemBus = toSystemBus;
         this.toHttpBus = toHttpBus;
     }

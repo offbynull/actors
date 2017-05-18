@@ -28,16 +28,12 @@ import java.util.List;
 import java.util.Map;
 
 final class HttpToSystemMessageFilter {
-    private final String prefix;
     private final FilterMap<String> filterMap;
 
-    public HttpToSystemMessageFilter(String prefix, long timeout) {
-        Validate.notNull(prefix);
+    public HttpToSystemMessageFilter(long timeout) {
         Validate.isTrue(timeout > 0L);
         
         filterMap = new FilterMap<>(timeout);
-
-        this.prefix = prefix;
     }
 
     public List<Message> filter(long time, long seq, List<Message> messages) {
@@ -45,10 +41,6 @@ final class HttpToSystemMessageFilter {
         Validate.isTrue(seq >= 0L);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
-        messages.forEach(message -> {
-            Validate.isTrue(message.getSourceAddress().size() > 0);
-            Validate.isTrue(message.getSourceAddress().getElement(0).equals(prefix));
-        });
         
         List<Message> ret = new ArrayList<>(messages.size());
         for (Message message : messages) {

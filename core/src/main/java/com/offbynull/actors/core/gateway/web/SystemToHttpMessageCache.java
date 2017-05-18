@@ -32,26 +32,16 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 final class SystemToHttpMessageCache {
-    private final String prefix;
     private final CacheMap<String, Message> cacheMap;
 
-    public SystemToHttpMessageCache(String prefix, long timeout) {
-        Validate.notNull(prefix);
+    public SystemToHttpMessageCache(long timeout) {
         Validate.isTrue(timeout > 0L);
-        
         cacheMap = new CacheMap<>(timeout);
-
-        this.prefix = prefix;
     }
 
     public void add(long time, List<Message> messages) {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
-        messages.stream().forEach(message -> {
-            Validate.isTrue(message.getDestinationAddress().size() > 0);
-            Validate.isTrue(message.getDestinationAddress().getElement(0).equals(prefix));
-            
-        });
         Validate.isTrue(time >= 0L);
         
         messages.forEach(message -> {

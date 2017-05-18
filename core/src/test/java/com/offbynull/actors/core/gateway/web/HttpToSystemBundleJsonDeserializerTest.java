@@ -271,7 +271,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
         fixture.fromJson(json, HttpToSystemBundle.class);
     }
     
-    public static final class TestObject {
+    private static final class TestObject {
 
         public TestObject(int myInt) {
             this.myInt = myInt;
@@ -303,6 +303,5 @@ public class HttpToSystemBundleJsonDeserializerTest {
             }
             return true;
         }
-        
     }
 }

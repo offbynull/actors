@@ -22,19 +22,26 @@ import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 final class SystemToHttpBundle {
+    private final String httpAddressId;
     private final long systemToHttpOffset;
     private final long httpToSystemOffset;
     private final List<Message> messages;
 
-    public SystemToHttpBundle(long systemToHttpOffset, long httpToSystemOffset, List<Message> messages) {
+    public SystemToHttpBundle(String httpAddressId, long systemToHttpOffset, long httpToSystemOffset, List<Message> messages) {
+        Validate.notNull(httpAddressId);
         Validate.isTrue(systemToHttpOffset >= 0);
         Validate.isTrue(httpToSystemOffset >= 0);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
 
+        this.httpAddressId = httpAddressId;
         this.systemToHttpOffset = systemToHttpOffset;
         this.httpToSystemOffset = httpToSystemOffset;
         this.messages = messages;
+    }
+
+    public String getHttpAddressId() {
+        return httpAddressId;
     }
 
     public long getSystemToHttpOffset() {

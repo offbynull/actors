@@ -45,23 +45,28 @@ final class SystemToHttpBundleJsonSerializer implements JsonSerializer<SystemToH
         Validate.notNull(src);
         Validate.notNull(typeOfSrc);
         Validate.notNull(context);
+        
+        String httpAddressId = src.getHttpAddressId();
+        long systemToHttpOffset = src.getSystemToHttpOffset();
+        long httpToSystemOffset = src.getHttpToSystemOffset();
         src.getMessages().forEach(msg -> {
+            Validate.isTrue(msg.getDestinationAddress().size() >= 2);
             String dstPrefix = msg.getDestinationAddress().getElement(0);
+            String dstId = msg.getDestinationAddress().getElement(1);
             Validate.isTrue(dstPrefix.equals(prefix));
+            Validate.isTrue(dstId.equals(httpAddressId));
         });
         
-        JsonObject jsonObject = context.serialize(src).getAsJsonObject();
-
-        JsonPrimitive systemToHttpOffset = new JsonPrimitive(src.getSystemToHttpOffset());
-        JsonPrimitive httpToSystemOffset = new JsonPrimitive(src.getHttpToSystemOffset());
-        JsonArray messages = new JsonArray();
+        JsonArray messagesJsonArray = new JsonArray();
         src.getMessages().stream()
                 .map(msg -> context.serialize(msg, httpToSystemMessageType))
-                .forEachOrdered(msg -> messages.add(msg));
+                .forEachOrdered(msg -> messagesJsonArray.add(msg));
 
-        jsonObject.add("systemToHttpOffset", systemToHttpOffset);
-        jsonObject.add("httpToSystemOffset", httpToSystemOffset);
-        jsonObject.add("messages", messages);
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.add("httpAddressId", new JsonPrimitive(httpAddressId));
+        jsonObject.add("systemToHttpOffset", new JsonPrimitive(systemToHttpOffset));
+        jsonObject.add("httpToSystemOffset", new JsonPrimitive(httpToSystemOffset));
+        jsonObject.add("messages", messagesJsonArray);
 
         return jsonObject;
     }

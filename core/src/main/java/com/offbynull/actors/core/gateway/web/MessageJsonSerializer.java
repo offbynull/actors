@@ -27,9 +27,10 @@ import org.apache.commons.lang3.Validate;
 
 final class MessageJsonSerializer implements JsonSerializer<Message> {
 
-    private static final String SOURCE_PROPERTY = "__source__";
-    private static final String DESTINATION_PROPERTY = "__dest__";
-    private static final String TYPE_PROPERTY = "__type__";
+    private static final String SOURCE_PROPERTY = "source";
+    private static final String DESTINATION_PROPERTY = "destination";
+    private static final String TYPE_PROPERTY = "type";
+    private static final String CONTENT_PROPERTY = "content";
 
     private final String prefix;
 
@@ -42,17 +43,19 @@ final class MessageJsonSerializer implements JsonSerializer<Message> {
     public JsonElement serialize(Message src, Type typeOfSrc, JsonSerializationContext context) {
         String dstPrefix = src.getDestinationAddress().getElement(0);
         Validate.isTrue(dstPrefix.equals(prefix));
-        
-        JsonObject jsonObject = context.serialize(src).getAsJsonObject();
 
         String from = src.getSourceAddress().toString();
         String to = src.getDestinationAddress().toString();
         Object obj = src.getMessage();
         String type = obj.getClass().getName();
+        
+        JsonElement serializedContent = context.serialize(obj);
 
+        JsonObject jsonObject = new JsonObject();
         jsonObject.add(SOURCE_PROPERTY, new JsonPrimitive(from));
         jsonObject.add(DESTINATION_PROPERTY, new JsonPrimitive(to));
         jsonObject.add(TYPE_PROPERTY, new JsonPrimitive(type));
+        jsonObject.add(CONTENT_PROPERTY, serializedContent);
 
         return jsonObject;
     }

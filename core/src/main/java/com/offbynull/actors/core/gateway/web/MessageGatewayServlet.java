@@ -110,6 +110,7 @@ final class MessageGatewayServlet extends HttpServlet {
             long httpToSystemOffset = httpToSystemMessageFilter.latestSequence(httpToSystemBundle.getHttpAddressId());
             SystemToHttpBundle systemToHttpBundle =
                     new SystemToHttpBundle(
+                            httpToSystemBundle.getHttpAddressId(),
                             systemToHttpOffset,
                             httpToSystemOffset,
                             new ArrayList<>(systemToHttpMessages.values()));

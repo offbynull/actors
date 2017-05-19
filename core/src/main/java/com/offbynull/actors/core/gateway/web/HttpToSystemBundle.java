@@ -24,11 +24,11 @@ import org.apache.commons.lang3.Validate;
 
 final class HttpToSystemBundle {
     private final String httpAddressId;
-    private final long httpToSystemOffset;
-    private final long systemToHttpOffset;
+    private final int httpToSystemOffset;
+    private final int systemToHttpOffset;
     private final List<Message> messages;
 
-    public HttpToSystemBundle(String httpAddressId, long httpToSystemOffset, long systemToHttpOffset, List<Message> messages) {
+    public HttpToSystemBundle(String httpAddressId, int httpToSystemOffset, int systemToHttpOffset, List<Message> messages) {
         Validate.notNull(httpAddressId);
         Validate.isTrue(httpToSystemOffset >= 0);
         Validate.isTrue(systemToHttpOffset >= 0);
@@ -45,11 +45,11 @@ final class HttpToSystemBundle {
         return httpAddressId;
     }
 
-    public long getHttpToSystemOffset() {
+    public int getHttpToSystemOffset() {
         return httpToSystemOffset;
     }
 
-    public long getSystemToHttpOffset() {
+    public int getSystemToHttpOffset() {
         return systemToHttpOffset;
     }
 

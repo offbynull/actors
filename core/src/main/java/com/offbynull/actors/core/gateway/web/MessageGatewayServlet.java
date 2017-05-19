@@ -18,6 +18,7 @@ package com.offbynull.actors.core.gateway.web;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.offbynull.actors.core.gateway.web.MessageCache.MessageBlock;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import java.io.IOException;
@@ -37,8 +38,7 @@ final class MessageGatewayServlet extends HttpServlet {
     
     private final Gson gson;
     
-    private final HttpToSystemMessageFilter httpToSystemMessageFilter;
-    private final SystemToHttpMessageCache systemToHttpMessageCache;
+    private final MessageCache messageCache;
 
     private final Bus toSystemBus;
     private final Bus toHttpBus;
@@ -54,8 +54,7 @@ final class MessageGatewayServlet extends HttpServlet {
         gsonBuilder.registerTypeAdapter(SystemToHttpBundle.class, new SystemToHttpBundleJsonSerializer(prefix));
         gson = gsonBuilder.serializeNulls().create();
         
-        this.httpToSystemMessageFilter = new HttpToSystemMessageFilter(60000L);
-        this.systemToHttpMessageCache = new SystemToHttpMessageCache(60000L);
+        this.messageCache = new InMemoryMessageCache(60000L);
 
         this.toSystemBus = toSystemBus;
         this.toHttpBus = toHttpBus;
@@ -72,47 +71,41 @@ final class MessageGatewayServlet extends HttpServlet {
             Reader reader = req.getReader();
             HttpToSystemBundle httpToSystemBundle = gson.fromJson(reader, HttpToSystemBundle.class);
             
+            String id = httpToSystemBundle.getHttpAddressId();
+            
+            
             // The incoming message bundle includes an acknowledgement -- this is the max sequence number of the messages it was able to
             // read. We remove any messages older than that here.
-            systemToHttpMessageCache.filter(
-                    time,
-                    httpToSystemBundle.getHttpAddressId(),
-                    httpToSystemBundle.getSystemToHttpOffset());
+            messageCache.httpToSystemAdd(time, id,
+                    httpToSystemBundle.getHttpToSystemOffset(),
+                    httpToSystemBundle.getMessages());
             
             // The incoming message bundle includes messages that may have already arrived (e.g. we got the messages but the system may have
             // crashed) -- we track this by sequence number. If the sequence number for a message is older than the latest one we've got,
             // we filter it out here.
-            List<Message> filteredHttpToSystemMessages =
-                    httpToSystemMessageFilter.filter(
-                            time,
-                            httpToSystemBundle.getHttpToSystemOffset(),
-                            httpToSystemBundle.getMessages());
+            MessageBlock httpToSystemMessages = messageCache.httpToSystemRead(time, id);
             
             // Send these messages (however many are left after we've filterd out the ones that have already arrived) to the system.
-            toSystemBus.add(filteredHttpToSystemMessages);
+            toSystemBus.add(httpToSystemMessages.getMessages());
 
             
 
             
             // Get new messages and add them to cache
             List<Message> rawSystemToHttpMessages = (List<Message>) toHttpBus.pull(0L, TimeUnit.NANOSECONDS).stream();
-            systemToHttpMessageCache.add(time, rawSystemToHttpMessages);
+            messageCache.systemToHttpAppend(time, id, rawSystemToHttpMessages);
             
             // Get pending messages for this http address
-            SortedMap<Long, Message> systemToHttpMessages =
-                    systemToHttpMessageCache.read(
-                            time,
-                            httpToSystemBundle.getHttpAddressId());
+            MessageBlock systemToHttpMessages = messageCache.httpToSystemRead(time, id);
             
             // Create and send out bundle
-            long systemToHttpOffset = systemToHttpMessages.firstKey();
-            long httpToSystemOffset = httpToSystemMessageFilter.latestSequence(httpToSystemBundle.getHttpAddressId());
-            SystemToHttpBundle systemToHttpBundle =
-                    new SystemToHttpBundle(
-                            httpToSystemBundle.getHttpAddressId(),
-                            systemToHttpOffset,
-                            httpToSystemOffset,
-                            new ArrayList<>(systemToHttpMessages.values()));
+            int systemToHttpOffset = systemToHttpMessages.getStartSequenceOffset();
+            int httpToSystemOffset = httpToSystemMessages.getStartSequenceOffset();
+            SystemToHttpBundle systemToHttpBundle = new SystemToHttpBundle(
+                    id,
+                    systemToHttpOffset,
+                    httpToSystemOffset,
+                    systemToHttpMessages.getMessages());
             Writer writer = resp.getWriter();
             gson.toJson(systemToHttpBundle, writer);
         } catch (InterruptedException ie) {

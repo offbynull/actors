@@ -47,8 +47,8 @@ final class SystemToHttpBundleJsonSerializer implements JsonSerializer<SystemToH
         Validate.notNull(context);
         
         String httpAddressId = src.getHttpAddressId();
-        long systemToHttpOffset = src.getSystemToHttpOffset();
-        long httpToSystemOffset = src.getHttpToSystemOffset();
+        int systemToHttpOffset = src.getSystemToHttpOffset();
+        int httpToSystemOffset = src.getHttpToSystemOffset();
         src.getMessages().forEach(msg -> {
             Validate.isTrue(msg.getDestinationAddress().size() >= 2);
             String dstPrefix = msg.getDestinationAddress().getElement(0);

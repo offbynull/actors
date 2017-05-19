@@ -17,17 +17,19 @@
 package com.offbynull.actors.core.gateway.web;
 
 import com.offbynull.actors.core.shuttle.Message;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 final class SystemToHttpBundle {
     private final String httpAddressId;
-    private final long systemToHttpOffset;
-    private final long httpToSystemOffset;
+    private final int systemToHttpOffset;
+    private final int httpToSystemOffset;
     private final List<Message> messages;
 
-    public SystemToHttpBundle(String httpAddressId, long systemToHttpOffset, long httpToSystemOffset, List<Message> messages) {
+    public SystemToHttpBundle(String httpAddressId, int systemToHttpOffset, int httpToSystemOffset, List<Message> messages) {
         Validate.notNull(httpAddressId);
         Validate.isTrue(systemToHttpOffset >= 0);
         Validate.isTrue(httpToSystemOffset >= 0);
@@ -37,18 +39,18 @@ final class SystemToHttpBundle {
         this.httpAddressId = httpAddressId;
         this.systemToHttpOffset = systemToHttpOffset;
         this.httpToSystemOffset = httpToSystemOffset;
-        this.messages = messages;
+        this.messages = new ArrayList<>(messages);
     }
 
     public String getHttpAddressId() {
         return httpAddressId;
     }
 
-    public long getSystemToHttpOffset() {
+    public int getSystemToHttpOffset() {
         return systemToHttpOffset;
     }
 
-    public long getHttpToSystemOffset() {
+    public int getHttpToSystemOffset() {
         return httpToSystemOffset;
     }
 

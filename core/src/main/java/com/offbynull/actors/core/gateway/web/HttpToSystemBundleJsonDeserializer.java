@@ -49,8 +49,8 @@ final class HttpToSystemBundleJsonDeserializer implements JsonDeserializer<HttpT
         JsonObject jsonObject = json.getAsJsonObject();
 
         String httpAddressId = jsonObject.get("httpAddressId").getAsString();
-        long httpToSystemOffset = jsonObject.get("httpToSystemOffset").getAsLong();
-        long systemToHttpOffset = jsonObject.get("systemToHttpOffset").getAsLong();
+        int httpToSystemOffset = jsonObject.get("httpToSystemOffset").getAsInt();
+        int systemToHttpOffset = jsonObject.get("systemToHttpOffset").getAsInt();
         List<Message> messages = context.deserialize(jsonObject.get("messages").getAsJsonArray(), messageListType);
         
         messages.forEach(msg -> {

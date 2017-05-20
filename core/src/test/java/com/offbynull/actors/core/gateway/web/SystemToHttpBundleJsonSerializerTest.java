@@ -25,8 +25,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     public void mustSerialize() {
         SystemToHttpBundle bundle = new SystemToHttpBundle(
                 "custom_id",
-                1L,
-                2L,
+                1,
+                2,
                 Arrays.asList(
                         new Message("direct", "web:custom_id", "HI!"),
                         new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
@@ -63,8 +63,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     public void mustSerializeEmptyMessages() {
         SystemToHttpBundle bundle = new SystemToHttpBundle(
                 "custom_id",
-                1L,
-                2L,
+                1,
+                2,
                 Arrays.<Message>asList()
         );
         
@@ -83,8 +83,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     public void mustFailToSerializeOnBadPrefix() {
         SystemToHttpBundle bundle = new SystemToHttpBundle(
                 "custom_id",
-                1L,
-                2L,
+                1,
+                2,
                 Arrays.asList(
                         new Message("direct", "BAD_PREFIX:custom_id", "HI!"),
                         new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
@@ -98,8 +98,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     public void mustFailToSerializeOnBadId() {
         SystemToHttpBundle bundle = new SystemToHttpBundle(
                 "custom_id",
-                1L,
-                2L,
+                1,
+                2,
                 Arrays.asList(
                         new Message("direct", "web:BAD_ID", "HI!"),
                         new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
@@ -113,8 +113,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     public void mustFailToSerializeOnNoId() {
         SystemToHttpBundle bundle = new SystemToHttpBundle(
                 "custom_id",
-                1L,
-                2L,
+                1,
+                2,
                 Arrays.asList(
                         new Message("direct", "web", "HI!"),
                         new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
@@ -128,8 +128,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     public void mustFailToSerializeOnNoPrefix() {
         SystemToHttpBundle bundle = new SystemToHttpBundle(
                 "custom_id",
-                1L,
-                2L,
+                1,
+                2,
                 Arrays.asList(
                         new Message("direct", "", "HI!"),
                         new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))

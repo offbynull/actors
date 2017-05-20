@@ -24,9 +24,7 @@ import com.offbynull.actors.core.shuttles.simple.Bus;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -74,29 +72,40 @@ final class MessageGatewayServlet extends HttpServlet {
             String id = httpToSystemBundle.getHttpAddressId();
             
             
+            
+            
+            // Update last access time for ID
+            messageCache.keepAlive(id);
+            
+            
+            
+            
             // The incoming message bundle includes an acknowledgement -- this is the max sequence number of the messages it was able to
             // read. We remove any messages older than that here.
-            messageCache.httpToSystemAdd(time, id,
+            messageCache.httpToSystemAdd(id,
                     httpToSystemBundle.getHttpToSystemOffset(),
                     httpToSystemBundle.getMessages());
             
             // The incoming message bundle includes messages that may have already arrived (e.g. we got the messages but the system may have
             // crashed) -- we track this by sequence number. If the sequence number for a message is older than the latest one we've got,
             // we filter it out here.
-            MessageBlock httpToSystemMessages = messageCache.httpToSystemRead(time, id);
+            MessageBlock httpToSystemMessages = messageCache.httpToSystemRead(id);
             
             // Send these messages (however many are left after we've filterd out the ones that have already arrived) to the system.
             toSystemBus.add(httpToSystemMessages.getMessages());
+            
+            // Clear out the messages we just sent from the cache.
+            messageCache.httpToSystemClear(id);
 
             
 
             
             // Get new messages and add them to cache
             List<Message> rawSystemToHttpMessages = (List<Message>) toHttpBus.pull(0L, TimeUnit.NANOSECONDS).stream();
-            messageCache.systemToHttpAppend(time, id, rawSystemToHttpMessages);
+            messageCache.systemToHttpAppend(id, rawSystemToHttpMessages);
             
             // Get pending messages for this http address
-            MessageBlock systemToHttpMessages = messageCache.httpToSystemRead(time, id);
+            MessageBlock systemToHttpMessages = messageCache.httpToSystemRead(id);
             
             // Create and send out bundle
             int systemToHttpOffset = systemToHttpMessages.getStartSequenceOffset();

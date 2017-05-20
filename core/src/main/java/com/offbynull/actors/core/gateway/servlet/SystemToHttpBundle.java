@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
 import com.offbynull.actors.core.shuttle.Message;
 import java.util.ArrayList;
@@ -22,22 +22,22 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-final class HttpToSystemBundle {
+final class SystemToHttpBundle {
     private final String httpAddressId;
-    private final int httpToSystemOffset;
     private final int systemToHttpOffset;
+    private final int httpToSystemOffset;
     private final List<Message> messages;
 
-    public HttpToSystemBundle(String httpAddressId, int httpToSystemOffset, int systemToHttpOffset, List<Message> messages) {
+    public SystemToHttpBundle(String httpAddressId, int systemToHttpOffset, int httpToSystemOffset, List<Message> messages) {
         Validate.notNull(httpAddressId);
-        Validate.isTrue(httpToSystemOffset >= 0);
         Validate.isTrue(systemToHttpOffset >= 0);
+        Validate.isTrue(httpToSystemOffset >= 0);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
 
         this.httpAddressId = httpAddressId;
-        this.httpToSystemOffset = httpToSystemOffset;
         this.systemToHttpOffset = systemToHttpOffset;
+        this.httpToSystemOffset = httpToSystemOffset;
         this.messages = new ArrayList<>(messages);
     }
 
@@ -45,15 +45,16 @@ final class HttpToSystemBundle {
         return httpAddressId;
     }
 
-    public int getHttpToSystemOffset() {
-        return httpToSystemOffset;
-    }
-
     public int getSystemToHttpOffset() {
         return systemToHttpOffset;
     }
 
-    public List<Message> getMessages() {
-         return Collections.unmodifiableList(messages);
+    public int getHttpToSystemOffset() {
+        return httpToSystemOffset;
     }
+
+    public List<Message> getMessages() {
+        return Collections.unmodifiableList(messages);
+    }
+    
 }

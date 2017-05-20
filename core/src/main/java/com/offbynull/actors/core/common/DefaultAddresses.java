@@ -45,9 +45,9 @@ public final class DefaultAddresses {
     public static final String DEFAULT_DIRECT = "direct";
     
     /**
-     * Default address to web gateway as String.
+     * Default address to servlet gateway as String.
      */
-    public static final String DEFAULT_WEB = "web";
+    public static final String DEFAULT_SERVLET = "servlet";
     
     /**
      * Default address to actor runner.
@@ -67,12 +67,12 @@ public final class DefaultAddresses {
     /**
      * Default address to direct gateway.
      */
-    public static final Address DEFAULT_GATEWAY_ADDRESS = Address.of(DEFAULT_DIRECT);
+    public static final Address DEFAULT_DIRECT_ADDRESS = Address.of(DEFAULT_DIRECT);
 
     /**
-     * Default address to web gateway.
+     * Default address to servlet gateway.
      */
-    public static final Address DEFAULT_WEB_ADDRESS = Address.of(DEFAULT_WEB);
+    public static final Address DEFAULT_SERVLET_ADDRESS = Address.of(DEFAULT_SERVLET);
 
     private DefaultAddresses() {
         // do nothing

@@ -14,26 +14,25 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
-import com.offbynull.actors.core.shuttle.Shuttle;
 import org.apache.commons.lang3.Validate;
 
-final class AddShuttle {
-    private final Shuttle shuttle;
+final class RemoveShuttle {
+    private final String prefix;
 
-    public AddShuttle(Shuttle shuttle) {
-        Validate.notNull(shuttle);
-        this.shuttle = shuttle;
+    public RemoveShuttle(String prefix) {
+        Validate.notNull(prefix);
+        this.prefix = prefix;
     }
 
-    public Shuttle getShuttle() {
-        return shuttle;
+    public String getPrefix() {
+        return prefix;
     }
 
     @Override
     public String toString() {
-        return "AddShuttle{" + "shuttle=" + shuttle + '}';
+        return "RemoveShuttle{" + "prefix=" + prefix + '}';
     }
-    
+
 }

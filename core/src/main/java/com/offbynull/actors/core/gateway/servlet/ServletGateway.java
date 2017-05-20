@@ -14,51 +14,51 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_WEB;
 import com.offbynull.actors.core.gateway.Gateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import com.offbynull.actors.core.shuttles.test.NullShuttle;
 import org.apache.commons.lang3.Validate;
+import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_SERVLET;
 
 /**
  * {@link Gateway} that allows you read and write messages using via a servlet.
  * @author Kasra Faghihi
  */
-public final class WebGateway implements Gateway {
+public final class ServletGateway implements Gateway {
 
     private final Thread thread;
     private final Shuttle inShuttle;
     private final Bus bus;
 
     /**
-     * Create a {@link WebGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_WEB)}.
+     * Create a {@link ServletGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_SERVLET)}.
      * @return new direct gateway
      */
-    public static WebGateway create() {
-        return create(DEFAULT_WEB);
+    public static ServletGateway create() {
+        return create(DEFAULT_SERVLET);
     }
 
     /**
-     * Create a {@link WebGateway} instance.
+     * Create a {@link ServletGateway} instance.
      * @param prefix address prefix for this gateway
-     * @return new web gateway
+     * @return new servlet gateway
      * @throws NullPointerException if any argument is {@code null}
      */
-    public static WebGateway create(String prefix) {
-        WebGateway gateway = new WebGateway(prefix);
+    public static ServletGateway create(String prefix) {
+        ServletGateway gateway = new ServletGateway(prefix);
         gateway.thread.start();
         return gateway;
     }
     
-    private WebGateway(String prefix) {
+    private ServletGateway(String prefix) {
         Validate.notNull(prefix);
 
         bus = new Bus();
         inShuttle = new NullShuttle(prefix);
-        thread = new Thread(new WebRunnable(prefix, bus));
+        thread = new Thread(new ServletRunnable(prefix, bus));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
     }

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

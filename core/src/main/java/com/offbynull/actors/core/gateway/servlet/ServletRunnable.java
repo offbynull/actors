@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
@@ -25,14 +25,14 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class WebRunnable implements Runnable {
-    private static final Logger LOG = LoggerFactory.getLogger(WebRunnable.class);
+class ServletRunnable implements Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(ServletRunnable.class);
 
     private final Map<String, Shuttle> outgoingShuttles;
     private final String prefix;
     private final Bus bus;
 
-    public WebRunnable(String prefix, Bus bus) {
+    public ServletRunnable(String prefix, Bus bus) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
         this.outgoingShuttles = new HashMap<>();
@@ -98,7 +98,7 @@ class WebRunnable implements Runnable {
                 }
             }
         } catch (InterruptedException ie) {
-            LOG.debug("Web gateway interrupted");
+            LOG.debug("Servlet gateway interrupted");
             Thread.interrupted();
         } catch (Exception e) {
             LOG.error("Internal error encountered", e);

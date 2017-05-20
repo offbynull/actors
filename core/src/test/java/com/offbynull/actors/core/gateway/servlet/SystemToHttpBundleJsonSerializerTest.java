@@ -1,13 +1,13 @@
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_WEB;
 import com.offbynull.actors.core.shuttle.Message;
 import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
+import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_SERVLET;
 
 public class SystemToHttpBundleJsonSerializerTest {
     
@@ -16,8 +16,8 @@ public class SystemToHttpBundleJsonSerializerTest {
     @Before
     public void before() {
         GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonSerializer(DEFAULT_WEB));
-        gsonBuilder.registerTypeAdapter(SystemToHttpBundle.class, new SystemToHttpBundleJsonSerializer(DEFAULT_WEB));
+        gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonSerializer(DEFAULT_SERVLET));
+        gsonBuilder.registerTypeAdapter(SystemToHttpBundle.class, new SystemToHttpBundleJsonSerializer(DEFAULT_SERVLET));
         fixture = gsonBuilder.serializeNulls().setPrettyPrinting().create();
     }
 
@@ -28,8 +28,8 @@ public class SystemToHttpBundleJsonSerializerTest {
                 1,
                 2,
                 Arrays.asList(
-                        new Message("direct", "web:custom_id", "HI!"),
-                        new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
+                        new Message("direct", "servlet:custom_id", "HI!"),
+                        new Message("actors:my_actor", "servlet:custom_id:sub_id", new TestObject(1))
                 )
         );
         
@@ -42,14 +42,14 @@ public class SystemToHttpBundleJsonSerializerTest {
                 + "  \"messages\": [\n"
                 + "    {\n"
                 + "      \"source\": \"direct\",\n"
-                + "      \"destination\": \"web:custom_id\",\n"
+                + "      \"destination\": \"servlet:custom_id\",\n"
                 + "      \"type\": \"java.lang.String\",\n"
                 + "      \"content\": \"HI!\"\n"
                 + "    },\n"
                 + "    {\n"
                 + "      \"source\": \"actors:my_actor\",\n"
-                + "      \"destination\": \"web:custom_id:sub_id\",\n"
-                + "      \"type\": \"com.offbynull.actors.core.gateway.web.SystemToHttpBundleJsonSerializerTest$TestObject\",\n"
+                + "      \"destination\": \"servlet:custom_id:sub_id\",\n"
+                + "      \"type\": \"com.offbynull.actors.core.gateway.servlet.SystemToHttpBundleJsonSerializerTest$TestObject\",\n"
                 + "      \"content\": {\n"
                 + "        \"myInt\": 1\n"
                 + "      }\n"
@@ -87,7 +87,7 @@ public class SystemToHttpBundleJsonSerializerTest {
                 2,
                 Arrays.asList(
                         new Message("direct", "BAD_PREFIX:custom_id", "HI!"),
-                        new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
+                        new Message("actors:my_actor", "servlet:custom_id:sub_id", new TestObject(1))
                 )
         );
         
@@ -101,8 +101,8 @@ public class SystemToHttpBundleJsonSerializerTest {
                 1,
                 2,
                 Arrays.asList(
-                        new Message("direct", "web:BAD_ID", "HI!"),
-                        new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
+                        new Message("direct", "servlet:BAD_ID", "HI!"),
+                        new Message("actors:my_actor", "servlet:custom_id:sub_id", new TestObject(1))
                 )
         );
         
@@ -116,8 +116,8 @@ public class SystemToHttpBundleJsonSerializerTest {
                 1,
                 2,
                 Arrays.asList(
-                        new Message("direct", "web", "HI!"),
-                        new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
+                        new Message("direct", "servlet", "HI!"),
+                        new Message("actors:my_actor", "servlet:custom_id:sub_id", new TestObject(1))
                 )
         );
         
@@ -132,7 +132,7 @@ public class SystemToHttpBundleJsonSerializerTest {
                 2,
                 Arrays.asList(
                         new Message("direct", "", "HI!"),
-                        new Message("actors:my_actor", "web:custom_id:sub_id", new TestObject(1))
+                        new Message("actors:my_actor", "servlet:custom_id:sub_id", new TestObject(1))
                 )
         );
         

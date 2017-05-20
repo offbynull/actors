@@ -14,25 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
 
-import org.apache.commons.lang3.Validate;
-
-final class RemoveShuttle {
-    private final String prefix;
-
-    public RemoveShuttle(String prefix) {
-        Validate.notNull(prefix);
-        this.prefix = prefix;
-    }
-
-    public String getPrefix() {
-        return prefix;
-    }
-
-    @Override
-    public String toString() {
-        return "RemoveShuttle{" + "prefix=" + prefix + '}';
-    }
-
-}
+/**
+ * Gateway that allows HTTP clients to send messages to and receive messages from other actors/gateways.
+ * 
+ * @author Kasra Faghihi
+ */
+package com.offbynull.actors.core.gateway.servlet;

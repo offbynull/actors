@@ -1,12 +1,12 @@
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_WEB;
 import com.offbynull.actors.core.shuttle.Message;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
+import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_SERVLET;
 
 public class HttpToSystemBundleJsonDeserializerTest {
     
@@ -15,8 +15,8 @@ public class HttpToSystemBundleJsonDeserializerTest {
     @Before
     public void before() {
         GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(DEFAULT_WEB));
-        gsonBuilder.registerTypeAdapter(HttpToSystemBundle.class, new HttpToSystemBundleJsonDeserializer(DEFAULT_WEB));
+        gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(DEFAULT_SERVLET));
+        gsonBuilder.registerTypeAdapter(HttpToSystemBundle.class, new HttpToSystemBundleJsonDeserializer(DEFAULT_SERVLET));
         fixture = gsonBuilder.serializeNulls().create();
     }
     
@@ -29,13 +29,13 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web:custom_id\",\n"
+                + "            source: \"servlet:custom_id\",\n"
                 + "            destination: \"direct\",\n"
                 + "            type: \"java.lang.String\",\n"
                 + "            content: \"HI!\"\n"
                 + "        },\n"
                 + "        {\n"
-                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            source: \"servlet:custom_id:sub_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"" + TestObject.class.getName() + "\",\n"
                 + "            content: { myInt: 3 }\n"
@@ -50,11 +50,11 @@ public class HttpToSystemBundleJsonDeserializerTest {
         
         assertEquals(2, actual.getMessages().size());
         
-        assertEquals("web:custom_id", actual.getMessages().get(0).getSourceAddress().toString());
+        assertEquals("servlet:custom_id", actual.getMessages().get(0).getSourceAddress().toString());
         assertEquals("direct", actual.getMessages().get(0).getDestinationAddress().toString());
         assertEquals("HI!", actual.getMessages().get(0).getMessage());
         
-        assertEquals("web:custom_id:sub_id", actual.getMessages().get(1).getSourceAddress().toString());
+        assertEquals("servlet:custom_id:sub_id", actual.getMessages().get(1).getSourceAddress().toString());
         assertEquals("actors:my_actor", actual.getMessages().get(1).getDestinationAddress().toString());
         assertEquals(new TestObject(3), actual.getMessages().get(1).getMessage());
     }
@@ -92,7 +92,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "            content: \"HI!\"\n"
                 + "        },\n"
                 + "        {\n"
-                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            source: \"servlet:custom_id:sub_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"" + TestObject.class.getName() + "\",\n"
                 + "            content: { myInt: 3 }\n"
@@ -117,7 +117,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "            content: \"HI!\"\n"
                 + "        },\n"
                 + "        {\n"
-                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            source: \"servlet:custom_id:sub_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"" + TestObject.class.getName() + "\",\n"
                 + "            content: { myInt: 3 }\n"
@@ -136,13 +136,13 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web:BAD_ID\",\n"
+                + "            source: \"servlet:BAD_ID\",\n"
                 + "            destination: \"direct\",\n"
                 + "            type: \"java.lang.String\",\n"
                 + "            content: \"HI!\"\n"
                 + "        },\n"
                 + "        {\n"
-                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            source: \"servlet:custom_id:sub_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"" + TestObject.class.getName() + "\",\n"
                 + "            content: { myInt: 3 }\n"
@@ -161,13 +161,13 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web\",\n"
+                + "            source: \"servlet\",\n"
                 + "            destination: \"direct\",\n"
                 + "            type: \"java.lang.String\",\n"
                 + "            content: \"HI!\"\n"
                 + "        },\n"
                 + "        {\n"
-                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            source: \"servlet:custom_id:sub_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"" + TestObject.class.getName() + "\",\n"
                 + "            content: { myInt: 3 }\n"
@@ -186,7 +186,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web:custom_id:sub_id\",\n"
+                + "            source: \"servlet:custom_id:sub_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"" + TestObject.class.getName() + "\",\n"
                 + "            content: \"HI!\"\n"
@@ -224,7 +224,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web:custom_id\",\n"
+                + "            source: \"servlet:custom_id\",\n"
                 + "            type: \"java.lang.String\",\n"
                 + "            content: \"HI!\"\n"
                 + "        }\n"
@@ -243,7 +243,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web:custom_id\",\n"
+                + "            source: \"servlet:custom_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            content: \"HI!\"\n"
                 + "        }\n"
@@ -262,7 +262,7 @@ public class HttpToSystemBundleJsonDeserializerTest {
                 + "    systemToHttpOffset: 2,\n"
                 + "    messages: [\n"
                 + "        {\n"
-                + "            source: \"web:custom_id\",\n"
+                + "            source: \"servlet:custom_id\",\n"
                 + "            destination: \"actors:my_actor\",\n"
                 + "            type: \"java.lang.String\"\n"
                 + "        }\n"

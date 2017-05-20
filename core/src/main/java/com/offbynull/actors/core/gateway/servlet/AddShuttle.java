@@ -14,10 +14,26 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.core.gateway.servlet;
 
-/**
- * Gateway that allows HTTP clients to send messages to and receive messages from other actors/gateways.
- * 
- * @author Kasra Faghihi
- */
-package com.offbynull.actors.core.gateway.web;
+import com.offbynull.actors.core.shuttle.Shuttle;
+import org.apache.commons.lang3.Validate;
+
+final class AddShuttle {
+    private final Shuttle shuttle;
+
+    public AddShuttle(Shuttle shuttle) {
+        Validate.notNull(shuttle);
+        this.shuttle = shuttle;
+    }
+
+    public Shuttle getShuttle() {
+        return shuttle;
+    }
+
+    @Override
+    public String toString() {
+        return "AddShuttle{" + "shuttle=" + shuttle + '}';
+    }
+    
+}

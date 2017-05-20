@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.gateway.web;
+package com.offbynull.actors.core.gateway.servlet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.offbynull.actors.core.gateway.web.MessageCache.MessageBlock;
+import com.offbynull.actors.core.gateway.servlet.MessageCache.MessageBlock;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import java.io.IOException;

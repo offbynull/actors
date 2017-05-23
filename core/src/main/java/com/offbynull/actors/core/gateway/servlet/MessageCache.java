@@ -18,6 +18,7 @@ package com.offbynull.actors.core.gateway.servlet;
 
 import com.offbynull.actors.core.shuttle.Message;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
@@ -61,6 +62,17 @@ public interface MessageCache {
      * @throws IllegalArgumentException if {@code id} is not tracked (e.g. timed out)
      */
     void systemToHttpAppend(String id, List<Message> messages);
+
+    /**
+     * Buffer messages intended for some HTTP client (from the actor system).
+     * @param id HTTP client id
+     * @param messages messages
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code id} is not tracked (e.g. timed out)
+     */
+    default void systemToHttpAppend(String id, Message ... messages) {
+        systemToHttpAppend(id, Arrays.asList(messages));
+    }
     
     /**
      * Acknowledge that messages sent to some HTTP client have been received.

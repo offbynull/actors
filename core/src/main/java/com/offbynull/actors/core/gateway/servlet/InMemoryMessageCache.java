@@ -41,6 +41,7 @@ public final class InMemoryMessageCache implements MessageCache {
     
     private final Supplier<Long> timeSupplier;
     
+    // NOTE: Update this entire class at some point to use striped locking. Similar to how concurrenthashmap works.
     private final Object lock = new Object();
 
     /**
@@ -252,7 +253,7 @@ public final class InMemoryMessageCache implements MessageCache {
         private final LinkedList<Message> outgoingMessages;
 
         public ClientDataState() {
-            outgoingSequenceOffset = -1;
+            outgoingSequenceOffset = 0;
             incomingMessages = new LinkedList<>();
             incomingSequenceOffset = -1;
             outgoingMessages = new LinkedList<>();
@@ -282,12 +283,11 @@ public final class InMemoryMessageCache implements MessageCache {
 
         public void addOutgoing(int seq, Message message) {
             Validate.isTrue(seq >= 0);
-            int nextOffset = Math.addExact(outgoingSequenceOffset, 1);
-            Validate.isTrue(seq == nextOffset);
+            Validate.isTrue(seq == outgoingSequenceOffset);
             Validate.notNull(message);
 
             outgoingMessages.add(message);
-            outgoingSequenceOffset = nextOffset;
+            outgoingSequenceOffset = Math.incrementExact(outgoingSequenceOffset);
         }
 
         public void acknowledgeOutgoing(int seq) {
@@ -302,7 +302,9 @@ public final class InMemoryMessageCache implements MessageCache {
         }
 
         public MessageBlock getOutgoing() {
-            return new MessageBlock(outgoingSequenceOffset, outgoingMessages);
+            return new MessageBlock(
+                    outgoingSequenceOffset - outgoingMessages.size(),
+                    outgoingMessages);
         }
     }
 }

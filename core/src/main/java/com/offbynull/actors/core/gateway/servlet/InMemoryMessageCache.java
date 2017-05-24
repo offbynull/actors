@@ -124,7 +124,7 @@ public final class InMemoryMessageCache implements MessageCache {
     @Override
     public void systemToHttpAcknowledge(String id, int maxSeqOffset) {
         Validate.notNull(id);
-        Validate.notNull(maxSeqOffset >= 0);
+        Validate.isTrue(maxSeqOffset >= 0);
         
         synchronized (lock) {
             long time = timeSupplier.get();
@@ -292,12 +292,12 @@ public final class InMemoryMessageCache implements MessageCache {
 
         public void acknowledgeOutgoing(int seq) {
             Validate.isTrue(seq >= 0);
-            long seqEndOffset = Math.addExact(outgoingSequenceOffset, outgoingMessages.size()) - 1;
-            Validate.isTrue(seq >= 0L && seq <= seqEndOffset);
+            Validate.isTrue(seq <= outgoingSequenceOffset);
 
-            while (outgoingSequenceOffset < seq) {
+            int first = Math.subtractExact(outgoingSequenceOffset, outgoingMessages.size());
+            int last = Math.min(seq, outgoingSequenceOffset);
+            for (int i = first; i <= last; i++) {
                 outgoingMessages.pop();
-                outgoingSequenceOffset = Math.addExact(outgoingSequenceOffset, 1);
             }
         }
 

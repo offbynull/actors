@@ -204,7 +204,7 @@ public final class InMemoryMessageCache implements MessageCache {
             ClientDataState clientDataState = dataStates.get(id);
             Validate.isTrue(clientDataState != null, "ID not tracked");
 
-            return clientDataState.getOutgoing();
+            return clientDataState.getIncoming();
         }
     }
 
@@ -255,18 +255,22 @@ public final class InMemoryMessageCache implements MessageCache {
         public ClientDataState() {
             outgoingSequenceOffset = 0;
             incomingMessages = new LinkedList<>();
-            incomingSequenceOffset = -1;
+            incomingSequenceOffset = 0;
             outgoingMessages = new LinkedList<>();
         }
 
         public void addIncoming(int seq, Message message) {
             Validate.isTrue(seq >= 0);
-            int nextOffset = Math.addExact(incomingSequenceOffset, 1);
-            Validate.isTrue(seq == nextOffset);
             Validate.notNull(message);
 
+            // we only want to accept the message if it's the message after the latest one we have... if it's behind/ahead, ignore it
+            if (seq != incomingSequenceOffset) {
+                return;
+            }
+            
+            
             incomingMessages.add(message);
-            incomingSequenceOffset = nextOffset;
+            incomingSequenceOffset = Math.incrementExact(incomingSequenceOffset);
         }
 
         public void clearIncoming() {
@@ -274,7 +278,9 @@ public final class InMemoryMessageCache implements MessageCache {
         }
 
         public MessageBlock getIncoming() {
-            return new MessageBlock(incomingSequenceOffset, incomingMessages);
+            return new MessageBlock(
+                    incomingSequenceOffset - incomingMessages.size(),
+                    incomingMessages);
         }
 
         public int getOutgoingSequenceOffset() {

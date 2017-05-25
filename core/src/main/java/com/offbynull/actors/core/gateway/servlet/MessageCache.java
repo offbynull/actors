@@ -64,7 +64,8 @@ public interface MessageCache {
     void systemToHttpAppend(String id, List<Message> messages);
 
     /**
-     * Buffer messages intended for some HTTP client (from the actor system).
+     * Buffer messages intended for some HTTP client (from the actor system). Equivalent to calling
+     * {@code systemToHttpAppend(id, Arrays.asList(messages))}.
      * @param id HTTP client id
      * @param messages messages
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
@@ -95,14 +96,27 @@ public interface MessageCache {
 
 
     /**
-     * Buffer messages intended for the actor system (from the HTTP client).
+     * Buffer messages intended for the actor system (from the HTTP client). Silently ignores duplicates and incorrectly ordered arrivals.
      * @param id HTTP client id
      * @param seqOffset sequence number at which {@code messages} starts
      * @param messages messages
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if {@code id} is not tracked (e.g. timed out)
-     */    
+     * @throws IllegalArgumentException if {@code id} is not tracked (e.g. timed out), or if {@code seqOffset} is negative
+     */
     void httpToSystemAdd(String id, int seqOffset, List<Message> messages);
+
+    /**
+     * Buffer messages intended for the actor system (from the HTTP client). Equivalent to calling
+     * {@code httpToSystemAdd(id, seqOffset, Arrays.asList(messages))}.
+     * @param id HTTP client id
+     * @param seqOffset sequence number at which {@code messages} starts
+     * @param messages messages
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     * @throws IllegalArgumentException if {@code id} is not tracked (e.g. timed out), or if {@code seqOffset} is negative
+     */    
+    default void httpToSystemAdd(String id, int seqOffset, Message ... messages) {
+        httpToSystemAdd(id, seqOffset, Arrays.asList(messages));
+    }
     
     /**
      * Acknowledge that messages intended for the actor system have been dispatched.

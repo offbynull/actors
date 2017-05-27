@@ -240,4 +240,95 @@ public class InMemoryMessageCacheTest {
         assertEquals("dst4", mb2.getMessages().get(3).getDestinationAddress().toString());
         assertEquals("msg4", mb2.getMessages().get(3).getMessage());
     }
+    
+    @Test
+    public void mustClearHttpToSystemMessages() {
+        MessageCache fixture = new InMemoryMessageCache(60000L);
+        
+        fixture.keepAlive("client_id");
+        
+        fixture.httpToSystemAdd("client_id", 0,
+                new Message("src1", "dst1", "msg1"),
+                new Message("src2", "dst2", "msg2"),
+                new Message("src3", "dst3", "msg3"),
+                new Message("src4", "dst4", "msg4"));
+        MessageBlock mb1 = fixture.httpToSystemRead("client_id");
+        assertEquals(0, mb1.getStartSequenceOffset());
+        assertEquals(4, mb1.getMessages().size());
+        
+        fixture.httpToSystemClear("client_id");
+        MessageBlock mb2 = fixture.httpToSystemRead("client_id");
+        assertEquals(4, mb2.getStartSequenceOffset());
+        assertEquals(0, mb2.getMessages().size());
+    }
+    
+    @Test
+    public void mustFailToAddHttpToSystemMessagesIfIdNotTracked() {
+        MessageCache fixture = new InMemoryMessageCache(60000L);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.httpToSystemAdd("client_id", 0, new Message("src1", "dst1", "msg1"));
+    }
+    
+    @Test
+    public void mustFailToReadHttpToSystemMessagesIfIdNotTracked() {
+        MessageCache fixture = new InMemoryMessageCache(60000L);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.httpToSystemRead("client_id");
+    }
+    
+    @Test
+    public void mustFailToClearHttpToSystemMessagesIfIdNotTracked() {
+        MessageCache fixture = new InMemoryMessageCache(60000L);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.httpToSystemClear("client_id");
+    }
+    
+    @Test
+    public void mustFailToAddHttpToSystemMessagesIfIdNotTrackedViaTimeout() {
+        MutableLong fakeTime = new MutableLong(0L);
+        MessageCache fixture = new InMemoryMessageCache(1L, () -> {
+            fakeTime.increment();
+            return fakeTime.longValue();
+        });
+        
+        fixture.keepAlive("client_id");
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.httpToSystemAdd("client_id", 0, new Message("src1", "dst1", "msg1"));
+    }
+    
+    @Test
+    public void mustFailToReadHttpToSystemMessagesIfIdNotTrackedViaTimeout() {
+        MutableLong fakeTime = new MutableLong(0L);
+        MessageCache fixture = new InMemoryMessageCache(2L, () -> {
+            fakeTime.increment();
+            return fakeTime.longValue();
+        });
+        
+        fixture.keepAlive("client_id");
+        
+        fixture.httpToSystemAdd("client_id", 0, new Message("src1", "dst1", "msg1"));
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.httpToSystemRead("client_id");
+    }
+    
+    @Test
+    public void mustFailToAcknowledgeHttpToSystemMessagesIfIdNotTrackedViaTimeout() {
+        MutableLong fakeTime = new MutableLong(0L);
+        MessageCache fixture = new InMemoryMessageCache(3L, () -> {
+            fakeTime.increment();
+            return fakeTime.longValue();
+        });
+        
+        fixture.keepAlive("client_id");
+        
+        fixture.httpToSystemAdd("client_id", 0, new Message("src1", "dst1", "msg1"));
+        fixture.httpToSystemRead("client_id");
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.httpToSystemClear("client_id");
+    }
+
 }

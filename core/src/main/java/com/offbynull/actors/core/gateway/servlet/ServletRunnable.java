@@ -16,11 +16,11 @@
  */
 package com.offbynull.actors.core.gateway.servlet;
 
+import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +28,22 @@ import org.slf4j.LoggerFactory;
 class ServletRunnable implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(ServletRunnable.class);
 
-    private final Map<String, Shuttle> outgoingShuttles;
     private final String prefix;
-    private final Bus bus;
+    private final Bus inBus;
+
+    private final MessageGatewayServlet servlet;
+    private final ConcurrentHashMap<String, Shuttle> outgoingShuttles;
+    private final Bus toHttpBus;
 
     public ServletRunnable(String prefix, Bus bus) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
-        this.outgoingShuttles = new HashMap<>();
         this.prefix = prefix;
-        this.bus = bus;
+        this.inBus = bus;
+
+        this.outgoingShuttles = new ConcurrentHashMap<>();
+        this.toHttpBus = new Bus();
+        this.servlet = new MessageGatewayServlet(prefix, outgoingShuttles, toHttpBus);
     }
 
     @Override
@@ -76,24 +82,30 @@ class ServletRunnable implements Runnable {
             
             while (true) {
                 // Poll for new messages
-                List<Object> incomingObjects = bus.pull();
+                List<Object> incomingObjects = inBus.pull();
 
                 Validate.notNull(incomingObjects);
                 Validate.noNullElements(incomingObjects);
 
                 // Queue new messages
                 for (Object incomingObj : incomingObjects) {
-                    LOG.debug("Processing management message: {} ", incomingObj);
-                    if (incomingObj instanceof AddShuttle) {
-                        AddShuttle addShuttle = (AddShuttle) incomingObj;
-                        Shuttle shuttle = addShuttle.getShuttle();
-                        Shuttle existingShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
-                        Validate.validState(existingShuttle == null);
-                    } else if (incomingObj instanceof RemoveShuttle) {
-                        RemoveShuttle removeShuttle = (RemoveShuttle) incomingObj;
-                        String prefix = removeShuttle.getPrefix();
-                        Shuttle oldShuttle = outgoingShuttles.remove(prefix);
-                        Validate.validState(oldShuttle != null);
+                    if (incomingObj instanceof Message) {
+                        LOG.debug("Processing incoming message from {}", incomingObj);
+                        toHttpBus.add(incomingObj);
+                    } else {
+                        LOG.debug("Processing management message: {} ", incomingObj);
+
+                        if (incomingObj instanceof AddShuttle) {
+                            AddShuttle addShuttle = (AddShuttle) incomingObj;
+                            Shuttle shuttle = addShuttle.getShuttle();
+                            Shuttle existingShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
+                            Validate.validState(existingShuttle == null);
+                        } else if (incomingObj instanceof RemoveShuttle) {
+                            RemoveShuttle removeShuttle = (RemoveShuttle) incomingObj;
+                            String prefix = removeShuttle.getPrefix();
+                            Shuttle oldShuttle = outgoingShuttles.remove(prefix);
+                            Validate.validState(oldShuttle != null);
+                        }
                     }
                 }
             }
@@ -103,7 +115,8 @@ class ServletRunnable implements Runnable {
         } catch (Exception e) {
             LOG.error("Internal error encountered", e);
         } finally {
-            bus.close();
+            outgoingShuttles.clear();
+            inBus.close();
         }
     }
 

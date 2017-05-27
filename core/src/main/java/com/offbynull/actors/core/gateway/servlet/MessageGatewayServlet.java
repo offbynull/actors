@@ -20,11 +20,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.offbynull.actors.core.gateway.servlet.MessageCache.MessageBlock;
 import com.offbynull.actors.core.shuttle.Message;
+import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -38,12 +40,12 @@ final class MessageGatewayServlet extends HttpServlet {
     
     private final MessageCache messageCache;
 
-    private final Bus toSystemBus;
+    private final ConcurrentHashMap<String, Shuttle> outgoingShuttles;
     private final Bus toHttpBus;
     
-    public MessageGatewayServlet(String prefix, Bus toSystemBus, Bus toHttpBus) {
+    MessageGatewayServlet(String prefix, ConcurrentHashMap<String, Shuttle> outgoingShuttles, Bus toHttpBus) {
         Validate.notNull(prefix);
-        Validate.notNull(toSystemBus);
+        Validate.notNull(outgoingShuttles);
 
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(prefix));
@@ -54,7 +56,7 @@ final class MessageGatewayServlet extends HttpServlet {
         
         this.messageCache = new InMemoryMessageCache(60000L);
 
-        this.toSystemBus = toSystemBus;
+        this.outgoingShuttles = outgoingShuttles;
         this.toHttpBus = toHttpBus;
     }
     
@@ -62,9 +64,6 @@ final class MessageGatewayServlet extends HttpServlet {
     @SuppressWarnings("unchecked")
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
-            long time = System.currentTimeMillis();
-            
-            
             // Read incoming messages
             Reader reader = req.getReader();
             HttpToSystemBundle httpToSystemBundle = gson.fromJson(reader, HttpToSystemBundle.class);
@@ -79,35 +78,41 @@ final class MessageGatewayServlet extends HttpServlet {
             
             
             
+                        
+            // Remove messages that the client says it's recv'd
+            messageCache.systemToHttpAcknowledge(id, httpToSystemBundle.getSystemToHttpOffset());
             
-            // The incoming message bundle includes an acknowledgement -- this is the max sequence number of the messages it was able to
-            // read. We remove any messages older than that here.
+            
+            
+            
+
+            // Processing incoming messages
             messageCache.httpToSystemAdd(id,
                     httpToSystemBundle.getHttpToSystemOffset(),
                     httpToSystemBundle.getMessages());
             
-            // The incoming message bundle includes messages that may have already arrived (e.g. we got the messages but the system may have
-            // crashed) -- we track this by sequence number. If the sequence number for a message is older than the latest one we've got,
-            // we filter it out here.
             MessageBlock httpToSystemMessages = messageCache.httpToSystemRead(id);
             
-            // Send these messages (however many are left after we've filterd out the ones that have already arrived) to the system.
-            toSystemBus.add(httpToSystemMessages.getMessages());
+            for (Message message : httpToSystemMessages.getMessages()) {
+                String dstPrefix = message.getDestinationAddress().getElement(0);
+                Shuttle dstShuttle = outgoingShuttles.get(dstPrefix);
+                
+                if (dstShuttle != null) {
+                    dstShuttle.send(message);
+                }
+            }
             
-            // Clear out the messages we just sent from the cache.
             messageCache.httpToSystemClear(id);
 
             
 
             
-            // Get new messages and add them to cache
+            // Push out outgoing messages
             List<Message> rawSystemToHttpMessages = (List<Message>) toHttpBus.pull(0L, TimeUnit.NANOSECONDS).stream();
             messageCache.systemToHttpAppend(id, rawSystemToHttpMessages);
             
-            // Get pending messages for this http address
             MessageBlock systemToHttpMessages = messageCache.httpToSystemRead(id);
             
-            // Create and send out bundle
             int systemToHttpOffset = systemToHttpMessages.getStartSequenceOffset();
             int httpToSystemOffset = httpToSystemMessages.getStartSequenceOffset();
             SystemToHttpBundle systemToHttpBundle = new SystemToHttpBundle(

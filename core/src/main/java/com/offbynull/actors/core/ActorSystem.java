@@ -17,27 +17,30 @@
 package com.offbynull.actors.core;
 
 import com.offbynull.actors.core.actor.ActorRunner;
+import com.offbynull.actors.core.gateway.Gateway;
+import com.offbynull.coroutines.user.Coroutine;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.offbynull.actors.core.checkpoint.Checkpointer;
 import com.offbynull.actors.core.checkpoint.NullCheckpointer;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_LOG;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_RUNNER;
+import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_SERVLET;
 import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_TIMER;
-import com.offbynull.actors.core.gateway.Gateway;
+import com.offbynull.actors.core.gateway.servlet.ServletGateway;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.actors.core.gateways.log.LogGateway;
 import com.offbynull.actors.core.gateways.timer.TimerGateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
-import com.offbynull.coroutines.user.Coroutine;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Supplier;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import com.offbynull.actors.core.checkpoint.Checkpointer;
+import org.apache.commons.lang3.Validate;
 
 /**
  * Actor system.
@@ -49,9 +52,7 @@ public final class ActorSystem implements AutoCloseable {
     private final ActorRunner runner;
     private final Checkpointer checkpointer;
     
-    private final Set<Gateway> gateways;
-    
-    private final DirectGateway directGateway;
+    private final Map<String, Gateway> gateways;
 
     private ActorSystem(
             Map<String, ImmutablePair<Coroutine, Object[]>> actors,
@@ -60,26 +61,32 @@ public final class ActorSystem implements AutoCloseable {
             int runnerCores,
             Checkpointer runnerCheckpointer) {
         ActorRunner runner = null;
-        DirectGateway directGateway = null;
 
-        gateways = new HashSet<>();
+        gateways = new HashMap<>();
         
         try {
             this.checkpointer = runnerCheckpointer;
             
             for (Supplier<Gateway> gatewayFactory : gatewayFactories) {
-                gateways.add(gatewayFactory.get());
+                Gateway gateway = gatewayFactory.get();
+                String name = gateway.getIncomingShuttle().getPrefix();
+
+                Gateway existing = gateways.putIfAbsent(name, gateway);
+                if (existing != null) {
+                    try {
+                        gateway.close();
+                    } catch (Exception e) {
+                        // do nothing
+                    }
+                    
+                    throw new IllegalArgumentException("More than 1 gateway has the same prefix: " + name);
+                }
             }
         
             runner = ActorRunner.create(runnerName, runnerCores, runnerCheckpointer);
-            
-            directGateway = DirectGateway.create(DEFAULT_DIRECT);
-            gateways.add(TimerGateway.create(DEFAULT_TIMER));
-            gateways.add(LogGateway.create(DEFAULT_LOG));
-            gateways.add(directGateway);
 
-            for (Gateway gateway : gateways) {
-                bindGatewayToOthers(gateway, gateways, runner);
+            for (Gateway gateway : gateways.values()) {
+                bindGatewayToOthers(gateway, gateways.values(), runner);
             }
 
             for (Entry<String, ImmutablePair<Coroutine, Object[]>> entry : actors.entrySet()) {
@@ -106,7 +113,7 @@ public final class ActorSystem implements AutoCloseable {
                 }
             }
             
-            for (Gateway gateway : gateways) {
+            for (Gateway gateway : gateways.values()) {
                 if (gateway != null) {
                     try {
                         gateway.close();
@@ -120,10 +127,61 @@ public final class ActorSystem implements AutoCloseable {
         }
         
         this.runner = runner;
-        this.directGateway = directGateway;
     }
     
-    private static void bindGatewayToOthers(Gateway gateway, Set<Gateway> allGateways, ActorRunner runner) {
+    /**
+     * Get a gateway by its prefix.
+     * @param prefix prefix
+     * @return gateway with the prefix {@code prefix}
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if no gateway with the prefix {@code prefix} is found
+     */
+    public Gateway getGateway(String prefix) {
+        Validate.notNull(prefix);
+        Gateway gateway = gateways.get(prefix);
+        
+        Validate.isTrue(gateway != null, "%s not found", prefix);
+        
+        return gateway;
+    }
+    
+    /**
+     * Get the {@link DirectGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_DIRECT)}.
+     * @return direct gateway
+     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_DIRECT} is found
+     */
+    public Gateway getDirectGateway() {
+        return getGateway(DEFAULT_DIRECT);
+    }
+
+    /**
+     * Get the {@link ServletGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_SERVLET)}.
+     * @return servlet gateway
+     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_SERVLET} is found
+     */
+    public Gateway getServletGateway() {
+        return getGateway(DEFAULT_SERVLET);
+    }
+
+    /**
+     * Get the {@link LogGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_LOG)}.
+     * @return log gateway
+     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_LOG} is found
+     */
+    public Gateway getLogGateway() {
+        return getGateway(DEFAULT_LOG);
+    }
+
+    /**
+     * Get the {@link TimerGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_TIMER)}.
+     * @return timer gateway
+     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_TIMER} is found
+     */
+    public Gateway getTimerGateway() {
+        return getGateway(DEFAULT_TIMER);
+    }
+
+    private static void bindGatewayToOthers(Gateway gateway, Collection<Gateway> allGateways, ActorRunner runner) {
         // Add gateway to runner+gateways
         Shuttle gatewayShuttle = gateway.getIncomingShuttle();
         runner.addOutgoingShuttle(gatewayShuttle);
@@ -134,14 +192,6 @@ public final class ActorSystem implements AutoCloseable {
         // Add runner to gateway
         Shuttle runnerShuttle = runner.getIncomingShuttle();
         gateway.addOutgoingShuttle(runnerShuttle);
-    }
-
-    /**
-     * Get the direct gateway used for outside communication with this actor system.
-     * @return direct gateway
-     */
-    public DirectGateway getDirectGateway() {
-        return directGateway;
     }
     
     @Override
@@ -162,7 +212,7 @@ public final class ActorSystem implements AutoCloseable {
             }
         }
 
-        for (Gateway gateway : gateways) {
+        for (Gateway gateway : gateways.values()) {
             if (gateway != null) {
                 try {
                     gateway.close();
@@ -225,6 +275,38 @@ public final class ActorSystem implements AutoCloseable {
         public Builder withGatewayFactory(Supplier<Gateway> gatewayFactory) {
             gatewayFactories.add(gatewayFactory);
             return this;
+        }
+        
+        /**
+         * Equivalent to calling {@code withGatewayFactory(() -> DirectGateway.create(DEFAULT_DIRECT)) }.
+         * @return this builder
+         */
+        public Builder withDirectGateway() {
+            return withGatewayFactory(() -> DirectGateway.create(DEFAULT_DIRECT));
+        }
+        
+        /**
+         * Equivalent to calling {@code withGatewayFactory(() -> ServletGateway.create(DEFAULT_SERVLET)) }.
+         * @return this builder
+         */
+        public Builder withServletGateway() {
+            return withGatewayFactory(() -> ServletGateway.create(DEFAULT_SERVLET));
+        }
+        
+        /**
+         * Equivalent to calling {@code withGatewayFactory(() -> TimerGateway.create(DEFAULT_TIMER)) }.
+         * @return this builder
+         */
+        public Builder withTimerGateway() {
+            return withGatewayFactory(() -> TimerGateway.create(DEFAULT_TIMER));
+        }
+        
+        /**
+         * Equivalent to calling {@code withGatewayFactory(() -> LogGateway.create(DEFAULT_LOG)) }.
+         * @return this builder
+         */
+        public Builder withLogGateway() {
+            return withGatewayFactory(() -> LogGateway.create(DEFAULT_LOG));
         }
 
         /**

@@ -42,6 +42,9 @@ public class ActorSystemTest {
         try (ActorSystem actorSystem = ActorSystem.builder()
                 .withRunnerCoreCount(1)
                 .withRunnerName("local")
+                .withLogGateway()
+                .withTimerGateway()
+                .withDirectGateway()
                 .withActor("echoer", echoer, new Object())
                 .withActor("sender", sender, new Object())
                 .build()) {

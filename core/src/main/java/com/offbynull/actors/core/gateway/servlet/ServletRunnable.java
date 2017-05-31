@@ -35,15 +35,16 @@ class ServletRunnable implements Runnable {
     private final ConcurrentHashMap<String, Shuttle> outgoingShuttles;
     private final Bus toHttpBus;
 
-    public ServletRunnable(String prefix, Bus bus) {
+    public ServletRunnable(String prefix, Bus bus, long sessionTimeout) {
         Validate.notNull(prefix);
         Validate.notNull(bus);
+        Validate.isTrue(sessionTimeout > 0L);
         this.prefix = prefix;
         this.inBus = bus;
 
         this.outgoingShuttles = new ConcurrentHashMap<>();
         this.toHttpBus = new Bus();
-        this.servlet = new MessageGatewayServlet(prefix, outgoingShuttles, toHttpBus);
+        this.servlet = new MessageGatewayServlet(prefix, outgoingShuttles, toHttpBus, sessionTimeout);
     }
 
     @Override

@@ -43,9 +43,11 @@ final class MessageGatewayServlet extends HttpServlet {
     private final ConcurrentHashMap<String, Shuttle> outgoingShuttles;
     private final Bus toHttpBus;
     
-    MessageGatewayServlet(String prefix, ConcurrentHashMap<String, Shuttle> outgoingShuttles, Bus toHttpBus) {
+    MessageGatewayServlet(String prefix, ConcurrentHashMap<String, Shuttle> outgoingShuttles, Bus toHttpBus, long sessionTimeout) {
         Validate.notNull(prefix);
         Validate.notNull(outgoingShuttles);
+        Validate.notNull(toHttpBus);
+        Validate.isTrue(sessionTimeout > 0L);
 
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(Message.class, new MessageJsonDeserializer(prefix));
@@ -54,7 +56,7 @@ final class MessageGatewayServlet extends HttpServlet {
         gsonBuilder.registerTypeAdapter(SystemToHttpBundle.class, new SystemToHttpBundleJsonSerializer(prefix));
         gson = gsonBuilder.serializeNulls().create();
         
-        this.messageCache = new InMemoryMessageCache(60000L);
+        this.messageCache = new InMemoryMessageCache(sessionTimeout);
 
         this.outgoingShuttles = outgoingShuttles;
         this.toHttpBus = toHttpBus;

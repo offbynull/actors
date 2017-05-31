@@ -44,21 +44,34 @@ public final class ServletGateway implements Gateway {
     /**
      * Create a {@link ServletGateway} instance.
      * @param prefix address prefix for this gateway
+     * @param sessionTimeout timeout for http clients (in milliseconds)
+     * @return new servlet gateway
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code sessionTimeout <= 0L}
+     */
+    public static ServletGateway create(String prefix, long sessionTimeout) {
+        ServletGateway gateway = new ServletGateway(prefix, sessionTimeout);
+        gateway.thread.start();
+        return gateway;
+    }
+
+    /**
+     * Create a {@link ServletGateway} instance. Equivalent to calling {@code create(prefix, 60000L)}.
+     * @param prefix address prefix for this gateway
      * @return new servlet gateway
      * @throws NullPointerException if any argument is {@code null}
      */
     public static ServletGateway create(String prefix) {
-        ServletGateway gateway = new ServletGateway(prefix);
-        gateway.thread.start();
-        return gateway;
+        return create(prefix, 60000L);
     }
     
-    private ServletGateway(String prefix) {
+    private ServletGateway(String prefix, long sessionTimeout) {
         Validate.notNull(prefix);
+        Validate.isTrue(sessionTimeout > 0L);
 
         bus = new Bus();
         inShuttle = new NullShuttle(prefix);
-        thread = new Thread(new ServletRunnable(prefix, bus));
+        thread = new Thread(new ServletRunnable(prefix, bus, sessionTimeout));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
     }

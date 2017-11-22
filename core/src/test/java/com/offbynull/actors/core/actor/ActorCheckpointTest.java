@@ -2,9 +2,8 @@
 package com.offbynull.actors.core.actor;
 
 import com.offbynull.actors.core.checkpoint.FileSystemCheckpointer;
-import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
-import com.offbynull.actors.core.context.ObjectStreamSerializer;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.RELEASE;
+import com.offbynull.actors.core.checkpoint.ObjectStreamSerializer;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.coroutines.user.Coroutine;
 import java.io.Serializable;
@@ -44,7 +43,7 @@ public class ActorCheckpointTest {
             
             Coroutine actor0 = (Serializable & Coroutine) cnt -> {
                 Context ctx = (Context) cnt.getContext();
-                ctx.allow();
+                ctx.ruleSet().allowAll();
                 ctx.out("direct", "ready");
 
                 int counter = 10;
@@ -78,7 +77,7 @@ public class ActorCheckpointTest {
     public void mustRestoreStateAfterFullRestart() throws Exception {
         Coroutine actor0 = (Serializable & Coroutine) cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.out("direct", "ready");
 
             int counter = 0;
@@ -142,7 +141,7 @@ public class ActorCheckpointTest {
     public void mustDropStateAfterActorTermination() throws Exception {
         Coroutine actor0 = (Serializable & Coroutine) cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.out("direct", "ready");
 
             int counter = 0;
@@ -206,7 +205,7 @@ public class ActorCheckpointTest {
     public void mustRestoreActiveActorOnRestart() throws Exception {
         Coroutine actor0 = (Serializable & Coroutine) cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.out("direct", "ready");
             
             String msg;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@ final class AddActor {
     private final Coroutine actor;
     private final UnmodifiableCollection<Object> primingMessages;
 
-    public AddActor(String id, Coroutine actor, Object... primingMessages) {
+    AddActor(String id, Coroutine actor, Object... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(actor);
         Validate.notNull(primingMessages);

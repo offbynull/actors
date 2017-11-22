@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.core.checkpoint;
 
-import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.actor.Context;
 import com.offbynull.actors.core.shuttle.Address;
 
 /**
@@ -39,7 +39,7 @@ public interface Checkpointer extends AutoCloseable {
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code ctx} is not for a root actor
      */
-    boolean save(SourceContext ctx);
+    boolean save(Context ctx);
 
     /**
      * Restore checkpointed actor.
@@ -50,7 +50,7 @@ public interface Checkpointer extends AutoCloseable {
      * @return context restored from save, or {@code null} if no such address was checkpointed / if there was a problem accessing checkpoint
      * @throws NullPointerException if any argument is {@code null}
      */
-    SourceContext restore(Address address);
+    Context restore(Address address);
 
     /**
      * Delete checkpointed actor.

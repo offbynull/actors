@@ -1,7 +1,6 @@
 package com.offbynull.actors.core.checkpoint;
 
-import com.offbynull.actors.core.context.ObjectStreamSerializer;
-import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.actor.Context;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.coroutines.user.CoroutineRunner;
@@ -35,11 +34,11 @@ public class FileSystemCheckpointerTest {
     @Test
     public void mustSaveAndRestoreContext() throws Exception{
         Address self = Address.fromString("test1:test2");
-        SourceContext ctxIn = new SourceContext(new CoroutineRunner((Coroutine & Serializable) cnt -> {}), self);
+        Context ctxIn = new Context(new CoroutineRunner((Coroutine & Serializable) cnt -> {}), self);
         boolean checkpointed = fixture.save(ctxIn);
         assertTrue(checkpointed);
         
-        SourceContext ctxOut = fixture.restore(self);
+        Context ctxOut = fixture.restore(self);
         assertEquals(ctxIn.self(), ctxOut.self());
     }
     

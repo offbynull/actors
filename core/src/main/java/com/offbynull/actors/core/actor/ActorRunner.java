@@ -66,6 +66,17 @@ import com.offbynull.actors.core.checkpoint.Checkpointer;
  */
 public final class ActorRunner implements AutoCloseable {
     
+    /**
+     * Default address to actor runner as String.
+     */
+    public static final String DEFAULT_RUNNER = "runner";
+    
+    /**
+     * Default address to actor runner.
+     */
+    public static final Address DEFAULT_RUNNER_ADDRESS = Address.of(DEFAULT_RUNNER);
+
+
     private static final Logger LOG = LoggerFactory.getLogger(ActorRunner.class);
     
     private final String prefix;

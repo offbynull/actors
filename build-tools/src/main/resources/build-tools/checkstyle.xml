@@ -41,12 +41,9 @@
     <module name="RegexpHeader">
         <property name="headerFile" value="${checkstyle.header.file}"/> 
     </module>
-
-    <module name="SuppressionCommentFilter"/>
     
     <module name="TreeWalker">
-        <!-- Required by SupressionCommentFilter -->
-        <module name="FileContentsHolder"/>
+        <module name="SuppressionCommentFilter" />
 
         <!-- Checks for Javadoc comments.                     -->
         <!-- See http://checkstyle.sf.net/config_javadoc.html -->

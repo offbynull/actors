@@ -16,8 +16,7 @@
  */
 package com.offbynull.actors.core.checkpoint;
 
-import com.offbynull.actors.core.context.Serializer;
-import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.actor.Context;
 import com.offbynull.actors.core.shuttle.Address;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -105,7 +104,7 @@ public final class FileSystemCheckpointer implements Checkpointer {
     }
 
     @Override
-    public boolean save(SourceContext ctx) {
+    public boolean save(Context ctx) {
         Validate.notNull(ctx);
         Validate.isTrue(ctx.isRoot());
 
@@ -132,7 +131,7 @@ public final class FileSystemCheckpointer implements Checkpointer {
     }
 
     @Override
-    public SourceContext restore(Address address) {
+    public Context restore(Address address) {
         Validate.notNull(address);
         
         String filename;
@@ -153,9 +152,9 @@ public final class FileSystemCheckpointer implements Checkpointer {
             return null;
         }
 
-        SourceContext ctx;
+        Context ctx;
         try {
-            ctx = serializer.unserialize(data);
+            ctx = serializer.deserialize(data);
         } catch (IllegalArgumentException iae) {
             LOG.error("Unable to unserialize file {}", savedFilepath, iae);
             return null;

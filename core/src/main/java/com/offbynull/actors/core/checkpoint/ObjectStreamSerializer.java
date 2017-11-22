@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.context;
+package com.offbynull.actors.core.checkpoint;
 
+import com.offbynull.actors.core.actor.Context;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -30,7 +31,7 @@ import org.apache.commons.lang3.Validate;
 public final class ObjectStreamSerializer implements Serializer {
 
     @Override
-    public byte[] serialize(SourceContext ctx) {
+    public byte[] serialize(Context ctx) {
         Validate.notNull(ctx);
         
         byte[] ret;
@@ -46,12 +47,12 @@ public final class ObjectStreamSerializer implements Serializer {
     }
 
     @Override
-    public SourceContext unserialize(byte[] data) {
+    public Context deserialize(byte[] data) {
         Validate.notNull(data);
         
-        SourceContext ctx;
+        Context ctx;
         try (ByteArrayInputStream bais = new ByteArrayInputStream(data); ObjectInputStream ois = new ObjectInputStream(bais)) {
-            ctx = (SourceContext) ois.readObject();
+            ctx = (Context) ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

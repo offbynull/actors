@@ -16,11 +16,13 @@
  */
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.BatchedCreateActorCommand;
-import com.offbynull.actors.core.context.SourceContext;
-import com.offbynull.actors.core.context.BatchedOutgoingMessage;
-import com.offbynull.actors.core.context.Context.CheckpointRestoreLogic;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.RELEASE;
+import com.offbynull.actors.core.actor.Context.BatchedCreateActorCommand;
+import com.offbynull.actors.core.actor.Context.BatchedOutgoingMessage;
+import com.offbynull.actors.core.actor.Context.CheckpointRestoreLogic;
+import com.offbynull.actors.core.actor.Context.ShortcircuitLogic;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.FORWARD_AND_RELEASE;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.FORWARD_AND_RETURN;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.RELEASE;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
@@ -123,15 +125,15 @@ final class ActorRunnable implements Runnable {
 
     private void processManagementMessage(Object msg, Map<String, LoadedActor> actors, List<Message> outgoingMessages,
             Map<String, Shuttle> outgoingShuttles) {
-        LOG.debug("Processing management message: {}" , msg);
+        LOG.debug("Processing management message: {}", msg);
         if (msg instanceof AddActor) {
             AddActor aam = (AddActor) msg;
             
             Address self = Address.of(prefix, aam.getId());
             CoroutineRunner actorRunner = new CoroutineRunner(aam.getActor());
-            SourceContext ctx = new SourceContext(actorRunner, self);
+            Context ctx = new Context(actorRunner, self);
             
-            actorRunner.setContext(ctx.toNormalContext());
+            actorRunner.setContext(ctx);
             
             LoadedActor existingActor = actors.putIfAbsent(aam.getId(), new LoadedActor(ctx));
             
@@ -176,7 +178,7 @@ final class ActorRunnable implements Runnable {
         Address actorAddr = Address.of(dstPrefix, dstActorId);
 
         LoadedActor loadedActor = actors.get(dstActorId);
-        SourceContext ctx;
+        Context ctx;
         if (loadedActor == null) {
             LOG.warn("Actor not found in memory for {} (dst={} msg={})", actorAddr, dst, msg);
             ctx = checkpointer.restore(actorAddr);
@@ -203,7 +205,7 @@ final class ActorRunnable implements Runnable {
             ctx = loadedActor.context;
         }
         
-        boolean shutdown = SourceContext.fire(ctx, src, dst, Instant.now(), msg);
+        boolean shutdown = fire(ctx, src, dst, Instant.now(), msg);
         if (shutdown) {
             LOG.debug("Actor shut down {} -- removing from memory and removing from checkpoint", actorAddr);
             checkpointer.delete(actorAddr);
@@ -272,7 +274,7 @@ final class ActorRunnable implements Runnable {
         return incomingShuttle;
     }
 
-    void addActor(String id, Coroutine coroutine, Object ... primingMessages) {
+    void addActor(String id, Coroutine coroutine, Object... primingMessages) {
         Validate.notNull(id);
         Validate.notNull(coroutine);
         Validate.notNull(primingMessages);
@@ -301,11 +303,185 @@ final class ActorRunnable implements Runnable {
     }
     
     private static final class LoadedActor {
-        private final SourceContext context;
+        private final Context context;
 
-        public LoadedActor(SourceContext context) {
+        LoadedActor(Context context) {
             Validate.notNull(context);
             this.context = context;
+        }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    /**
+     * Fire a message to the actor associated with this context. If the destination is a child actor, the message will be correctly routed.
+     * @param ctx starting context
+     * @param src source
+     * @param dst destination
+     * @param time execution time
+     * @param msg incoming message
+     * @return {@code false} if the actor is still active, {@code true} if it should be discarded
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static boolean fire(Context ctx, Address src, Address dst, Instant time, Object msg) {
+        Validate.notNull(ctx);
+        Validate.notNull(src);
+        Validate.notNull(dst);
+        Validate.notNull(time);
+        Validate.notNull(msg);
+
+
+        // Walk up the context chain until you reach the topmost actor
+        while (ctx.parent() != null) {
+            ctx = ctx.parent();
+        }
+        
+        return fireRecurse(ctx, src, dst, time, msg);
+    }
+    
+    private static boolean fireRecurse(Context ctx, Address src, Address dst, Instant time, Object msg) {
+        if (ctx == null) {
+            return false;
+        }
+        
+        
+        
+        if (ctx.self().equals(dst)) {
+            // The message is for us. There's no further child to recurse to so process and get out.
+            ctx.mode(RELEASE);
+            boolean done = invoke(ctx, src, dst, time, msg);
+            return done;
+        }
+        
+        
+        
+        
+        if (ctx.intercept()) {
+            // The message is for one of our children, but we want to intercept it....
+            boolean done = invoke(ctx, src, dst, time, msg);
+            if (done) {
+                ctx.mode(RELEASE);
+                return true; // we are the main actor and we died/finished OR we are a child actor that had an error, so return
+            }
+
+            if (ctx.mode() == RELEASE) {
+                ctx.mode(RELEASE);
+                return false; // we gave instructions NOT to forward, so return
+            }
+        }
+        
+        
+        
+        // Recurse down 1 level
+        String childId = dst.removePrefix(ctx.self()).getElement(0);
+        Context childCtx = ctx.getChildContext(childId);
+        if (childCtx != null) {
+            fireRecurse(childCtx, src, dst, time, msg);
+        }
+
+        
+        
+        
+        if (ctx.intercept() && ctx.mode() == FORWARD_AND_RETURN) {
+            // If we intercepted this message and forwarded it + asked control to be returned back to the forwarder
+            boolean done = invoke(ctx, src, dst, time, msg);
+            if (done) {
+                ctx.mode(RELEASE);
+                return true;
+            }
+            
+            // If were instructed to forward to children at this point, something is wrong with the actor logic. We're releasing control
+            // back to the actor from a forward for cleanup purposes. It makes zero sense to try to forward again. As such, kill the entire
+            // actor stream
+            if (ctx.mode() == FORWARD_AND_RETURN || ctx.mode() == FORWARD_AND_RELEASE) {
+                LOG.error("Actor " + dst + " is instructing to forward on release from a forward -- not allowed");
+                ctx.mode(RELEASE);
+                return true;
+            }
+        }
+
+        
+        
+        // Return okay status
+        ctx.mode(RELEASE);
+        return false;
+    }
+    
+    private static boolean invoke(Context ctx, Address src, Address dst, Instant time, Object msg) {
+        if (ctx.ruleSet().evaluate(src, msg.getClass()) != RuleSet.AccessType.ALLOW) {
+            LOG.warn("Actor ruleset rejected message: id={} message={}", dst, msg);
+            return false;
+        }
+
+        
+        LOG.debug("Processing message from {} to {} {}", src, dst, msg);
+        
+        ctx.in(msg);
+        ctx.source(src);
+        ctx.destination(dst);
+        ctx.time(time);
+        
+        try {
+            ShortcircuitLogic shortcircuit = ctx.shortcircuits().get(msg.getClass());
+            
+            boolean finished;
+            if (shortcircuit != null) {
+                Context.ShortcircuitAction action = shortcircuit.perform(ctx);
+                
+                switch (action) {
+                    case PASS:
+                        // ShortcircuitLogic asked us to ignore running the actor
+                        finished = false;
+                        break;
+                    case PROCESS:
+                        // ShortcircuitLogic asked us to run the actor as we normally would
+                        finished = !ctx.runner().execute();
+                        break;
+                    case TERMINATE:
+                        // ShortcircuitLogic asked us to terminate the actor
+                        finished = true;
+                        break;
+                    default:
+                        // This should never happen
+                        throw new IllegalStateException("Unknown action encountered: " + action);
+                }
+            } else {
+                // No shortcircuit for this msg type -- run the actor as normal
+                finished = !ctx.runner().execute();
+            }
+            
+            // Reset context fields
+            ctx.in(null);
+            ctx.source(null);
+            ctx.destination(null);
+            ctx.time(null);
+            
+            if (!finished) {
+                // The actor (regardless of if it's the root actor or a child actor) is still running, so return false to prevent the root
+                // actor from being discarded
+                return false;
+            }
+            
+            if (ctx.parent() == null) {
+                // Main/root actor finished, return true to indicate that the main/root actor should be discarded
+                return true;
+            } else {
+                // Child actor finished, remove the child from the parent but return false because the main/root actor isn't effected (it
+                // should keep running)
+                String childId = dst.getElement(dst.size() - 1);
+                ctx.parent().children().remove(childId);
+                return false;
+            }
+        } catch (Exception e) {
+            // An unhandled exception occured -- return true to indicate that the main/root actor should be discarded
+            LOG.error("Actor " + dst + " threw an exception, shutting down the main actor", e);
+            return true;
         }
     }
 }

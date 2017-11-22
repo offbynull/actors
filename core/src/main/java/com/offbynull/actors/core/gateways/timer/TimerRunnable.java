@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -45,7 +45,7 @@ final class TimerRunnable implements Runnable {
     private final PriorityQueue<PendingMessage> queue;
     private final Bus bus;
 
-    public TimerRunnable(Bus bus) {
+    TimerRunnable(Bus bus) {
         Validate.notNull(bus);
         outgoingShuttles = new HashMap<>();
         queue = new PriorityQueue<>(new PendingMessageSendTimeComparator());
@@ -168,7 +168,7 @@ final class TimerRunnable implements Runnable {
         private final Address to;
         private final Object message;
 
-        public PendingMessage(Instant sendTime, Address from, Address to, Object message) {
+        PendingMessage(Instant sendTime, Address from, Address to, Object message) {
             Validate.notNull(sendTime);
             Validate.notNull(from);
             Validate.notNull(to);

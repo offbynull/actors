@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 final class RemoveShuttle {
     private final String prefix;
 
-    public RemoveShuttle(String prefix) {
+    RemoveShuttle(String prefix) {
         Validate.notNull(prefix);
         this.prefix = prefix;
     }

@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
 
 /**
  * {@link Gateway} that allows you read and write messages using normal Java code.
@@ -65,6 +64,17 @@ import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
  * @author Kasra Faghihi
  */
 public final class DirectGateway implements Gateway {
+
+    /**
+     * Default address to direct gateway as String.
+     */
+    public static final String DEFAULT_DIRECT = "direct";
+
+    /**
+     * Default address to direct gateway.
+     */
+    public static final Address DEFAULT_DIRECT_ADDRESS = Address.of(DEFAULT_DIRECT);
+
 
     private final Thread thread;
     private final Bus bus;
@@ -185,7 +195,7 @@ public final class DirectGateway implements Gateway {
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      * @throws IllegalArgumentException if any source address in {@code messages} does not start with this gateway's prefix
      */
-    public void writeMessages(Message ... messages) {
+    public void writeMessages(Message... messages) {
         Validate.notNull(messages);
         
         String prefix = shuttle.getPrefix();

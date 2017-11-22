@@ -122,7 +122,7 @@ public final class Address implements Serializable {
      * @throws IllegalArgumentException if any element in {@code elements} is malformed (not printable US-ASCII), or if {@code offset} is
      * {@code < 0 || > elements.length}
      */
-    public static Address of(String ... elements) {
+    public static Address of(String... elements) {
         Validate.notNull(elements);
         Validate.noNullElements(elements);
 
@@ -139,12 +139,16 @@ public final class Address implements Serializable {
         for (char ch : elementChars) {
             Validate.isTrue(ch >= 0x20 && ch < 0x7F, "Not printable ASCII"); // this should cause surrogate pairs to fail as well, which is
             // what we want!
-            if (ch == DELIM) {
-                stringBuilder.append(ESCAPE).append(DELIM);
-            } else if (ch == ESCAPE) {
-                stringBuilder.append(ESCAPE).append(ESCAPE);
-            } else {
-                stringBuilder.append(ch);
+            switch (ch) {
+                case DELIM:
+                    stringBuilder.append(ESCAPE).append(DELIM);
+                    break;
+                case ESCAPE:
+                    stringBuilder.append(ESCAPE).append(ESCAPE);
+                    break;
+                default:
+                    stringBuilder.append(ch);
+                    break;
             }
         }
 
@@ -166,12 +170,15 @@ public final class Address implements Serializable {
             // what we want!
 
             if (escapeMode) {
-                if (ch == DELIM) {
-                    stringBuilder.append(DELIM);
-                } else if (ch == ESCAPE) {
-                    stringBuilder.append(ESCAPE);
-                } else {
-                    throw new IllegalArgumentException("Unrecognized escape sequence: " + (char) ch);
+                switch (ch) {
+                    case DELIM:
+                        stringBuilder.append(DELIM);
+                        break;
+                    case ESCAPE:
+                        stringBuilder.append(ESCAPE);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unrecognized escape sequence: " + (char) ch);
                 }
                 
                 escapeMode = false;
@@ -237,7 +244,7 @@ public final class Address implements Serializable {
      * @return copy of this address with {@code elements} appended
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
-    public Address appendSuffix(String ... elements) {
+    public Address appendSuffix(String... elements) {
         Validate.notNull(elements);
         Validate.noNullElements(elements);
         return appendSuffix(Address.of(elements));

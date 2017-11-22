@@ -1,10 +1,9 @@
 
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.ShortcircuitAction.PASS;
-import static com.offbynull.actors.core.context.Context.ShortcircuitAction.PROCESS;
-import static com.offbynull.actors.core.context.Context.ShortcircuitAction.TERMINATE;
+import static com.offbynull.actors.core.actor.Context.ShortcircuitAction.PASS;
+import static com.offbynull.actors.core.actor.Context.ShortcircuitAction.PROCESS;
+import static com.offbynull.actors.core.actor.Context.ShortcircuitAction.TERMINATE;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.coroutines.user.Coroutine;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +37,7 @@ public class ActorShortcircuitTest {
     public void mustShortcircuitPassOnIntegerTypes() throws Exception {
         Coroutine actor0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.shortcircuit(Integer.class, _ctx -> {
                 _ctx.out("saw integer");
                 return PASS;
@@ -67,7 +66,7 @@ public class ActorShortcircuitTest {
     public void mustShortcircuitProcessOnIntegerTypes() throws Exception {
         Coroutine actor0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.shortcircuit(Integer.class, _ctx -> {
                 _ctx.out("saw integer");
                 return PROCESS;
@@ -97,7 +96,7 @@ public class ActorShortcircuitTest {
     public void mustShortcircuitTerminateOnIntegerTypes() throws Exception {
         Coroutine actor0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.shortcircuit(Integer.class, _ctx -> {
                 _ctx.out("saw integer");
                 return TERMINATE;
@@ -126,7 +125,7 @@ public class ActorShortcircuitTest {
     public void mustOverrideAndRemoveShortcircuit() throws Exception {
         Coroutine actor0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct", "ready");
             ctx.shortcircuit(Integer.class, _ctx -> {

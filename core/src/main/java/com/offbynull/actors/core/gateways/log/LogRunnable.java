@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,7 @@ final class LogRunnable implements Runnable {
 
     private final Bus bus;
 
-    public LogRunnable(Bus bus) {
+    LogRunnable(Bus bus) {
         Validate.notNull(bus);
         this.bus = bus;
     }

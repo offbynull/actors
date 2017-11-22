@@ -26,15 +26,13 @@ import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import com.offbynull.actors.core.checkpoint.Checkpointer;
 import com.offbynull.actors.core.checkpoint.NullCheckpointer;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_DIRECT;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_LOG;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_RUNNER;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_SERVLET;
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_TIMER;
-import com.offbynull.actors.core.gateway.servlet.ServletGateway;
+import static com.offbynull.actors.core.actor.ActorRunner.DEFAULT_RUNNER;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
+import static com.offbynull.actors.core.gateways.direct.DirectGateway.DEFAULT_DIRECT;
 import com.offbynull.actors.core.gateways.log.LogGateway;
+import static com.offbynull.actors.core.gateways.log.LogGateway.DEFAULT_LOG;
 import com.offbynull.actors.core.gateways.timer.TimerGateway;
+import static com.offbynull.actors.core.gateways.timer.TimerGateway.DEFAULT_TIMER;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -152,15 +150,6 @@ public final class ActorSystem implements AutoCloseable {
      */
     public Gateway getDirectGateway() {
         return getGateway(DEFAULT_DIRECT);
-    }
-
-    /**
-     * Get the {@link ServletGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_SERVLET)}.
-     * @return servlet gateway
-     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_SERVLET} is found
-     */
-    public Gateway getServletGateway() {
-        return getGateway(DEFAULT_SERVLET);
     }
 
     /**
@@ -284,15 +273,7 @@ public final class ActorSystem implements AutoCloseable {
         public Builder withDirectGateway() {
             return withGatewayFactory(() -> DirectGateway.create(DEFAULT_DIRECT));
         }
-        
-        /**
-         * Equivalent to calling {@code withGatewayFactory(() -> ServletGateway.create(DEFAULT_SERVLET)) }.
-         * @return this builder
-         */
-        public Builder withServletGateway() {
-            return withGatewayFactory(() -> ServletGateway.create(DEFAULT_SERVLET));
-        }
-        
+
         /**
          * Equivalent to calling {@code withGatewayFactory(() -> TimerGateway.create(DEFAULT_TIMER)) }.
          * @return this builder
@@ -317,7 +298,7 @@ public final class ActorSystem implements AutoCloseable {
          * @see ActorRunner#addActor(java.lang.String, com.offbynull.coroutines.user.Coroutine, java.lang.Object...) 
          * @return this builder
          */
-        public Builder withActor(String id, Coroutine actor, Object ... primingMessages) {
+        public Builder withActor(String id, Coroutine actor, Object... primingMessages) {
             actors.put(id, ImmutablePair.of(actor, primingMessages));
             return this;
         }

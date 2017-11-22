@@ -1,6 +1,5 @@
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.Context;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.actors.core.shuttles.test.CaptureShuttle;
 import com.offbynull.actors.core.shuttles.test.NullShuttle;
@@ -33,7 +32,7 @@ public class ActorRunnerTest {
                 "echoer",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.allow();
+                    ctx.ruleSet().allowAll();
                     
                     cnt.suspend();
                     
@@ -44,7 +43,7 @@ public class ActorRunnerTest {
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.allow();
+                    ctx.ruleSet().allowAll();
                     ctx.out("local:echoer", "hi");
                     
                     cnt.suspend();
@@ -70,7 +69,7 @@ public class ActorRunnerTest {
                     "sender",
                     (Continuation cnt) -> {
                         Context ctx = (Context) cnt.getContext();
-                        ctx.allow();
+                        ctx.ruleSet().allowAll();
                         
                         cnt.suspend();
                         assertEquals("ready", ctx.in());
@@ -86,7 +85,7 @@ public class ActorRunnerTest {
                     "echoer",
                     (Continuation cnt) -> {
                         Context ctx = (Context) cnt.getContext();
-                        ctx.allow();
+                        ctx.ruleSet().allowAll();
                         ctx.out("local:sender", "ready");
                         
                         cnt.suspend();
@@ -148,7 +147,7 @@ public class ActorRunnerTest {
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.allow();
+                    ctx.ruleSet().allowAll();
                     ctx.out("fake", "1");
                     ctx.out("local:sender", new Object());
         
@@ -186,7 +185,7 @@ public class ActorRunnerTest {
                 "sender",
                 (Continuation cnt) -> {
                     Context ctx = (Context) cnt.getContext();
-                    ctx.allow();
+                    ctx.ruleSet().allowAll();
                     ctx.out("fake", "1");
                     ctx.out("local:sender", new Object());
         

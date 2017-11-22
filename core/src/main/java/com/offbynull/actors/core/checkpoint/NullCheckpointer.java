@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.core.checkpoint;
 
-import com.offbynull.actors.core.context.SourceContext;
+import com.offbynull.actors.core.actor.Context;
 import com.offbynull.actors.core.shuttle.Address;
 import org.apache.commons.lang3.Validate;
 
@@ -27,14 +27,14 @@ import org.apache.commons.lang3.Validate;
 public final class NullCheckpointer implements Checkpointer {
 
     @Override
-    public boolean save(SourceContext ctx) {
+    public boolean save(Context ctx) {
         Validate.notNull(ctx);
         Validate.isTrue(ctx.isRoot());
         return false;
     }
 
     @Override
-    public SourceContext restore(Address address) {
+    public Context restore(Address address) {
         Validate.notNull(address);
         return null;
     }

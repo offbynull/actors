@@ -1,7 +1,6 @@
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD_AND_RELEASE;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.FORWARD_AND_RELEASE;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.actors.core.shuttle.Address;
@@ -66,7 +65,7 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
-            ctx.block();
+            ctx.ruleSet().rejectAll();
             
             ctx.out("direct1", "ready");
 
@@ -91,8 +90,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
-            ctx.block();
-            ctx.allow("direct1", false);
+            ctx.ruleSet().rejectAll();
+            ctx.ruleSet().allow("direct1", false);
             
             ctx.out("direct1", "ready");
 
@@ -116,7 +115,7 @@ public class ActorFilterTest {
     public void mustBlockChildren() throws Exception { // direct is accept but children of direct are rejected
         Coroutine level1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
 
@@ -132,9 +131,9 @@ public class ActorFilterTest {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
             
-            ctx.block();
-            ctx.allow(ctx.self(), true);
-            ctx.allow("direct1", false);
+            ctx.ruleSet().rejectAll();
+            ctx.ruleSet().allow(ctx.self(), true);
+            ctx.ruleSet().allow("direct1", false);
             
             ctx.child("level1", level1, new Object());
             
@@ -168,7 +167,7 @@ public class ActorFilterTest {
     public void mustBlockExceptForAllowedAddressAndItsChildren() throws Exception {
         Coroutine level1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
 
@@ -184,9 +183,9 @@ public class ActorFilterTest {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
             
-            ctx.block();
-            ctx.allow(ctx.self(), true);
-            ctx.allow("direct1", true);
+            ctx.ruleSet().rejectAll();
+            ctx.ruleSet().allow(ctx.self(), true);
+            ctx.ruleSet().allow("direct1", true);
             
             ctx.child("level1", level1, new Object());
             
@@ -220,7 +219,7 @@ public class ActorFilterTest {
     public void mustBlockExceptForAllowedAddressAndItsChildrenButNotOneSpecificChild() throws Exception {
         Coroutine level3 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
 
@@ -234,7 +233,7 @@ public class ActorFilterTest {
 
         Coroutine level2 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
             ctx.child("level3", level3, new Object()); // prime msg will never reach level3 because it's blocked at level0
@@ -249,7 +248,7 @@ public class ActorFilterTest {
 
         Coroutine level1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
             ctx.child("level2", level2, new Object());
@@ -266,10 +265,10 @@ public class ActorFilterTest {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
             
-            ctx.block();
-            ctx.allow("runner:level0", true);
-            ctx.block("runner:level0:level1:level2:level3", false);
-            ctx.allow("direct1", false);
+            ctx.ruleSet().rejectAll();
+            ctx.ruleSet().allow("runner:level0", true);
+            ctx.ruleSet().reject("runner:level0:level1:level2:level3", false);
+            ctx.ruleSet().allow("direct1", false);
             
             ctx.child("level1", level1, new Object());
             
@@ -318,7 +317,7 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
 
@@ -343,8 +342,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
-            ctx.allow();
-            ctx.block("direct2", false);
+            ctx.ruleSet().allowAll();
+            ctx.ruleSet().reject("direct2", false);
             
             ctx.out("direct1", "ready");
             ctx.out("direct2", "ready");
@@ -378,8 +377,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
-            ctx.allow();
-            ctx.block("direct2", true);
+            ctx.ruleSet().allowAll();
+            ctx.ruleSet().reject("direct2", true);
             
             ctx.out("direct1", "ready");
             ctx.out("direct2", "ready");
@@ -419,18 +418,18 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             ctx.intercept(true);
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct1", "ready");
             ctx.out("direct2", "ready");
             
-            ctx.block("direct2", true);
+            ctx.ruleSet().reject("direct2", true);
             cnt.suspend();
             if (ctx.source().getElement(0).startsWith("direct")) {
                 ctx.out(ctx.source(), ctx.in());
             }
             
-            ctx.allow("direct2", true);
+            ctx.ruleSet().allow("direct2", true);
             cnt.suspend();
             if (ctx.source().getElement(0).startsWith("direct")) {
                 ctx.out(ctx.source(), ctx.in());
@@ -463,8 +462,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             
-            ctx.block();
-            ctx.allow("direct1", true, String.class);
+            ctx.ruleSet().rejectAll();
+            ctx.ruleSet().allow("direct1", true, String.class);
             
             ctx.out("direct1", "ready");
             
@@ -496,8 +495,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             
-            ctx.block();
-            ctx.allow("direct1", true, Object.class);
+            ctx.ruleSet().rejectAll();
+            ctx.ruleSet().allow("direct1", true, Object.class);
             
             ctx.out("direct1", "ready");
             
@@ -536,8 +535,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             
-            ctx.allow();
-            ctx.block("direct1", true, Integer.class);
+            ctx.ruleSet().allowAll();
+            ctx.ruleSet().reject("direct1", true, Integer.class);
             
             ctx.out("direct1", "ready");
             
@@ -569,8 +568,8 @@ public class ActorFilterTest {
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
             
-            ctx.allow();
-            ctx.block("direct1", true, Object.class);
+            ctx.ruleSet().allowAll();
+            ctx.ruleSet().reject("direct1", true, Object.class);
             
             ctx.out("direct1", "ready");
             

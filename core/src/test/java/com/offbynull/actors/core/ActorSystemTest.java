@@ -1,6 +1,6 @@
 package com.offbynull.actors.core;
 
-import com.offbynull.actors.core.context.Context;
+import com.offbynull.actors.core.actor.Context;
 import com.offbynull.coroutines.user.Coroutine;
 import java.util.concurrent.CountDownLatch;
 import org.junit.Test;
@@ -14,7 +14,7 @@ public class ActorSystemTest {
         
         Coroutine echoer = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
 
             // Wait for message to come in to echo and echo it back
             cnt.suspend();
@@ -23,7 +23,7 @@ public class ActorSystemTest {
 
         Coroutine sender = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             // Pause for half a second to allow echoer actor to start up / initialize
             ctx.timer(500L, new Object());

@@ -1,8 +1,7 @@
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.Context;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD_AND_RELEASE;
-import static com.offbynull.actors.core.context.Context.SuspendFlag.FORWARD_AND_RETURN;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.FORWARD_AND_RELEASE;
+import static com.offbynull.actors.core.actor.Context.SuspendFlag.FORWARD_AND_RETURN;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
@@ -36,7 +35,7 @@ public class ActorChildSpawnTest {
     public void mustCommunicateWithTheCorrectChildActor() throws Exception {
         Coroutine level1_0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.out("direct", "ready");
 
             while (true) {
@@ -49,7 +48,7 @@ public class ActorChildSpawnTest {
         
         Coroutine level1_1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.out("direct", "ready");
 
             while (true) {
@@ -62,7 +61,7 @@ public class ActorChildSpawnTest {
         
         Coroutine level0 = (Continuation cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.child("level1_0", level1_0, new Object());
             ctx.child("level1_1", level1_1, new Object());
 
@@ -85,7 +84,7 @@ public class ActorChildSpawnTest {
     public void mustInterceptButNotForward() throws Exception {
         Coroutine level1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
 
             ctx.out("direct", "child ready!");
             while (true) {
@@ -99,7 +98,7 @@ public class ActorChildSpawnTest {
         
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.intercept(true);
 
             ctx.out("direct", "parent ready!");
@@ -128,7 +127,7 @@ public class ActorChildSpawnTest {
     public void mustInterceptAndForward() throws Exception {
         Coroutine level1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
 
             ctx.out("direct", "child ready!");
             while (true) {
@@ -142,7 +141,7 @@ public class ActorChildSpawnTest {
         
         Coroutine level0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.intercept(true);
 
             ctx.out("direct", "parent ready!");

@@ -16,8 +16,8 @@
  */
 package com.offbynull.actors.core.gateways.timer;
 
-import static com.offbynull.actors.core.common.DefaultAddresses.DEFAULT_TIMER;
 import com.offbynull.actors.core.gateway.Gateway;
+import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import com.offbynull.actors.core.shuttles.simple.SimpleShuttle;
@@ -55,6 +55,17 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class TimerGateway implements Gateway {
+
+    /**
+     * Default address to timer gateway as String.
+     */
+    public static final String DEFAULT_TIMER = "timer";
+
+    /**
+     * Default address to timer gateway.
+     */
+    public static final Address DEFAULT_TIMER_ADDRESS = Address.of(DEFAULT_TIMER);
+
 
     private final Thread thread;
     private final Bus bus;

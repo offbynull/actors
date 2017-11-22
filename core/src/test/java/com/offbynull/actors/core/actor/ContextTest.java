@@ -1,5 +1,6 @@
-package com.offbynull.actors.core.context;
+package com.offbynull.actors.core.actor;
 
+import com.offbynull.actors.core.actor.Context.BatchedOutgoingMessage;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.actors.core.shuttle.Address;
 import java.util.List;
@@ -8,13 +9,13 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SourceContextTest {
+public class ContextTest {
     
-    private SourceContext fixture;
+    private Context fixture;
     
     @Before
     public void setUp() {
-        fixture = new SourceContext(
+        fixture = new Context(
                 new CoroutineRunner(x -> { }),
                 Address.fromString("self"));
     }

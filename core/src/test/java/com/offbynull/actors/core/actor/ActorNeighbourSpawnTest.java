@@ -1,7 +1,6 @@
 
 package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.Context;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
 import com.offbynull.coroutines.user.Coroutine;
 import org.junit.After;
@@ -33,14 +32,14 @@ public class ActorNeighbourSpawnTest {
     public void mustSpawnRootActorFromAnotherRootActor() throws Exception {
         Coroutine actor1 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             
             ctx.out("direct", "ready from 1");
         };
         
         Coroutine actor0 = cnt -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
             ctx.out("direct", "ready from 0");
 
             ctx.neighbour("actor1", actor1, new Object());

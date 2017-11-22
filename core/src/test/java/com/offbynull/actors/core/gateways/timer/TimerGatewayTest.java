@@ -2,7 +2,7 @@ package com.offbynull.actors.core.gateways.timer;
 
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.core.actor.ActorRunner;
-import com.offbynull.actors.core.context.Context;
+import com.offbynull.actors.core.actor.Context;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import java.util.concurrent.ArrayBlockingQueue;
 import static org.junit.Assert.assertEquals;
@@ -16,7 +16,7 @@ public class TimerGatewayTest {
 
         Coroutine tester = (cnt) -> {
             Context ctx = (Context) cnt.getContext();
-            ctx.allow();
+            ctx.ruleSet().allowAll();
 
             String timerPrefix = ctx.in();
             ctx.out("local:tester", "timer:2000:extra", "msg");

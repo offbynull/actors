@@ -1,6 +1,7 @@
-package com.offbynull.actors.core.context;
+package com.offbynull.actors.core.actor;
 
-import com.offbynull.actors.core.context.RuleSet.AccessType;
+import com.offbynull.actors.core.actor.RuleSet;
+import com.offbynull.actors.core.actor.RuleSet.AccessType;
 import com.offbynull.actors.core.shuttle.Address;
 import org.junit.Test;
 import static org.junit.Assert.*;

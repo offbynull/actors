@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.context;
+package com.offbynull.actors.core.actor;
 
 import com.offbynull.actors.core.shuttle.Address;
 import java.io.Serializable;
@@ -66,11 +66,22 @@ public final class RuleSet implements Serializable {
      * @param types message types to allow through (if empty, all message types are allowed through)
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
-    public void allow(Address address, boolean includeChildren, Class<?> ... types) {
+    public void allow(Address address, boolean includeChildren, Class<?>... types) {
         Validate.notNull(address);
         Validate.notNull(types);
         Validate.noNullElements(types);
         rules.put(address, new AddressRule(includeChildren, AccessType.ALLOW, Arrays.asList(types)));
+    }
+
+    /**
+     * Equivalent to calling {@code allow(Address.fromString(source), children, types)}.
+     * @param source source address to allow messages from
+     * @param children if {@code true}, children of {@code source} will also be allowed
+     * @param types types of messages to allow (child types aren't recognized)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    public void allow(String source, boolean children, Class<?>... types) {
+        allow(Address.fromString(source), children, types);
     }
 
     /**
@@ -80,13 +91,24 @@ public final class RuleSet implements Serializable {
      * @param types message types to block (if empty, all message types are blocked)
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
      */
-    public void reject(Address address, boolean includeChildren, Class<?> ... types) {
+    public void reject(Address address, boolean includeChildren, Class<?>... types) {
         Validate.notNull(address);
         Validate.notNull(types);
         Validate.noNullElements(types);
         rules.put(address, new AddressRule(includeChildren, AccessType.REJECT, Arrays.asList(types)));
     }
     
+    /**
+     * Equivalent to calling {@code reject(Address.fromString(source), children, types)}.
+     * @param source source address to block messages from
+     * @param children if {@code true}, children of {@code source} will also be blocked
+     * @param types types of messages to block (child types aren't recognized)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
+    public void reject(String source, boolean children, Class<?>... types) {
+        reject(Address.fromString(source), children, types);
+    }
+
     /**
      * Evaluate whether some message from an some address should be blocked or allowed through.
      * @param address source address
@@ -131,7 +153,7 @@ public final class RuleSet implements Serializable {
         private final AccessType accessType;
         private final Set<Class<?>> types;
 
-        public AddressRule(boolean includeChildren, AccessType accessType, Collection<Class<?>> types) {
+        AddressRule(boolean includeChildren, AccessType accessType, Collection<Class<?>> types) {
             Validate.notNull(accessType);
             Validate.notNull(types);
             Validate.noNullElements(types);

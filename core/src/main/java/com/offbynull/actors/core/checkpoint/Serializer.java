@@ -14,10 +14,12 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.context;
+package com.offbynull.actors.core.checkpoint;
+
+import com.offbynull.actors.core.actor.Context;
 
 /**
- * Interface to serialize and unserialize {@link SourceContext}.
+ * Interface to serialize and unserialize {@link Context}.
  * @author Kasra Faghihi
  */
 public interface Serializer {
@@ -29,14 +31,14 @@ public interface Serializer {
      * @throws IllegalArgumentException if cannot be serialized for some reason
      * @throws NullPointerException if any argument is {@code null}
      */
-    byte[] serialize(SourceContext ctx);
+    byte[] serialize(Context ctx);
     
     /**
-     * Unserialize context.
+     * Deserialize context.
      * @param data serialized context
      * @return context
      * @throws IllegalArgumentException if cannot be serialized for some reason
      * @throws NullPointerException if any argument is {@code null}
      */
-    SourceContext unserialize(byte[] data);
+    Context deserialize(byte[] data);
 }

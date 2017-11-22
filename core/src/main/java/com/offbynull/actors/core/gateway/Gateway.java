@@ -17,6 +17,7 @@
 package com.offbynull.actors.core.gateway;
 
 import com.offbynull.actors.core.shuttle.Shuttle;
+import java.io.Closeable;
 
 /**
  * A gateway, like an actor, communicates with other components through message-passing, but isn't bound by any of the same rules as
@@ -34,40 +35,34 @@ import com.offbynull.actors.core.shuttle.Shuttle;
  * 
  * @author Kasra Faghihi
  */
-public interface Gateway extends AutoCloseable {
+public interface Gateway extends Closeable {
 
     /**
      * Get the shuttle used to receive messages.
      * @return shuttle for incoming messages
+     * @throws IllegalStateException if this gateway is closed
      */
     Shuttle getIncomingShuttle();
     
     /**
-     * Queue an outgoing shuttle to be added. When this gateway sends a message, that message will be forwarded to the appropriate outgoing
-     * shuttles.
-     * <p>
-     * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes, and any error encountered during the operation will not be known to the caller. On error,
-     * this gateway terminates.
-     * <p>
-     * If this gateway has been shutdown prior to calling this method, this method does nothing.
-     * <p>
+     * Add an outgoing shuttle.
      * @param shuttle outgoing shuttle to add
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if this gateway is closed
      */
     void addOutgoingShuttle(Shuttle shuttle);
 
     /**
-     * Queue an outgoing shuttle for removal.
-     * <p>
-     * Note that this operation queues a shuttle to be added rather than adding it right away. As such, this method will likely
-     * return before the add operation completes, and any error encountered during the operation will not be known to the caller.
-     * <p>
-     * If this gateway has been shutdown prior to calling this method, this method does nothing. On error, this {@link Gateway}
-     * terminates.
-     * <p>
+     * Remove an outgoing shuttle. If no shuttle with the prefix {@code shuttlePrefix} was added to this gateway, nothing happens.
      * @param shuttlePrefix address prefix for shuttle to remove
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if this gateway is closed
      */
     void removeOutgoingShuttle(String shuttlePrefix);
+    
+    /**
+     * Waits for this gateway to die.
+     * @throws InterruptedException if thread is interrupted while waiting
+     */
+    void join() throws InterruptedException;
 }

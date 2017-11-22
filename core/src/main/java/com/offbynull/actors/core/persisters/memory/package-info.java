@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,8 +16,8 @@
  */
 
 /**
- * Gateway that allows normal Java code to send messages to and receive messages to gateways.
+ * In-memory persister implementations. 
  * 
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.core.gateways.direct;
+package com.offbynull.actors.core.persisters.memory;

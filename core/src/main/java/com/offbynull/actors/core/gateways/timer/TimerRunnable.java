@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,19 +44,25 @@ final class TimerRunnable implements Runnable {
 
     private final Map<String, Shuttle> outgoingShuttles;
     private final PriorityQueue<PendingMessage> queue;
-    private final Bus bus;
 
-    TimerRunnable(Bus bus) {
+    private final Bus bus;
+    private final AtomicBoolean shutdownFlag;
+    
+    
+
+    TimerRunnable(Bus bus, AtomicBoolean shutdownFlag) {
         Validate.notNull(bus);
+        Validate.notNull(shutdownFlag);
         outgoingShuttles = new HashMap<>();
         queue = new PriorityQueue<>(new PendingMessageSendTimeComparator());
         this.bus = bus;
+        this.shutdownFlag = shutdownFlag;
     }
 
     @Override
     public void run() {
         try {
-            while (true) {
+            while (!shutdownFlag.get()) {
                 // Poll for new messages
                 List<Object> incomingObjects;
                 if (queue.isEmpty()) {
@@ -157,6 +164,7 @@ final class TimerRunnable implements Runnable {
         } catch (RuntimeException re) {
             LOG.error("Internal error encountered", re);
         } finally {
+            shutdownFlag.set(true);
             bus.close();
         }
     }

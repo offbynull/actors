@@ -16,55 +16,31 @@
  */
 package com.offbynull.actors.core.gateways.log;
 
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_LOG;
 import com.offbynull.actors.core.gateway.Gateway;
-import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import com.offbynull.actors.core.shuttles.simple.SimpleShuttle;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 
 /**
- * {@link Gateway} that logs by piping messages to SLF4J.
- * <p>
- * In the following example, the actor called {@code tester} sends an info log message to the {@link LogGateway} called {@code logger}.
- * <pre>
- * Coroutine tester = (cnt) -&gt; {
- *     Context ctx = (Context) cnt.getContext();
- * 
- *     String loggerAddress = ctx.getIncomingMessage();
- *     ctx.addOutgoingMessage(loggerAddress, LogMessage.info("This is an info msg: {} {}", "test arg 1", 2));
- *     cnt.suspend();
- * };
- * 
- * LogGateway logger = LogGateway.create("logger");
- * Shuttle logInputShuttle = logGateway.getIncomingShuttle();
- * 
- * ActorRunner testerRunner = ActorRunner.create("local");
- * Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
- * 
- * testerRunner.addOutgoingShuttle(logInputShuttle);
- * 
- * testerRunner.addActor("tester", tester, "logger");
- * </pre>
+ * {@link Gateway} that logs by piping messages to SLF4J. Note that this gateway...
+ * <ol>
+ * <li>only consumes messages (doesn't send messages).</li>
+ * <li>only accepts messages of type {@link LogMessage}.</li>
+ * </ol>
  * @author Kasra Faghihi
  */
 public final class LogGateway implements Gateway {
-
-    /**
-     * Default address to log gateway as String.
-     */
-    public static final String DEFAULT_LOG = "log";
-
-    /**
-     * Default address to log gateway.
-     */
-    public static final Address DEFAULT_LOG_ADDRESS = Address.of(DEFAULT_LOG);
 
 
     private final Thread thread;
     private final Bus bus;
     
     private final SimpleShuttle shuttle;
+    
+    private final AtomicBoolean shutdownFlag;
 
     /**
      * Create a {@link LogGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_LOG)}.
@@ -91,31 +67,46 @@ public final class LogGateway implements Gateway {
 
         bus = new Bus();
         shuttle = new SimpleShuttle(prefix, bus);
-        thread = new Thread(new LogRunnable(bus));
+        shutdownFlag = new AtomicBoolean(false);
+        thread = new Thread(new LogRunnable(bus, shutdownFlag));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
     }
 
     @Override
     public Shuttle getIncomingShuttle() {
+        if (shutdownFlag.get()) {
+            throw new IllegalStateException();
+        }
         return shuttle;
     }
 
     @Override
     public void addOutgoingShuttle(Shuttle shuttle) {
+        if (shutdownFlag.get()) {
+            throw new IllegalStateException();
+        }
         Validate.notNull(shuttle);
         // does nothing
     }
 
     @Override
     public void removeOutgoingShuttle(String shuttlePrefix) {
+        if (shutdownFlag.get()) {
+            throw new IllegalStateException();
+        }
         Validate.notNull(shuttlePrefix);
         // does nothing
     }
+    
+    @Override
+    public void close() {
+        shutdownFlag.set(true);
+        bus.close();
+    }
 
     @Override
-    public void close() throws InterruptedException {
-        thread.interrupt();
+    public void join() throws InterruptedException {
         thread.join();
     }
 }

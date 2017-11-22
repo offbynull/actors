@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,6 +16,7 @@
  */
 package com.offbynull.actors.core.shuttles.simple;
 
+import java.io.Closeable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -33,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * accepts incoming messages.
  * @author Kasra Faghihi
  */
-public final class Bus implements AutoCloseable {
+public final class Bus implements Closeable {
 
     // Why use this over LinkedBlockingQueue?
     // 1. This has a close() method.
@@ -46,7 +47,7 @@ public final class Bus implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(Bus.class);
 
     private final Lock lock = new ReentrantLock();
-    private final Condition newMessagesCondition = lock.newCondition();
+    private final Condition condition = lock.newCondition();
     
     private LinkedList<Object> queue = new LinkedList<>();
     private boolean closed;
@@ -56,13 +57,14 @@ public final class Bus implements AutoCloseable {
         lock.lock();
         try {
             closed = true;
+            condition.signal();
         } finally {
             lock.unlock();
         }
     }
 
     /**
-     * Put a single message on to this bus. If this bus has been closed, this method does nothing.
+     * Equivalent to calling {@code add(Collections.singleton(message))}.
      * @param message message
      * @throws NullPointerException if any argument is {@code null}
      */
@@ -88,7 +90,7 @@ public final class Bus implements AutoCloseable {
             queue.addAll(messages);
             
             if (!queue.isEmpty()) {
-                newMessagesCondition.signal();
+                condition.signal();
             }
         } finally {
             lock.unlock();
@@ -96,51 +98,83 @@ public final class Bus implements AutoCloseable {
     }
 
     /**
-     * Reads a message from this bus, blocking for the specified amount of time until a message becomes available. If no message becomes
-     * available in the specified time, this method returns an empty list.
+     * Equivalent to calling {@code pull(-1, 0L, TimeUnit.NANOSECONDS)}.
+     * @return a list of objects on the bus, or an empty list if the bus was closed
+     * @throws InterruptedException if thread is interrupted
+     */
+    public List<Object> pull() throws InterruptedException {
+        return pull(-1, 0L, TimeUnit.NANOSECONDS);
+    }
+
+    /**
+     * Equivalent to calling {@code pull(-1, timeout, unit)}.
      * @param timeout how long to wait before giving up, in units of {@code unit} unit
      * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
-     * @return a list of objects on the bus
+     * @return a list of objects on the bus, or an empty list if the bus was closed or timed out
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code timeout < 0}
      * @throws InterruptedException if thread is interrupted
      */
     public List<Object> pull(long timeout, TimeUnit unit) throws InterruptedException {
         Validate.isTrue(timeout >= 0L);
         Validate.notNull(unit);
-        
+        return pull(-1, timeout, unit);
+    }
+
+    /**
+     * Reads all messages on this bus, blocking for the specified amount of time until a message becomes available. If no message becomes
+     * available in the specified time, this method returns an empty list.
+     * @param max maximum number of items to pull (or {code -1} for no limit)
+     * @param timeout how long to wait before giving up, in units of {@code unit} unit
+     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return a list of objects on the bus, or an empty list if the bus was closed or timed out
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code timeout < 0} or {@code max != -1 && max < 0}
+     * @throws InterruptedException if thread is interrupted
+     */
+    public List<Object> pull(int max, long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.isTrue(max == -1 || max >= 0);
+        Validate.isTrue(timeout >= 0L);
+        Validate.notNull(unit);
+
         lock.lock();
         try {
+            if (closed) {
+                LOG.debug("Messages cannot be pulled from a closed bus");
+                return new LinkedList<>();
+            }
+
             while (queue.isEmpty()) {
-                boolean conditionTriggered = newMessagesCondition.await(timeout, unit);
+                boolean conditionTriggered;
+                if (timeout == 0L) {
+                    condition.await();
+                    conditionTriggered = true;
+                } else {
+                    conditionTriggered = condition.await(timeout, unit);
+                }
+
+                if (closed) {
+                    LOG.debug("Bus was closed while waiting for messages");
+                    return new LinkedList<>();
+                }
+
                 if (!conditionTriggered) {
                     // timeout elapsed, return without doing anything
                     return new LinkedList<>();
                 }
             }
             
-            List<Object> messages = queue;
-            queue = new LinkedList<>();
-            
-            LOG.debug("Pulled {} messages", messages.size());
-            return messages;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Reads a message from this bus, blocking indefinitely until a message becomes available.
-     * @return a list of objects on the bus
-     * @throws InterruptedException if thread is interrupted
-     */
-    public List<Object> pull() throws InterruptedException {
-        lock.lock();
-        try {
-            while (queue.isEmpty()) {
-                newMessagesCondition.await();
+            LinkedList<Object> messages;
+            if (max == -1 || queue.size() < max) {
+                messages = queue;
+                queue = new LinkedList<>();
+            } else {
+                messages = new LinkedList<>();
+                for (int i = 0; i < max; i++) {
+                    Object message = queue.removeFirst();
+                    messages.add(message);
+                }
             }
-            
-            List<Object> messages = queue;
-            queue = new LinkedList<>();
             
             LOG.debug("Pulled {} messages", messages.size());
             return messages;

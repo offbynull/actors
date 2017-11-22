@@ -20,6 +20,7 @@ import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,17 +30,20 @@ final class LogRunnable implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(LogRunnable.class);
 
     private final Bus bus;
+    private final AtomicBoolean shutdownFlag;
 
-    LogRunnable(Bus bus) {
+    LogRunnable(Bus bus, AtomicBoolean shutdownFlag) {
         Validate.notNull(bus);
+        Validate.notNull(shutdownFlag);
         this.bus = bus;
+        this.shutdownFlag = shutdownFlag;
     }
 
     @Override
     public void run() {
         LOG.debug("Log gateway started");
         try {
-            while (true) {
+            while (!shutdownFlag.get()) {
                 // Poll for new messages
                 List<Object> incomingObjects = bus.pull();
 
@@ -96,6 +100,7 @@ final class LogRunnable implements Runnable {
         } catch (RuntimeException re) {
             LOG.error("Internal error encountered", re);
         } finally {
+            shutdownFlag.set(true);
             bus.close();
         }
     }

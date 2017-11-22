@@ -16,71 +16,37 @@
  */
 package com.offbynull.actors.core.gateways.direct;
 
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_DIRECT;
 import com.offbynull.actors.core.gateway.Gateway;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttles.simple.Bus;
-import com.offbynull.actors.core.shuttles.simple.SimpleShuttle;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
 
 /**
- * {@link Gateway} that allows you read and write messages using normal Java code.
+ * {@link Gateway} that allows you read and write messages from normal Java code.
  * <p>
- * In the following example, the actor called {@code echoer} gets a message from {@link DirectGateway} and echoes it back.
- * <pre>
- * Coroutine echoer = (cnt) -&gt; {
- *     Context ctx = (Context) cnt.getContext();
- * 
- *     Address sender = ctx.getSource();
- *     Object msg = ctx.getIncomingMessage();
- *     ctx.addOutgoingMessage(sender, msg);
- * };
- * 
- * ActorRunner actorRunner = new ActorRunner("actors");
- * DirectGateway directGateway = DirectGateway.create("direct");
- * 
- * directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
- * actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
- * 
- * actorRunner.addActor("echoer", echoerActor);
- * Address echoerAddress = Address.of("actors", "echoer");
- * 
- * String expected;
- * String actual;
- * 
- * directGateway.writeMessage(echoerAddress, "echotest");
- * response = (String) directGateway.readMessages().get(0).getMessage();
- * System.out.println(response);
- * 
- * actorRunner.close();
- * directGateway.close();
- * </pre>
+ * To read messages coming into a specific address, first register it for listening by calling 
+ * {@link #listen(com.offbynull.actors.core.shuttle.Address) } then read messages by calling
+ * {@link #readMessage(com.offbynull.actors.core.shuttle.Address, long, java.util.concurrent.TimeUnit) }.
+ * <p>
+ * To write messages from a specific address, call {@link #writeMessage(com.offbynull.actors.core.shuttle.Message) }.
  * @author Kasra Faghihi
  */
 public final class DirectGateway implements Gateway {
 
-    /**
-     * Default address to direct gateway as String.
-     */
-    public static final String DEFAULT_DIRECT = "direct";
 
-    /**
-     * Default address to direct gateway.
-     */
-    public static final Address DEFAULT_DIRECT_ADDRESS = Address.of(DEFAULT_DIRECT);
-
-
-    private final Thread thread;
-    private final Bus bus;
-    private final LinkedBlockingQueue<Message> readQueue;
+    private final String prefix;
+    private final ConcurrentHashMap<Address, Bus> readQueues;
+    private final ConcurrentHashMap<String, Shuttle> outShuttles;
+    private final DirectShuttle shuttle;
     
-    private final SimpleShuttle shuttle;
+    private final CountDownLatch joinerLatch;
 
     /**
      * Create a {@link DirectGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_DIRECT)}.
@@ -98,210 +64,414 @@ public final class DirectGateway implements Gateway {
      */
     public static DirectGateway create(String prefix) {
         DirectGateway gateway = new DirectGateway(prefix);
-        gateway.thread.start();
         return gateway;
     }
 
     private DirectGateway(String prefix) {
         Validate.notNull(prefix);
         
-        bus = new Bus();
-        shuttle = new SimpleShuttle(prefix, bus);
-        readQueue = new LinkedBlockingQueue<>();
-        thread = new Thread(new DirectRunnable(bus, readQueue));
-        thread.setDaemon(true);
-        thread.setName(getClass().getSimpleName() + "-" + prefix);
+        this.prefix = prefix;
+        this.readQueues = new ConcurrentHashMap<>();
+        this.outShuttles = new ConcurrentHashMap<>();
+        this.shuttle = new DirectShuttle(prefix, readQueues);
+        
+        this.joinerLatch = new CountDownLatch(1);
     }
 
     @Override
     public Shuttle getIncomingShuttle() {
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
         return shuttle;
     }
 
     @Override
     public void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
-        bus.add(new AddShuttle(shuttle));
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        String shuttlePrefix = shuttle.getPrefix();
+        outShuttles.put(shuttlePrefix, shuttle);
     }
 
     @Override
     public void removeOutgoingShuttle(String shuttlePrefix) {
         Validate.notNull(shuttlePrefix);
-        bus.add(new RemoveShuttle(shuttlePrefix));
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        outShuttles.remove(shuttlePrefix);
     }
 
     /**
-     * Writes one message to an actor or gateway. Equivalent to calling {@code writeMessages(new Message(source, destination, message))}.
+     * Registers an address for listening. The input address and all addresses under it will be listenable.
+     * @param listenAddress address to register
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} has already been registered, or if {@code listenAddress} does not begin
+     * with the prefix for this gateway
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public void listen(Address listenAddress) {
+        Validate.notNull(listenAddress);
+        Validate.isTrue(listenAddress.getElement(0).equals(prefix));
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        Bus existingBus = readQueues.putIfAbsent(listenAddress, new Bus());
+        Validate.isTrue(existingBus == null, "Listener already registered");
+    }
+    
+    /**
+     * Equivalent to calling {@code listen(Address.fromString(address))}.
+     * @param listenAddress address to unregister
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} has already been registered, or if {@code address} does not begin with the
+     * prefix for this gateway
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public void listen(String listenAddress) {
+        Validate.notNull(listenAddress);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        listen(Address.fromString(listenAddress));
+    }
+
+    /**
+     * Unregisters an address for listening. If the address was never registered, nothing happens.
+     * @param listenAddress address to unregister
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} does not begin with the prefix for this gateway
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public void unlisten(Address listenAddress) {
+        Validate.notNull(listenAddress);
+        Validate.isTrue(listenAddress.getElement(0).equals(prefix));
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        readQueues.remove(listenAddress);
+    }
+
+    /**
+     * Equivalent to calling {@code unlisten(Address.fromString(address))}.
+     * @param listenAddress address to unregister
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} does not begin with the prefix for this gateway
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public void unlisten(String listenAddress) {
+        Validate.notNull(listenAddress);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        unlisten(Address.fromString(listenAddress));
+    }
+
+    /**
+     * Write a message to another gateway.
+     * @param message outoging message
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any argument is {@code message.getSourceAddress()} doesn't start with this gateway's prefix
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public void writeMessage(Message message) {
+        Validate.notNull(message);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        String srcPrefix = message.getSourceAddress().getElement(0);
+        String dstPrefix = message.getDestinationAddress().getElement(0);
+
+        Validate.isTrue(prefix.equals(srcPrefix));
+
+        Shuttle dstShuttle = outShuttles.get(dstPrefix);
+        if (dstShuttle != null) {
+            dstShuttle.send(message);
+        }
+    }
+
+    /**
+     * Equivalent to calling {@code writeMessage(new Message(source, destination, message))}.
      * @param source source address
      * @param destination destination address
      * @param message message to send
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} does not start with this gateway's prefix
+     * @throws IllegalStateException if this gateway is closed
      */
     public void writeMessage(Address source, Address destination, Object message) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
         
-        writeMessages(new Message(source, destination, message));
+        writeMessage(new Message(source, destination, message));
     }
 
     /**
-     * Writes one message to an actor or gateway. Equivalent to calling
-     * {@code writeMessages(new Message(Address.of(getIncomingShuttle().getPrefix()), destination, message))}.
-     * @param destination destination address
-     * @param message message to send
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void writeMessage(Address destination, Object message) {
-        Validate.notNull(destination);
-        Validate.notNull(message);
-        
-        String prefix = shuttle.getPrefix();
-        
-        writeMessages(new Message(Address.of(prefix), destination, message));
-    }
-    
-    /**
-     * Writes one message to an actor or gateway. Equivalent to calling {@code writeMessages(Address.fromString(destination), message))}.
-     * @param destination destination address
-     * @param message message to send
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public void writeMessage(String destination, Object message) {
-        writeMessage(Address.fromString(destination), message);
-    }
-
-    /**
-     * Writes one message to an actor or gateway. Equivalent to calling
-     * {@code writeMessages(Address.fromString(source), Address.fromString(destination), message))}.
+     * Equivalent to calling {@code writeMessage(Address.fromString(source), Address.fromString(destination), message))}.
      * @param source source address
      * @param destination destination address
      * @param message message to send
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code source} does not start with this gateway's prefix
+     * @throws IllegalStateException if this gateway is closed
      */
     public void writeMessage(String source, String destination, Object message) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
         
         writeMessage(Address.fromString(source), Address.fromString(destination), message);
     }
 
     /**
-     * Writes one or more messages to an actor or gateway.
-     * @param messages messages to send
-     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalArgumentException if any source address in {@code messages} does not start with this gateway's prefix
+     * Equivalent to calling {@code writeMessage(new Message(Address.of(getIncomingShuttle().getPrefix()), destination, message))}.
+     * @param destination destination address
+     * @param message message to send
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if this gateway is closed
      */
-    public void writeMessages(Message... messages) {
-        Validate.notNull(messages);
-        
-        String prefix = shuttle.getPrefix();
-        List<Message> messageList = new ArrayList<>(messages.length);
-        for (Message message : messages) {
-            Validate.notNull(message); // explicitly check for nullness, although next line should do this as well
-            Validate.isTrue(message.getSourceAddress().getElement(0).equals(prefix));
-            messageList.add(message);
+    public void writeMessage(Address destination, Object message) {
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
         }
         
-        
-        bus.add(new SendMessages(messageList));
+        writeMessage(new Message(Address.of(prefix), destination, message));
+    }
+    
+    /**
+     * Equivalent to calling {@code writeMessage(Address.fromString(destination), message))}.
+     * @param destination destination address
+     * @param message message to send
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public void writeMessage(String destination, Object message) {
+        Validate.notNull(destination);
+        Validate.notNull(message);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        writeMessage(Address.fromString(destination), message);
     }
 
     /**
-     * Reads the next message sent to this gateway.
+     * Reads a message sent to this gateway.
+     * @param listenAddress address registered for listening
      * @param timeout how long to wait before giving up, in units of {@code unit} unit
      * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
      * @return incoming message payload, or {@code null} if no message came in before the timeout
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening
+     * @throws IllegalStateException if this gateway is closed
      * @throws InterruptedException if this thread is interrupted
      */
-    public Message readMessage(long timeout, TimeUnit unit) throws InterruptedException {
+    public Message readMessage(Address listenAddress, long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.notNull(listenAddress);
         Validate.notNull(unit);
-        
-        return readQueue.poll(timeout, unit);
+        Validate.isTrue(timeout >= 0L);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        Address next = listenAddress;
+        do {
+            Bus queue = readQueues.get(next);
+            if (queue != null) {
+                List<Object> messageList = queue.pull(1, timeout, unit);
+                if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+                    throw new IllegalStateException();
+                }
+
+                return messageList.isEmpty() ? null : (Message) messageList.get(0);
+            }
+            next = next.removeSuffix(1);
+        } while (next.size() >= 1);
+
+        throw new IllegalArgumentException(listenAddress + " not registered for listening");
     }
 
     /**
-     * Reads the next message sent to this gateway.
-     * @return incoming message payload
+     * Equivalent to calling {@code readMessage(Address.fromString(listenAddress), timeout, unit)}.
+     * @param listenAddress address registered for listening
+     * @param timeout how long to wait before giving up, in units of {@code unit} unit
+     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return incoming message payload, or {@code null} if no message came in before the timeout
      * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening
+     * @throws IllegalStateException if this gateway is closed
      * @throws InterruptedException if this thread is interrupted
      */
-    public Message readMessage() throws InterruptedException {
-        return readQueue.take();
+    public Message readMessage(String listenAddress, long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.notNull(listenAddress);
+        Validate.notNull(unit);
+        Validate.isTrue(timeout >= 0L);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        return readMessage(Address.fromString(listenAddress), timeout, unit);
     }
 
     /**
-     * Equivalent to calling {@code readMessage(timeout, unit).getMessage()}.
+     * Equivalent to calling {@code readMessage(listenAddress, 0L, TimeUnit.MILLISECONDS)}.
+     * @param listenAddress address registered for listening
+     * @return incoming message payload, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening
+     * @throws IllegalStateException if this gateway is closed
+     * @throws InterruptedException if this thread is interrupted
+     */
+    public Message readMessage(Address listenAddress) throws InterruptedException {
+        Validate.notNull(listenAddress);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        return readMessage(listenAddress, 0L, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Equivalent to calling {@code readMessage(Address.fromString(listenAddress))}.
+     * @param listenAddress address registered for listening
+     * @return incoming message payload, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening
+     * @throws IllegalStateException if this gateway is closed
+     * @throws InterruptedException if this thread is interrupted
+     */
+    public Message readMessage(String listenAddress) throws InterruptedException {
+        Validate.notNull(listenAddress);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        return readMessage(Address.fromString(listenAddress));
+    }
+
+    /**
+     * Equivalent to calling {@code readMessage(listenAddress, timeout, unit).getMessage()} but with a {@code null} check.
      * @param <T> expected payload type
+     * @param listenAddress address registered for listening
      * @param timeout how long to wait before giving up, in units of {@code unit} unit
      * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
      * @return incoming message payload only, or {@code null} if no message came in before the timeout
-     * @throws NullPointerException if any argument is {@code null}
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening, or if {@code timeout < 0}
+     * @throws IllegalStateException if this gateway is closed
+     * @throws ClassCastException if the returned message was not of the expected type
      * @throws InterruptedException if this thread is interrupted
      */
     @SuppressWarnings("unchecked")
-    public <T> T readMessagePayloadOnly(long timeout, TimeUnit unit) throws InterruptedException {
+    public <T> T readMessagePayloadOnly(Address listenAddress, long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.notNull(listenAddress);
         Validate.notNull(unit);
+        Validate.isTrue(timeout >= 0L);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
         
-        Message msg = readMessage(timeout, unit);
+        Message msg = readMessage(listenAddress, timeout, unit);
         return msg == null ? null : (T) msg.getMessage();
     }
 
     /**
-     * Equivalent to calling {@code readMessage().getMessage()}.
+     * Equivalent to calling {@code readMessage(Address.fromString(listenAddress), timeout, unit).getMessage()} but with a {@code null}
+     * check.
      * @param <T> expected payload type
-     * @return incoming message payload only
+     * @param listenAddress address registered for listening
+     * @param timeout how long to wait before giving up, in units of {@code unit} unit
+     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return incoming message payload only, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening, or if {@code timeout < 0}
+     * @throws IllegalStateException if this gateway is closed
+     * @throws ClassCastException if the returned message was not of the expected type
      * @throws InterruptedException if this thread is interrupted
      */
     @SuppressWarnings("unchecked")
-    public <T> T readMessagePayloadOnly() throws InterruptedException {
-        return (T) readMessage().getMessage();
-    }
-
-    /**
-     * Reads one or more messages sent to this gateway.
-     * @return incoming messages
-     * @throws InterruptedException if this thread is interrupted
-     */
-    public List<Message> readMessages() throws InterruptedException {
-        List<Message> ret = new LinkedList<>();
-        
-        Message msg = readQueue.take();
-        ret.add(msg);
-        readQueue.drainTo(ret);
-        
-        return ret;
-    }
-
-    /**
-     * Reads one or more messages sent to this gateway.
-     * @param timeout how long to wait before giving up, in units of {@code unit} unit
-     * @param unit a {@link TimeUnit} determining how to interpret the {@code timeout} parameter
-     * @return incoming messages
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws InterruptedException if this thread is interrupted
-     */
-    public List<Message> readMessages(long timeout, TimeUnit unit) throws InterruptedException {
+    public <T> T readMessagePayloadOnly(String listenAddress, long timeout, TimeUnit unit) throws InterruptedException {
+        Validate.notNull(listenAddress);
         Validate.notNull(unit);
-        
-        List<Message> ret = new LinkedList<>();
-        
-        Message msg = readQueue.poll(timeout, unit);
-        if (msg != null) {
-            ret.add(msg);
-            readQueue.drainTo(ret);
+        Validate.isTrue(timeout >= 0L);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
         }
         
-        return ret;
+        Message msg = readMessage(Address.fromString(listenAddress), timeout, unit);
+        return msg == null ? null : (T) msg.getMessage();
+    }
+
+    /**
+     * Equivalent to calling {@code readMessagePayloadOnly(listenAddress, 0L, TimeUnit.MILLISECONDS)}.
+     * @param <T> expected payload type
+     * @param listenAddress address registered for listening
+     * @return incoming message payload only, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening
+     * @throws IllegalStateException if this gateway is closed
+     * @throws ClassCastException if the returned message was not of the expected type
+     * @throws InterruptedException if this thread is interrupted
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T readMessagePayloadOnly(Address listenAddress) throws InterruptedException {
+        Validate.notNull(listenAddress);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        return readMessagePayloadOnly(listenAddress, 0L, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Equivalent to calling {@code readMessagePayloadOnly(Address.fromString(listenAddress))}.
+     * @param <T> expected payload type
+     * @param listenAddress address registered for listening
+     * @return incoming message payload only, or {@code null} if no message came in before the timeout
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalArgumentException if {@code listenAddress} was not registered for listening
+     * @throws IllegalStateException if this gateway is closed
+     * @throws ClassCastException if the returned message was not of the expected type
+     * @throws InterruptedException if this thread is interrupted
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T readMessagePayloadOnly(String listenAddress) throws InterruptedException {
+        Validate.notNull(listenAddress);
+        if (joinerLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+        
+        return readMessagePayloadOnly(Address.fromString(listenAddress));
     }
     
     @Override
-    public void close() throws InterruptedException {
-        thread.interrupt();
-        thread.join();
+    public void close() {
+        readQueues.clear();
+        outShuttles.clear();
+        joinerLatch.countDown();
+    }
+
+    @Override
+    public void join() throws InterruptedException {
+        joinerLatch.await();
     }
 }

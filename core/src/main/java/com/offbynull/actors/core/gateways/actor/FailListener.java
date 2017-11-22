@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,10 +14,16 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.core.gateways.actor;
 
 /**
- * Gateway that allows normal Java code to send messages to and receive messages to gateways.
- * 
+ * Listens for shutdowns in {@link ActorGateway} threads.
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.core.gateways.direct;
+public interface FailListener {
+    /**
+     * A {@link ActorGateway} thread has encountered a problem and has to shutdown.
+     * @param t throwable that caused the error
+     */
+    void failed(Throwable t);
+}

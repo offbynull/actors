@@ -16,29 +16,28 @@
  */
 package com.offbynull.actors.core;
 
-import com.offbynull.actors.core.actor.ActorRunner;
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_ACTOR;
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_DIRECT;
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_LOG;
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_TIMER;
+import com.offbynull.actors.core.gateways.actor.ActorGateway;
 import com.offbynull.actors.core.gateway.Gateway;
-import com.offbynull.coroutines.user.Coroutine;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import com.offbynull.actors.core.checkpoint.Checkpointer;
-import com.offbynull.actors.core.checkpoint.NullCheckpointer;
-import static com.offbynull.actors.core.actor.ActorRunner.DEFAULT_RUNNER;
 import com.offbynull.actors.core.gateways.direct.DirectGateway;
-import static com.offbynull.actors.core.gateways.direct.DirectGateway.DEFAULT_DIRECT;
 import com.offbynull.actors.core.gateways.log.LogGateway;
-import static com.offbynull.actors.core.gateways.log.LogGateway.DEFAULT_LOG;
 import com.offbynull.actors.core.gateways.timer.TimerGateway;
-import static com.offbynull.actors.core.gateways.timer.TimerGateway.DEFAULT_TIMER;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.Validate;
+import com.offbynull.actors.core.persister.Persister;
+import com.offbynull.actors.core.persisters.memory.MemoryPersister;
+import java.io.Closeable;
+import java.io.IOException;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Actor system.
@@ -46,25 +45,13 @@ import org.apache.commons.lang3.Validate;
  * Use {@link #builder() } to construct and start an actor system.
  * @author Kasra Faghihi
  */
-public final class ActorSystem implements AutoCloseable {
-    private final ActorRunner runner;
-    private final Checkpointer checkpointer;
-    
+public final class ActorSystem implements Closeable {
     private final Map<String, Gateway> gateways;
 
-    private ActorSystem(
-            Map<String, ImmutablePair<Coroutine, Object[]>> actors,
-            List<Supplier<Gateway>> gatewayFactories,
-            String runnerName,
-            int runnerCores,
-            Checkpointer runnerCheckpointer) {
-        ActorRunner runner = null;
-
+    private ActorSystem(List<Supplier<Gateway>> gatewayFactories) {
         gateways = new HashMap<>();
         
         try {
-            this.checkpointer = runnerCheckpointer;
-            
             for (Supplier<Gateway> gatewayFactory : gatewayFactories) {
                 Gateway gateway = gatewayFactory.get();
                 String name = gateway.getIncomingShuttle().getPrefix();
@@ -73,143 +60,100 @@ public final class ActorSystem implements AutoCloseable {
                 if (existing != null) {
                     try {
                         gateway.close();
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         // do nothing
                     }
                     
                     throw new IllegalArgumentException("More than 1 gateway has the same prefix: " + name);
                 }
             }
-        
-            runner = ActorRunner.create(runnerName, runnerCores, runnerCheckpointer);
 
             for (Gateway gateway : gateways.values()) {
-                bindGatewayToOthers(gateway, gateways.values(), runner);
-            }
-
-            for (Entry<String, ImmutablePair<Coroutine, Object[]>> entry : actors.entrySet()) {
-                String id = entry.getKey();
-                Coroutine actor = entry.getValue().left;
-                Object[] primingMessages = entry.getValue().right;
-
-                runner.addActor(id, actor, primingMessages);
+                bindGatewayToOthers(gateway, gateways.values());
             }
         } catch (RuntimeException re) {
-            if (runnerCheckpointer != null) {
-                try {
-                    runnerCheckpointer.close();
-                } catch (Exception e) {
-                    // do nothing
-                }
-            }
-
-            if (runner != null) {
-                try {
-                    runner.close();
-                } catch (Exception e) {
-                    // do nothing
-                }
-            }
-            
-            for (Gateway gateway : gateways.values()) {
-                if (gateway != null) {
-                    try {
-                        gateway.close();
-                    } catch (Exception e) {
-                        // do nothing
-                    }
-                }
-            }
-            
+            gateways.values().forEach(g -> IOUtils.closeQuietly(g));
             throw re;
         }
-        
-        this.runner = runner;
     }
     
     /**
      * Get a gateway by its prefix.
      * @param prefix prefix
+     * @param <T> gateway type
      * @return gateway with the prefix {@code prefix}
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if no gateway with the prefix {@code prefix} is found
      */
-    public Gateway getGateway(String prefix) {
+    public <T extends Gateway> T getGateway(String prefix) {
         Validate.notNull(prefix);
         Gateway gateway = gateways.get(prefix);
         
         Validate.isTrue(gateway != null, "%s not found", prefix);
         
-        return gateway;
+        return (T) gateway;
     }
-    
+
     /**
-     * Get the {@link DirectGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_DIRECT)}.
+     * Get the {@link ActorGateway} associated with this actor system (if present). Equivalent to calling {@code getGateway(DEFAULT_ACTOR)}.
+     * @return actor gateway
+     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_ACTOR} is found
+     * @throws ClassCastException if type of gateway is something other than {@link ActorGateway} -- this shouldn't be the case if
+     * {@link Builder#withActorGateway() } or one of its overloads were used
+     */
+    public ActorGateway getActorGateway() {
+        return getGateway(DEFAULT_ACTOR);
+    }
+
+    /**
+     * Get the {@link DirectGateway} associated with this actor system (if present). Equivalent to calling
+     * {@code getGateway(DEFAULT_DIRECT)}.
      * @return direct gateway
      * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_DIRECT} is found
+     * @throws ClassCastException if type of gateway is something other than {@link ActorGateway} -- this shouldn't be the case if
+     * {@link Builder#withDirectGateway() } or one of its overloads were used
      */
-    public Gateway getDirectGateway() {
+    public DirectGateway getDirectGateway() {
         return getGateway(DEFAULT_DIRECT);
     }
 
     /**
-     * Get the {@link LogGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_LOG)}.
+     * Get the {@link LogGateway} associated with this actor system (if present). Equivalent to calling {@code getGateway(DEFAULT_LOG)}.
      * @return log gateway
      * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_LOG} is found
+     * @throws ClassCastException if type of gateway is something other than {@link ActorGateway} -- this shouldn't be the case if
+     * {@link Builder#withLogGateway() } or one of its overloads were used
      */
-    public Gateway getLogGateway() {
+    public LogGateway getLogGateway() {
         return getGateway(DEFAULT_LOG);
     }
 
     /**
-     * Get the {@link TimerGateway} associated with this actor system. Equivalent to calling {@code getGateway(DEFAULT_TIMER)}.
+     * Get the {@link TimerGateway} associated with this actor system (if present). Equivalent to calling {@code getGateway(DEFAULT_TIMER)}.
      * @return timer gateway
      * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_TIMER} is found
+     * @throws ClassCastException if type of gateway is something other than {@link ActorGateway} -- this shouldn't be the case if
+     * {@link Builder#withTimerGateway() } or one of its overloads were used
      */
-    public Gateway getTimerGateway() {
+    public TimerGateway getTimerGateway() {
         return getGateway(DEFAULT_TIMER);
     }
 
-    private static void bindGatewayToOthers(Gateway gateway, Collection<Gateway> allGateways, ActorRunner runner) {
-        // Add gateway to runner+gateways
+    private static void bindGatewayToOthers(Gateway gateway, Collection<Gateway> allGateways) {
+        // Add gateway to other gateways
         Shuttle gatewayShuttle = gateway.getIncomingShuttle();
-        runner.addOutgoingShuttle(gatewayShuttle);
         for (Gateway otherGateway : allGateways) {
+//            if (gateway == otherGateway) {
+//                continue;
+//            }
+
             otherGateway.addOutgoingShuttle(gatewayShuttle);
         }
-
-        // Add runner to gateway
-        Shuttle runnerShuttle = runner.getIncomingShuttle();
-        gateway.addOutgoingShuttle(runnerShuttle);
     }
     
     @Override
     public void close() {
-        if (checkpointer != null) {
-            try {
-                checkpointer.close();
-            } catch (Exception e) {
-                // do nothing
-            }
-        }
-
-        if (runner != null) {
-            try {
-                runner.close();
-            } catch (Exception e) {
-                // do nothing
-            }
-        }
-
-        for (Gateway gateway : gateways.values()) {
-            if (gateway != null) {
-                try {
-                    gateway.close();
-                } catch (Exception e) {
-                    // do nothing
-                }
-            }
-        }
+        gateways.values().forEach(g -> IOUtils.closeQuietly(g));
     }
     
     /**
@@ -221,35 +165,31 @@ public final class ActorSystem implements AutoCloseable {
     }
     
     /**
+     * Create a {@link ActorSystem} builder pre-set with common gateways -- equivalent to calling
+     * {@code new Builder().withActorGateway().withDirectGateway().withLogGateway().withTimerGateway()}.
+     * @return new builder
+     */
+    public static Builder defaultBuilder() {
+        return new Builder().withActorGateway().withDirectGateway().withLogGateway().withTimerGateway();
+    }
+    
+    /**
+     * Create a {@link ActorSystem} set with common gateways -- equivalent to calling {@code defaultBuilder().build()}.
+     * @return new actor system with common gateways
+     */
+    public static ActorSystem createDefault() {
+        return defaultBuilder().build();
+    }
+    
+    /**
      * Actor system builder.
      */
     public static final class Builder {
         
-        private LinkedHashMap<String, ImmutablePair<Coroutine, Object[]>> actors;
-        private List<Supplier<Gateway>> gatewayFactories;
-        private String runnerName;
-        private int runnerCores;
-        private Checkpointer runnerCheckpointer;
-        
+        private final List<Supplier<Gateway>> gatewayFactories;
+
         private Builder() {
-            actors = new LinkedHashMap<>();
             gatewayFactories = new ArrayList<>();
-            runnerName = DEFAULT_RUNNER;
-            runnerCores = Runtime.getRuntime().availableProcessors();
-            runnerCheckpointer = new NullCheckpointer();
-        }
-        
-        /**
-         * Add gateway to new actor system being built.
-         * <p>
-         * If it all possible, use {@link #withGatewayFactory(java.util.function.Supplier) } instead.
-         * @param gateway gateway
-         * @return this builder
-         * @see #withGatewayFactory(java.util.function.Supplier) 
-         */
-        public Builder withGateway(Gateway gateway) {
-            gatewayFactories.add(() -> gateway);
-            return this;
         }
         
         /**
@@ -291,46 +231,30 @@ public final class ActorSystem implements AutoCloseable {
         }
 
         /**
-         * Add actor to new actor system being built.
-         * @param id id of actor
-         * @param actor actor
-         * @param primingMessages priming message
-         * @see ActorRunner#addActor(java.lang.String, com.offbynull.coroutines.user.Coroutine, java.lang.Object...) 
+         * Equivalent to calling {@code withActorGateway(Runtime.getRuntime().availableProcessors()) }.
          * @return this builder
          */
-        public Builder withActor(String id, Coroutine actor, Object... primingMessages) {
-            actors.put(id, ImmutablePair.of(actor, primingMessages));
-            return this;
+        public Builder withActorGateway() {
+            return withActorGateway(Runtime.getRuntime().availableProcessors());
         }
-        
+
         /**
-         * Name of actor runner to use.
-         * @param name runner name
+         * Equivalent to calling {@code withActorGateway(concurrency, new MemoryPersister(DEFAULT_ACTOR, concurrency)) }.
+         * @param concurrency number of threads for the actor gateway to use
          * @return this builder
          */
-        public Builder withRunnerName(String name) {
-            this.runnerName = name;
-            return this;
+        public Builder withActorGateway(int concurrency) {
+            return withActorGateway(concurrency, new MemoryPersister(DEFAULT_ACTOR, concurrency));
         }
-        
+
         /**
-         * Number of cores to use.
-         * @param cores core count
+         * Equivalent to calling {@code withGatewayFactory(() -> ActorGateway.create(DEFAULT_ACTOR, concurrency, persister)) }.
+         * @param concurrency number of threads for the actor gateway to use
+         * @param persister persister for storing/retrieving actors
          * @return this builder
          */
-        public Builder withRunnerCoreCount(int cores) {
-            this.runnerCores = cores;
-            return this;
-        }
-        
-        /**
-         * Checkpointing backend to use for actors.
-         * @param checkpointer checkpointer
-         * @return this builder
-         */
-        public Builder withRunnerCheckpointer(Checkpointer checkpointer) {
-            this.runnerCheckpointer = checkpointer;
-            return this;
+        public Builder withActorGateway(int concurrency, Persister persister) {
+            return withGatewayFactory(() -> ActorGateway.create(DEFAULT_ACTOR, concurrency, persister));
         }
         
         /**
@@ -339,7 +263,7 @@ public final class ActorSystem implements AutoCloseable {
          * @throws RuntimeException on bad build parameters
          */
         public ActorSystem build() {
-            return new ActorSystem(actors, gatewayFactories, runnerName, runnerCores, runnerCheckpointer);
+            return new ActorSystem(gatewayFactories);
         }
     }
 }

@@ -16,61 +16,28 @@
  */
 package com.offbynull.actors.core.gateways.timer;
 
+import static com.offbynull.actors.core.gateway.CommonAddresses.DEFAULT_TIMER;
 import com.offbynull.actors.core.gateway.Gateway;
-import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttles.simple.Bus;
 import com.offbynull.actors.core.shuttles.simple.SimpleShuttle;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 
 /**
- * {@link Gateway} that accepts a message and echoes them back after a certain duration of time.
- * <p>
- * In the following example, the actor called {@code tester} sends a message to the {@link TimerGateway} called {@code timer} and requests
- * that message be echo'd back to it after 2000 milliseconds.
- * <pre>
- * Coroutine tester = (cnt) -&gt; {
- *     Context ctx = (Context) cnt.getContext();
- * 
- *     // Normally, actors shouldn't be logging to System.out or doing any other IO. They're logging to System.out here for simplicity. If 
- *     // you need to do logging in your actor, use LogGateway instead.
- *     String timerPrefix = ctx.getIncomingMessage();
- *     ctx.addOutgoingMessage(Address.fromString("fromid"), Address.fromString(timerPrefix + ":2000:extra"), 0);
- *     System.out.println("ADDED TRIGGER FOR FOR 2 SECOND");
- *     cnt.suspend();
- *     System.out.println("TRIGGERED FROM " + ctx.getSource()+ " TO " + ctx.getDestination()+ " WITH " + ctx.getIncomingMessage());
- * };
- * 
- * TimerGateway timerGateway = new TimerGateway("timer");
- * Shuttle timerInputShuttle = timerGateway.getIncomingShuttle();
- * 
- * ActorRunner testerRunner = ActorRunner.create("local");
- * Shuttle testerInputShuttle = testerRunner.getIncomingShuttle();
- * 
- * testerRunner.addOutgoingShuttle(timerInputShuttle);
- * timerGateway.addOutgoingShuttle(testerInputShuttle);
- * 
- * testerRunner.addActor("tester", tester, "timer");
- * </pre>
+ * {@link Gateway} that accepts a message and echoes them back after a certain duration of time. To specify the duration when a message is
+ * echoed back, append it to the destination address. For example, if this gateway has the prefix {@code "timer"} and you want it to echo
+ * a message back after 2000 milliseconds, send that message to {@code "timer:2000"}.
  * @author Kasra Faghihi
  */
 public final class TimerGateway implements Gateway {
-
-    /**
-     * Default address to timer gateway as String.
-     */
-    public static final String DEFAULT_TIMER = "timer";
-
-    /**
-     * Default address to timer gateway.
-     */
-    public static final Address DEFAULT_TIMER_ADDRESS = Address.of(DEFAULT_TIMER);
-
 
     private final Thread thread;
     private final Bus bus;
     
     private final SimpleShuttle shuttle;
+    
+    private final AtomicBoolean shutdownFlag;
     
     /**
      * Create a {@link TimerGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_TIMER)}.
@@ -97,31 +64,48 @@ public final class TimerGateway implements Gateway {
 
         bus = new Bus();
         shuttle = new SimpleShuttle(prefix, bus);
-        thread = new Thread(new TimerRunnable(bus));
+        shutdownFlag = new AtomicBoolean(false);
+        thread = new Thread(new TimerRunnable(bus, shutdownFlag));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
     }
 
     @Override
     public Shuttle getIncomingShuttle() {
+        if (shutdownFlag.get()) {
+            throw new IllegalStateException();
+        }
         return shuttle;
     }
 
     @Override
     public void addOutgoingShuttle(Shuttle shuttle) {
         Validate.notNull(shuttle);
+        if (shutdownFlag.get()) {
+            throw new IllegalStateException();
+        }
+        
         bus.add(new AddShuttle(shuttle));
     }
 
     @Override
     public void removeOutgoingShuttle(String shuttlePrefix) {
         Validate.notNull(shuttlePrefix);
+        if (shutdownFlag.get()) {
+            throw new IllegalStateException();
+        }
+        
         bus.add(new RemoveShuttle(shuttlePrefix));
     }
 
     @Override
-    public void close() throws InterruptedException {
-        thread.interrupt();
+    public void close() {
+        shutdownFlag.set(true);
+        bus.close();
+    }
+
+    @Override
+    public void join() throws InterruptedException {
         thread.join();
     }
 }

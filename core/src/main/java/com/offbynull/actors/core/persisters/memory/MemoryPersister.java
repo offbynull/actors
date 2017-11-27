@@ -16,19 +16,11 @@
  */
 package com.offbynull.actors.core.persisters.memory;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.ClosureSerializer;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.offbynull.actors.core.gateways.actor.SerializableActor;
 import com.offbynull.actors.core.persister.PersisterWork;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.persister.Persister;
 import com.offbynull.actors.core.shuttle.Message;
-import java.io.Serializable;
-import java.lang.invoke.SerializedLambda;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.wrap;
 import java.time.Instant;
@@ -43,7 +35,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import static org.apache.commons.collections4.list.UnmodifiableList.unmodifiableList;
 import org.apache.commons.lang3.Validate;
-import org.objenesis.strategy.StdInstantiatorStrategy;
 
 /**
  * A persister that keeps all actors and messages serialized in memory.
@@ -98,7 +89,7 @@ public final class MemoryPersister implements Persister {
             });
             
             // Serialize actor
-            byte[] serializedActor = serialize(lockRegion.kryo, actor);
+            byte[] serializedActor = lockRegion.serializer.serialize(actor);
             actorData.data = serializedActor;
 
             // If supplied, update the checkpointing timeout and set the current data being added as a checkpoint
@@ -141,7 +132,7 @@ public final class MemoryPersister implements Persister {
                 ActorData dstActorData = lockRegion.actors.get(dstActorAddr);
 
                 if (dstActorData != null) {
-                    byte[] serializedMsg = serialize(lockRegion.kryo, message);
+                    byte[] serializedMsg = lockRegion.serializer.serialize(message);
                     dstActorData.msgQueue.addLast(serializedMsg);
                     lockRegion.pendingMsgCount++;
                     
@@ -187,8 +178,8 @@ public final class MemoryPersister implements Persister {
                     ActorData actorData = lockRegion.actors.get(actorAddr);
                     byte[] serializedMsg = actorData.msgQueue.removeFirst();
                     byte[] serializedActor = actorData.data;
-                    Message msg = deserialize(lockRegion.kryo, serializedMsg);
-                    SerializableActor actor = deserialize(lockRegion.kryo, serializedActor);
+                    Message msg = lockRegion.serializer.deserialize(serializedMsg);
+                    SerializableActor actor = lockRegion.serializer.deserialize(serializedActor);
 
                     lockRegion.pendingMsgCount--;
 
@@ -207,7 +198,7 @@ public final class MemoryPersister implements Persister {
 
                     if (now.isAfter(checkpointTime) || now.equals(checkpointTime)) {
                         byte[] serializedActor = actorData.checkpointData;
-                        SerializableActor actor = deserialize(lockRegion.kryo, serializedActor);
+                        SerializableActor actor = lockRegion.serializer.deserialize(serializedActor);
                         
                         Address actorAddr = actor.getSelf();
                         Object checkpointMsg = actor.getCheckpointMessage();
@@ -344,23 +335,12 @@ public final class MemoryPersister implements Persister {
         
         return lockRegions.get(idx);
     }
-    
-    private byte[] serialize(Kryo kryo, Object obj) {
-        Output output = new Output(1024, -1);
-        kryo.writeClassAndObject(output, obj);
-        return output.getBuffer();
-    }
-    
-    private <T> T deserialize(Kryo kryo, byte[] data) {
-        Input input = new Input(data);
-        return (T) kryo.readClassAndObject(input);
-    }
 
 
 
 
     private static final class LockRegion {
-        private final Kryo kryo = new Kryo();
+        private final BestEffortSerializer serializer = new BestEffortSerializer();
         private final HashMap<Address, ActorData> actors = new HashMap<>();         // actor addr -> persisted actor obj
         private final TreeSet<ActorData> timeouts = new TreeSet<>((x, y) -> {
             int ret = x.checkpointStaleTime.compareTo(y.checkpointStaleTime);
@@ -375,14 +355,6 @@ public final class MemoryPersister implements Persister {
         
         private final LinkedHashSet<Address> availableSet = new LinkedHashSet<>();  // actors that aren't processing but have msgs ready
         private final LinkedHashSet<Address> processingSet = new LinkedHashSet<>(); // actors currently processing a msg
-        
-        LockRegion() {
-            kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());             // work around no-zeroarg-constructor issue
-            kryo.addDefaultSerializer(Serializable.class, JavaSerializer.class);     // use java's default serializer if serializable
-            kryo.addDefaultSerializer(Object.class, FieldSerializer.class);          // use kryo's field serializer if not serializable
-            kryo.register(SerializedLambda.class);                                   // required for supporting lambdas
-            kryo.register(ClosureSerializer.Closure.class, new ClosureSerializer()); // required for supporting lambdas
-        }
     }
     
     private static final class ActorData {

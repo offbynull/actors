@@ -16,7 +16,6 @@
  */
 package com.offbynull.actors.core.gateways.actor;
 
-import com.offbynull.actors.core.persister.Persister;
 import com.offbynull.actors.core.shuttle.Address;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.actors.core.shuttle.Shuttle;
@@ -27,21 +26,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.offbynull.actors.core.store.Store;
 
 final class ActorShuttle implements Shuttle {
     private static final Logger LOG = LoggerFactory.getLogger(ActorShuttle.class);
     
     private final String prefix;
-    private final Persister persister;
+    private final Store store;
     private final AtomicBoolean shutdownFlag;
 
-    ActorShuttle(String prefix, Persister persister, AtomicBoolean shutdownFlag) {
+    ActorShuttle(String prefix, Store store, AtomicBoolean shutdownFlag) {
         Validate.notNull(prefix);
-        Validate.notNull(persister);
+        Validate.notNull(store);
         Validate.notNull(shutdownFlag);
 
         this.prefix = prefix;
-        this.persister = persister;
+        this.store = store;
         this.shutdownFlag = shutdownFlag;
     }
 
@@ -72,7 +72,7 @@ final class ActorShuttle implements Shuttle {
             }
         });
 
-        persister.store(filteredMessages);
+        store.store(filteredMessages);
     }
     
 }

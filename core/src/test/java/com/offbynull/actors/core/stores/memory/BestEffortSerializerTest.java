@@ -1,5 +1,6 @@
-package com.offbynull.actors.core.persisters.memory;
+package com.offbynull.actors.core.stores.memory;
 
+import com.offbynull.actors.core.stores.memory.BestEffortSerializer;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;

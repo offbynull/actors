@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.persisters.memory;
+package com.offbynull.actors.core.stores.memory;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;

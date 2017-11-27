@@ -33,11 +33,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import org.apache.commons.lang3.Validate;
-import com.offbynull.actors.core.persister.Persister;
-import com.offbynull.actors.core.persisters.memory.MemoryPersister;
+import com.offbynull.actors.core.stores.memory.MemoryStore;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.commons.io.IOUtils;
+import com.offbynull.actors.core.store.Store;
 
 /**
  * Actor system.
@@ -239,22 +239,22 @@ public final class ActorSystem implements Closeable {
         }
 
         /**
-         * Equivalent to calling {@code withActorGateway(concurrency, new MemoryPersister(DEFAULT_ACTOR, concurrency)) }.
+         * Equivalent to calling {@code withActorGateway(concurrency, new MemoryStore(DEFAULT_ACTOR, concurrency)) }.
          * @param concurrency number of threads for the actor gateway to use
          * @return this builder
          */
         public Builder withActorGateway(int concurrency) {
-            return withActorGateway(concurrency, new MemoryPersister(DEFAULT_ACTOR, concurrency));
+            return withActorGateway(concurrency, new MemoryStore(DEFAULT_ACTOR, concurrency));
         }
 
         /**
-         * Equivalent to calling {@code withGatewayFactory(() -> ActorGateway.create(DEFAULT_ACTOR, concurrency, persister)) }.
+         * Equivalent to calling {@code withGatewayFactory(() -> ActorGateway.create(DEFAULT_ACTOR, concurrency, store)) }.
          * @param concurrency number of threads for the actor gateway to use
-         * @param persister persister for storing/retrieving actors
+         * @param store storage engine for storing/retrieving actors
          * @return this builder
          */
-        public Builder withActorGateway(int concurrency, Persister persister) {
-            return withGatewayFactory(() -> ActorGateway.create(DEFAULT_ACTOR, concurrency, persister));
+        public Builder withActorGateway(int concurrency, Store store) {
+            return withGatewayFactory(() -> ActorGateway.create(DEFAULT_ACTOR, concurrency, store));
         }
         
         /**

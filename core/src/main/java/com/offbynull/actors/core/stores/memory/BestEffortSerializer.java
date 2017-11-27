@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.persisters.memory;
+package com.offbynull.actors.core.stores.memory;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -99,6 +99,9 @@ final class BestEffortSerializer {
             return;
         }
         
+        LOG.warn("{} marked with Serializable but the object graph contains a reference to a non-serializable object, falling back to best"
+                + " effort serialization for this object", obj.getClass().getSimpleName());
+        
         // if isn't serializable, so make a 'best effort' to write it out as-is
         if (obj.getClass().isArray()) {  // best effort to write out obj array
             coos.writeByte(DECONSTRUCTED_ARRAY_START);
@@ -159,14 +162,11 @@ final class BestEffortSerializer {
             return false;
         }
 
-        // Try to serialize it into a temp buffer -- if it doesn't work, it means we need to use a custom serializer
-        try {
-            NullObjectOutputStream innerCoos = new NullObjectOutputStream();
+        // Try to serialize it into a null buffer -- if it doesn't work, it means we need to use our fallback method of serialization
+        try (NullObjectOutputStream innerCoos = new NullObjectOutputStream()) {
             innerCoos.writeObject(obj);
             return true;
         } catch (NotSerializableException nse) { // can't serialize it
-            LOG.debug("%s is serializable but the object graph contains a reference to a non-serializable class: %s",
-                    cls.getSimpleName(), nse.toString());
             return false;
         } catch (IOException ioe) {
             throw new IllegalStateException(ioe); // should never happen

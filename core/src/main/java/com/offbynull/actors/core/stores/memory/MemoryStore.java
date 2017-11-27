@@ -14,12 +14,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.persisters.memory;
+package com.offbynull.actors.core.stores.memory;
 
 import com.offbynull.actors.core.gateways.actor.SerializableActor;
-import com.offbynull.actors.core.persister.PersisterWork;
+import com.offbynull.actors.core.store.StoredWork;
 import com.offbynull.actors.core.shuttle.Address;
-import com.offbynull.actors.core.persister.Persister;
 import com.offbynull.actors.core.shuttle.Message;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.wrap;
@@ -35,24 +34,25 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import static org.apache.commons.collections4.list.UnmodifiableList.unmodifiableList;
 import org.apache.commons.lang3.Validate;
+import com.offbynull.actors.core.store.Store;
 
 /**
- * A persister that keeps all actors and messages serialized in memory.
+ * A storage engine that keeps all actors and messages serialized in memory.
  * @author Kasra Faghihi
  */
-public final class MemoryPersister implements Persister {
+public final class MemoryStore implements Store {
     private final UnmodifiableList<LockRegion> lockRegions;
     private final String prefix;
     private volatile boolean closed;
 
     /**
-     * Constructs a {@link MemoryPersister} object.
-     * @param prefix prefix for the actor gateway that this persister belongs to
+     * Constructs a {@link MemoryStore} object.
+     * @param prefix prefix for the actor gateway that this storage engine belongs to
      * @param concurrency concurrency level (should be set to number of cores or larger)
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code concurrency <= 0}
      */
-    public MemoryPersister(String prefix, int concurrency) {
+    public MemoryStore(String prefix, int concurrency) {
         Validate.notNull(prefix);
         Validate.isTrue(concurrency > 0);
 
@@ -69,7 +69,7 @@ public final class MemoryPersister implements Persister {
     @Override
     public void store(SerializableActor actor) {
         Validate.notNull(actor);
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
         
         Address actorAddr = actor.getSelf();
         Validate.validState(actorAddr.size() == 2, "Actor address has unexpected number of elements: %s", actorAddr);
@@ -119,7 +119,7 @@ public final class MemoryPersister implements Persister {
     public void store(Collection<Message> messages) {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
 
         for (Message message : messages) {
             Address dstAddr = message.getDestinationAddress();
@@ -148,7 +148,7 @@ public final class MemoryPersister implements Persister {
     @Override
     public void discard(Address address) {
         Validate.notNull(address);
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
 
         Address lockAddr = address;
         LockRegion lockRegion = getLockRegion(lockAddr);
@@ -164,9 +164,9 @@ public final class MemoryPersister implements Persister {
     }
 
     @Override
-    public PersisterWork take() {
+    public StoredWork take() {
         while (true) {
-            Validate.validState(!closed, "Persister closed");
+            Validate.validState(!closed, "Store closed");
 
             LockRegion lockRegion = randomizeLockRegion();
             synchronized (lockRegion) {
@@ -189,7 +189,7 @@ public final class MemoryPersister implements Persister {
                     lockRegion.timeouts.remove(actorData);
                     lockRegion.processingSet.add(actorAddr);
                     
-                    return new PersisterWork(msg, actor);
+                    return new StoredWork(msg, actor);
                 } else if (!lockRegion.timeouts.isEmpty()) { // otherwise, any stale actors? timeouts only contain non-processing actors
                     ActorData actorData = lockRegion.timeouts.first();
                     
@@ -208,7 +208,7 @@ public final class MemoryPersister implements Persister {
                         lockRegion.timeouts.remove(actorData);
                         lockRegion.processingSet.add(actorAddr);
 
-                        return new PersisterWork(msg, actor);
+                        return new StoredWork(msg, actor);
                     }
                 }
             }
@@ -232,10 +232,10 @@ public final class MemoryPersister implements Persister {
     /**
      * Get the number of messages that require processing.
      * @return number of actors currently processing
-     * @throws IllegalStateException if persister has been closed
+     * @throws IllegalStateException if storage engine has been closed
      */
     public int getStoredMessageCount() {
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
         
         int ret = 0;
         for (LockRegion lockRegion : lockRegions) {
@@ -250,10 +250,10 @@ public final class MemoryPersister implements Persister {
     /**
      * Get the number of actors that are stored -- including those idle, awaiting processing, being processed, and stale (approximate).
      * @return number of actors currently processing
-     * @throws IllegalStateException if persister has been closed
+     * @throws IllegalStateException if storage engine has been closed
      */
     public int getActorCount() {
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
         
         int ret = 0;
         for (LockRegion lockRegion : lockRegions) {
@@ -268,10 +268,10 @@ public final class MemoryPersister implements Persister {
     /**
      * Get the number of actors that are currently processing a message (approximate).
      * @return number of actors currently processing
-     * @throws IllegalStateException if persister has been closed
+     * @throws IllegalStateException if storage engine has been closed
      */
     public int getProcessingActorCount() {
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
         
         int ret = 0;
         for (LockRegion lockRegion : lockRegions) {
@@ -286,10 +286,10 @@ public final class MemoryPersister implements Persister {
     /**
      * Get the number of actors that have pending messages and are awaiting processing (approximate).
      * @return number of actors awaiting processing
-     * @throws IllegalStateException if persister has been closed
+     * @throws IllegalStateException if storage engine has been closed
      */
     public int getReadyActorCount() {
-        Validate.validState(!closed, "Persister closed");
+        Validate.validState(!closed, "Store closed");
         
         int ret = 0;
         for (LockRegion lockRegion : lockRegions) {
@@ -341,7 +341,7 @@ public final class MemoryPersister implements Persister {
 
     private static final class LockRegion {
         private final BestEffortSerializer serializer = new BestEffortSerializer();
-        private final HashMap<Address, ActorData> actors = new HashMap<>();         // actor addr -> persisted actor obj
+        private final HashMap<Address, ActorData> actors = new HashMap<>();         // actor addr -> stored actor obj
         private final TreeSet<ActorData> timeouts = new TreeSet<>((x, y) -> {
             int ret = x.checkpointStaleTime.compareTo(y.checkpointStaleTime);
             if (ret == 0 && x != y) { // if we ever encounter the same time (but different objs), treat it as less-than -- we do this

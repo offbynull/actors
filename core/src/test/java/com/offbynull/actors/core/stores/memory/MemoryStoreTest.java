@@ -1,8 +1,9 @@
-package com.offbynull.actors.core.persisters.memory;
+package com.offbynull.actors.core.stores.memory;
 
+import com.offbynull.actors.core.stores.memory.MemoryStore;
 import com.offbynull.actors.core.gateways.actor.SerializableActor;
 import com.offbynull.actors.core.gateways.actor.SerializableActorHelper;
-import com.offbynull.actors.core.persister.PersisterWork;
+import com.offbynull.actors.core.store.StoredWork;
 import com.offbynull.actors.core.shuttle.Message;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
@@ -10,13 +11,13 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Before;
 
-public class MemoryPersisterTest {
+public class MemoryStoreTest {
 
-    private MemoryPersister fixture;
+    private MemoryStore fixture;
     
     @Before
     public void before() {
-        fixture = new MemoryPersister("actor", 2);
+        fixture = new MemoryStore("actor", 2);
     }
     
     @After
@@ -82,7 +83,7 @@ public class MemoryPersisterTest {
                 new Message("actor:a:1:2", "actor:b:2:2", "payload2"),
                 new Message("actor:a:1:3", "actor:b:2:3", "payload3"),
                 new Message("actor:a:1:4", "actor:b:2:4", "payload4"));
-        PersisterWork work = fixture.take();
+        StoredWork work = fixture.take();
         
         assertEquals("actor:a:1:1", work.getMessage().getSourceAddress().toString());
         assertEquals("actor:b:2:1", work.getMessage().getDestinationAddress().toString());
@@ -111,7 +112,7 @@ public class MemoryPersisterTest {
         assertEquals(0, fixture.getProcessingActorCount());
         assertEquals(1, fixture.getReadyActorCount());
         
-        PersisterWork work = fixture.take();
+        StoredWork work = fixture.take();
         
         assertEquals("actor:a:1:2", work.getMessage().getSourceAddress().toString());
         assertEquals("actor:b:2:2", work.getMessage().getDestinationAddress().toString());
@@ -146,7 +147,7 @@ public class MemoryPersisterTest {
         SerializableActor actor = SerializableActorHelper.createFake("actor:a", "timeout_msg", 300L);
         fixture.store(actor);
         
-        PersisterWork work = fixture.take();
+        StoredWork work = fixture.take();
         
         assertEquals("actor:a", work.getMessage().getSourceAddress().toString());
         assertEquals("actor:a", work.getMessage().getDestinationAddress().toString());

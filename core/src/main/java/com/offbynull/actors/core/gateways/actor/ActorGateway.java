@@ -24,13 +24,13 @@ import com.offbynull.actors.core.shuttle.Shuttle;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.offbynull.actors.core.persister.Persister;
-import com.offbynull.actors.core.persisters.memory.MemoryPersister;
+import com.offbynull.actors.core.stores.memory.MemoryStore;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.offbynull.actors.core.store.Store;
 
 /**
  * Gateway that executes distributed actors.
@@ -76,7 +76,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
     private final String prefix;
     private final ActorShuttle selfShuttle;
     private final ConcurrentHashMap<String, Shuttle> outShuttles;
-    private final Persister persister;
+    private final Store store;
 
     /**
      * Create a {@link ActorGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_ACTOR)}.
@@ -99,7 +99,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
 
     /**
      * Create an {@link ActorGateway} instance. Equivalent to calling
-     * {@code ActorGateway.create(prefix, threadCount, new MemoryPersister(prefix, threadCount))}.
+     * {@code ActorGateway.create(prefix, threadCount, new MemoryStore(prefix, threadCount))}.
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
      * @throws NullPointerException if any argument is {@code null}
@@ -107,24 +107,24 @@ public final class ActorGateway implements Gateway, AutoCloseable {
      * @return new actor runner
      */
     public static ActorGateway create(String prefix, int threadCount) {
-        return ActorGateway.create(prefix, threadCount, new MemoryPersister(prefix, threadCount));
+        return ActorGateway.create(prefix, threadCount, new MemoryStore(prefix, threadCount));
     }
 
     /**
      * Create an {@link ActorGateway} instance.
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
-     * @param persister persister
+     * @param store storage engine
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code threadCount < 1}
      * @return new actor runner
      */
-    public static ActorGateway create(String prefix, int threadCount, Persister persister) {
+    public static ActorGateway create(String prefix, int threadCount, Store store) {
         Validate.notNull(prefix);
-        Validate.notNull(persister);
+        Validate.notNull(store);
         Validate.isTrue(threadCount > 0);
 
-        ActorGateway ret = new ActorGateway(prefix, threadCount, persister);
+        ActorGateway ret = new ActorGateway(prefix, threadCount, store);
         
         // Handler to call if any of the threads encounter a problem while they're running. If any thread encounters a critical error, then
         // all threads must be shut down!
@@ -136,7 +136,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
         // Create and start threads
         try {
             for (int i = 0; i < threadCount; i++) {
-                ActorRunnable actorRunnable = new ActorRunnable(ret.prefix, ret.outShuttles, ret.persister, failListener, ret.shutdownFlag);
+                ActorRunnable actorRunnable = new ActorRunnable(ret.prefix, ret.outShuttles, ret.store, failListener, ret.shutdownFlag);
                 ret.threads[i] = new Thread(actorRunnable);
                 ret.threads[i].start();
             }
@@ -148,17 +148,17 @@ public final class ActorGateway implements Gateway, AutoCloseable {
         return ret;
     }
     
-    private ActorGateway(String prefix, int threadCount, Persister persister) {
+    private ActorGateway(String prefix, int threadCount, Store store) {
         Validate.notNull(prefix);
-        Validate.notNull(persister);
+        Validate.notNull(store);
         Validate.isTrue(threadCount > 0);
         
         this.prefix = prefix;
         this.threads = new Thread[threadCount];
         this.shutdownFlag = new AtomicBoolean(false);
-        this.selfShuttle = new ActorShuttle(prefix, persister, shutdownFlag);
+        this.selfShuttle = new ActorShuttle(prefix, store, shutdownFlag);
         this.outShuttles = new ConcurrentHashMap<>();
-        this.persister = persister;
+        this.store = store;
     }
     
     @Override
@@ -203,8 +203,8 @@ public final class ActorGateway implements Gateway, AutoCloseable {
                 .map(payload -> new Message(ctx.self(), ctx.self(), payload))
                 .toArray(size -> new Message[size]);
 
-        persister.store(serializableActor);
-        persister.store(messages);
+        store.store(serializableActor);
+        store.store(messages);
     }
 
     @Override

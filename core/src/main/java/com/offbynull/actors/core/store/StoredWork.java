@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.persister;
+package com.offbynull.actors.core.store;
 
 import com.offbynull.actors.core.gateways.actor.SerializableActor;
 import com.offbynull.actors.core.shuttle.Address;
@@ -25,17 +25,17 @@ import org.apache.commons.lang3.Validate;
  * A piece of work that requires processing (an actor with an incoming message for that actor).
  * @author Kasra Faghihi
  */
-public final class PersisterWork {
+public final class StoredWork {
     private final Message message;
     private final SerializableActor actor;
 
     /**
-     * Constructs a {@link PersistedWork} object.
+     * Constructs a {@link StoredWork} object.
      * @param message message to process
      * @param actor actor to process
      * @throws NullPointerException if any argument is {@code null}
      */
-    public PersisterWork(Message message, SerializableActor actor) {
+    public StoredWork(Message message, SerializableActor actor) {
         Validate.notNull(message);
         Validate.notNull(actor);
         

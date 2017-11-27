@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.core.persister;
+package com.offbynull.actors.core.store;
 
 import com.offbynull.actors.core.gateways.actor.SerializableActor;
 import com.offbynull.actors.core.shuttle.Address;
@@ -24,19 +24,19 @@ import java.util.Arrays;
 import java.util.Collection;
 
 /**
- * Actor persister.
+ * Actor storage engine.
  * <p>
  * Implementations must be robust. It should only throw exceptions for critical errors. For example, if the implementation encounters
  * connectivity issues, rather than throwing an exception it should block and retry until the issue has been resolved.
  * @author Kasra Faghihi
  */
-public interface Persister extends Closeable {
+public interface Store extends Closeable {
 
     /**
      * Puts actor into storage, replacing it if it already exists.
-     * @param actor actor to persist
+     * @param actor actor to store
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalStateException if the operation could not complete successfully, or if this persister has been closed
+     * @throws IllegalStateException if the operation could not complete successfully, or if this storage engine has been closed
      */
     void store(SerializableActor actor);
 
@@ -44,7 +44,7 @@ public interface Persister extends Closeable {
      * Equivalent to calling {@code store(Arrays.asList(messages))}.
      * @param messages messages coming from {@code actor}
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalStateException if the operation could not complete successfully, or if this persister has been closed
+     * @throws IllegalStateException if the operation could not complete successfully, or if this storage engine has been closed
      */
     default void store(Message... messages) {
         store(Arrays.asList(messages));
@@ -55,7 +55,7 @@ public interface Persister extends Closeable {
      * be silently discarded (depends on the implementation).
      * @param messages messages coming from {@code actor}
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalStateException if the operation could not complete successfully, or if this persister has been closed
+     * @throws IllegalStateException if the operation could not complete successfully, or if this storage engine has been closed
      */
     void store(Collection<Message> messages);
     
@@ -63,7 +63,7 @@ public interface Persister extends Closeable {
      * Equivalent to calling {@code discard(Address.fromString(address))}.
      * @param address address of actor to discard
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalStateException if the operation could not complete successfully, or if this persister has been closed
+     * @throws IllegalStateException if the operation could not complete successfully, or if this storage engine has been closed
      */
     default void discard(String address) {
         discard(Address.fromString(address));
@@ -73,7 +73,7 @@ public interface Persister extends Closeable {
      * Removes/discards an actor from storage. Does nothing if the actor being removed doesn't exist
      * @param address address of actor to discard
      * @throws NullPointerException if any argument is {@code null} or contains {@code null}
-     * @throws IllegalStateException if the operation could not complete successfully, or if this persister has been closed
+     * @throws IllegalStateException if the operation could not complete successfully, or if this storage engine has been closed
      */
     void discard(Address address);
 
@@ -81,7 +81,7 @@ public interface Persister extends Closeable {
      * Take a piece of work (message along with the actor responsible for processing it) out of storage. If no work is available, this
      * method blocks until work becomes available.
      * @return actor and message for actor
-     * @throws IllegalStateException if the operation could not complete successfully, or if this persister has been closed
+     * @throws IllegalStateException if the operation could not complete successfully, or if this storage engine has been closed
      */
-    PersisterWork take();
+    StoredWork take();
 }

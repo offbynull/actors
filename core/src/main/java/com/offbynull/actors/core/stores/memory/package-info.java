@@ -16,8 +16,8 @@
  */
 
 /**
- * In-memory persister implementations. 
+ * In-memory storage engine implementations. 
  * 
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.core.persisters.memory;
+package com.offbynull.actors.core.stores.memory;

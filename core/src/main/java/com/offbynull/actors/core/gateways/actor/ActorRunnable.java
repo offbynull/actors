@@ -25,7 +25,7 @@ import static com.offbynull.actors.core.gateways.actor.Context.SuspendFlag.FORWA
 import static com.offbynull.actors.core.gateways.actor.Context.SuspendFlag.RELEASE;
 import static com.offbynull.actors.core.gateways.actor.SerializableActor.deserialize;
 import static com.offbynull.actors.core.gateways.actor.SerializableActor.serialize;
-import com.offbynull.actors.core.persister.PersisterWork;
+import com.offbynull.actors.core.store.StoredWork;
 import com.offbynull.actors.core.shuttle.Shuttle;
 import com.offbynull.actors.core.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
@@ -36,11 +36,11 @@ import java.util.Map;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.offbynull.actors.core.persister.Persister;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.stream.Collectors.groupingBy;
+import com.offbynull.actors.core.store.Store;
 
 final class ActorRunnable implements Runnable {
 
@@ -48,7 +48,7 @@ final class ActorRunnable implements Runnable {
 
     private final String prefix;
     private final ConcurrentHashMap<String, Shuttle> outShuttles;
-    private final Persister persister;
+    private final Store store;
     
     private final FailListener failListener;
     private final AtomicBoolean shutdownFlag;
@@ -56,12 +56,12 @@ final class ActorRunnable implements Runnable {
     ActorRunnable(
             String prefix,
             ConcurrentHashMap<String, Shuttle> outShuttles,
-            Persister persister,
+            Store store,
             FailListener failListener,
             AtomicBoolean shutdownFlag) {
         Validate.notNull(prefix);
         Validate.notNull(outShuttles);
-        Validate.notNull(persister);
+        Validate.notNull(store);
         Validate.notNull(failListener);
         Validate.notNull(shutdownFlag);
         // DONT CHECK outShuttles FOR NULL keys/values as there's no point -- map is concurrent, being modified by other threads
@@ -69,7 +69,7 @@ final class ActorRunnable implements Runnable {
 
         this.prefix = prefix;
         this.outShuttles = outShuttles;
-        this.persister = persister;
+        this.store = store;
         this.failListener = failListener;
         this.shutdownFlag = shutdownFlag;
     }
@@ -92,7 +92,7 @@ final class ActorRunnable implements Runnable {
     }
 
     private void processWork() {
-        PersisterWork work = persister.take();
+        StoredWork work = store.take();
 
         Message message = work.getMessage();
         SerializableActor serializableActor = work.getActor();
@@ -119,22 +119,22 @@ final class ActorRunnable implements Runnable {
         List<BatchedCreateChildCommand> newChildCommands = ctx.copyAndClearNewChildren();
         createChildren(actor, newChildCommands);
 
-        // push newly created root actors to persister
+        // push newly created root actors to storage engine
         List<BatchedCreateRootCommand> newRootCommands = ctx.copyAndClearNewRoots();
         createActors(newRootCommands);
         
-        // push newly created outgoing messages to shuttles/persister
+        // push newly created outgoing messages to shuttles/storageengine
         List<BatchedOutgoingMessageCommand> newMessageCommands = ctx.copyAndClearOutgoingMessages();
         forwardMessages(newMessageCommands);
 
 
         if (shutdown) {
             Address actorAddr = actor.context().self();
-            LOG.debug("Actor shut down {} -- removing from persister", actorAddr);
-            persister.discard(actorAddr);
+            LOG.debug("Actor shut down {} -- removing from storage engine", actorAddr);
+            store.discard(actorAddr);
         } else {
             serializableActor = serialize(actor);
-            persister.store(serializableActor);
+            store.store(serializableActor);
         }
     }
 
@@ -144,10 +144,10 @@ final class ActorRunnable implements Runnable {
                 .map(m -> new Message(m.getSource(), m.getDestination(), m.getMessage()))
                 .collect(groupingBy(x -> x.getDestinationAddress().getElement(0)));
 
-        // Send outgoing messages for THIS prefix (persisted messages)
+        // Send outgoing messages for THIS prefix (storage messages)
         List<Message> selfMessages = outgoingMap.remove(prefix);
         if (selfMessages != null) {
-            persister.store(selfMessages);
+            store.store(selfMessages);
         }
         
         // Send outgoing messages for other prefixes
@@ -185,8 +185,8 @@ final class ActorRunnable implements Runnable {
                     .map(payload -> new Message(newCtx.self(), newCtx.self(), payload))
                     .toArray(size -> new Message[size]);
 
-            persister.store(serializableActor);
-            persister.store(messages);
+            store.store(serializableActor);
+            store.store(messages);
         });
     }
 
@@ -213,7 +213,7 @@ final class ActorRunnable implements Runnable {
                     .map(payload -> new Message(childCtx.self(), childCtx.self(), payload))
                     .toArray(size -> new Message[size]);
 
-            persister.store(messages);
+            store.store(messages);
         });
     }
     

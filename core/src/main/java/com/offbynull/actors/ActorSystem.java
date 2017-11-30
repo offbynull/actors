@@ -155,6 +155,16 @@ public final class ActorSystem implements Closeable {
     public void close() {
         gateways.values().forEach(g -> IOUtils.closeQuietly(g));
     }
+
+    /**
+     * Waits for the gateways in this system to die.
+     * @throws InterruptedException if thread is interrupted while waiting
+     */
+    public void join() throws InterruptedException {
+        for (Gateway gateway : gateways.values()) {
+            gateway.join();
+        }
+    }
     
     /**
      * Create a {@link ActorSystem} builder.
@@ -239,12 +249,12 @@ public final class ActorSystem implements Closeable {
         }
 
         /**
-         * Equivalent to calling {@code withActorGateway(concurrency, new MemoryStore(DEFAULT_ACTOR, concurrency)) }.
+         * Equivalent to calling {@code withActorGateway(concurrency, MemoryStore.create(DEFAULT_ACTOR, concurrency)) }.
          * @param concurrency number of threads for the actor gateway to use
          * @return this builder
          */
         public Builder withActorGateway(int concurrency) {
-            return withActorGateway(concurrency, new MemoryStore(DEFAULT_ACTOR, concurrency));
+            return withActorGateway(concurrency, MemoryStore.create(DEFAULT_ACTOR, concurrency));
         }
 
         /**

@@ -16,8 +16,8 @@
  */
 
 /**
- * In-memory storage engine implementation. 
+ * Redis storage engine implementation. 
  * 
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.stores.memory;
+package com.offbynull.actors.stores.redis;

@@ -48,3 +48,5 @@
 /examples/target/
 /io/target/
 /core/nbproject/
+/redis-store/target/
+/redis-store/nbproject/

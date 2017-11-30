@@ -1,21 +1,34 @@
-package com.offbynull.actors.stores.memory;
+package com.offbynull.actors.stores.redis;
 
 import com.offbynull.actors.gateways.actor.SerializableActor;
 import com.offbynull.actors.gateways.actor.SerializableActorHelper;
 import com.offbynull.actors.store.StoredWork;
 import com.offbynull.actors.shuttle.Message;
+import com.offbynull.actors.stores.redis.RedisStore.QueueCount;
+import com.offbynull.actors.stores.redis.client.ClientFactory;
+import com.offbynull.actors.stores.redis.connector.Connector;
+import com.offbynull.actors.stores.redis.connectors.test.TestConnector;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.junit.Before;
 
-public class MemoryStoreTest {
+public class RedisStoreTest {
 
-    private MemoryStore fixture;
+    private RedisStore fixture;
     
     @Before
     public void before() {
-        fixture = MemoryStore.create("actor", 2);
+//        try (Jedis jedis = new Jedis("192.168.56.101", 6379)) {
+//            jedis.flushDB();
+//        }
+//        Connector connector = new JedisPoolConnector("192.168.56.101", 6379, 5);
+//        ClientFactory clientFactory = new ConnectorClientFactory(connector);
+        
+        Connector connector = new TestConnector();
+        ClientFactory clientFactory = new ConnectorClientFactory(connector);
+        
+        fixture = RedisStore.create("actor", clientFactory, new QueueCount(1), new QueueCount(1));
     }
     
     @After
@@ -45,16 +58,12 @@ public class MemoryStoreTest {
                 new Message("actor:a:1:2:3", "actor:b:2:3:4", "payload"),
                 new Message("actor:a:1:2:3", "actor:b:2:3:4", "payload"),
                 new Message("actor:a:1:2:3", "actor:b:2:3:4", "payload"));
-        assertEquals(0, fixture.getStoredMessageCount());
     }
 
     @Test
     public void mustStoreActor() {
         SerializableActor actor = SerializableActorHelper.createFake("actor:b");
         fixture.store(actor);
-        assertEquals(1, fixture.getActorCount());
-        assertEquals(0, fixture.getProcessingActorCount());
-        assertEquals(0, fixture.getReadyActorCount());
     }    
 
     @Test
@@ -66,10 +75,6 @@ public class MemoryStoreTest {
                 new Message("actor:a:1:2:3", "actor:b:2:3:4", "payload"),
                 new Message("actor:a:1:2:3", "actor:b:2:3:4", "payload"),
                 new Message("actor:a:1:2:3", "actor:b:2:3:4", "payload"));
-        assertEquals(4, fixture.getStoredMessageCount());
-        assertEquals(1, fixture.getActorCount());
-        assertEquals(0, fixture.getProcessingActorCount());
-        assertEquals(1, fixture.getReadyActorCount());
     } 
 
     @Test(timeout = 1000L)
@@ -86,11 +91,6 @@ public class MemoryStoreTest {
         assertEquals("actor:a:1:1", work.getMessage().getSourceAddress().toString());
         assertEquals("actor:b:2:1", work.getMessage().getDestinationAddress().toString());
         assertEquals("payload1", work.getMessage().getMessage());
-        
-        assertEquals(3, fixture.getStoredMessageCount());
-        assertEquals(1, fixture.getActorCount());
-        assertEquals(1, fixture.getProcessingActorCount());
-        assertEquals(0, fixture.getReadyActorCount());
     } 
 
     @Test(timeout = 1000L)
@@ -105,21 +105,11 @@ public class MemoryStoreTest {
         fixture.take();
         fixture.store(actor);
         
-        assertEquals(3, fixture.getStoredMessageCount());
-        assertEquals(1, fixture.getActorCount());
-        assertEquals(0, fixture.getProcessingActorCount());
-        assertEquals(1, fixture.getReadyActorCount());
-        
         StoredWork work = fixture.take();
         
         assertEquals("actor:a:1:2", work.getMessage().getSourceAddress().toString());
         assertEquals("actor:b:2:2", work.getMessage().getDestinationAddress().toString());
         assertEquals("payload2", work.getMessage().getMessage());
-        
-        assertEquals(2, fixture.getStoredMessageCount());
-        assertEquals(1, fixture.getActorCount());
-        assertEquals(1, fixture.getProcessingActorCount());
-        assertEquals(0, fixture.getReadyActorCount());
     } 
 
     @Test(timeout = 1000L)
@@ -128,16 +118,8 @@ public class MemoryStoreTest {
         SerializableActor actorB = SerializableActorHelper.createFake("actor:b");
         fixture.store(actorA);
         fixture.store(actorB);
-
-        assertEquals(2, fixture.getActorCount());
-        assertEquals(0, fixture.getProcessingActorCount());
-        assertEquals(0, fixture.getReadyActorCount());
         
         fixture.discard("actor:b");
-        
-        assertEquals(1, fixture.getActorCount());
-        assertEquals(0, fixture.getProcessingActorCount());
-        assertEquals(0, fixture.getReadyActorCount());
     } 
 
     @Test(timeout = 2000L)

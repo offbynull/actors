@@ -14,15 +14,24 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.stores.memory;
+package com.offbynull.actors.stores.redis.connector;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.Closeable;
 
-final class CustomObjectInputStream extends ObjectInputStream {
-
-    CustomObjectInputStream(byte[] data) throws IOException {
-        super(new ByteArrayInputStream(data));
-    }
+/**
+ * A low-level Redis connector.
+ * <p>
+ * Implementations may or may not be bound to to this connector. That means that if this {@link Connector} is closed, the generated
+ * {@link Connection}s is may also be closed.
+ * <p>
+ * Implementations must be thread-safe.
+ * @author Kasra Faghihi
+ */
+public interface Connector extends Closeable {
+    /**
+     * Get a {@link Connection}.
+     * @return connection
+     * @throws IllegalStateException if closed
+     */
+    Connection getConnection();
 }

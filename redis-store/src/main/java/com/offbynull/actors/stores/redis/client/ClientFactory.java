@@ -14,10 +14,24 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.stores.redis.client;
+
+import java.io.Closeable;
 
 /**
- * In-memory storage engine implementation. 
- * 
+ * A Redis client.
+ * <p>
+ * Implementations may or may not be bound to to this factory. That means that if this {@link ClientFactory} is closed, the generated
+ * {@link Client}s is may also be closed.
+ * <p>
+ * Implementations must be thread-safe.
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.stores.memory;
+public interface ClientFactory extends Closeable {
+    /**
+     * Get a {@link Client}.
+     * @return client
+     * @throws IllegalStateException if closed
+     */
+    Client getClient();
+}

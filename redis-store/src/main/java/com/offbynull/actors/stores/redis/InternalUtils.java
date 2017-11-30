@@ -14,10 +14,25 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.stores.redis;
 
-/**
- * In-memory storage engine implementation. 
- * 
- * @author Kasra Faghihi
- */
-package com.offbynull.actors.stores.memory;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+final class InternalUtils {
+    
+    private InternalUtils() {
+        // do nothing
+    }
+
+    static String byteArrayToString(byte[] data) {
+        return data == null ? null : new String(data, UTF_8);
+    }
+    
+    static Integer stringToInt(byte[] data) {
+        return data == null ? null : Integer.valueOf(new String(data, UTF_8));
+    }
+    
+    static Long stringToLong(byte[] data) {
+        return data == null ? null : Long.valueOf(new String(data, UTF_8));
+    }
+}

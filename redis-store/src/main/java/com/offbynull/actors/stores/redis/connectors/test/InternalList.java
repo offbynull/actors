@@ -14,10 +14,35 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.stores.redis.connectors.test;
 
-/**
- * In-memory storage engine implementation. 
- * 
- * @author Kasra Faghihi
- */
-package com.offbynull.actors.stores.memory;
+import java.util.LinkedList;
+
+final class InternalList {
+    private final LinkedList<byte[]> items = new LinkedList<>();
+
+    byte[] rpop() {
+        return items.removeFirst();
+    }
+
+    byte[] lpop() {
+        return items.removeLast();
+    }
+
+    void rpush(byte[] e) {
+        items.addFirst(e);
+    }
+
+    void lpush(byte[] e) {
+        items.addLast(e);
+    }
+
+    int size() {
+        return items.size();
+    }
+
+    boolean isEmpty() {
+        return items.isEmpty();
+    }
+    
+}

@@ -35,24 +35,36 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import static org.apache.commons.collections4.list.UnmodifiableList.unmodifiableList;
 import org.apache.commons.lang3.Validate;
 import com.offbynull.actors.store.Store;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A storage engine that keeps all actors and messages serialized in memory.
  * @author Kasra Faghihi
  */
 public final class MemoryStore implements Store {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryStore.class);
+    
     private final UnmodifiableList<LockRegion> lockRegions;
     private final String prefix;
     private volatile boolean closed;
 
     /**
-     * Constructs a {@link MemoryStore} object.
+     * Creates a {@link MemoryStore} object.
      * @param prefix prefix for the actor gateway that this storage engine belongs to
      * @param concurrency concurrency level (should be set to number of cores or larger)
+     * @return new memory store
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code concurrency <= 0}
      */
-    public MemoryStore(String prefix, int concurrency) {
+    public static MemoryStore create(String prefix, int concurrency) {
+        Validate.notNull(prefix);
+        Validate.isTrue(concurrency > 0);
+        return new MemoryStore(prefix, concurrency);
+    }
+
+    private MemoryStore(String prefix, int concurrency) {
         Validate.notNull(prefix);
         Validate.isTrue(concurrency > 0);
 
@@ -75,43 +87,64 @@ public final class MemoryStore implements Store {
         Validate.validState(actorAddr.size() == 2, "Actor address has unexpected number of elements: %s", actorAddr);
         Validate.validState(actorAddr.getElement(0).equals(prefix), "Actor address must start with %s: %s", prefix, actorAddr);
 
+        if (actor.getCheckpointTimeout() < 0L && actor.getCheckpointPayload() == null) {
+            LOGGER.warn("Actor doesn't have checkpoint time/message -- ignoring store: {} {} {}",
+                    actorAddr,
+                    actor.getCheckpointTimeout(),
+                    actor.getCheckpointPayload());
+            return;
+        }
+
         LockRegion lockRegion = getLockRegion(actorAddr);
         synchronized (lockRegion) {
-            // Create or replace actordata
-            ActorData actorData = lockRegion.actors.computeIfAbsent(actorAddr, x -> {
-                Validate.validState(actor.getCheckpointTimeout() > 0L && actor.getCheckpointMessage() != null,
-                        "Initial store of an actor needs a checkpoint time and message: %s", actorAddr);
+            boolean exists = lockRegion.actors.containsKey(actorAddr);
 
-                ActorData newActorData = new ActorData();
-                newActorData.msgQueue = new LinkedList<>();
-
-                return newActorData;
-            });
-            
-            // Serialize actor
             byte[] serializedActor = lockRegion.serializer.serialize(actor);
-            actorData.data = serializedActor;
-
-            // If supplied, update the checkpointing timeout and set the current data being added as a checkpoint
-            long checkpointTimeout = actor.getCheckpointTimeout();
-            if (checkpointTimeout > 0L) {
-                Validate.validState(actor.getCheckpointMessage() != null, "Checkpoint has timeout but no message: %s", actorAddr);
-
-                actorData.checkpointTimeout = checkpointTimeout;
+            
+            if (!exists) {
+                ActorData actorData = new ActorData();
+                
+                actorData.msgQueue = new LinkedList<>();
+                actorData.data = serializedActor;
+                actorData.checkpointInstance = actor.getCheckpointInstance();
                 actorData.checkpointData = serializedActor;
+                actorData.checkpointTime = calculateCheckpointTime(actor.getCheckpointTimeout());
+                actorData.checkpointInstance = actor.getCheckpointInstance();                
+                lockRegion.actors.put(actorAddr, actorData);
+                lockRegion.timeouts.add(actorData);
+                
+                lockRegion.actors.put(actorAddr, actorData);
+            } else {
+                ActorData actorData = lockRegion.actors.get(actorAddr);
+                
+                actorData.data = serializedActor;
+                if (actor.getCheckpointInstance() < actorData.checkpointInstance) { // if checkpoint inst is older
+                    // This is an old instance -- a checkpoint has already hit so it wouldn't be a good idea to put this back in.
+                    LOGGER.warn("Ignoring update for actor with old checkpoint instance: {} vs {} for {}",
+                            actorData.checkpointInstance,
+                            actor.getCheckpointInstance(),
+                            actorAddr);
+                    return;
+                }
+
+                if (actor.getCheckpointUpdated()) { // if actor should be checkpointed
+                    // Update checkpoint details
+                    LOGGER.debug("Checkpoint actor: {}", actorAddr);
+                    lockRegion.timeouts.remove(actorData);
+                    actorData.checkpointData = serializedActor;
+                    actorData.checkpointTime = calculateCheckpointTime(actor.getCheckpointTimeout());
+                    actorData.checkpointInstance = actor.getCheckpointInstance();
+                    lockRegion.timeouts.add(actorData);
+                }
+                
+                // If msgs are available, add to availableSet. If is being put back into storage after processing, remove from processingSet
+                if (!actorData.msgQueue.isEmpty()) {
+                    lockRegion.availableSet.add(actorAddr);
+                }
+                lockRegion.processingSet.remove(actorAddr);
             }
 
-            // Update checkpoint timeout value
-              // must remove and re-add -- collection is using staletime to sort
-            lockRegion.timeouts.remove(actorData);
-            actorData.checkpointStaleTime = Instant.now().plusMillis(actorData.checkpointTimeout);
-            lockRegion.timeouts.add(actorData);
-
-            // If msgs are available, add to availableSet. If is being put back into storage after processing, remove from processingSet
-            if (!actorData.msgQueue.isEmpty()) {
-                lockRegion.availableSet.add(actorAddr);
-            }
-            lockRegion.processingSet.remove(actorAddr);
+            LOGGER.debug("Stored actor: {} ({})", actorAddr, exists ? "existing" : "new");
         }
     }
 
@@ -120,11 +153,14 @@ public final class MemoryStore implements Store {
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         Validate.validState(!closed, "Store closed");
+        messages.forEach(m -> {
+            Address dstAddr = m.getDestinationAddress();
+            Validate.validState(dstAddr.size() >= 2, "Actor address must have atleast 2 elements: %s", dstAddr);
+            Validate.validState(dstAddr.getElement(0).equals(prefix), "Actor address must start with %s: %s", prefix, dstAddr);
+        });
 
         for (Message message : messages) {
             Address dstAddr = message.getDestinationAddress();
-            Validate.validState(dstAddr.size() >= 2, "Actor address must have atleast 2 elements: %s", dstAddr);
-            Validate.validState(dstAddr.getElement(0).equals(prefix), "Actor address must start with %s: %s", prefix, dstAddr);
             Address dstActorAddr = Address.of(prefix, dstAddr.getElement(1));
 
             LockRegion lockRegion = getLockRegion(dstActorAddr);
@@ -140,6 +176,8 @@ public final class MemoryStore implements Store {
                     if (!lockRegion.processingSet.contains(dstActorAddr)) {
                         lockRegion.availableSet.add(dstActorAddr);
                     }
+                    
+                    LOGGER.debug("Stored message: {}", message);
                 }
             }
         }
@@ -147,7 +185,8 @@ public final class MemoryStore implements Store {
     
     @Override
     public void discard(Address address) {
-        Validate.notNull(address);
+        Validate.isTrue(address.size() == 2);
+        Validate.isTrue(address.getElement(0).equals(prefix));
         Validate.validState(!closed, "Store closed");
 
         Address lockAddr = address;
@@ -160,7 +199,9 @@ public final class MemoryStore implements Store {
                 lockRegion.availableSet.remove(actorAddr);
                 lockRegion.processingSet.remove(actorAddr);
             }
-        }       
+            
+            LOGGER.debug("Discarded actor: {}", actorAddr);
+        }
     }
 
     @Override
@@ -186,27 +227,40 @@ public final class MemoryStore implements Store {
                     // Remove from available and add to processing, also remove from timeouts because we don't want the actor triggering the
                     // stale message while it's processing
                     lockRegion.availableSet.remove(actorAddr);
-                    lockRegion.timeouts.remove(actorData);
+                    // lockRegion.timeouts.remove(actorData); // DONT DO THIS -- we want checkpoints to hit even when we're processing a msg
                     lockRegion.processingSet.add(actorAddr);
+                    
+                    LOGGER.debug("Pulling message for actor: {}", msg);
                     
                     return new StoredWork(msg, actor);
                 } else if (!lockRegion.timeouts.isEmpty()) { // otherwise, any stale actors? timeouts only contain non-processing actors
                     ActorData actorData = lockRegion.timeouts.first();
                     
                     Instant now = Instant.now();
-                    Instant checkpointTime = actorData.checkpointStaleTime;
+                    Instant checkpointTime = actorData.checkpointTime;
 
                     if (now.isAfter(checkpointTime) || now.equals(checkpointTime)) {
                         byte[] serializedActor = actorData.checkpointData;
                         SerializableActor actor = lockRegion.serializer.deserialize(serializedActor);
                         
+                        // Inc expected checkpointInstance by 1, so any stores for the prev checkpoint instance will be ignored. Also, set
+                        // checkpoint updated flag to true, so it'll re-apply the checkpoint message and timeout that was set.
+                        actorData.checkpointInstance++;
+                        actor.setCheckpointInstance(actorData.checkpointInstance);
+                        actor.setCheckpointUpdated(true);
+                        
+                        // Remove from timeouts so this checkpoint doesn't get hit again.
+                        lockRegion.timeouts.remove(actorData);
+                        
                         Address actorAddr = actor.getSelf();
-                        Object checkpointMsg = actor.getCheckpointMessage();
+                        Object checkpointMsg = actor.getCheckpointPayload();
                         Message msg = new Message(actorAddr, actorAddr, checkpointMsg);
 
+                        // Remove from availableSet and put in processingSet, because we are processing now.
                         lockRegion.availableSet.remove(actorAddr);
-                        lockRegion.timeouts.remove(actorData);
                         lockRegion.processingSet.add(actorAddr);
+
+                        LOGGER.debug("Checkpoint hit for actor: {}", msg);
 
                         return new StoredWork(msg, actor);
                     }
@@ -301,7 +355,13 @@ public final class MemoryStore implements Store {
         return ret;
     }
 
-
+    private static Instant calculateCheckpointTime(long timeout) {
+        try {
+            return Instant.now().plusMillis(timeout);
+        } catch (ArithmeticException ae) {
+            return Instant.MAX;
+        }
+    }
 
 
 
@@ -343,7 +403,7 @@ public final class MemoryStore implements Store {
         private final BestEffortSerializer serializer = new BestEffortSerializer();
         private final HashMap<Address, ActorData> actors = new HashMap<>();         // actor addr -> stored actor obj
         private final TreeSet<ActorData> timeouts = new TreeSet<>((x, y) -> {
-            int ret = x.checkpointStaleTime.compareTo(y.checkpointStaleTime);
+            int ret = x.checkpointTime.compareTo(y.checkpointTime);
             if (ret == 0 && x != y) { // if we ever encounter the same time (but different objs), treat it as less-than -- we do this
                                       // because we're using this set just to order (we still want duplicates showing up)
                 ret = -1;
@@ -359,9 +419,10 @@ public final class MemoryStore implements Store {
     
     private static final class ActorData {
         private byte[] data;
-        private byte[] checkpointData;
-        private long checkpointTimeout;
-        private Instant checkpointStaleTime;
         private LinkedList<byte[]> msgQueue;
+        
+        private byte[] checkpointData;
+        private Instant checkpointTime;
+        private int checkpointInstance;
     }
 }

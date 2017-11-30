@@ -16,8 +16,7 @@
  */
 
 /**
- * In-memory storage engine implementation. 
- * 
+ * Provides classes and interfaces for defining Redis clients.
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.stores.memory;
+package com.offbynull.actors.stores.redis.client;

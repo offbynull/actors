@@ -14,15 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.stores.memory;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import org.apache.commons.io.output.NullOutputStream;
-
-final class NullObjectOutputStream extends ObjectOutputStream {
-
-    NullObjectOutputStream() throws IOException {
-        super(NullOutputStream.NULL_OUTPUT_STREAM);
-    }
-}
+/**
+ * Redis connector that mocks a local Redis server. This is mainly used for testing higher-level classes.
+ * @author Kasra Faghihi
+ */
+package com.offbynull.actors.stores.redis.connectors.test;

@@ -50,21 +50,56 @@ public final class SerializableActor implements Serializable {
     }
 
     /**
-     * Get checkpoint message for this actor.
+     * Get checkpoint message payload for this actor.
      * @return checkpoint message
      */
-    public Object getCheckpointMessage() {
-        return context.checkpointMessage();
+    public Object getCheckpointPayload() {
+        return context.checkpointPayload();
     }
 
     /**
-     * Get checkpoint timeout for this actor.
-     * @return checkpoint timeout
+     * Get checkpoint time for this actor.
+     * @return checkpoint time
      */
     public long getCheckpointTimeout() {
         return context.checkpointTimeout();
     }
-    
+
+    // The checkpoint instance is a unique identifier that's used for the race condition where an actor is processing a message but it
+    // takes so long that the checkpoint hits. If the checkpoint hits, the unique identifier updates -- any previously running instance of
+    // the actor will have a different checkpoint instance and won't be let back into storage (it'll be silently discarded).
+     
+    /**
+     * Get checkpoint instance for this actor.
+     * @return checkpoint instance
+     */
+    public int getCheckpointInstance() {
+        return context.checkpointInstance();
+    }
+     
+    /**
+     * Set checkpoint instance for this actor.
+     * @param instance new instance
+     */
+    public void setCheckpointInstance(int instance) {
+        context.checkpointInstance(instance);
+    }
+
+    /**
+     * Get checkpoint updated flag for this actor. Indicates that the user wants the current state of the actor to be a checkpoint.
+     * @return checkpoint updated flag
+     */
+    public boolean getCheckpointUpdated() {
+        return context.checkpointUpdated();
+    }
+
+    /**
+     * set checkpoint updated flag for this actor. Indicates that the user wants the current state of the actor to be a checkpoint.
+     * @param checkpointUpdated checkpoint updated flag
+     */
+    public void setCheckpointUpdated(boolean checkpointUpdated) {
+        context.checkpointUpdated(checkpointUpdated);
+    }
     
     
     static SerializableActor serialize(Actor actor) {

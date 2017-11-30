@@ -14,10 +14,18 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.stores.redis.connector;
 
 /**
- * In-memory storage engine implementation. 
- * 
+ * Block that defines watch conditions.
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.stores.memory;
+public interface WatchBlock {
+    /**
+     * Performs Redis operations to check that certain conditions are met.
+     * @return if conditions were met
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws IllegalStateException if connector closed
+     */
+    boolean execute() throws ConnectionException; 
+}

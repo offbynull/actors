@@ -14,10 +14,19 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.actors.stores.redis.connector;
 
 /**
- * In-memory storage engine implementation. 
- * 
+ * Redis operations to perform inside a MULTI/EXEC block.
  * @author Kasra Faghihi
  */
-package com.offbynull.actors.stores.memory;
+public interface TransactionBlock {
+    /**
+     * Queues Redis operations to perform in a MULTI/EXEC block.
+     * @param queue transaction queue
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if connector closed
+     */
+    void execute(TransactionQueue queue) throws ConnectionException; 
+}

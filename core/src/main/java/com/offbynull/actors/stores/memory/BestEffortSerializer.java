@@ -16,9 +16,11 @@
  */
 package com.offbynull.actors.stores.memory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -28,18 +30,26 @@ import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 import static java.util.stream.Collectors.toList;
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.objenesis.ObjenesisStd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// No serializers seem to work -- they all have some type of problem.
-//
-// This code delegates to Java's serializer, but tries to work around the case where an object in the graph doesn't implement Serializable.
-// Note that this won't work for lambdas UNLESS THEY'RE SPECIFICALLY MARKED AS SERIALIZABLE because lambdas don't use the standard Java
-// serialization mechanism -- extra code is generated for lambdas to take care of serialization/deserialization.
-final class BestEffortSerializer {
+/**
+ * This serializer uses uses Java's internal serialization mechanism, but attempts to work around the case where an object in the graph
+ * doesn't implement {@link Serializable}. Note that this won't work for lambdas UNLESS THEY'RE SPECIFICALLY MARKED AS SERIALIZABLE because
+ * lambdas don't use the standard Java serialization mechanism -- extra code is generated for lambdas to take care of
+ * serialization/deserialization.
+ * <p>
+ * Of all the serialization solutions available for Java, this seems to work the best. The problem is that it's slow and unsafe. Use it for
+ * testing or as a last resort (if nothing else works for you).
+ * @author Kasra Faghihi
+ */
+public final class BestEffortSerializer {
     
     private static final Logger LOG = LoggerFactory.getLogger(BestEffortSerializer.class);
 
@@ -53,7 +63,13 @@ final class BestEffortSerializer {
     private static final byte PARENT_REFERENCE_MARKER = 100;
     private static final byte NEW_REFERENCE_MARKER = 101;
     
-    byte[] serialize(Object obj) {
+    /**
+     * Serialize an object to a new byte array.
+     * @param obj object to serialize (can be {@code null}
+     * @return {@code obj} serialized as a byte array
+     * @throws IllegalStateException if there was a problem serializing
+     */
+    public byte[] serialize(Object obj) {
         try {
             CustomObjectOutputStream coos = new CustomObjectOutputStream();
             recurseWriteObject(obj, coos, new TraversalPath());
@@ -64,10 +80,19 @@ final class BestEffortSerializer {
         }
     }
 
-    <T> T deserialize(byte[] data) {
+    /**
+     * Deserialize a byte array back into a object.
+     * @param <T> expected type of deserialized object
+     * @param data byte array to deserialize
+     * @return {code data} deserialized back to an object
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if there was a problem deserializing
+     */
+    public <T> T deserialize(byte[] data) {
+        Validate.notNull(data);
         try {
             CustomObjectInputStream ois = new CustomObjectInputStream(data);
-            return (T) recurseReadObject(getClass().getClassLoader(), ois, new TraversalPath());
+            return (T) recurseReadObject(BestEffortSerializer.class.getClassLoader(), ois, new TraversalPath());
         } catch (ClassCastException | ClassNotFoundException | IllegalAccessException | IOException e) {
             throw new IllegalStateException(e);
         }
@@ -300,5 +325,49 @@ final class BestEffortSerializer {
             return data.get(index);
         }
         
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    private static final class CustomObjectInputStream extends ObjectInputStream {
+
+        CustomObjectInputStream(byte[] data) throws IOException {
+            super(new ByteArrayInputStream(data));
+        }
+    }
+    
+    private static final class CustomObjectOutputStream extends ObjectOutputStream {
+
+        private final ByteArrayOutputStream cbaos;
+
+        CustomObjectOutputStream() throws IOException {
+            this(new ByteArrayOutputStream());
+        }
+
+        private CustomObjectOutputStream(ByteArrayOutputStream cbaos) throws IOException {
+            super(cbaos);
+            this.cbaos = cbaos;
+        }
+
+        public byte[] toByteArray() throws IOException {
+            flush();
+            cbaos.flush(); // justincase
+            return cbaos.toByteArray();
+        }
+    }
+    
+    private static final class NullObjectOutputStream extends ObjectOutputStream {
+
+        NullObjectOutputStream() throws IOException {
+            super(NullOutputStream.NULL_OUTPUT_STREAM);
+        }
     }
 }

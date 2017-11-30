@@ -52,7 +52,7 @@ public final class Context implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
-    static final Object DEFAULT_CHECKPOINT_MESSAGE = new DefaultStaleMessage();
+    static final Object DEFAULT_CHECKPOINT_PAYLOAD = new DefaultCheckpointMessage();
     static final long DEFAULT_CHECKPOINT_TIMEOUT = Long.MAX_VALUE;
 
     private RuleSet ruleSet;
@@ -66,8 +66,10 @@ public final class Context implements Serializable {
     private List<BatchedCreateChildCommand> newChildren;
     
     private Map<Class<?>, ShortcircuitLogic> shortcircuits;
-    private Object checkpointMessage;
+    private Object checkpointPayload;
     private long checkpointTimeout;
+    private int checkpointInstance; // counter that will inc on checkpoint recovert -- older instances won't be stored
+    private boolean checkpointUpdated; // checkpoint updated by the user
     
     private boolean intercept;
     private SuspendFlag flag;
@@ -83,8 +85,10 @@ public final class Context implements Serializable {
         
         this.shortcircuits = new HashMap<>();
 
-        this.checkpointMessage = DEFAULT_CHECKPOINT_MESSAGE;
+        this.checkpointPayload = DEFAULT_CHECKPOINT_PAYLOAD;
         this.checkpointTimeout = DEFAULT_CHECKPOINT_TIMEOUT;
+        this.checkpointUpdated = true;
+        this.checkpointInstance = 0;
         
         this.flag = SuspendFlag.RELEASE;
         
@@ -105,8 +109,9 @@ public final class Context implements Serializable {
         
         this.shortcircuits = new HashMap<>();
         
-        this.checkpointMessage = DEFAULT_CHECKPOINT_MESSAGE;
+        this.checkpointPayload = DEFAULT_CHECKPOINT_PAYLOAD;
         this.checkpointTimeout = DEFAULT_CHECKPOINT_TIMEOUT;
+        this.checkpointInstance = 0;
         
         this.flag = SuspendFlag.RELEASE;
         
@@ -148,17 +153,18 @@ public final class Context implements Serializable {
     }
 
     /**
-     * Set checkpoint message and timeout. Checkpoint message/timeout is only respected if the actor is a root actor.
-     * @param message message to be used if actor goes stale
-     * @param timeout maximum amount of time (in milliseconds) to wait for a new message before rolling back
+     * Set checkpoint message and time. Checkpoint message/time is only respected if the actor is a root actor.
+     * @param payload payload to be used once checkpoint hits
+     * @param timeout amount of time (in milliseconds) when the checkpoint hits and the actor rolls back
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code timeout < 1L}
+     * @throws IllegalArgumentException if {@code timeout} is negative
      */
-    public void checkpoint(Object message, long timeout) {
-        Validate.notNull(message);
-        Validate.isTrue(timeout > 0L);
-        this.checkpointMessage = message;
+    public void checkpoint(Object payload, long timeout) {
+        Validate.notNull(payload);
+        Validate.isTrue(timeout >= 0L);
+        this.checkpointPayload = payload;
         this.checkpointTimeout = timeout;
+        this.checkpointUpdated = true;
     }
 
     /**
@@ -721,20 +727,36 @@ public final class Context implements Serializable {
         this.newChildren = newChildren;
     }
 
-    Object checkpointMessage() {
-        return checkpointMessage;
+    Object checkpointPayload() {
+        return checkpointPayload;
     }
 
     long checkpointTimeout() {
         return checkpointTimeout;
     }
 
-    void checkpointMessage(Object message) {
-        this.checkpointMessage = message;
+    void checkpointPayload(Object payload) {
+        this.checkpointPayload = payload;
     }
 
-    void checkpointTimeout(long timeout) {
-        this.checkpointTimeout = timeout;
+    void checkpointTimeout(long time) {
+        this.checkpointTimeout = time;
+    }
+
+    int checkpointInstance() {
+        return checkpointInstance;
+    }
+
+    void checkpointInstance(int checkpointInstance) {
+        this.checkpointInstance = checkpointInstance;
+    }
+
+    boolean checkpointUpdated() {
+        return checkpointUpdated;
+    }
+
+    void checkpointUpdated(boolean checkpointUpdated) {
+        this.checkpointUpdated = checkpointUpdated;
     }
 
     
@@ -745,7 +767,7 @@ public final class Context implements Serializable {
     
     
     
-    private static final class DefaultStaleMessage implements Serializable {
+    static final class DefaultCheckpointMessage implements Serializable {
         private static final long serialVersionUID = 1L;
     }
 }

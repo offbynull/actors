@@ -7,7 +7,7 @@ import org.junit.Test;
 
 public class ActorSystemTest {
 
-    @Test(timeout = 20000000000000L)
+    @Test(timeout = 2000L)
     public void mustCreateAndCommunicateActorsAndGateways() throws Exception {
         Coroutine echoer = cnt -> {
             Context ctx = (Context) cnt.getContext();

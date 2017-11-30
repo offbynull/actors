@@ -106,9 +106,8 @@ final class ActorRunnable implements Runnable {
         // deserialie
         Actor actor = deserialize(serializableActor);
 
-        // reset checkpoint (user will set it again if they want to checkpoint)
-        actor.context().checkpointMessage(null);
-        actor.context().checkpointTimeout(0L);
+        // reset checkpoint updated flag (user will set it again if they want to checkpoint)
+        actor.context().checkpointUpdated(false);
         
         // fire msg
         boolean shutdown = fire(actor, src, dst, Instant.now(), payload);

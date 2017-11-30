@@ -14,28 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.stores.memory;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import org.apache.commons.io.output.ByteArrayOutputStream;
-
-final class CustomObjectOutputStream extends ObjectOutputStream {
-
-    private final ByteArrayOutputStream cbaos;
-
-    CustomObjectOutputStream() throws IOException {
-        this(new ByteArrayOutputStream());
-    }
-
-    private CustomObjectOutputStream(ByteArrayOutputStream cbaos) throws IOException {
-        super(cbaos);
-        this.cbaos = cbaos;
-    }
-
-    public byte[] toByteArray() throws IOException {
-        flush();
-        cbaos.flush(); // justincase
-        return cbaos.toByteArray();
-    }
-}
+/**
+ * Redis connector that uses Jedis.
+ * @author Kasra Faghihi
+ */
+package com.offbynull.actors.stores.redis.connectors.jedis;

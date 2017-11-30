@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.offbynull.actors.store.Store;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Gateway that executes distributed actors.
@@ -99,7 +100,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
 
     /**
      * Create an {@link ActorGateway} instance. Equivalent to calling
-     * {@code ActorGateway.create(prefix, threadCount, new MemoryStore(prefix, threadCount))}.
+     * {@code ActorGateway.create(prefix, threadCount, MemoryStore.create(prefix, threadCount))}.
      * @param prefix address prefix to use for actors that get added to this runner
      * @param threadCount number of threads to use for this runner
      * @throws NullPointerException if any argument is {@code null}
@@ -107,7 +108,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
      * @return new actor runner
      */
     public static ActorGateway create(String prefix, int threadCount) {
-        return ActorGateway.create(prefix, threadCount, new MemoryStore(prefix, threadCount));
+        return ActorGateway.create(prefix, threadCount, MemoryStore.create(prefix, threadCount));
     }
 
     /**
@@ -231,6 +232,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
     @Override
     public void close() {
         shutdownFlag.set(true);
+        IOUtils.closeQuietly(store);
     }
 
     @Override

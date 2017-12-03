@@ -50,3 +50,5 @@
 /core/nbproject/
 /redis-store/target/
 /redis-store/nbproject/
+/jdbc-store/target/
+/jdbc-store/derby.log

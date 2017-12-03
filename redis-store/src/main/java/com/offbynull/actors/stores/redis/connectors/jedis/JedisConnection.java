@@ -332,7 +332,7 @@ public final class JedisConnection implements Connection {
             Validate.validState(!factoryClosed.get(), "Closed");
             try {
                 t.lpush(key.getBytes(UTF_8), val);
-                converters.add(in -> null);
+                converters.add(in -> in);
             } catch (JedisConnectionException jce) {
                 throw new ConnectionException(true, jce);
             } catch (RuntimeException re) {

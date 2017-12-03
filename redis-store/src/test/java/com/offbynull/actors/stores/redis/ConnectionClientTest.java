@@ -7,7 +7,7 @@ import com.offbynull.actors.stores.redis.client.Client;
 import com.offbynull.actors.stores.redis.client.ClientFactory;
 import com.offbynull.actors.stores.redis.client.TimestampQueue;
 import com.offbynull.actors.stores.redis.connector.Connector;
-import com.offbynull.actors.stores.redis.connectors.jedis.JedisPoolConnector;
+import com.offbynull.actors.stores.redis.connectors.test.TestConnector;
 import org.junit.After;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -24,10 +24,10 @@ public final class ConnectionClientTest {
     
     @Before
     public void setUp() throws Exception {
-        connector = new JedisPoolConnector("192.168.56.101", 6379, 1);
-        clientFactory = new ConnectorClientFactory(connector);
-//        connector = new TestConnector();
+//        connector = new JedisPoolConnector("192.168.56.101", 6379, 1);
 //        clientFactory = new ConnectorClientFactory(connector);
+        connector = new TestConnector();
+        clientFactory = new ConnectorClientFactory(connector);
         client = clientFactory.getClient();
     }
     

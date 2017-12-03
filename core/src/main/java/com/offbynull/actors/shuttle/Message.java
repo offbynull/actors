@@ -16,13 +16,17 @@
  */
 package com.offbynull.actors.shuttle;
 
+import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
 /**
  * A message.
  * @author Kasra Faghihi
  */
-public final class Message {
+public final class Message implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final Address sourceAddress;
     private final Address destinationAddress;
     private final Object message;

@@ -221,7 +221,7 @@ public final class TestConnection implements Connection {
                             database.put(key, list);
                         }
                         list.lpush(copy(val));
-                        return null;
+                        return (long) list.size();
                     });
                 }
 

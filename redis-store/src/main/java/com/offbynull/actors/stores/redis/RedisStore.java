@@ -181,21 +181,26 @@ public final class RedisStore implements Store {
         
         int checkpointInstance = actor.getCheckpointInstance();
         boolean checkpointUpdated = actor.getCheckpointUpdated();
-        byte[] checkpointMsgPayload;
+        byte[] checkpointPayloadData;
         if (checkpointUpdated) {
             Object checkpointPayload = actor.getCheckpointPayload();
-            checkpointMsgPayload = serializer.serialize(new Message(actorAddr, actorAddr, checkpointPayload));
+            checkpointPayloadData = serializer.serialize(new Message(actorAddr, actorAddr, checkpointPayload));
         } else {
-            checkpointMsgPayload = null;
+            checkpointPayloadData = null;
         }
 
         retry(() -> {
             try (Client client = clientFactory.getClient()) {
-                long currentTime = Instant.now().toEpochMilli();
-                long checkpointTime = !checkpointUpdated ? -1L : calculateCheckpointTime(actor.getCheckpointTimeout());
+                Instant currentInstant = Instant.now();
+                long currentTime = currentInstant.toEpochMilli();
+                long checkpointTime = -1L;
+                if (checkpointUpdated) {
+                    long checkpointTimeout = actor.getCheckpointTimeout();
+                    checkpointTime = calculateCheckpointTime(currentInstant, checkpointTimeout);
+                }
                 
                 ActorAccessor actorAccessor = client.getActorAccessor(actorAddr);
-                boolean written = actorAccessor.update(actorData, checkpointMsgPayload, checkpointTime, checkpointInstance);
+                boolean written = actorAccessor.update(actorData, checkpointPayloadData, checkpointTime, checkpointInstance);
 
                 randomWriteMessageQueue(client).insert(currentTime, actorAddr);
                 if (written && checkpointUpdated) {
@@ -323,9 +328,9 @@ public final class RedisStore implements Store {
     
     
     
-    private static long calculateCheckpointTime(long timeout) {
+    private static long calculateCheckpointTime(Instant currentInstant, long timeout) {
         try {
-            return Instant.now().plusMillis(timeout).toEpochMilli();
+            return currentInstant.plusMillis(timeout).toEpochMilli();
         } catch (ArithmeticException ae) {
             return Long.MAX_VALUE;
         }
@@ -367,8 +372,9 @@ public final class RedisStore implements Store {
     
     
     
-    private static <V> V retry(RetryReturnWrapper<V> wrapper) {
+    private <V> V retry(RetryReturnWrapper<V> wrapper) {
         while (true) {
+            Validate.validState(!closed, "Store closed");
             try {
                 return wrapper.run();
             } catch (ClientException e) {

@@ -63,6 +63,16 @@ public final class CommonAddresses {
      */
     public static final Address DEFAULT_TIMER_ADDRESS = Address.of(DEFAULT_TIMER);
 
+    /**
+     * Default address to servlet gateway as String.
+     */
+    public static final String DEFAULT_SERVLET = "servlet";
+
+    /**
+     * Default address to servlet gateway.
+     */
+    public static final Address DEFAULT_SERVLET_ADDRESS = Address.of(DEFAULT_SERVLET);
+
     private CommonAddresses() {
         // do nothing
     }

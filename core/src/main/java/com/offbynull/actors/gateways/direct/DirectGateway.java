@@ -49,7 +49,7 @@ public final class DirectGateway implements Gateway {
     private final CountDownLatch joinerLatch;
 
     /**
-     * Create a {@link DirectGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_DIRECT)}.
+     * Create a {@link DirectGateway} instance. Equivalent to calling {@code create(CommonAddresses.DEFAULT_DIRECT)}.
      * @return new direct gateway
      */
     public static DirectGateway create() {

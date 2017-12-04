@@ -19,6 +19,7 @@ package com.offbynull.actors;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_ACTOR;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_DIRECT;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_LOG;
+import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_SERVLET;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_TIMER;
 import com.offbynull.actors.gateways.actor.ActorGateway;
 import com.offbynull.actors.gateway.Gateway;
@@ -33,11 +34,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import org.apache.commons.lang3.Validate;
-import com.offbynull.actors.stores.memory.MemoryStore;
+import com.offbynull.actors.gateways.actor.stores.memory.MemoryStore;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.commons.io.IOUtils;
-import com.offbynull.actors.store.Store;
+import com.offbynull.actors.gateways.actor.Store;
+import com.offbynull.actors.gateways.servlet.ServletGateway;
 
 /**
  * Actor system.
@@ -176,11 +178,11 @@ public final class ActorSystem implements Closeable {
     
     /**
      * Create a {@link ActorSystem} builder pre-set with common gateways -- equivalent to calling
-     * {@code new Builder().withActorGateway().withDirectGateway().withLogGateway().withTimerGateway()}.
+     * {@code new Builder().withActorGateway().withDirectGateway().withLogGateway().withTimerGateway().withServletGateway()}.
      * @return new builder
      */
     public static Builder defaultBuilder() {
-        return new Builder().withActorGateway().withDirectGateway().withLogGateway().withTimerGateway();
+        return new Builder().withActorGateway().withDirectGateway().withLogGateway().withTimerGateway().withServletGateway();
     }
     
     /**
@@ -214,6 +216,14 @@ public final class ActorSystem implements Closeable {
         public Builder withGatewayFactory(Supplier<Gateway> gatewayFactory) {
             gatewayFactories.add(gatewayFactory);
             return this;
+        }
+        
+        /**
+         * Equivalent to calling {@code withGatewayFactory(() -> ServletGateway.create(DEFAULT_SERVLET)) }.
+         * @return this builder
+         */
+        public Builder withServletGateway() {
+            return withGatewayFactory(() -> ServletGateway.create(DEFAULT_SERVLET));
         }
         
         /**

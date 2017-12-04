@@ -40,7 +40,7 @@ public final class TimerGateway implements Gateway {
     private final AtomicBoolean shutdownFlag;
     
     /**
-     * Create a {@link TimerGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_TIMER)}.
+     * Create a {@link TimerGateway} instance. Equivalent to calling {@code create(CommonAddresses.DEFAULT_TIMER)}.
      * @return new direct gateway
      */
     public static TimerGateway create() {

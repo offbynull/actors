@@ -48,7 +48,12 @@
 /examples/target/
 /io/target/
 /core/nbproject/
-/redis-store/target/
-/redis-store/nbproject/
-/jdbc-store/target/
-/jdbc-store/derby.log
+/redis-storage/target/
+/redis-storage/nbproject/
+/jdbc-storage/target/
+/jdbc-storage/derby.log
+/servlet-gateway/target/
+/servlet-gateway/nbproject/
+/redis-storage/nbproject/
+/redis-storage/target/
+/jdbc-storage/target/

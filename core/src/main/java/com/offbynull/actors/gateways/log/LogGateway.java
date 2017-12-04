@@ -43,7 +43,7 @@ public final class LogGateway implements Gateway {
     private final AtomicBoolean shutdownFlag;
 
     /**
-     * Create a {@link LogGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_LOG)}.
+     * Create a {@link LogGateway} instance. Equivalent to calling {@code create(CommonAddresses.DEFAULT_LOG)}.
      * @return new direct gateway
      */
     public static LogGateway create() {

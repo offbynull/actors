@@ -25,7 +25,7 @@ import static com.offbynull.actors.gateways.actor.Context.SuspendFlag.FORWARD_AN
 import static com.offbynull.actors.gateways.actor.Context.SuspendFlag.RELEASE;
 import static com.offbynull.actors.gateways.actor.SerializableActor.deserialize;
 import static com.offbynull.actors.gateways.actor.SerializableActor.serialize;
-import com.offbynull.actors.store.StoredWork;
+import com.offbynull.actors.gateways.actor.Store.StoredWork;
 import com.offbynull.actors.shuttle.Shuttle;
 import com.offbynull.actors.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
@@ -40,7 +40,6 @@ import com.offbynull.coroutines.user.CoroutineRunner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.stream.Collectors.groupingBy;
-import com.offbynull.actors.store.Store;
 
 final class ActorRunnable implements Runnable {
 

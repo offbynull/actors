@@ -24,13 +24,12 @@ import com.offbynull.actors.shuttle.Shuttle;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.offbynull.actors.stores.memory.MemoryStore;
+import com.offbynull.actors.gateways.actor.stores.memory.MemoryStore;
 import com.offbynull.actors.shuttle.Message;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import com.offbynull.actors.store.Store;
 import org.apache.commons.io.IOUtils;
 
 /**
@@ -80,7 +79,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
     private final Store store;
 
     /**
-     * Create a {@link ActorGateway} instance. Equivalent to calling {@code create(DefaultAddresses.DEFAULT_ACTOR)}.
+     * Create a {@link ActorGateway} instance. Equivalent to calling {@code create(CommonAddresses.DEFAULT_ACTOR)}.
      * @return new direct gateway
      */
     public static ActorGateway create() {

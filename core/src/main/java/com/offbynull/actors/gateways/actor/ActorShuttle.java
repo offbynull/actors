@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.offbynull.actors.store.Store;
 
 final class ActorShuttle implements Shuttle {
     private static final Logger LOG = LoggerFactory.getLogger(ActorShuttle.class);

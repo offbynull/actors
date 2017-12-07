@@ -26,6 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.offbynull.actors.gateways.actor.stores.memory.MemoryStore;
 import com.offbynull.actors.shuttle.Message;
+import com.offbynull.actors.shuttles.pump.PumpShuttle;
+import com.offbynull.actors.shuttles.pump.PumpShuttleController;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,7 +76,10 @@ public final class ActorGateway implements Gateway, AutoCloseable {
     private final Thread[] threads;
     
     private final String prefix;
+    
     private final ActorShuttle selfShuttle;
+    private final PumpShuttleController pumpShuttleController;
+
     private final ConcurrentHashMap<String, Shuttle> outShuttles;
     private final Store store;
 
@@ -157,6 +162,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
         this.threads = new Thread[threadCount];
         this.shutdownFlag = new AtomicBoolean(false);
         this.selfShuttle = new ActorShuttle(prefix, store, shutdownFlag);
+        this.pumpShuttleController = PumpShuttle.create(selfShuttle); // safe -- internal thread won't be started if create throws exception
         this.outShuttles = new ConcurrentHashMap<>();
         this.store = store;
     }
@@ -167,7 +173,7 @@ public final class ActorGateway implements Gateway, AutoCloseable {
             throw new IllegalStateException();
         }
 
-        return selfShuttle;
+        return pumpShuttleController.getPumpShuttle();
     }
 
     /**
@@ -231,11 +237,13 @@ public final class ActorGateway implements Gateway, AutoCloseable {
     @Override
     public void close() {
         shutdownFlag.set(true);
+        pumpShuttleController.close();
         IOUtils.closeQuietly(store);
     }
 
     @Override
     public void join() throws InterruptedException {
+        pumpShuttleController.join();
         for (Thread thread : threads) {
             thread.join();
         }

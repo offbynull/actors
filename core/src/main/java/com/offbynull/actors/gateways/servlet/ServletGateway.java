@@ -20,6 +20,8 @@ import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_SERVLET;
 import com.offbynull.actors.gateway.Gateway;
 import com.offbynull.actors.gateways.servlet.stores.memory.MemoryStore;
 import com.offbynull.actors.shuttle.Shuttle;
+import com.offbynull.actors.shuttles.pump.PumpShuttle;
+import com.offbynull.actors.shuttles.pump.PumpShuttleController;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -89,6 +91,8 @@ import org.apache.commons.lang3.Validate;
 public final class ServletGateway implements Gateway {
 
     private final Shuttle inShuttle;
+    private final PumpShuttleController pumpShuttleController;
+    
     private final ConcurrentHashMap<String, Shuttle> outShuttles;
     
     private final CountDownLatch shutdownLatch;
@@ -149,6 +153,8 @@ public final class ServletGateway implements Gateway {
         shutdownLatch = new CountDownLatch(1);
         
         inShuttle = new ServletShuttle(prefix, store, shutdownLatch);
+        pumpShuttleController = PumpShuttle.create(inShuttle); // safe -- internal thread won't be started if create throws exception
+        
         outShuttles = new ConcurrentHashMap<>();
 
         servlet = new MessageBridgeServlet(prefix, store, outShuttles, shutdownLatch);
@@ -160,7 +166,7 @@ public final class ServletGateway implements Gateway {
             throw new IllegalStateException();
         }
 
-        return inShuttle;
+        return pumpShuttleController.getPumpShuttle();
     }
 
     @Override
@@ -200,11 +206,13 @@ public final class ServletGateway implements Gateway {
     @Override
     public void close() {
         outShuttles.clear();
+        pumpShuttleController.close();
         shutdownLatch.countDown();
     }
 
     @Override
     public void join() throws InterruptedException {
+        pumpShuttleController.join();
         shutdownLatch.await();
     }
     

@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.gateways.actor;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.coroutines.user.CoroutineReader;
 import com.offbynull.coroutines.user.CoroutineRunner;
 import com.offbynull.coroutines.user.CoroutineWriter;

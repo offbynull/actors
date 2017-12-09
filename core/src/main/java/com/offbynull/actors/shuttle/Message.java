@@ -16,6 +16,7 @@
  */
 package com.offbynull.actors.shuttle;
 
+import com.offbynull.actors.address.Address;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 

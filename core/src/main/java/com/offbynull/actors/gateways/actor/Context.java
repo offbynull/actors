@@ -20,7 +20,7 @@ import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_LOG_ADDRESS;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_TIMER_ADDRESS;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.gateways.log.LogMessage;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.coroutines.user.Continuation;
 import java.io.Serializable;
 import java.time.Instant;

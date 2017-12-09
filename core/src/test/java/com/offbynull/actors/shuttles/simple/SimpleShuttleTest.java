@@ -1,6 +1,6 @@
 package com.offbynull.actors.shuttles.simple;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.util.Arrays;
 import java.util.List;

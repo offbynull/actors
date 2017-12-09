@@ -17,7 +17,7 @@
 package com.offbynull.actors.gateways.actor.stores.jdbc;
 
 import com.offbynull.actors.gateways.actor.SerializableActor;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import com.offbynull.actors.gateways.actor.Store;
 import com.offbynull.actors.common.BestEffortSerializer;

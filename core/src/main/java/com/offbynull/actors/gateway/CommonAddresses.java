@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.gateway;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 
 /**
  * Common gateway addresses.

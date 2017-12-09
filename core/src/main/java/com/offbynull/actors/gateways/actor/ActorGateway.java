@@ -19,7 +19,7 @@ package com.offbynull.actors.gateways.actor;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_ACTOR;
 import com.offbynull.actors.gateway.Gateway;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Shuttle;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;

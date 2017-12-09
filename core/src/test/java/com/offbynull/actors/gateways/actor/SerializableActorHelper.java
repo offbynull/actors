@@ -1,6 +1,6 @@
 package com.offbynull.actors.gateways.actor;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.coroutines.user.CoroutineRunner;
 
 public final class SerializableActorHelper {

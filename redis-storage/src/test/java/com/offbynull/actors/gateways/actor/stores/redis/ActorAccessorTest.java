@@ -2,7 +2,7 @@ package com.offbynull.actors.gateways.actor.stores.redis;
 
 import com.offbynull.actors.gateways.actor.stores.redis.ActorAccessor.Work;
 import com.offbynull.actors.redisclient.Connection;
-import static com.offbynull.actors.shuttle.Address.fromString;
+import static com.offbynull.actors.address.Address.fromString;
 import com.offbynull.actors.redisclient.Connector;
 import com.offbynull.actors.redisclients.test.TestConnector;
 import org.junit.After;

@@ -29,7 +29,7 @@ import com.offbynull.actors.gateways.actor.Store.StoredWork;
 import com.offbynull.actors.shuttle.Shuttle;
 import com.offbynull.actors.shuttle.Message;
 import com.offbynull.coroutines.user.Coroutine;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

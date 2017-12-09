@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.redisclient;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import java.io.IOException;
 import static java.util.Collections.singletonMap;
 import org.apache.commons.lang3.Validate;

@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.gateways.actor;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;

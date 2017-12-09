@@ -19,7 +19,7 @@ package com.offbynull.actors.gateways.direct;
 import static com.offbynull.actors.gateway.CommonAddresses.DEFAULT_DIRECT;
 import com.offbynull.actors.gateway.Gateway;
 import com.offbynull.actors.shuttle.Shuttle;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import com.offbynull.actors.shuttles.simple.Bus;
 import java.util.List;

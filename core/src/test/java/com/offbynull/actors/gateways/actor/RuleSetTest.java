@@ -1,7 +1,7 @@
 package com.offbynull.actors.gateways.actor;
 
 import com.offbynull.actors.gateways.actor.RuleSet.AccessType;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.gateways.actor.stores.redis;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.redisclient.Connection;
 import com.offbynull.actors.redisclient.ConnectionException;
 import static com.offbynull.actors.redisclient.RedisUtils.toClusterKey;

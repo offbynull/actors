@@ -3,7 +3,7 @@ package com.offbynull.actors.gateways.servlet.stores.redis;
 import com.offbynull.actors.redisclient.Connection;
 import com.offbynull.actors.redisclient.Connector;
 import com.offbynull.actors.redisclients.test.TestConnector;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

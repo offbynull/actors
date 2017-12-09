@@ -18,7 +18,7 @@ package com.offbynull.actors.gateways.actor.stores.memory;
 
 import com.offbynull.actors.common.BestEffortSerializer;
 import com.offbynull.actors.gateways.actor.SerializableActor;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.wrap;

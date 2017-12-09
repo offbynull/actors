@@ -3,7 +3,7 @@ package com.offbynull.actors.gateways.actor;
 import static com.offbynull.actors.gateways.actor.Context.SuspendFlag.FORWARD_AND_RELEASE;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.gateways.direct.DirectGateway;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;

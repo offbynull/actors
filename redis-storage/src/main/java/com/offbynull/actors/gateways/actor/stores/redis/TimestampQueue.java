@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.gateways.actor.stores.redis;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import org.apache.commons.lang3.Validate;
 import java.util.Collection;
 import com.offbynull.actors.redisclient.Connection;

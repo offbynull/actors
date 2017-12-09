@@ -22,7 +22,7 @@ import com.offbynull.actors.redisclient.Connection;
 import com.offbynull.actors.redisclient.Connector;
 import static com.offbynull.actors.redisclient.RedisUtils.retry;
 import com.offbynull.actors.redisclients.jedis.JedisPoolConnector;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.io.IOException;
 import java.util.ArrayList;

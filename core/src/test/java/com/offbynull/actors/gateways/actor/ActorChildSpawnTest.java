@@ -5,7 +5,7 @@ import static com.offbynull.actors.gateways.actor.Context.SuspendFlag.FORWARD_AN
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.actors.gateways.direct.DirectGateway;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;

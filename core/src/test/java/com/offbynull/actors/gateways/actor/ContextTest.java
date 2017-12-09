@@ -1,7 +1,7 @@
 package com.offbynull.actors.gateways.actor;
 
 import com.offbynull.actors.gateways.actor.Context.BatchedOutgoingMessageCommand;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

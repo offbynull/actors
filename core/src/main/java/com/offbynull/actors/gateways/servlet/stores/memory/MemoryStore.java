@@ -18,7 +18,7 @@ package com.offbynull.actors.gateways.servlet.stores.memory;
 
 import com.offbynull.actors.common.BestEffortSerializer;
 import com.offbynull.actors.gateways.servlet.Store;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.time.Duration;
 import java.time.Instant;

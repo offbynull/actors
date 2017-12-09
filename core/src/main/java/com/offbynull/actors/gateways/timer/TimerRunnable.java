@@ -16,7 +16,7 @@
  */
 package com.offbynull.actors.gateways.timer;
 
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import com.offbynull.actors.shuttle.Shuttle;
 import com.offbynull.actors.shuttles.simple.Bus;

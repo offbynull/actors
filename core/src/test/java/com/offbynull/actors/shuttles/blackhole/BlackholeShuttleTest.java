@@ -1,7 +1,7 @@
 package com.offbynull.actors.shuttles.blackhole;
 
 import com.offbynull.actors.shuttles.blackhole.BlackholeShuttle;
-import com.offbynull.actors.shuttle.Address;
+import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.util.Arrays;
 import org.junit.Before;

@@ -2,160 +2,88 @@
 
 <p align="center"><img src ="logo.png" alt="Actors logo" /></p>
 
-The Actors project is a lightweight Java actor framework that greatly simplifies the design and development of highly concurrent software. Why use Actors over other actor frameworks? 
+The Actors project is a lightweight Java actor framework that greatly simplifies the design and development of horizontally scalable software. Why use Actors over other actor frameworks? 
 
  * Actors as lightweight fibers/coroutines
- * Seamless checkpointing of actors to offline storage
- * Seamless distribution of actors across a cluster
- * Avoid handwritten FSMs for actor logic
- * Test actors in different scenarios via simulations
+ * Seamless distribution of actors
+ * Seamless checkpointing of actors
+ * Seamless versioning of actors
 
-More information on the topic of actors can be found on the following pages:
+What does all this mean? *Distribution* means your actors will seamlessly execute across a cluster of servers. You can add and remove servers at will, and server crashes won't effect the execution of your actors. *Checkpointing* makes sure that if your actors enter into a bad state, they will automatically revert to the last known good state (as specified by you) and be notified of the problem. *Versioning* allows you to change your actor's logic on the fly, without breaking compatibility with older versions of that actor. Fix bugs and add features without stopping your service. You can even have your servers running different versions of the same actor.
 
-* [Programmers Stack Exchange: How is the actor model used?](http://programmers.stackexchange.com/questions/99501/how-is-the-actor-model-used)
-* [Wikipedia: Actor model](https://en.wikipedia.org/wiki/Actor_model)
+The Actors project gives you everything you need to write highly resilient/elastic/scalable systems, but without all the headaches. 
 
-## Table of Contents
+## Example
 
- * [Hello World Example](#hello-world-example)
- * [Concepts](#concepts)
-   * [Actors](#actors)
-   * [Gateways](#gateways)
+This is a simple "Hello World" style example. It doesn't show many of the core features that make the Actors project what it is, but more in-depth material and screencasts are in the works.
 
-## Hello World Example
-
-In the following example, when the actor receives "Hi", it'll reply with "Hi back to you!". Note that this example uses [Coroutines](https://github.com/offbynull/coroutines), and as such you'll need to make use of the coroutines plugin to instrument your code.
+First, create your actor. The Actors project uses the [Coroutines](https://github.com/offbynull/coroutines) project, so you'll need to use the coroutines plugin to instrument your actors.
 
 ```java
-// Create coroutine actor that echos back incoming messages
-Coroutine echoActor = (Continuation cnt) -> {
-    Context ctx = (Context) cnt.getContext();
-    ctx.allow();
-
-    do {
-        Object msg = ctx.in();
-        if ("Hi".equals(msg)) {
-            ctx.addOutgoingMessage("Hi back to you!");
-        }
-
-        cnt.suspend();
-    } while (true);
-};
-
-ActorSystem actorSystem = ActorSystem.builder()
-        .withRunnerName("actors")
-        .withActor("echoer", echoActor)
-        .build()) {
-
-DirectGateway direct = actorSystem.getDirectGateway();
-
-directGateway.writeMessage("actors:echoer", "Hi!");
-String response = directGateway.readPayload();
-System.out.println(response);
-
-actorSystem.close();
-```
-
-## Concepts
-
-The Actors project has two basic primitives in its implementation of the actor model: [Actors](#actors) and [Gateways](#gateways). Each primitive has an address associated with it, and primitives communicate with each other by passing messages to addresses. Messages sent between primitives must be immutable.
-
-### Actors
-
-An Actor is an isolated fiber/coroutine which reacts when messages sent to it.
-
- * Isolation in this case means that the actor segregates itself off from all other components, only communicating with the outside world through message-passing.
- * Reacting in this case means that the actor can only execute its logic when messages are sent to it -- it has no active functionality.
-
-Actors must adhere to the following constraints:
-
- 1. **Do not expose any internal state.** Unlike traditional Java objects, actors should not provide any publicly accessibly methods or fields that expose or change their state. If an outside component needs to know or change the state of an actor, it must request it via message-passing.
- 1. **Do not share state.** Actors must only ever access/change their own internal state, meaning that an actor must not share any references with other outside objects (unless those references are to immutable objects). For example, an actor shouldn't have a reference to a ConcurrentHashMap that's being shared with other objects. As stated in the previous constraint, communication must be done via message-passing.
- 1. **Do not block** for I/O, long running operations, thread synchronization, or anything else. Multiple actors may be running in the same Java thread. As such, if an actor were to block for any reason, it may prevent other actors from processing messages in a timely manner.
- 1. **Do not directly access time.** Actors must use the time supplied to them via the Context rather than making calls to Java's date and time APIs (e.g. Instant or System.currentTimeMillis()).
- 1. **Do not use non-serializable objects.** Actors must only make use of objects that are serializable. This includes fields on the actor as well as local variables and items on the operand stack. Doing so ensures that we can easily store and load the actor (should the choice be made to do so).
-
-Following the above implementation rules means that outside of receiving and sending messages, an actor is fully isolated. This isolation helps with concurrency (no shared state, so you don't have to worry about synchronizing state) and transparency (it doesn't matter if you're passing messages to a component that's remote or local, the underlying transport mechanism should be transparent).
-
-#### Actor FSM logic
-
-Except for the most rudimentary, nearly all actor implementations require execution state be retained between incoming messages and/or require multiple threads of execution. Writing your actor as a [coroutine](https://github.com/offbynull/coroutines) avoids the need to handle this through convoluted hand-written FSM logic.
-
-For example, imagine the following scenario: an actor expects 10 messages to arrive. For each of those 10 that arrive, if the message has a multi-part flag set, we expect a variable number of other "chunk" messages to immediately follow it. Implemented as a coroutine, the logic would be written similar to this:
-
-```java
-public final class CustomActor implements Coroutine {
-    public void run(Continuation cnt) {
+public final class SimpleActor implements Coroutine {    
+    @Override
+    public void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
-
-        for (int i = 0; i < 10; i++) {
-           Message msg = context.getIncomingMessage();
-           if (msg.isMultipart()) {
-              for (int j = 0; j < msg.numberOfChunks(); j++) {
-                  cnt.suspend();
-                  MessageChunk msgChunk = ctx.getIncomingMessage();
-                  processMultipartMessageChunk(msg, msgChunk);
-              }
-           } else {
-              processMessage(msg);
-           }
-
-           cnt.suspend();
+        Object msg;
+        
+        // Display the priming message that's initially sent to this actor
+        msg = ctx.in();
+        ctx.logInfo("Priming message: {}", msg);
+        
+        // Allow any address to communicate with this actor
+        ctx.allow();
+        
+        while (true) {
+            // Add a checkpoint -- if no activity in 60 seconds send a message notifying as such.
+            ctx.checkpoint("ACTOR HASN'T BEEN HIT IN OVER 60 SECONDS -- CHECKPOINT TRIGGERED", 60 * 1000L);
+            // Add a 1000L timer to echo a message back after 1 second.
+            ctx.timer(1000L, "timer!");
+            
+            // Wait for next message
+            cnt.suspend();
+            
+            // Print message
+            msg = ctx.in();
+            ctx.logInfo("Got message: {}", msg);
         }
     }
 }
 ```
 
-However, if it were implemented as a basic actor, the logic would have to be written in a much more convoluted manner:
+Next, set up a server to run instances of your actor. You can spawn as many instances of the server as you want.
 
 ```java
-public final class CustomActor implements Actor {
-    //
-    // Keep in mind that, due to the need to retain state between calls to onStep(), all variables have become fields.
-    // 
-    public boolean onStep(Context ctx) {
-        switch (state) {
-            case START:
-                i = 0;
-                state = OUTER_LOOP;
-            case OUTER_LOOP:
-                if (i == 10) {
-                    state = END;
-                    return false;
-                }
-                i++;
-                msg = context.getIncomingMessage();
-                if (msg.isMultipart()) {
-                   state = INNER_LOOP;
-                } else {
-                   process(msg);
-                }
-                return true;
-            case INNER_LOOP:
-                msgChunk = context.getIncomingMessage();
-                if (i == msg.getNumberOfChunks()) {
-                    state = OUTER_LOOP;
-                    return true;
-                }
-                processMultipartMessageChunk(msg, msgChunk);
-                return true;
-            case END:
-                throw new IllegalStateException();
+public final class SimpleRedisStoreTest {
+    private static final int WORKER_COUNT = 1000;
+    private static final int THREAD_COUNT = 100;
+    private static final int REDIS_POOL_COUNT = THREAD_COUNT;
+    private static final int REDIS_QUEUE_COUNT = 10;
+    
+    public static void main(String[] args) throws Exception {
+        // Start actor system backed by Redis
+        RedisStore store = RedisStore.create(
+                "actor",
+                "192.168.56.101",
+                6379,
+                REDIS_POOL_COUNT,
+                REDIS_QUEUE_COUNT);
+
+        ActorSystem actorSystem = ActorSystem.builder()
+                .withLogGateway()
+                .withActorGateway(THREAD_COUNT, store)
+                .build();
+        
+        // Add 1000 new actors into the system
+        ActorGateway actorGateway = actorSystem.getActorGateway();
+        for (int i = 0; i < WORKER_COUNT; i++) {
+            String name = InetAddress.getLocalHost().getHostName() + "_" + i;
+            Coroutine coroutine = new SimpleActor();
+
+            actorGateway.addActor(name, coroutine, "start");
         }
+        
+        // Block
+        actorSystem.join();
     }
 }
 ```
-
-#### Actor Storage
-
-Coroutines/fibers store execution state in software when they suspend. That means that your actor can be stored to and loaded from off-site storage (e.g. a database).
-
-INSERT CACHING EXAMPLE HERE
-
-#### Actor Distribution
-
-INSERT DISTRIBUTION EXAMPLE HERE
-
-### Gateways
-
-A Gateway, like an Actor, communicates with other components through message-passing, but isn't bound by any of the same rules as Actors. Gateways are mainly used to interface with third-party components (e.g. relational database). As such, it's perfectly acceptable for a gateway to expose internal state, share state, perform I/O, perform thread synchronization, or otherwise block.

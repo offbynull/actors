@@ -32,29 +32,44 @@ import org.apache.commons.lang3.Validate;
  * {@link Gateway} that allows HTTP clients to send and receive messages via a servlet. To get the servlet such that you can add it to your
  * container, use {@link #getServlet() }.
  * <p>
- * HTTP requests must be structured as a JSON object with a {@code id} field and a {@code messages} field.
+ * HTTP requests and responses are structured as JSON objects. If you're confused about why the offset fields are required, they're for
+ * guarding against inconsistencies introduced by connectivity issues. Please read the {@link Store} documentation for more information.
  * <p>
- * The {@code id} field identifies the address of the HTTP client sending the message. For example, if the client were to set {@code id} to
- * {@code client_a1} and the prefix for this gateway was set to {@code servlet}, the source address of the messages being put into the
- * system must start with {@code servlet:client_a1}.
- * <p>
- * The {@code messages} field is a JSON array of JSON objects with the following fields...
+ * Requests have the following fields...
  * <ul>
- * <li>source -- source address of the message</li>
- * <li>destination -- destination address of the message</li>
- * <li>type -- message payload's class type</li>
- * <li>data -- message payload</li>
+ * <li>{@code id} -- Identifies the address of the HTTP client sending the message. For example, if the client were to set {@code id} to
+ * {@code client_a1} and the prefix for this gateway was set to {@code servlet}, the source address of the messages being put into the
+ * system must start with {@code servlet:client_a1}.</li>
+ * <li>{@code outQueueOffset} -- Offset of the next message to be received by {@code id}. This servlet will remove messages before this
+ * offset. For example, if the HTTP client for {@code id} wants messages from offset 15, it's assumed that the client successfully received
+ * and processed messages 0 to 14 (all messages before 15).</li>
+ * <li>{@code inQueueOffset} -- Offset that messages being sent by {@code id} (the messages in {@code inQueue}) should be inserted.</li>
+ * <li>{@code inQueue} -- Array of messages coming from {@code id}.</li>
  * </ul>
  * <p>
- * HTTP responses are JSON objects structured similarly to requests. Responses don't contain a {@code id} field, but they do contains a
- * {@code messages} field that follow the same schema/semantics as the {@code messages} field in the HTTP request. The messages in the
- * response's {@code messages} field will be for the address specified by the request's {@code id} field.
+ * Responses have the following fields...
+ * <ul>
+ * <li>{@code outQueue} -- Array of messages going to {@code id}, starting from the offset in {@code outQueueOffset}</li>
+ * </ul>
+ * <p>
+ * The {@code inQueue}/{@code outQueue} field is a JSON array of JSON objects with the following fields...
+ * <ul>
+ * <li>{@code source} -- Source address of the message.</li>
+ * <li>{@code destination} -- Destination address of the message.</li>
+ * <li>{@code type} -- Message payload's class type.</li>
+ * <li>{@code data} -- Message payload.</li>
+ * </ul>
+ * <p>
+ * <b>IMPORTANT NOTE</b>: Concurrent HTTP calls for the same {@code id} must be avoided. This system is designed such that calls for the
+ * same {@code id} must be happening serially -- clients use the result of previous calls to calculate offsets for the next call.
  * <p>
  * The following is an example request...
  * <pre>
  * {
  *   id: '0782d5a941fc97cabf18',
- *   messages: [
+ *   outQueueOffset: 1,
+ *   inQueueOffset: 2,
+ *   inQueue: [
  *     {
  *       source: 'servlet:0782d5a941fc97cabf18',
  *       destination: 'actor:worker123:querier',
@@ -76,7 +91,7 @@ import org.apache.commons.lang3.Validate;
  * The following is an example response...
  * <pre>
  * {
- *   messages: [
+ *   outQueue: [
  *     {
  *       source: 'actor:worker789:querier',
  *       destination: 'servlet:0782d5a941fc97cabf18:subsystem1',

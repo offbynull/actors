@@ -85,7 +85,7 @@ final class ActorAccessor {
 
         // Calculate the checkpoint we should have for the watch. Don't update/insert the actor unless the new checkpoint instance is
         // either not there, the same, or up by one.
-        Integer storedCheckpointInstance = connection.get(checkpointInstanceKey, InternalUtils::stringToInt);
+        Integer storedCheckpointInstance = connection.get(checkpointInstanceKey, ConversionUtils::stringToInt);
         Integer expectedCheckpointInstance;
         if (storedCheckpointInstance == null) {                      // actor doesn't exist, we can put it in
             expectedCheckpointInstance = null;
@@ -109,7 +109,7 @@ final class ActorAccessor {
                 }),
                 // Before inserting, make sure the checkpoint instance in redis didn't change
                 new Watch(checkpointInstanceKey, false, () -> {
-                    Integer existingCheckpointInstance = connection.get(checkpointInstanceKey, InternalUtils::stringToInt);
+                    Integer existingCheckpointInstance = connection.get(checkpointInstanceKey, ConversionUtils::stringToInt);
                     return Objects.equals(expectedCheckpointInstance, existingCheckpointInstance);
                 }),
                 // Make sure to watch all keys for this actor -- this is required for clustering because keys could be moving while the
@@ -150,7 +150,7 @@ final class ActorAccessor {
         TransactionResult ret = connection.transaction(
                 // if the multi/exec block fails, do retry (retries the whole thing, including the watches)
                 new Transaction(true, queue -> {
-                    queue.get(checkpointInstanceKey, InternalUtils::stringToInt);
+                    queue.get(checkpointInstanceKey, ConversionUtils::stringToInt);
                     queue.rpop(msgQueueKey);
                     queue.get(dataKey);
                     queue.set(stateKey, STATE_PROCESSING);
@@ -158,7 +158,7 @@ final class ActorAccessor {
                 // Make sure message queue is not empty and the actor isn't processing a message (is idle)
                 new Watch(msgQueueKey, false, () -> connection.llen(msgQueueKey) > 0L),
                 new Watch(stateKey, false, () -> {
-                    String state = connection.get(stateKey, InternalUtils::byteArrayToString);
+                    String state = connection.get(stateKey, ConversionUtils::byteArrayToString);
                     return STATE_IDLE.equals(state);
                 }),
                 // Make sure to watch all keys for this actor -- this is required for clustering because keys could be moving while the
@@ -189,7 +189,7 @@ final class ActorAccessor {
         TransactionResult ret = connection.transaction(
                 // if the multi/exec block fails, do retry (retries the whole thing, including the watches)
                 new Transaction(true, queue -> {
-                    queue.get(stateKey, InternalUtils::byteArrayToString);
+                    queue.get(stateKey, ConversionUtils::byteArrayToString);
                     queue.exists(msgQueueKey); // msgQueueQueue won't exists if empty
                 }),
                 // Make sure to watch all keys for this actor -- this is required for clustering because keys could be moving while the
@@ -222,7 +222,7 @@ final class ActorAccessor {
                 }),
                 // Make sure checkpointTime exists and it's greater than currentTime.
                 new Watch(checkpointTimeKey, false, () -> {
-                    Long checkpointTime = connection.get(checkpointTimeKey, InternalUtils::stringToLong);
+                    Long checkpointTime = connection.get(checkpointTimeKey, ConversionUtils::stringToLong);
                     return checkpointTime != null && checkpointTime <= currentTime;
                 }),
                 // Make sure to watch all keys for this actor -- this is required for clustering because keys could be moving while the

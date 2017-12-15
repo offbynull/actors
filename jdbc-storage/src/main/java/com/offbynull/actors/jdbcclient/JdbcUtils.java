@@ -42,7 +42,11 @@ public final class JdbcUtils {
      */
     public static void commitFinally(Connection conn) throws SQLException {
         if (conn != null) {
-            conn.commit();
+            try {
+                conn.commit();
+            } catch (Exception e) {
+                // swallow exception
+            }
         }
     }
     

@@ -25,8 +25,8 @@ import com.offbynull.actors.redisclients.jedis.JedisPoolConnector;
 import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import static java.util.stream.Collectors.toList;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -115,61 +115,91 @@ public final class RedisStore implements Store {
     }
 
     @Override
-    public void write(String id, List<Message> messages) {
+    public void queueOut(String id, List<Message> messages) {
         Validate.notNull(id);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         Validate.validState(!closed, "Store closed");
         
         Address clientAddr = Address.of(prefix, id);
-                
-        messages.stream().forEach(m -> {
-            Address dstAddr = m.getDestinationAddress();
-            Validate.isTrue(dstAddr.size() >= 2, "Actor address must have atleast 2 elements: %s", dstAddr);
-            Validate.isTrue(clientAddr.isPrefixOf(dstAddr), "Actor address must start with %s: %s", clientAddr, dstAddr);
+        
+        List<byte[]> serializedMessages = messages.stream()
+                .map(m -> serializer.serialize(m))
+                .collect(toList());
+        retry(() -> {
+            Validate.validState(!closed, "Store closed");
+            try (Connection connection = connector.getConnection()) {
+                QueueDetails queueDetails = new QueueDetails(clientAddr, timeout);
+                OutQueue outQueue = new OutQueue(connection, queueDetails);
+                outQueue.queueOut(id, serializedMessages);
+            }
         });
-
-        for (Message message : messages) {
-            byte[] messageData = serializer.serialize(message);
-
-            retry(() -> {
-                Validate.validState(!closed, "Store closed");
-                
-                try (Connection connection = connector.getConnection()) {
-                    MessageQueue messageQueue = new MessageQueue(connection, clientAddr, timeout);
-                    messageQueue.putMessage(messageData);
-                }
-            });
-        }
     }
 
     @Override
-    public List<Message> read(String id) {
+    public List<Message> dequeueOut(String id, int offset) {
+        Validate.notNull(id);
+        Validate.isTrue(offset >= 0);
+        Validate.validState(!closed, "Store closed");
+        
+        Address clientAddr = Address.of(prefix, id);
+        
+        List<byte[]> ret = retry(() -> {
+            Validate.validState(!closed, "Store closed");
+            try (Connection connection = connector.getConnection()) {
+                QueueDetails queueDetails = new QueueDetails(clientAddr, timeout);
+                OutQueue outQueue = new OutQueue(connection, queueDetails);
+                return outQueue.dequeueOut(id, offset);
+            }
+        });
+        
+        return ret.stream()
+                .map(d -> (Message) serializer.deserialize(d))
+                .collect(toList());
+    }
+
+    @Override
+    public void queueIn(String id, int offset, List<Message> messages) {
+        Validate.notNull(id);
+        Validate.notNull(messages);
+        Validate.noNullElements(messages);
+        Validate.isTrue(offset >= 0);
+        Validate.validState(!closed, "Store closed");
+        
+        Address clientAddr = Address.of(prefix, id);
+        
+        List<byte[]> serializedMessages = messages.stream()
+                .map(m -> serializer.serialize(m))
+                .collect(toList());
+        retry(() -> {
+            Validate.validState(!closed, "Store closed");
+            try (Connection connection = connector.getConnection()) {
+                QueueDetails queueDetails = new QueueDetails(clientAddr, timeout);
+                InQueue inQueue = new InQueue(connection, queueDetails);
+                inQueue.queueIn(id, offset, serializedMessages);
+            }
+        });
+    }
+
+    @Override
+    public List<Message> dequeueIn(String id) {
         Validate.notNull(id);
         Validate.validState(!closed, "Store closed");
         
         Address clientAddr = Address.of(prefix, id);
         
-        List<Message> ret = new ArrayList<>();
-        
-        while (true) {
-            byte[] messageData = retry(() -> {
-                Validate.validState(!closed, "Store closed");
-                try (Connection connection = connector.getConnection()) {
-                    MessageQueue messageQueue = new MessageQueue(connection, clientAddr, timeout);
-                    return messageQueue.take();
-                }
-            });
-            
-            if (messageData == null) {
-                break;
+        List<byte[]> ret = retry(() -> {
+            Validate.validState(!closed, "Store closed");
+            try (Connection connection = connector.getConnection()) {
+                QueueDetails queueDetails = new QueueDetails(clientAddr, timeout);
+                InQueue inQueue = new InQueue(connection, queueDetails);
+                return inQueue.dequeueIn(id);
             }
-            
-            Message message = serializer.deserialize(messageData);
-            ret.add(message);
-        }
+        });
         
-        return ret;
+        return ret.stream()
+                .map(d -> (Message) serializer.deserialize(d))
+                .collect(toList());
     }
 
     @Override

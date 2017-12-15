@@ -121,6 +121,22 @@ public final class JedisConnection implements Connection {
     }
 
     @Override
+    public void pexireAt(String key, long timestamp) throws ConnectionException {
+        Validate.notNull(key);
+        Validate.validState(!clientClosed, "Closed");
+        Validate.validState(!factoryClosed.get(), "Closed");
+        try {
+            jedis.pexpireAt(key.getBytes(UTF_8), timestamp);
+        } catch (JedisConnectionException jce) {
+            throw new ConnectionException(true, jce);
+        } catch (RuntimeException re) {
+            throw new ConnectionException(false, re);
+        } finally {
+            ifClosedEnsureJedisClosedAsWell();
+        }
+    }
+
+    @Override
     public <T> Collection<SortedSetItem> zrangeWithScores(String key, long start, long end, Function<byte[], T> converter)
             throws ConnectionException {
         Validate.notNull(key);
@@ -359,6 +375,24 @@ public final class JedisConnection implements Connection {
         }
 
         @Override
+        public void rpush(String key, byte[] val) throws ConnectionException {
+            Validate.notNull(key);
+            Validate.notNull(val);
+            Validate.validState(!clientClosed, "Closed");
+            Validate.validState(!factoryClosed.get(), "Closed");
+            try {
+                t.rpush(key.getBytes(UTF_8), val);
+                converters.add(in -> in);
+            } catch (JedisConnectionException jce) {
+                throw new ConnectionException(true, jce);
+            } catch (RuntimeException re) {
+                throw new ConnectionException(false, re);
+            } finally {
+                ifClosedEnsureJedisClosedAsWell();
+            }
+        }
+
+        @Override
         public <T> void rpop(String key, Function<byte[], T> converter) throws ConnectionException {
             Validate.notNull(key);
             Validate.notNull(converter);
@@ -367,6 +401,62 @@ public final class JedisConnection implements Connection {
             try {
                 t.rpop(key.getBytes(UTF_8));
                 converters.add(in -> (Object) converter.apply((byte[]) in));
+            } catch (JedisConnectionException jce) {
+                throw new ConnectionException(true, jce);
+            } catch (RuntimeException re) {
+                throw new ConnectionException(false, re);
+            } finally {
+                ifClosedEnsureJedisClosedAsWell();
+            }
+        }
+
+        @Override
+        public <T> void lpop(String key, Function<byte[], T> converter) throws ConnectionException {
+            Validate.notNull(key);
+            Validate.notNull(converter);
+            Validate.validState(!clientClosed, "Closed");
+            Validate.validState(!factoryClosed.get(), "Closed");
+            try {
+                t.lpop(key.getBytes(UTF_8));
+                converters.add(in -> (Object) converter.apply((byte[]) in));
+            } catch (JedisConnectionException jce) {
+                throw new ConnectionException(true, jce);
+            } catch (RuntimeException re) {
+                throw new ConnectionException(false, re);
+            } finally {
+                ifClosedEnsureJedisClosedAsWell();
+            }
+        }
+
+        @Override
+        public void llen(String key) throws ConnectionException {
+            Validate.notNull(key);
+            Validate.validState(!clientClosed, "Closed");
+            Validate.validState(!factoryClosed.get(), "Closed");
+            try {
+                t.llen(key.getBytes(UTF_8));
+                converters.add(in -> in);
+            } catch (JedisConnectionException jce) {
+                throw new ConnectionException(true, jce);
+            } catch (RuntimeException re) {
+                throw new ConnectionException(false, re);
+            } finally {
+                ifClosedEnsureJedisClosedAsWell();
+            }
+        }
+
+        @Override
+        public <T> void lrange(String key, int start, int end, Function<byte[], T> converter) throws ConnectionException {
+            Validate.notNull(key);
+            Validate.validState(!clientClosed, "Closed");
+            Validate.validState(!factoryClosed.get(), "Closed");
+            try {
+                t.lrange(key.getBytes(UTF_8), start, end);
+                converters.add(in -> {
+                    return ((List<byte[]>) in).stream()
+                            .map(val -> (Object) converter.apply(val))
+                            .collect(toList());
+                });
             } catch (JedisConnectionException jce) {
                 throw new ConnectionException(true, jce);
             } catch (RuntimeException re) {

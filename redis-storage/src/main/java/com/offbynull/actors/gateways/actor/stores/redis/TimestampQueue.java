@@ -57,7 +57,7 @@ final class TimestampQueue {
 
         TransactionResult res = connection.transaction(
                 new Transaction(true, queue -> {
-                    queue.zrange(queueKey, 0L, 0L, InternalUtils::byteArrayToString);
+                    queue.zrange(queueKey, 0L, 0L, ConversionUtils::byteArrayToString);
                     queue.zremrangeByRank(queueKey, 0L, 0L);
                 }),
                 new Watch(queueKey, false, () -> {
@@ -129,7 +129,7 @@ final class TimestampQueue {
     
     // peek the timestamp of the next item in the inspection queue
     private long peekTimestamp() throws ConnectionException {
-        Collection<SortedSetItem> result = connection.zrangeWithScores(queueKey, 0L, 0L, InternalUtils::byteArrayToString);
+        Collection<SortedSetItem> result = connection.zrangeWithScores(queueKey, 0L, 0L, ConversionUtils::byteArrayToString);
         if (result.isEmpty()) {
             return -1;
         }

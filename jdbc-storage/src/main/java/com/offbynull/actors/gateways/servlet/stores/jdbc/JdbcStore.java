@@ -18,27 +18,18 @@ package com.offbynull.actors.gateways.servlet.stores.jdbc;
 
 import com.offbynull.actors.common.BestEffortSerializer;
 import com.offbynull.actors.gateways.servlet.Store;
-import static com.offbynull.actors.jdbcclient.JdbcUtils.commitFinally;
-import static com.offbynull.actors.jdbcclient.JdbcUtils.retry;
-import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.io.IOException;
 import java.sql.Connection;
-import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import static java.sql.ResultSet.CONCUR_UPDATABLE;
-import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.stream.Collectors.toList;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A storage engine that keeps messages for HTTP clients in a RDBMS. This implementation does not evict messages -- messages are only
- * removed after they're read.
+ * A storage engine that keeps messages going to / coming from HTTP clients in a RDBMS. This implementation does not have an eviction
+ * policy.
  * <p>
  * This storage engine will work with any JDBC driver that supports...
  * <ul>
@@ -50,11 +41,31 @@ import org.apache.commons.lang3.Validate;
  * to tweak them to match for your RDBMS vendor. Performance is your responsibility -- it's up to you to tune table, schema, and database
  * options to make access performant.
  * <pre>
- * CREATE TABLE HTTP_CLIENT_QUEUE (
- *   MSG_NUMBER INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), -- must be auto-incrementing, not just unique
+ * CREATE TABLE SERVLET_CLIENT_IN_QUEUE (
+ *   MSG_NUMBER INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
  *   ADDRESS VARCHAR(1024) NOT NULL,
+ *   OFFSET INTEGER NOT NULL,
  *   DATA BLOB NOT NULL,
- *   PRIMARY KEY (MSG_NUMBER)
+ *   PRIMARY KEY (MSG_NUMBER),
+ *   UNIQUE (ADDRESS, OFFSET)
+ * );
+ * CREATE TABLE SERVLET_CLIENT_IN_OFFSET (
+ *   ADDRESS VARCHAR(1024) NOT NULL,
+ *   OFFSET INTEGER NOT NULL,
+ *   PRIMARY KEY (ADDRESS)
+ * );
+ * CREATE TABLE SERVLET_CLIENT_OUT_QUEUE (
+ *   MSG_NUMBER INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
+ *   ADDRESS VARCHAR(1024) NOT NULL,
+ *   OFFSET INTEGER NOT NULL,
+ *   DATA BLOB NOT NULL,
+ *   PRIMARY KEY (MSG_NUMBER),
+ *   UNIQUE (ADDRESS, OFFSET)
+ * );
+ * CREATE TABLE SERVLET_CLIENT_OUT_OFFSET (
+ *   ADDRESS VARCHAR(1024) NOT NULL,
+ *   OFFSET INTEGER NOT NULL,
+ *   PRIMARY KEY (ADDRESS)
  * );
  * </pre>
  * @author Kasra Faghihi
@@ -70,11 +81,12 @@ public final class JdbcStore implements Store {
     //    SELECT FOR UPDATES need to include the pk column even though they aren't needed, otherwise you can't update/delete the row
     //
     
-    private final String prefix;
-    private final DataSource dataSource;
     private final BestEffortSerializer serializer;
     
-    private volatile boolean closed;
+    private final InQueue inQueue;
+    private final OutQueue outQueue;
+    
+    private final AtomicBoolean closed;
     
     /**
      * Creates a {@link JdbcStore} object.
@@ -93,95 +105,59 @@ public final class JdbcStore implements Store {
     private JdbcStore(String prefix, DataSource dataSource) {
         Validate.notNull(prefix);
         Validate.notNull(dataSource);
-        this.prefix = prefix;
-        this.dataSource = dataSource;
         this.serializer = new BestEffortSerializer();
+        this.closed = new AtomicBoolean();
+        this.inQueue = new InQueue(prefix, dataSource, closed);
+        this.outQueue = new OutQueue(prefix, dataSource, closed);
     }
-    
-    private static final String INSERT_MESSAGE = "INSERT INTO HTTP_CLIENT_QUEUE (ADDRESS, DATA) VALUES (?, ?)";
-    
+
     @Override
-    public void write(String id, List<Message> messages) {
+    public void queueOut(String id, List<Message> messages) {
+        Validate.notNull(id);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
-        Validate.validState(!closed, "Store closed");
-        
-        Address clientAddr = Address.of(prefix, id);
-                
-        messages.stream().forEach(m -> {
-            Address dstAddr = m.getDestinationAddress();
-            Validate.isTrue(dstAddr.size() >= 2, "Actor address must have atleast 2 elements: %s", dstAddr);
-            Validate.isTrue(clientAddr.isPrefixOf(dstAddr), "Actor address must start with %s: %s", clientAddr, dstAddr);
-        });
 
-        String clientAddrStr = clientAddr.toString();
-        for (Message message : messages) {
-            byte[] messageData = serializer.serialize(message);
-
-            retry(() -> {
-                Validate.isTrue(!closed, "Store closed");
-                try (Connection conn = dataSource.getConnection();
-                        PreparedStatement ps = conn.prepareStatement(INSERT_MESSAGE)) {
-                    conn.setAutoCommit(false);
-                    conn.setTransactionIsolation(TRANSACTION_READ_COMMITTED);
-
-                    ps.setString(1, clientAddrStr);
-                    ps.setBytes(2, messageData);
-                    ps.executeUpdate();
-                    commitFinally(conn);
-                } catch (SQLException sqle) {
-                    if (!sqle.getSQLState().startsWith("23503")) { // 23505 is used when no actor with this address exists (foreign key)
-                        throw sqle;
-                    }
-                }
-            });
-        }
+        List<byte[]> serializedMessages = messages.stream()
+                .map(m -> serializer.serialize(m))
+                .collect(toList());
+        outQueue.queueOut(id, serializedMessages);
     }
 
-    // NOTE: We can't have ORDER BY MSG_NUMBER in this statement if we're going to do FOR UPDATE. As such, we return the MSG_NUMBER and we
-    // add it as the key of a TreeMap to manually sort the messages as we pull them in. Remember that MSG_NUMBER is a auto-incrementing
-    // integer used for the primary key.
-    private static final String SELECT_MESSAGE_FOR_DELETE
-            = "SELECT MSG_NUMBER, ADDRESS, DATA FROM HTTP_CLIENT_QUEUE WHERE ADDRESS = ? FOR UPDATE";
-    
     @Override
-    public List<Message> read(String id) {
-        String clientAddrStr = Address.of(prefix, id).toString();
-        
-        List<Message> messages = retry(() -> {
-            Validate.isTrue(!closed, "Store closed");
-            try (Connection conn = dataSource.getConnection();
-                    PreparedStatement ps = conn.prepareStatement(SELECT_MESSAGE_FOR_DELETE, TYPE_FORWARD_ONLY, CONCUR_UPDATABLE)) {
-                conn.setAutoCommit(false);
-                conn.setTransactionIsolation(TRANSACTION_READ_COMMITTED);
+    public List<Message> dequeueOut(String id, int offset) {
+        Validate.notNull(id);
+        Validate.isTrue(offset >= 0);
 
-                ps.setString(1, clientAddrStr);
-                
-                TreeMap<Integer, byte[]> messageDatas = new TreeMap<>();
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        int messageNum = rs.getInt(1);
-                        byte[] messageData = rs.getBytes(3);
-                        messageDatas.put(messageNum, messageData);
-                        
-                        rs.deleteRow();
-                    }
-                } finally {
-                    commitFinally(conn);
-                }
-                
-                return messageDatas.values().stream()
-                        .map(d -> (Message) serializer.deserialize(d))
-                        .collect(toList());
-            }
-        });
-        
-        return messages;
+        List<byte[]> serializedMessages = outQueue.dequeueOut(id, offset);
+        return serializedMessages.stream()
+                .map(d -> (Message) serializer.deserialize(d))
+                .collect(toList());
+    }
+
+    @Override
+    public void queueIn(String id, int offset, List<Message> messages) {
+        Validate.notNull(id);
+        Validate.isTrue(offset >= 0);
+        Validate.noNullElements(messages);
+
+        List<byte[]> serializedMessages = messages.stream()
+                .map(m -> serializer.serialize(m))
+                .collect(toList());
+        inQueue.queueIn(id, offset, serializedMessages);
+    }
+
+    @Override
+    public List<Message> dequeueIn(String id) {
+        Validate.notNull(id);
+
+        List<byte[]> serializedMessages = inQueue.dequeueIn(id);
+        return serializedMessages.stream()
+                .map(d -> (Message) serializer.deserialize(d))
+                .collect(toList());
     }
 
     @Override
     public void close() throws IOException {
-        closed = true;
+        closed.set(true);
     }
-    
 }

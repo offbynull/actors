@@ -17,24 +17,39 @@
 package com.offbynull.actors.redisclients.test;
 
 import java.util.LinkedList;
+import java.util.List;
 
 final class InternalList {
     private final LinkedList<byte[]> items = new LinkedList<>();
 
     byte[] rpop() {
-        return items.removeFirst();
-    }
-
-    byte[] lpop() {
         return items.removeLast();
     }
 
+    byte[] lpop() {
+        return items.removeFirst();
+    }
+
     void rpush(byte[] e) {
-        items.addFirst(e);
+        items.addLast(e);
     }
 
     void lpush(byte[] e) {
-        items.addLast(e);
+        items.addFirst(e);
+    }
+    
+    List<byte[]> lrange(int start, int end) {
+        int revisedStart = start;
+        if (revisedStart >= items.size()) {
+            revisedStart = items.size() - 1;
+        }
+
+        int revisedEnd = end;
+        if (revisedEnd >= items.size()) {
+            revisedEnd = items.size() - 1;
+        }
+        
+        return new LinkedList<>(items.subList(revisedStart, revisedEnd + 1));
     }
 
     int size() {

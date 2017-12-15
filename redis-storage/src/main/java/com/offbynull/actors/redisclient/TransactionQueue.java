@@ -73,6 +73,16 @@ public interface TransactionQueue {
     void lpush(String key, byte[] val) throws ConnectionException;
 
     /**
+     * Queue up a redis RPUSH operation.
+     * @param key redis key
+     * @param val value
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalStateException if closed
+     */
+    void rpush(String key, byte[] val) throws ConnectionException;
+
+    /**
      * Queue up a redis RPOP operation.
      * @param key redis key
      * @throws ConnectionException if there was a problem with redis or the connection to redis
@@ -93,6 +103,63 @@ public interface TransactionQueue {
      * @throws IllegalStateException if closed
      */
     <T> void rpop(String key, Function<byte[], T> converter) throws ConnectionException;
+
+    /**
+     * Queue up a redis LPOP operation.
+     * @param key redis key
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalStateException if closed
+     */
+    default void lpop(String key) throws ConnectionException {
+        lpop(key, v -> v);
+    }
+
+    /**
+     * Queue up a redis LPOP operation.
+     * @param <T> expected type
+     * @param key redis key
+     * @param converter value converter (converts raw value to expected type)
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if closed
+     */
+    <T> void lpop(String key, Function<byte[], T> converter) throws ConnectionException;
+
+    /**
+     * Queue up a redis LLEN operation.
+     * @param key redis key
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalStateException if closed
+     */
+    void llen(String key) throws ConnectionException;
+
+    /**
+     * Queue up a redis LRANGE operation.
+     * @param key redis key
+     * @param start start (index)
+     * @param end stop (index)
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalStateException if closed
+     */
+    default void lrange(String key, int start, int end) throws ConnectionException {
+        lrange(key, start, end, v -> v);
+    }
+
+    /**
+     * Queue up a redis LRANGE operation.
+     * @param key redis key
+     * @param start start (index)
+     * @param end stop (index)
+     * @param converter value converter (converts raw value to expected type)
+     * @param <T> expected type
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null} 
+     * @throws IllegalStateException if closed
+     */
+    <T> void lrange(String key, int start, int end, Function<byte[], T> converter) throws ConnectionException;
 
     /**
      * Queue up a redis SET operation.

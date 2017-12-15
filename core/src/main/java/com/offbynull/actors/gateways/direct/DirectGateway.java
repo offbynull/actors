@@ -32,8 +32,8 @@ import org.apache.commons.lang3.Validate;
  * {@link Gateway} that allows you read and write messages from normal Java code.
  * <p>
  * To read messages coming into a specific address, first register it for listening by calling 
- * {@link #listen(com.offbynull.actors.shuttle.Address) } then read messages by calling
- * {@link #readMessage(com.offbynull.actors.shuttle.Address, long, java.util.concurrent.TimeUnit) }.
+ * {@link #listen(com.offbynull.actors.address.Address) } then read messages by calling
+ * {@link #readMessage(com.offbynull.actors.address.Address) }.
  * <p>
  * To write messages from a specific address, call {@link #writeMessage(com.offbynull.actors.shuttle.Message) }.
  * @author Kasra Faghihi

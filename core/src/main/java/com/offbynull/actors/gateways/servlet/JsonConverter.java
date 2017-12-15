@@ -43,7 +43,11 @@ final class JsonConverter {
     private static final String DATA_PROPERTY = "data";
 
     private static final String ID_PROPERTY = "id";
-    private static final String MESSAGES_PROPERTY = "messages";
+    
+    private static final String IN_QUEUE_PROPERTY = "inQueue";
+    private static final String IN_QUEUE_OFFSET_PROPERTY = "inQueueOffset";
+    private static final String OUT_QUEUE_PROPERTY = "outQueue";
+    private static final String OUT_QUEUE_OFFSET_PROPERTY = "outQueueOffset";
     
     private final Gson gson;
 
@@ -148,14 +152,14 @@ final class JsonConverter {
         public JsonElement serialize(ResponseBlock src, Type typeOfSrc, JsonSerializationContext context) {
             JsonObject jsonObject = new JsonObject();
             
-            JsonArray messages = new JsonArray();
+            JsonArray jsonOutQueue = new JsonArray();
 
-            for (Message message : src.getMessages()) {
+            for (Message message : src.getOutQueue()) {
                 JsonElement jsonMessage = context.serialize(message);
-                messages.add(jsonMessage);
+                jsonOutQueue.add(jsonMessage);
             }
             
-            jsonObject.add(MESSAGES_PROPERTY, messages);
+            jsonObject.add(OUT_QUEUE_PROPERTY, jsonOutQueue);
 
             return jsonObject;
         }
@@ -171,15 +175,16 @@ final class JsonConverter {
             JsonObject jsonObject = json.getAsJsonObject();
 
             String id = jsonObject.get(ID_PROPERTY).getAsString();
-
-            JsonArray jsonMessages = jsonObject.get(MESSAGES_PROPERTY).getAsJsonArray();
-            List<Message> messages = new ArrayList<>(jsonMessages.size());
-            for (JsonElement jsonMessage : jsonMessages) {
+            int outQueueOffset = jsonObject.get(OUT_QUEUE_OFFSET_PROPERTY).getAsInt();
+            int inQueueOffset = jsonObject.get(IN_QUEUE_OFFSET_PROPERTY).getAsInt();
+            JsonArray jsonInQueue = jsonObject.get(IN_QUEUE_PROPERTY).getAsJsonArray();
+            List<Message> inQueue = new ArrayList<>(jsonInQueue.size());
+            for (JsonElement jsonMessage : jsonInQueue) {
                 Message message = context.deserialize(jsonMessage, Message.class);
-                messages.add(message);
+                inQueue.add(message);
             }
 
-            return new RequestBlock(id, messages);
+            return new RequestBlock(id, outQueueOffset, inQueueOffset, inQueue);
         }
     }
 }

@@ -22,7 +22,6 @@ import com.offbynull.actors.address.Address;
 import com.offbynull.actors.shuttle.Message;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -34,7 +33,9 @@ import java.time.Clock;
 import static java.util.stream.Collectors.toList;
 
 /**
- * A storage engine that keeps all messages serialized in memory. Messages are evicted after a user-defined timeout.
+ * A storage engine that keeps all messages serialized in memory.
+ * <p>
+ * If the queues for an HTTP client don't get accessed by some user-defined timeout, they are evicted.
  * @author Kasra Faghihi
  */
 public final class MemoryStore implements Store {
@@ -49,7 +50,7 @@ public final class MemoryStore implements Store {
     
     /**
      * Creates a {@link MemoryStore} object.
-     * @param prefix prefix for the actor gateway that this storage engine belongs to
+     * @param prefix prefix for the servlet gateway that this storage engine belongs to
      * @param concurrency concurrency level (should be set to number of cores or larger)
      * @param timeout timeout duration -- if messages are read by the time this timeout hits, they are discarded
      * @return new memory store
@@ -84,38 +85,105 @@ public final class MemoryStore implements Store {
         timeoutDuration = timeout;
         this.clock = clock;
     }
-
+    
+    
+    
+    
+    
+    
     @Override
-    public void write(String id, List<Message> messages) {
+    public void queueOut(String id, List<Message> messages) {
         Validate.notNull(id);
         Validate.notNull(messages);
         Validate.noNullElements(messages);
         Validate.validState(!closed, "Store closed");
         messages.forEach(m -> {
             Address dstAddr = m.getDestinationAddress();
-            Validate.isTrue(dstAddr.size() >= 2, "Actor address must have atleast 2 elements: %s", dstAddr);
-            Validate.isTrue(dstAddr.getElement(0).equals(prefix), "Actor address must start with %s: %s", prefix, dstAddr);
+            Validate.isTrue(dstAddr.size() >= 2, "HTTP client address must have atleast 2 elements: %s", dstAddr);
+            Validate.isTrue(dstAddr.getElement(0).equals(prefix), "HTTP client address must start with %s: %s", prefix, dstAddr);
+            Validate.isTrue(dstAddr.getElement(1).equals(id), "HTTP client address must have ID with %s: %s", id, dstAddr);
         });
         
         LockRegion lockRegion = getLockRegion(id);
         synchronized (lockRegion) {
             filterTimedOutContainers(lockRegion);
             
-            Queue queue = lockRegion.queues.computeIfAbsent(id, k -> new Queue(id));
+            Queues queue = lockRegion.queues.computeIfAbsent(id, k -> new Queues(id, clock.instant()));
             
             lockRegion.timeouts.remove(queue);
             queue.lastAccessTime = clock.instant();
             lockRegion.timeouts.add(queue);
 
-            List<byte[]> serializedMesssages = messages.stream()
+            List<byte[]> serializedMessages = messages.stream()
                     .map(m -> lockRegion.serializer.serialize(m))
                     .collect(toList());
-            queue.data.addAll(serializedMesssages);
+            queue.outQueue.queue(serializedMessages);
         }
     }
 
     @Override
-    public List<Message> read(String id) {
+    public List<Message> dequeueOut(String id, int offset) {
+        Validate.notNull(id);
+        Validate.isTrue(offset >= 0);
+        Validate.validState(!closed, "Store closed");
+        
+        LockRegion lockRegion = getLockRegion(id);
+        synchronized (lockRegion) {
+            filterTimedOutContainers(lockRegion);
+            
+            Queues queue = lockRegion.queues.computeIfAbsent(id, k -> new Queues(id, clock.instant()));
+            
+            lockRegion.timeouts.remove(queue);
+            queue.lastAccessTime = clock.instant();
+            lockRegion.timeouts.add(queue);
+
+            List<byte[]> serializedMessages = queue.outQueue.dequeue(offset);
+            List<Message> messages = serializedMessages.stream()
+                    .map(d -> (Message) lockRegion.serializer.deserialize(d))
+                    .collect(toList());
+            
+            return messages;
+        }
+    }
+
+    
+    
+    
+    
+    
+    @Override
+    public void queueIn(String id, int offset, List<Message> messages) {
+        Validate.notNull(id);
+        Validate.notNull(messages);
+        Validate.noNullElements(messages);
+        Validate.isTrue(offset >= 0);
+        Validate.validState(!closed, "Store closed");
+        messages.forEach(m -> {
+            Address srcAddr = m.getSourceAddress();
+            Validate.isTrue(srcAddr.size() >= 2, "HTTP client address must have atleast 2 elements: %s", srcAddr);
+            Validate.isTrue(srcAddr.getElement(0).equals(prefix), "HTTP client address must start with %s: %s", prefix, srcAddr);
+            Validate.isTrue(srcAddr.getElement(1).equals(id), "HTTP client address must have ID with %s: %s", id, srcAddr);
+        });
+        
+        LockRegion lockRegion = getLockRegion(id);
+        synchronized (lockRegion) {
+            filterTimedOutContainers(lockRegion);
+            
+            Queues queue = lockRegion.queues.computeIfAbsent(id, k -> new Queues(id, clock.instant()));
+            
+            lockRegion.timeouts.remove(queue);
+            queue.lastAccessTime = clock.instant();
+            lockRegion.timeouts.add(queue);
+
+            List<byte[]> serializedMessages = messages.stream()
+                    .map(m -> lockRegion.serializer.serialize(m))
+                    .collect(toList());
+            queue.inQueue.queue(offset, serializedMessages);
+        }
+    }
+
+    @Override
+    public List<Message> dequeueIn(String id) {
         Validate.notNull(id);
         Validate.validState(!closed, "Store closed");
         
@@ -123,31 +191,31 @@ public final class MemoryStore implements Store {
         synchronized (lockRegion) {
             filterTimedOutContainers(lockRegion);
             
-            Queue queue = lockRegion.queues.get(id);
-            if (queue == null) {
-                return new ArrayList<>();
-            }
+            Queues queue = lockRegion.queues.computeIfAbsent(id, k -> new Queues(id, clock.instant()));
             
-            List<byte[]> serializedMessages = new ArrayList<>(queue.data);
-            List<Message> messsages = serializedMessages.stream()
-                    .map(b -> (Message) lockRegion.serializer.deserialize(b))
-                    .collect(toList());
-
-            lockRegion.queues.remove(queue.id);
             lockRegion.timeouts.remove(queue);
+            queue.lastAccessTime = clock.instant();
+            lockRegion.timeouts.add(queue);
+
+            List<byte[]> serializedMessages = queue.inQueue.dequeue();
+            List<Message> messages = serializedMessages.stream()
+                    .map(d -> (Message) lockRegion.serializer.deserialize(d))
+                    .collect(toList());
             
-            return messsages;
+            return messages;
         }
     }
+    
+    
     
 
 
     private void filterTimedOutContainers(LockRegion region) {
         Instant now = clock.instant();
 
-        Iterator<Queue> i = region.timeouts.iterator();
+        Iterator<Queues> i = region.timeouts.iterator();
         while (i.hasNext()) {
-            Queue queue = i.next();
+            Queues queue = i.next();
             Duration idleDuration = Duration.between(queue.lastAccessTime, now);
             if (idleDuration.compareTo(timeoutDuration) < 0) {
                 break;
@@ -178,8 +246,8 @@ public final class MemoryStore implements Store {
 
     private static final class LockRegion {
         private final BestEffortSerializer serializer = new BestEffortSerializer();
-        private final HashMap<String, Queue> queues = new HashMap<>();         // actor addr -> stored actor obj
-        private final TreeSet<Queue> timeouts = new TreeSet<>((x, y) -> {
+        private final HashMap<String, Queues> queues = new HashMap<>();         // actor addr -> stored actor obj
+        private final TreeSet<Queues> timeouts = new TreeSet<>((x, y) -> {
             int ret = x.lastAccessTime.compareTo(y.lastAccessTime);
             if (ret == 0 && x != y) { // if we ever encounter the same time (but different objs), treat it as less-than -- we do this
                                       // because we're using this set just to order (we still want duplicates showing up)
@@ -189,14 +257,72 @@ public final class MemoryStore implements Store {
         }); // timeout -> actor addr
     }
     
-    private static final class Queue {
+    private static final class Queues {
         private final String id;
-        private final LinkedList<byte[]> data = new LinkedList<>();
+        private final OutQueue outQueue = new OutQueue();
+        private final InQueue inQueue = new InQueue();
         private Instant lastAccessTime;
 
-        Queue(String id) {
+        Queues(String id, Instant time) {
             this.id = id;
+            this.lastAccessTime = time;
         }
         
+    }
+    
+    
+    
+    
+    private static final class OutQueue {
+        private int offset;
+        private final LinkedList<byte[]> data = new LinkedList<>();
+        
+        void queue(List<byte[]> msgs) {
+            data.addAll(msgs);
+        }
+        
+        List<byte[]> dequeue(int offset) {
+            int idx = offset - this.offset;
+            if (idx < 0 || idx > data.size()) {
+                throw new IllegalStateException();
+            }
+            
+            data.subList(0, idx).clear(); // dequeue anything before
+            this.offset += idx;
+            
+            return new LinkedList<>(data); // return remainder
+        }
+    }
+    
+    private static final class InQueue {
+        private int offset;
+        private final LinkedList<byte[]> data = new LinkedList<>();
+        
+        void queue(int offset, List<byte[]> msgs) {
+            int tailOffset = this.offset + data.size();
+            int tailLen = msgs.size() - (tailOffset - offset);
+            
+            if (tailLen < 0) {
+                return;
+            }
+            
+            if (tailLen > msgs.size()) {
+                throw new IllegalStateException();
+            }
+            
+            int msgCropStart = msgs.size() - tailLen;
+            int msgCropEnd = msgs.size();
+            msgs = msgs.subList(msgCropStart, msgCropEnd);
+            data.addAll(msgs);
+        }
+        
+        LinkedList<byte[]> dequeue() {
+            LinkedList<byte[]> ret = new LinkedList<>(data);
+            
+            offset += data.size();
+            data.clear();
+            
+            return ret;
+        }
     }
 }

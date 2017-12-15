@@ -39,13 +39,17 @@ public final class ServletGatewayTest {
         HttpServletRequest req = mock(HttpServletRequest.class);
         HttpServletResponse resp = mock(HttpServletResponse.class);
 
-        StringWriter out = new StringWriter();
-
+        StringWriter out;
+        
+        out = new StringWriter();
         when(req.getMethod()).thenReturn("POST");
         when(req.getReader()).thenReturn(new BufferedReader(new StringReader(
                 "{\n"
                 + "  id: 'test_id',\n"
-                + "  messages: [\n"
+                // no outDequeueOffset because we haven't gotten anything to dequeue yet
+                + "  outQueueOffset: 0,"
+                + "  inQueueOffset: 0,"
+                + "  inQueue: [\n"
                 + "    {\n"
                 + "      source: 'servlet:test_id',\n"
                 + "      destination: 'actor:worker123:querier',\n"
@@ -61,10 +65,29 @@ public final class ServletGatewayTest {
                 + "  ]\n"
                 + "}")));
         when(resp.getWriter()).thenReturn(new PrintWriter(out));
-
         servlet.service(req, resp);
+        assertEquals("{\"outQueue\":[{\"source\":\"src:src\",\"destination\":\"servlet:test_id\",\"type\":\"java.lang.String\",\"data\":\"hi!\"}]}", out.toString());
         
-        assertEquals("{\"messages\":[{\"source\":\"src:src\",\"destination\":\"servlet:test_id\",\"type\":\"java.lang.String\",\"data\":\"hi!\"}]}", out.toString());
+        out = new StringWriter();
+        when(req.getMethod()).thenReturn("POST");
+        when(req.getReader()).thenReturn(new BufferedReader(new StringReader(
+                "{\n"
+                + "  id: 'test_id',\n"
+                + "  outDequeueOffset: 0,"
+                + "  outQueueOffset: 1,"
+                + "  inQueueOffset: 2,"
+                + "  inQueue: [\n"
+                + "    {\n"
+                + "      source: 'servlet:test_id:subsystem1',\n"
+                + "      destination: 'actor:worker666',\n"
+                + "      type: 'java.lang.Integer',\n"
+                + "      data: 6\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}")));
+        when(resp.getWriter()).thenReturn(new PrintWriter(out));
+        servlet.service(req, resp);
+        assertEquals("{\"outQueue\":[]}", out.toString());
     }
 
 }

@@ -14,25 +14,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.actors.gateways.actor.stores.redis;
+package com.offbynull.actors.gateways.servlet.stores.redis;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-final class InternalUtils {
+final class ConversionUtils {
     
-    private InternalUtils() {
+    private ConversionUtils() {
         // do nothing
-    }
-
-    static String byteArrayToString(byte[] data) {
-        return data == null ? null : new String(data, UTF_8);
     }
     
     static Integer stringToInt(byte[] data) {
         return data == null ? null : Integer.valueOf(new String(data, UTF_8));
-    }
-    
-    static Long stringToLong(byte[] data) {
-        return data == null ? null : Long.valueOf(new String(data, UTF_8));
     }
 }

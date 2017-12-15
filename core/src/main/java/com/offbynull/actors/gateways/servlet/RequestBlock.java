@@ -25,23 +25,37 @@ import org.apache.commons.lang3.Validate;
 
 final class RequestBlock {
     private final String id;
-    private final UnmodifiableList<Message> messages;
+    private final int outQueueOffset;
+    private final int inQueueOffset;
+    private final UnmodifiableList<Message> inQueue;
 
-    RequestBlock(String id, List<Message> messages) {
+    RequestBlock(String id, int outQueueOffset, int inQueueOffset, List<Message> inQueue) {
         Validate.notNull(id);
-        Validate.notNull(messages);
-        Validate.noNullElements(messages);
-
+        Validate.notNull(inQueue);
+        Validate.noNullElements(inQueue);
+        Validate.isTrue(outQueueOffset >= 0);
+        Validate.isTrue(inQueueOffset >= 0);
+        
         this.id = id;
-        this.messages = (UnmodifiableList<Message>) unmodifiableList(new ArrayList<>(messages));
+        this.outQueueOffset = outQueueOffset;
+        this.inQueueOffset = inQueueOffset;
+        this.inQueue = (UnmodifiableList<Message>) unmodifiableList(new ArrayList<>(inQueue));
     }
 
     public String getId() {
         return id;
     }
 
-    public UnmodifiableList<Message> getMessages() {
-        return messages;
+    public int getOutQueueOffset() {
+        return outQueueOffset;
+    }
+
+    public int getInQueueOffset() {
+        return inQueueOffset;
+    }
+
+    public UnmodifiableList<Message> getInQueue() {
+        return inQueue;
     }
 
 }

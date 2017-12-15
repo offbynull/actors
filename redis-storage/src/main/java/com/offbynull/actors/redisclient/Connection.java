@@ -109,6 +109,16 @@ public interface Connection extends Closeable {
      * @throws IllegalStateException if closed
      */
     void pexire(String key, long duration) throws ConnectionException;
+    
+    /**
+     * Redis PEXIREAT operation.
+     * @param key redis key
+     * @param timestamp when the key expires (milliseconds from unix epoch)
+     * @throws ConnectionException if there was a problem with redis or the connection to redis
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if closed
+     */
+    void pexireAt(String key, long timestamp) throws ConnectionException;
 
     /**
      * Redis ZRANGE WITHSCORES operation.

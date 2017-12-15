@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -127,6 +128,19 @@ public final class TestConnection implements Connection {
     }
 
     @Override
+    public void pexireAt(String key, long timestamp) {
+        Validate.notNull(key);
+        Validate.validState(!factoryClosed.get(), "Closed");
+        Validate.validState(!clientClosed.get(), "Closed");
+        synchronized (database) {
+            Item item = database.get(key);
+            if (item != null) {
+                item.killTime = timestamp;
+            }
+        }
+    }
+
+    @Override
     public <T> Collection<SortedSetItem> zrangeWithScores(String key, long start, long end, Function<byte[], T> converter) {
         Validate.notNull(key);
         Validate.notNull(converter);
@@ -190,8 +204,6 @@ public final class TestConnection implements Connection {
                 public <T> void zrange(String key, long start, long end, Function<byte[], T> converter) {
                     Validate.notNull(key);
                     Validate.notNull(converter);
-                    Validate.isTrue(start >= 0L);
-                    Validate.isTrue(end >= 0L);
                     Validate.validState(!factoryClosed.get(), "Closed");
                     Validate.validState(!clientClosed.get(), "Closed");
                     queueOps.add(() -> {
@@ -208,8 +220,6 @@ public final class TestConnection implements Connection {
                 @Override
                 public void zremrangeByRank(String key, long start, long end) {
                     Validate.notNull(key);
-                    Validate.isTrue(start >= 0L);
-                    Validate.isTrue(end >= 0L);
                     Validate.validState(!factoryClosed.get(), "Closed");
                     Validate.validState(!clientClosed.get(), "Closed");
                     queueOps.add(() -> {
@@ -241,6 +251,22 @@ public final class TestConnection implements Connection {
                 }
 
                 @Override
+                public void rpush(String key, byte[] val) {
+                    Validate.notNull(key);
+                    Validate.notNull(val);
+                    Validate.validState(!factoryClosed.get(), "Closed");
+                    Validate.validState(!clientClosed.get(), "Closed");
+                    queueOps.add(() -> {
+                        InternalList list = getItem(key);
+                        if (list == null) {
+                            list = setItem(key, new InternalList());
+                        }
+                        list.rpush(copy(val));
+                        return (long) list.size();
+                    });
+                }
+
+                @Override
                 public <T> void rpop(String key, Function<byte[], T> converter) {
                     Validate.notNull(key);
                     Validate.notNull(converter);
@@ -256,6 +282,49 @@ public final class TestConnection implements Connection {
                             database.remove(key);
                         }
                         return converter.apply(copy(val));
+                    });
+                }
+
+                @Override
+                public <T> void lpop(String key, Function<byte[], T> converter) {
+                    Validate.notNull(key);
+                    Validate.notNull(converter);
+                    Validate.validState(!factoryClosed.get(), "Closed");
+                    Validate.validState(!clientClosed.get(), "Closed");
+                    queueOps.add(() -> {
+                        InternalList list = getItem(key);
+                        if (list == null) {
+                            return converter.apply(null);
+                        }
+                        byte[] val = list.lpop();
+                        if (list.isEmpty()) {
+                            database.remove(key);
+                        }
+                        return converter.apply(copy(val));
+                    });
+                }
+
+                @Override
+                public void llen(String key) {
+                    Validate.notNull(key);
+                    Validate.validState(!factoryClosed.get(), "Closed");
+                    Validate.validState(!clientClosed.get(), "Closed");
+                    queueOps.add(() -> {
+                        InternalList ret = getItem(key);
+                        return ret == null ? 0L : (long) ret.size();
+                    });
+                }
+
+                @Override
+                public <T> void lrange(String key, int start, int end, Function<byte[], T> converter) throws ConnectionException {
+                    Validate.notNull(key);
+                    Validate.validState(!factoryClosed.get(), "Closed");
+                    Validate.validState(!clientClosed.get(), "Closed");
+                    queueOps.add(() -> {
+                        InternalList ret = getItem(key);
+                        return ret == null ? new LinkedList<>() : ret.lrange(start, end).stream()
+                                .map(i -> converter.apply(copy(i)))
+                                .collect(toList());
                     });
                 }
 

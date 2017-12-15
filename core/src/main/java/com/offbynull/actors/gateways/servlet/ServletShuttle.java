@@ -26,16 +26,16 @@ import static java.util.stream.Collectors.groupingBy;
 final class ServletShuttle implements Shuttle {
 
     private final String prefix;
-    private final Store queue;
+    private final Store store;
     private final CountDownLatch shutdownLatch;
 
-    ServletShuttle(String prefix, Store queue, CountDownLatch shutdownLatch) {
+    ServletShuttle(String prefix, Store store, CountDownLatch shutdownLatch) {
         Validate.notNull(prefix);
-        Validate.notNull(queue);
+        Validate.notNull(store);
         Validate.notNull(shutdownLatch);
 
         this.prefix = prefix;
-        this.queue = queue;
+        this.store = store;
         this.shutdownLatch = shutdownLatch;
     }
 
@@ -57,7 +57,7 @@ final class ServletShuttle implements Shuttle {
                 .filter(m -> m.getDestinationAddress().size() <= 2)
                 .filter(m -> m.getDestinationAddress().getElement(0).equals(prefix))
                 .collect(groupingBy(x -> x.getDestinationAddress().getElement(1))).entrySet().stream()
-                .forEach(e -> queue.write(e.getKey(), e.getValue()));
+                .forEach(e -> store.queueOut(e.getKey(), e.getValue()));
     }
     
 }

@@ -16,6 +16,7 @@
  */
 package com.offbynull.actors.gateways.servlet;
 
+import com.offbynull.actors.shuttle.Message;
 import java.io.IOException;
 import java.io.Reader;
 import javax.servlet.ServletException;
@@ -26,6 +27,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import com.offbynull.actors.shuttle.Shuttle;
 import java.io.Writer;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import static java.util.stream.Collectors.groupingBy;
@@ -41,24 +43,24 @@ final class MessageBridgeServlet extends HttpServlet {
     private final JsonConverter jsonConverter;
 
     private final String prefix;
-    private final Store queue;
+    private final Store store;
 
     private final ConcurrentHashMap<String, Shuttle> outShuttles;
     private final CountDownLatch shutdownLatch;
 
     MessageBridgeServlet(String prefix,
-            Store queue,
+            Store store,
             ConcurrentHashMap<String, Shuttle> outShuttles,
             CountDownLatch shutdownLatch) {
         Validate.notNull(prefix);
-        Validate.notNull(queue);
+        Validate.notNull(store);
         Validate.notNull(outShuttles);
         Validate.notNull(shutdownLatch);
          // DONT CHECK outShuttles FOR NULL keys/values as there's no point -- map is concurrent, being modified by other threads
 
         this.jsonConverter = new JsonConverter();
         this.prefix = prefix;
-        this.queue = queue;
+        this.store = store;
         this.outShuttles = outShuttles;
         this.shutdownLatch = shutdownLatch;
     }
@@ -72,18 +74,35 @@ final class MessageBridgeServlet extends HttpServlet {
 
 
         try {
+            // Read and parse response
             String requestJson;
             try (Reader reader = req.getReader()) {
                 requestJson = IOUtils.toString(reader);
             }
-
             RequestBlock requestBlock = jsonConverter.fromJson(requestJson);
             
+            
+            
+            
+            // Get http client's id
             String id = requestBlock.getId();
-            requestBlock.getMessages().stream()
-                .filter(m -> m.getSourceAddress().size() <= 2)
-                .filter(m -> m.getSourceAddress().getElement(0).equals(prefix))
-                .filter(m -> m.getSourceAddress().getElement(1).equals(id))
+
+            
+
+            
+            // Check messages from the http client
+            for (Message message : requestBlock.getInQueue()) {
+                Validate.isTrue(message.getSourceAddress().size() >= 2);
+                Validate.isTrue(message.getSourceAddress().getElement(0).equals(prefix));
+                Validate.isTrue(message.getSourceAddress().getElement(1).equals(id));
+            }
+
+            // Queue (insert) messages from the http client
+            store.queueIn(id, requestBlock.getInQueueOffset(), requestBlock.getInQueue());
+            
+            // Dequeue (remove) messages from the http client and shuttle
+               // there may be no messages returned here even if there were messages inserted above -- those messages may have been dupes
+            store.dequeueIn(id).stream()
                 .collect(groupingBy(x -> x.getDestinationAddress().getElement(0))).entrySet().stream()
                 .forEach(e -> {
                     Shuttle outShuttle = outShuttles.get(e.getKey());
@@ -93,9 +112,19 @@ final class MessageBridgeServlet extends HttpServlet {
                 });
 
 
+            
 
-            ResponseBlock responseBlock = new ResponseBlock(queue.read(id));
+            
+            // Get messages to the http client starting from outQueueOffset, and dequeue (remove) everything before outQueueOffset
+                // if it's asking for outQueueOffset, it means it successfully recvd everything before it, so we can dequeue it
+            List<Message> outQueue = store.dequeueOut(id, requestBlock.getOutQueueOffset());
 
+            
+            
+            
+            
+            // Create and write response
+            ResponseBlock responseBlock = new ResponseBlock(outQueue);
             String responseJson = jsonConverter.toJson(responseBlock);
             try (Writer writer = resp.getWriter()) {
                 IOUtils.write(responseJson, writer);

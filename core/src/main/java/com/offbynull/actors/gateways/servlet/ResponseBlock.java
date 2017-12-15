@@ -24,15 +24,15 @@ import static org.apache.commons.collections4.list.UnmodifiableList.unmodifiable
 import org.apache.commons.lang3.Validate;
 
 final class ResponseBlock {
-    private final UnmodifiableList<Message> messages;
+    private final UnmodifiableList<Message> outQueue;
 
-    ResponseBlock(List<Message> messages) {
-        Validate.notNull(messages);
-        Validate.noNullElements(messages);
-        this.messages = (UnmodifiableList<Message>) unmodifiableList(new ArrayList<>(messages));
+    ResponseBlock(List<Message> outQueue) {
+        Validate.notNull(outQueue);
+        Validate.noNullElements(outQueue);
+        this.outQueue = (UnmodifiableList<Message>) unmodifiableList(new ArrayList<>(outQueue));
     }
 
-    public UnmodifiableList<Message> getMessages() {
-        return messages;
+    public UnmodifiableList<Message> getOutQueue() {
+        return outQueue;
     }
 }

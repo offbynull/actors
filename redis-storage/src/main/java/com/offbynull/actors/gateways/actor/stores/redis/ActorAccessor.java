@@ -42,6 +42,7 @@ final class ActorAccessor {
     private static final String KEY_PREFIX = "actor:";
 
     private static final String CHECKPOINT_MSG_KEY_SUFFIX = ":checkpointmsg";
+    private static final String CHECKPOINT_DATA_KEY_SUFFIX = ":checkpointdata";
     private static final String CHECKPOINT_TIME_KEY_SUFFIX = ":checkpointtime";
     private static final String CHECKPOINT_INSTANCE_KEY_SUFFIX = ":checkpointinstance";
     private static final String DATA_KEY_SUFFIX = ":data";
@@ -53,6 +54,7 @@ final class ActorAccessor {
 
     private final Connection connection;
     private final String checkpointMsgKey;
+    private final String checkpointDataKey;
     private final String checkpointTimeKey;
     private final String checkpointInstanceKey;
     private final String dataKey;
@@ -66,6 +68,7 @@ final class ActorAccessor {
         this.connection = connection;
 
         this.checkpointMsgKey = toClusterKey(KEY_PREFIX, address, CHECKPOINT_MSG_KEY_SUFFIX);
+        this.checkpointDataKey = toClusterKey(KEY_PREFIX, address, CHECKPOINT_DATA_KEY_SUFFIX);
         this.checkpointTimeKey = toClusterKey(KEY_PREFIX, address, CHECKPOINT_TIME_KEY_SUFFIX);
         this.checkpointInstanceKey = toClusterKey(KEY_PREFIX, address, CHECKPOINT_INSTANCE_KEY_SUFFIX);
         this.dataKey = toClusterKey(KEY_PREFIX, address, DATA_KEY_SUFFIX);
@@ -103,6 +106,7 @@ final class ActorAccessor {
                     queue.set(dataKey, data);
                     queue.set(stateKey, STATE_IDLE);
                     if (checkpointPayload != null) {
+                        queue.set(checkpointDataKey, data);
                         queue.set(checkpointMsgKey, checkpointPayload);
                         queue.set(checkpointTimeKey, checkpointTime);
                     }
@@ -116,6 +120,7 @@ final class ActorAccessor {
                 // transaction is happening. The idea with doing this is that, by watching all the keys (after the legitment watches),
                 // it'll either hold off the server from moving the key or fail the MULTI/EXEC transaction while it is moving.
                 new Watch(checkpointMsgKey, true, () -> true),
+                new Watch(checkpointDataKey, true, () -> true),
                 new Watch(checkpointTimeKey, true, () -> true),
                 new Watch(checkpointInstanceKey, true, () -> true),
                 new Watch(dataKey, true, () -> true),
@@ -138,6 +143,7 @@ final class ActorAccessor {
                 // transaction is happening. The idea with doing this is that, by watching all the keys (after the legitment watches),
                 // it'll either hold off the server from moving the key or fail the MULTI/EXEC transaction while it is moving.
                 new Watch(checkpointMsgKey, true, () -> true),
+                new Watch(checkpointDataKey, true, () -> true),
                 new Watch(checkpointTimeKey, true, () -> true),
                 new Watch(checkpointInstanceKey, true, () -> true),
                 new Watch(dataKey, true, () -> true),
@@ -165,6 +171,7 @@ final class ActorAccessor {
                 // transaction is happening. The idea with doing this is that, by watching all the keys (after the legitment watches),
                 // it'll either hold off the server from moving the key or fail the MULTI/EXEC transaction while it is moving.
                 new Watch(checkpointMsgKey, true, () -> true),
+                new Watch(checkpointDataKey, true, () -> true),
                 new Watch(checkpointTimeKey, true, () -> true),
                 new Watch(checkpointInstanceKey, true, () -> true),
                 new Watch(dataKey, true, () -> true),
@@ -196,6 +203,7 @@ final class ActorAccessor {
                 // transaction is happening. The idea with doing this is that, by watching all the keys (after the legitment watches),
                 // it'll either hold off the server from moving the key or fail the MULTI/EXEC transaction while it is moving.
                 new Watch(checkpointMsgKey, true, () -> true),
+                new Watch(checkpointDataKey, true, () -> true),
                 new Watch(checkpointTimeKey, true, () -> true),
                 new Watch(checkpointInstanceKey, true, () -> true),
                 new Watch(dataKey, true, () -> true),
@@ -217,7 +225,7 @@ final class ActorAccessor {
                     queue.incr(checkpointInstanceKey);             // increment checkpoint instance
                     queue.set(checkpointTimeKey, Long.MAX_VALUE);  // max out checkpoint time to max so we don't hit checkpoint again
                     queue.get(checkpointMsgKey);
-                    queue.get(dataKey);
+                    queue.get(checkpointDataKey);
                     queue.set(stateKey, STATE_PROCESSING);
                 }),
                 // Make sure checkpointTime exists and it's greater than currentTime.
@@ -229,6 +237,7 @@ final class ActorAccessor {
                 // transaction is happening. The idea with doing this is that, by watching all the keys (after the legitment watches),
                 // it'll either hold off the server from moving the key or fail the MULTI/EXEC transaction while it is moving.
                 new Watch(checkpointMsgKey, true, () -> true),
+                new Watch(checkpointDataKey, true, () -> true),
                 new Watch(checkpointTimeKey, true, () -> true),
                 new Watch(checkpointInstanceKey, true, () -> true),
                 new Watch(dataKey, true, () -> true),
@@ -252,6 +261,7 @@ final class ActorAccessor {
         connection.transaction(
                 new Transaction(true, queue -> {
                     queue.del(checkpointMsgKey);
+                    queue.del(checkpointDataKey);
                     queue.del(checkpointTimeKey);
                     queue.del(checkpointInstanceKey);
                     queue.del(dataKey);

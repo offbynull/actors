@@ -64,13 +64,15 @@ public final class ActorAccessorTest {
 
     @Test
     public void mustProperlyHitCheckpoint() throws Exception {
-        byte[] actorData = new byte[] { 1, 2, 3 };
-        byte[] checkpointMsg = new byte[] { 3, 4, 5 };
+        byte[] actorData1 = new byte[] { 1, 2, 3 };
+        byte[] actorData2 = new byte[] { 3, 4, 5 };
+        byte[] checkpointMsg = new byte[] { 6, 7, 8 };
 
         ActorAccessor raa = new ActorAccessor(connection, fromString("test1:b"));
         raa.remove();
 
-        raa.update(actorData, checkpointMsg, 0L, 0);
+        raa.update(actorData1, checkpointMsg, 0L, 0);
+        raa.update(actorData2, null, -1, 0);
         
         Work pm;
 
@@ -79,7 +81,7 @@ public final class ActorAccessorTest {
         
         pm = raa.checkpointMessage(0L);
         assertArrayEquals(checkpointMsg, pm.getMessageData());
-        assertArrayEquals(actorData, pm.getActorData());
+        assertArrayEquals(actorData1, pm.getActorData());
 
         pm = raa.nextMessage();
         assertNull(pm);

@@ -262,6 +262,25 @@ public final class RedisStore implements Store {
                     long currentTime = Instant.now().toEpochMilli();
                     Address address;
 
+
+                    
+                    // CHECK IF CHECKPOINT HIT AND RETURN IF FOUND
+                    address = randomReadCheckpointQueue(connection).remove(currentTime);
+                    if (address != null) {
+                        ActorAccessor actorAccessor = new ActorAccessor(connection, address);
+                        Work checkpointWork = actorAccessor.checkpointMessage(currentTime);
+                        
+                        // if a checkpoint was hit, return it...
+                        if (checkpointWork != null) {
+                            return checkpointWork;
+                        }
+
+                        // we didn't pull a checkpoint for whatever reason? maybe the actor was removed... retry the entire block by letting
+                        // it loop again
+                    }
+                    
+                    
+                    
                     
                     
                     // CHECK FOR NEW MESSAGE AND RETURN IF FOUND
@@ -279,23 +298,6 @@ public final class RedisStore implements Store {
                         if (actorAccessor.isIdleAndHasMessages()) {
                             randomWriteMessageQueue(connection).insert(currentTime, address);
                         }
-                    }
-
-
-                    
-                    // CHECK IF CHECKPOINT HIT AND RETURN IF FOUND
-                    address = randomReadCheckpointQueue(connection).remove(currentTime);
-                    if (address != null) {
-                        ActorAccessor actorAccessor = new ActorAccessor(connection, address);
-                        Work checkpointWork = actorAccessor.checkpointMessage(currentTime);
-                        
-                        // if a checkpoint was hit, return it...
-                        if (checkpointWork != null) {
-                            return checkpointWork;
-                        }
-
-                        // we didn't pull a checkpoint for whatever reason? maybe the actor was removed... retry the entire block by letting
-                        // it loop again
                     }
                 }
             }

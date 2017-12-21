@@ -120,16 +120,16 @@ public final class JdbcStore implements Store {
             + "SET\n"
             + "    DATA = ?, IDLE = ?\n"
             + "WHERE\n"
-            + "    ADDRESS = ? AND CHECKPOINT_INSTANCE <= ?\n";
+            + "    ADDRESS = ? AND CHECKPOINT_INSTANCE = ?\n";
     private static final String UPDATE_ACTOR_WITH_CHECKPOINT
             = "UPDATE ACTOR\n"
             + "SET\n"
             + "    CHECKPOINT_DATA = ?, CHECKPOINT_MESSAGE_DATA = ?, CHECKPOINT_TIME = ?, CHECKPOINT_INSTANCE = ?, DATA = ?, IDLE = ?\n"
             + "WHERE\n"
-            + "    ADDRESS = ? AND CHECKPOINT_INSTANCE <= ?\n";
+            + "    ADDRESS = ? AND CHECKPOINT_INSTANCE = ?\n";
 
     @Override
-    public void store(SerializableActor actor) {
+    public boolean store(SerializableActor actor) {
         Validate.notNull(actor);
         
         Address actorAddr = actor.getSelf();
@@ -150,7 +150,7 @@ public final class JdbcStore implements Store {
             checkpointPayloadData = null;
         }
         
-        retry(() -> {
+        return retry(() -> {
             Validate.isTrue(!closed, "Store closed");
             try (Connection conn = dataSource.getConnection()) {
                 conn.setAutoCommit(false);
@@ -175,7 +175,7 @@ public final class JdbcStore implements Store {
                         ps.setInt(6, 1); // idle = true
                         ps.setBytes(7, actorData);
                         ps.executeUpdate();
-                        return;
+                        return true;
                     } catch (SQLException sqle) {
                         if (!sqle.getSQLState().startsWith("23505")) { // 23505 is used when already exists (unique constraint violation)
                             throw sqle;
@@ -194,7 +194,7 @@ public final class JdbcStore implements Store {
                         ps.setInt(2, 1); // idle = true
                         ps.setString(3, actorAddrStr);
                         ps.setInt(4, checkpointInstance);
-                        ps.executeUpdate();
+                        return ps.executeUpdate() == 1;
                     } finally {
                         commitFinally(conn);
                     }
@@ -208,7 +208,7 @@ public final class JdbcStore implements Store {
                         ps.setInt(6, 1); // idle = true
                         ps.setString(7, actorAddrStr);
                         ps.setInt(8, checkpointInstance);
-                        ps.executeUpdate();
+                        return ps.executeUpdate() == 1;
                     } finally {
                         commitFinally(conn);
                     }

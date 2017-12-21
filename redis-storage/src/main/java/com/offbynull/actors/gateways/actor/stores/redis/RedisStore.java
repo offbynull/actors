@@ -159,7 +159,7 @@ public final class RedisStore implements Store {
     }
 
     @Override
-    public void store(SerializableActor actor) {
+    public boolean store(SerializableActor actor) {
         Validate.notNull(actor);
         Validate.validState(!closed, "Store closed");
 
@@ -179,7 +179,7 @@ public final class RedisStore implements Store {
             checkpointPayloadData = null;
         }
 
-        retry(() -> {
+        return retry(() -> {
             Validate.validState(!closed, "Store closed");
             
             try (Connection connection = connector.getConnection()) {
@@ -198,6 +198,8 @@ public final class RedisStore implements Store {
                 if (written && checkpointUpdated) {
                     randomWriteCheckpointQueue(connection).insert(checkpointTime, actorAddr);
                 }
+                
+                return written;
             }
         });
     }

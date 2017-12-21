@@ -6,6 +6,8 @@ import com.offbynull.actors.gateways.actor.Store.StoredWork;
 import com.offbynull.actors.shuttle.Message;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.junit.Before;
 
@@ -154,16 +156,21 @@ public class MemoryStoreTest {
 
     @Test(timeout = 2000L)
     public void mustNotAllowRecoveryOfOldCheckpointInstanceToBlowAwayState() {
+        boolean stored;
+        
         SerializableActor initialActor = SerializableActorHelper.createFake("actor:a", "timeout_msg", 300L);
-        fixture.store(initialActor);
+        stored = fixture.store(initialActor);
+        assertTrue(stored);
         
         SerializableActor checkpointHitActor = fixture.take().getActor();
         assertEquals(1, checkpointHitActor.getCheckpointInstance());
         
         // Add the checkpointHit actor back in (with new checkpoint details), and try to replace it with initialActor...
         
-        fixture.store(checkpointHitActor);
-        fixture.store(initialActor);
+        stored = fixture.store(checkpointHitActor);
+        assertTrue(stored);
+        stored = fixture.store(initialActor);
+        assertFalse(stored);
 
         SerializableActor checkpointHitActor2 = fixture.take().getActor();
         assertEquals(2, checkpointHitActor2.getCheckpointInstance()); // Another checkpoint hit after we put it back in.

@@ -79,7 +79,7 @@ public final class MemoryStore implements Store {
     }
 
     @Override
-    public void store(SerializableActor actor) {
+    public boolean store(SerializableActor actor) {
         Validate.notNull(actor);
         
         Address actorAddr = actor.getSelf();
@@ -89,11 +89,10 @@ public final class MemoryStore implements Store {
         Validate.validState(!closed, "Store closed");
 
         if (actor.getCheckpointTimeout() < 0L && actor.getCheckpointPayload() == null) {
-            LOGGER.warn("Actor doesn't have checkpoint time/message -- ignoring store: {} {} {}",
-                    actorAddr,
-                    actor.getCheckpointTimeout(),
-                    actor.getCheckpointPayload());
-            return;
+            throw new IllegalStateException("Actor doesn't have checkpoint time/message:"
+                    + ' ' + actorAddr
+                    + ' ' + actor.getCheckpointTimeout()
+                    + ' ' + actor.getCheckpointPayload());
         }
 
         LockRegion lockRegion = getLockRegion(actorAddr);
@@ -119,13 +118,13 @@ public final class MemoryStore implements Store {
                 ActorData actorData = lockRegion.actors.get(actorAddr);
                 
                 actorData.data = serializedActor;
-                if (actor.getCheckpointInstance() < actorData.checkpointInstance) { // if checkpoint inst is older
+                if (actor.getCheckpointInstance() != actorData.checkpointInstance) { // if checkpoint inst is older
                     // This is an old instance -- a checkpoint has already hit so it wouldn't be a good idea to put this back in.
                     LOGGER.warn("Ignoring update for actor with old checkpoint instance: {} vs {} for {}",
                             actorData.checkpointInstance,
                             actor.getCheckpointInstance(),
                             actorAddr);
-                    return;
+                    return false;
                 }
 
                 if (actor.getCheckpointUpdated()) { // if actor should be checkpointed
@@ -146,6 +145,8 @@ public final class MemoryStore implements Store {
             }
 
             LOGGER.debug("Stored actor: {} ({})", actorAddr, exists ? "existing" : "new");
+            
+            return true;
         }
     }
 

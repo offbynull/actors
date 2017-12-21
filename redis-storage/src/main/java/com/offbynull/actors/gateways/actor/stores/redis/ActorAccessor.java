@@ -94,8 +94,6 @@ final class ActorAccessor {
             expectedCheckpointInstance = null;
         } else if (checkpointInstance == storedCheckpointInstance) { // actor exists + is at same checkpoint, we can update
             expectedCheckpointInstance = storedCheckpointInstance;
-        } else if (checkpointInstance > storedCheckpointInstance) {  // actor exists + is at prev checkpoint, we can updated
-            expectedCheckpointInstance = storedCheckpointInstance;
         } else {                                                     // actor exists but is at newer instance, ignore update
             return false;
         }

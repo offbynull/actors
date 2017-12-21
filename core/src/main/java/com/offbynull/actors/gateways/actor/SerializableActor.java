@@ -94,7 +94,7 @@ public final class SerializableActor implements Serializable {
     }
 
     /**
-     * set checkpoint updated flag for this actor. Indicates that the user wants the current state of the actor to be a checkpoint.
+     * Set checkpoint updated flag for this actor. Indicates that the user wants the current state of the actor to be a checkpoint.
      * @param checkpointUpdated checkpoint updated flag
      */
     public void setCheckpointUpdated(boolean checkpointUpdated) {

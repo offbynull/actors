@@ -37,9 +37,11 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.offbynull.coroutines.user.CoroutineRunner;
+import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 final class ActorRunnable implements Runnable {
 
@@ -113,33 +115,108 @@ final class ActorRunnable implements Runnable {
         Context ctx = actor.context();
 
 
-        // add newly created child actors to actor
-        List<BatchedCreateChildCommand> newChildCommands = ctx.copyAndClearNewChildren();
-        createChildren(actor, newChildCommands);
-
-        // push newly created root actors to storage engine
-        List<BatchedCreateRootCommand> newRootCommands = ctx.copyAndClearNewRoots();
-        createActors(newRootCommands);
         
-        // push newly created outgoing messages to shuttles/storageengine
+        List<Message> newOutgoingMessages = new LinkedList<>();
+        List<SerializableActor> newRootActors = new LinkedList<>();
+        
+        // create children BEFORE attempting to store -- children are bundled as part of the main actor
+        //   priming messages for children don't get sent until below
+        List<BatchedCreateChildCommand> newChildCommands = ctx.copyAndClearNewChildren();
+        createChildren(actor, newChildCommands, newOutgoingMessages);
+        
+        // create new actors (does not actually store until below)
+        List<BatchedCreateRootCommand> newRootCommands = ctx.copyAndClearNewRoots();
+        createActors(newRootCommands, newOutgoingMessages, newRootActors);
+        
+        // create outgoing messages (does not actually store until below)
         List<BatchedOutgoingMessageCommand> newMessageCommands = ctx.copyAndClearOutgoingMessages();
-        forwardMessages(newMessageCommands);
-
-
+        createMessages(newMessageCommands, newOutgoingMessages);
+        
+        
         if (shutdown) {
             Address actorAddr = actor.context().self();
             LOG.debug("Actor shut down {} -- removing from storage engine", actorAddr);
             store.discard(actorAddr);
+            
+            // Actor has finished, store new actors+messages BUT discard messages going to self. Self has been discarded so the messages
+            // will end up going nowhere anyways.
+            newOutgoingMessages = newOutgoingMessages.stream()
+                    .filter(m -> !ctx.self().isPrefixOf(m.getDestinationAddress()))
+                    .collect(toList());
         } else {
             serializableActor = serialize(actor);
-            store.store(serializableActor);
+            boolean stored = store.store(serializableActor);
+            if (!stored) {
+                // Actor couldn't be stored because it was superseded by a checkpoint (took too long to execute a msg?). This instance of
+                // the actor is no longer valid. Whatever it computed in terms of new messages to send out or new root actors to spawn
+                // should be discarded.
+                newRootActors.clear();
+                newOutgoingMessages.clear();
+            }
         }
+
+        storeActors(newRootActors);
+        storeMessages(ctx.self(), newOutgoingMessages);
     }
 
-    private void forwardMessages(List<BatchedOutgoingMessageCommand> commands) {
-        // Group outgoing messages by prefix
-        Map<String, List<Message>> outgoingMap = commands.stream()
+    private void createMessages(List<BatchedOutgoingMessageCommand> commands, List<Message> newMessages) {
+        commands.stream()
                 .map(m -> new Message(m.getSource(), m.getDestination(), m.getMessage()))
+                .forEach(newMessages::add);
+    }
+
+    private void createActors(List<BatchedCreateRootCommand> commands, List<Message> newMessages, List<SerializableActor> newActors) {
+        commands.stream().forEach(bcac -> {
+            String newId = bcac.getId();
+            Coroutine newCoroutine = bcac.getCoroutine();
+            Address newSelf = Address.of(prefix, newId);
+
+            Context newCtx = new Context(newSelf);
+
+            CoroutineRunner newRunner = new CoroutineRunner(newCoroutine);
+            newRunner.setContext(newCtx);
+        
+
+
+            Actor actor = new Actor(null, newRunner, newCtx);
+            
+            SerializableActor serializableActor = serialize(actor);
+            newActors.add(serializableActor);
+            
+            bcac.getPrimingMessages().stream()
+                    .map(payload -> new Message(newCtx.self(), newCtx.self(), payload))
+                    .forEach(newMessages::add);
+        });
+    }
+
+    private void createChildren(Actor rootActor, List<BatchedCreateChildCommand> commands, List<Message> newMessages) {
+        commands.stream().forEach(bccc -> {
+            Context parentContext = bccc.fromContext();
+            String childId = bccc.getId();
+            Coroutine childCoroutine = bccc.getCoroutine();
+
+            Context childCtx = new Context(parentContext, childId);
+            Address childSelf = childCtx.self();
+            CoroutineRunner childRunner = new CoroutineRunner(childCoroutine);
+            childRunner.setContext(childCtx);
+
+
+            Actor parentActor = findActorForContext(rootActor, parentContext);
+            Validate.validState(parentActor != null); // sanity test -- should never happen
+
+            Actor childActor = new Actor(parentActor, childRunner, childCtx);
+            parentActor.children().put(childId, childActor);
+
+
+            bccc.getPrimingMessages().stream()
+                    .map(payload -> new Message(childCtx.self(), childCtx.self(), payload))
+                    .forEach(newMessages::add);
+        });
+    }
+    
+    private void storeMessages(Address self, List<Message> newMessages) {
+        // Group outgoing messages by prefix
+        Map<String, List<Message>> outgoingMap = newMessages.stream()
                 .collect(groupingBy(x -> x.getDestinationAddress().getElement(0)));
 
         // Send outgoing messages for THIS prefix (storage messages)
@@ -163,58 +240,15 @@ final class ActorRunnable implements Runnable {
         });
     }
 
-    private void createActors(List<BatchedCreateRootCommand> commands) {
-        commands.stream().forEach(bcac -> {
-            String newId = bcac.getId();
-            Coroutine newCoroutine = bcac.getCoroutine();
-            Address newSelf = Address.of(prefix, newId);
-
-            Context newCtx = new Context(newSelf);
-
-            CoroutineRunner newRunner = new CoroutineRunner(newCoroutine);
-            newRunner.setContext(newCtx);
-        
-
-
-            Actor actor = new Actor(null, newRunner, newCtx);
-            
-            SerializableActor serializableActor = serialize(actor);
-            Message[] messages = bcac.getPrimingMessages().stream()
-                    .map(payload -> new Message(newCtx.self(), newCtx.self(), payload))
-                    .toArray(size -> new Message[size]);
-
-            store.store(serializableActor);
-            store.store(messages);
+    private void storeActors(List<SerializableActor> newActors) {
+        newActors.forEach(x -> {
+            boolean stored = store.store(x);
+            if (!stored) {
+                LOG.warn("Unable to write newly spawned actor {}", x.getSelf());
+            }
         });
     }
 
-    private void createChildren(Actor rootActor, List<BatchedCreateChildCommand> commands) {
-        commands.stream().forEach(bccc -> {
-            Context parentContext = bccc.fromContext();
-            String childId = bccc.getId();
-            Coroutine childCoroutine = bccc.getCoroutine();
-
-            Context childCtx = new Context(parentContext, childId);
-            Address childSelf = childCtx.self();
-            CoroutineRunner childRunner = new CoroutineRunner(childCoroutine);
-            childRunner.setContext(childCtx);
-
-
-            Actor parentActor = findActorForContext(rootActor, parentContext);
-            Validate.validState(parentActor != null); // sanity test -- should never happen
-
-            Actor childActor = new Actor(parentActor, childRunner, childCtx);
-            parentActor.children().put(childId, childActor);
-
-
-            Message[] messages = bccc.getPrimingMessages().stream()
-                    .map(payload -> new Message(childCtx.self(), childCtx.self(), payload))
-                    .toArray(size -> new Message[size]);
-
-            store.store(messages);
-        });
-    }
-    
     private Actor findActorForContext(Actor actor, Context ctx) {
         if (actor.context() == ctx) {
             return actor;

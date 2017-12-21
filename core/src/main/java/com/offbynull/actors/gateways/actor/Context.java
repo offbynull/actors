@@ -153,8 +153,14 @@ public final class Context implements Serializable {
     }
 
     /**
-     * Set checkpoint message and time. Checkpoint message/time is only respected if the actor is a root actor.
-     * @param payload payload to be used once checkpoint hits
+     * Set checkpoint message and duration.
+     * <p>
+     * If this method doesn't get re-invoked by {@code timeout}, the actor may be considered as being in an unhealthy state. Unhealthy
+     * actors will have their state reverted to the {@link Continuation#suspend()} invoked just after the invocation of this method and
+     * receive a message from itself containing {@code payload}.
+     * <p>
+     * Checkpoints are only respected if the actor is a root actor. If the actor isn't a root actor, this call is ignored.
+     * @param payload message payload to be used once checkpoint hits
      * @param timeout amount of time (in milliseconds) when the checkpoint hits and the actor rolls back
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code timeout} is negative

@@ -123,7 +123,7 @@ public final class ActorSystem implements Closeable {
      * Get the {@link LogGateway} associated with this actor system (if present). Equivalent to calling {@code getGateway(DEFAULT_LOG)}.
      * @return log gateway
      * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_LOG} is found
-     * @throws ClassCastException if type of gateway is something other than {@link ActorGateway} -- this shouldn't be the case if
+     * @throws ClassCastException if type of gateway is something other than {@link LogGateway} -- this shouldn't be the case if
      * {@link Builder#withLogGateway() } or one of its overloads were used
      */
     public LogGateway getLogGateway() {
@@ -134,11 +134,23 @@ public final class ActorSystem implements Closeable {
      * Get the {@link TimerGateway} associated with this actor system (if present). Equivalent to calling {@code getGateway(DEFAULT_TIMER)}.
      * @return timer gateway
      * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_TIMER} is found
-     * @throws ClassCastException if type of gateway is something other than {@link ActorGateway} -- this shouldn't be the case if
+     * @throws ClassCastException if type of gateway is something other than {@link TimerGateway} -- this shouldn't be the case if
      * {@link Builder#withTimerGateway() } or one of its overloads were used
      */
     public TimerGateway getTimerGateway() {
         return getGateway(DEFAULT_TIMER);
+    }
+
+    /**
+     * Get the {@link ServletGateway} associated with this actor system (if present). Equivalent to calling
+     * {@code getGateway(DEFAULT_SERVLET)}.
+     * @return servlet gateway
+     * @throws IllegalArgumentException if no gateway with the prefix {@code DEFAULT_SERVLET} is found
+     * @throws ClassCastException if type of gateway is something other than {@link ServletGateway} -- this shouldn't be the case if
+     * {@link Builder#withServletGateway() } or one of its overloads were used
+     */
+    public ServletGateway getServletGateway() {
+        return getGateway(DEFAULT_SERVLET);
     }
 
     private static void bindGatewayToOthers(Gateway gateway, Collection<Gateway> allGateways) {

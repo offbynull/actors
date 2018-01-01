@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2018, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -63,13 +63,16 @@ final class DirectShuttle implements Shuttle {
             }
                 
             Address next = dst;
-            do {
+            while (true) {
                 Bus queue = readQueues.get(next);
                 if (queue != null) {
                     queue.add(m);
                 }
+                if (next.size() == 1) {
+                    break;
+                }
                 next = next.removeSuffix(1);
-            } while (next.size() >= 1);
+            }
         });
     }
     

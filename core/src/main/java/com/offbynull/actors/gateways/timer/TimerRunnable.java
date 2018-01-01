@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2018, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -181,8 +181,6 @@ final class TimerRunnable implements Runnable {
             Validate.notNull(from);
             Validate.notNull(to);
             Validate.notNull(message);
-            Validate.isTrue(!from.isEmpty());
-            Validate.isTrue(!to.isEmpty());
             this.sendTime = sendTime;
             this.from = from;
             this.to = to;

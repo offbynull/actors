@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2018, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -257,14 +257,13 @@ public final class Context implements Serializable {
      * @param destination destination address
      * @param message outgoing message
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code destination} is empty, or if {@code source} doesn't start with {@link #self()}
+     * @throws IllegalArgumentException if {@code source} doesn't start with {@link #self()}
      */
     public void out(Address source, Address destination, Object message) {
         Validate.notNull(source);
         Validate.notNull(destination);
         Validate.notNull(message);
         Validate.isTrue(self.isPrefixOf(source));
-        Validate.isTrue(!destination.isEmpty());
         outs.add(new BatchedOutgoingMessageCommand(source, destination, message));
     }
     
@@ -633,7 +632,6 @@ public final class Context implements Serializable {
             Validate.notNull(source);
             Validate.notNull(destination);
             Validate.notNull(message);
-            Validate.isTrue(!destination.isEmpty());
             this.source = source;
             this.destination = destination;
             this.message = message;

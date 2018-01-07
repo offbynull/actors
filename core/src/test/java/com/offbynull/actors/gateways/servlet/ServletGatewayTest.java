@@ -32,7 +32,7 @@ public final class ServletGatewayTest {
     // This is difficult to test because we need to spin up a full servlet container, but we can atleast add in a sanity test here
     @Test
     public void mustNotCrash() throws Throwable {
-        HttpServlet servlet = fixture.getServlet();
+        HttpServlet servlet = fixture.getMessageServlet();
         
         fixture.getIncomingShuttle().send(new Message("src:src", "servlet:test_id", "hi!"));
         

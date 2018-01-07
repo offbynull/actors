@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2018, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,7 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * {@link Gateway} that allows HTTP clients to send and receive messages via a servlet. To get the servlet such that you can add it to your
- * container, use {@link #getServlet() }.
+ * container, use {@link #getMessageServlet() }.
  * <p>
  * HTTP requests and responses are structured as JSON objects. If you're confused about why the offset fields are required, they're for
  * guarding against inconsistencies introduced by connectivity issues. Please read the {@link Store} documentation for more information.
@@ -112,7 +112,8 @@ public final class ServletGateway implements Gateway {
     
     private final CountDownLatch shutdownLatch;
 
-    private final MessageBridgeServlet servlet;
+    private final AddressServlet addressServlet;
+    private final MessageBridgeServlet messageServlet;
 
     /**
      * Create a {@link ServletGateway} instance. Equivalent to calling
@@ -172,7 +173,8 @@ public final class ServletGateway implements Gateway {
         
         outShuttles = new ConcurrentHashMap<>();
 
-        servlet = new MessageBridgeServlet(prefix, store, outShuttles, shutdownLatch);
+        messageServlet = new MessageBridgeServlet(prefix, store, outShuttles, shutdownLatch);
+        addressServlet = new AddressServlet(prefix, shutdownLatch);
     }
     
     @Override
@@ -210,12 +212,25 @@ public final class ServletGateway implements Gateway {
      * @return message bridge servlet
      * @throws IllegalStateException if this gateway is closed
      */
-    public HttpServlet getServlet() {
+    public HttpServlet getMessageServlet() {
         if (shutdownLatch.getCount() == 0L) { // latch will be at 0 when closed
             throw new IllegalStateException();
         }
 
-        return servlet;
+        return messageServlet;
+    }
+
+    /**
+     * Get the servlet used to generate random sub-addresses IDs for web clients.
+     * @return address servlet
+     * @throws IllegalStateException if this gateway is closed
+     */
+    public HttpServlet getAddressServlet() {
+        if (shutdownLatch.getCount() == 0L) { // latch will be at 0 when closed
+            throw new IllegalStateException();
+        }
+
+        return addressServlet;
     }
 
     @Override

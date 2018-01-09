@@ -308,7 +308,7 @@ public final class Address implements Serializable {
      * @return a copy of this address with the last {@code removeCount} address elements removed
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if the number of address elements in this address is less than {@code removeCount}, or if the
-     * {@code removeSuffix >= 0 || removeSuffix < this.length} (if {@code removeSuffix == this.length) the result would have no elements)
+     * {@code removeSuffix >= 0 || removeSuffix < this.length} (if {@code removeSuffix == this.length} the result would have no elements)
      */
     public Address removeSuffix(int count) {
         Validate.isTrue(count >= 0 && count < addressElements.size());

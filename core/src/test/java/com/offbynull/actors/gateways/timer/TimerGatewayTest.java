@@ -30,13 +30,13 @@ public class TimerGatewayTest {
     }
 
     @Test
-    public void mustEchoBackMessageAfter200Milliseconds() throws Exception {
+    public void mustEchoBackMessageAfter500Milliseconds() throws Exception {
         directGateway.listen("direct:tester");
         
-        directGateway.writeMessage("direct:tester:inner1:inner2", "timer:200:inner3:inner4", "payload");
-        Message echoed = directGateway.readMessage("direct:tester", 200 + 100 /* 100ms of padding */, TimeUnit.MILLISECONDS);
+        directGateway.writeMessage("direct:tester:inner1:inner2", "timer:500:inner3:inner4", "payload");
+        Message echoed = directGateway.readMessage("direct:tester", 500 + 250 /* 250ms of padding */, TimeUnit.MILLISECONDS);
         
-        assertEquals("timer:200:inner3:inner4", echoed.getSourceAddress().toString());
+        assertEquals("timer:500:inner3:inner4", echoed.getSourceAddress().toString());
         assertEquals("direct:tester:inner1:inner2", echoed.getDestinationAddress().toString());
         assertEquals("payload", echoed.getMessage());
     }
